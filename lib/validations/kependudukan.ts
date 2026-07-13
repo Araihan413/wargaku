@@ -60,6 +60,16 @@ export const createFamilySchema = z.object({
 });
 
 export const updateFamilySchema = createFamilySchema.partial().extend({
+  checkInDate: z.preprocess((arg) => {
+    if (arg === '' || arg === null || arg === undefined) return undefined;
+    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+    return arg;
+  }, z.date({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Tanggal masuk hunian wajib diisi'
+        : 'Format tanggal masuk tidak valid',
+  }).optional()),
   isActive: z.boolean().optional(),
   verificationStatus: z.enum(['pending', 'verified', 'rejected']).optional(),
   verificationNote: z.string().optional().nullable(),
