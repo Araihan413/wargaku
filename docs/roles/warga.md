@@ -39,7 +39,6 @@ Hak akses dan susunan menu sidebar akan beradaptasi secara dinamis berdasarkan h
     *   *Hak Akses*: Akses menulis penuh (**Check-In/Out**) kamar yang didelegasikan. Tidak bisa mengakses menu "Kelola Properti Pribadi".
 
 *   **Role Switcher (Peralihan Tampilan):** Jika Warga Tetap terpilih menjadi pengurus RT (RT/Sekretaris/Bendahara), terdapat tombol di sudut kanan atas profil untuk beralih mode tampilan ("Panel Pengurus" $\leftrightarrow$ "Tampilan Warga") guna merubah susunan menu sidebar secara dinamis.
-*   **Email Dinas (Dual-Login & Pemisahan Notifikasi):** Pengurus RT dapat menyetel Email Dinas agar email laporan aduan masuk/registrasi dikirim ke email dinas, sedangkan info iuran/surat pribadi dikirim ke email pribadi pengurus.
 *   **Pemisahan Notifikasi Internal (Dalam Sistem):** Notifikasi lonceng disaring otomatis berdasarkan Mode Tampilan aktif (`category = 'personal'` saat mode warga, dan `category = 'dinas'` saat mode pengurus).
 
 ---
