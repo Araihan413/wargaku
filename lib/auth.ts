@@ -20,12 +20,15 @@ export const auth = betterAuth({
   user: {
     // menambah kolom sesuai kabutuhan
     additionalFields: {
-      officialEmail: { type: 'string', required: false },
       nik: { type: 'string', required: false },
       phone: { type: 'string', required: false },
       photo: { type: 'string', required: false },
       roleId: { type: 'number', required: true },
       status: { type: 'string', required: true, defaultValue: 'pending' },
+      familyNumber: { type: 'string', required: false },
+      dwellingId: { type: 'number', required: false },
+      unitNumber: { type: 'string', required: false },
+      manualAddress: { type: 'string', required: false },
     },
   },
 });
