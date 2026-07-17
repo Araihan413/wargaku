@@ -2,24 +2,15 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Menu, ChevronDown, User, LogOut, Check, Shield } from "lucide-react";
+import { Menu, ChevronDown, User, LogOut, Check, Shield } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRoleStore } from "@/lib/store/use-role-store";
 import { toast } from "sonner";
+import { NotificationBell } from "./NotificationBell";
 
 interface NavbarProps {
   onOpenMobile: () => void;
   handleLogout: () => void;
-}
-
-interface NotificationItem {
-  id: number;
-  title: string;
-  message: string;
-  category: 'personal' | 'dinas';
-  isRead: boolean;
-  redirectLink: string | null;
-  createdAt: string;
 }
 
 // Map path to friendly Title
@@ -56,22 +47,6 @@ const getPageTitle = (pathname: string): string => {
   return "Sistem Smart RT";
 };
 
-// Helper for relative time formatting
-const formatRelativeTime = (dateStr: string): string => {
-  const now = new Date();
-  const past = new Date(dateStr);
-  const diffMs = now.getTime() - past.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return "Baru saja";
-  if (diffMins < 60) return `${diffMins} menit lalu`;
-  if (diffHours < 24) return `${diffHours} jam lalu`;
-  if (diffDays === 1) return "Kemarin";
-  return past.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-};
-
 // Role name mapping
 const getRoleLabel = (roleId: number): string => {
   switch (roleId) {
@@ -95,16 +70,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
   const { activeRoleId, setActiveRoleId, initialize } = useRoleStore();
 
   // Dropdown UI States
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [notificationsList, setNotificationsList] = useState<NotificationItem[]>([]);
-  
-  const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   // Switched Role Allowed Options
   const userBaseRoleId = user?.roleId || 6;
-  const isOfficer = userBaseRoleId >= 1 && userBaseRoleId <= 5;
+  const isOfficer = userBaseRoleId >= 2 && userBaseRoleId <= 5;
   
   const allowedRoles = React.useMemo(() => {
     return isOfficer ? [userBaseRoleId, 6] : [6];
@@ -117,12 +88,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
     }
   }, [userBaseRoleId, allowedRoles, initialize]);
 
-  // Click outside to close dropdowns
+  // Click outside to close profile dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setIsNotifOpen(false);
-      }
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
       }
@@ -130,77 +98,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Fetch on mount or when active role changes
-  useEffect(() => {
-    if (!activeRoleId) return;
-    let active = true;
-
-    const fetchNotifications = async () => {
-      try {
-        const category = activeRoleId === 6 ? "personal" : "dinas";
-        const res = await fetch(`/api/notifications?category=${category}`);
-        if (res.ok && active) {
-          const data = await res.json();
-          setNotificationsList(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch notifications:", error);
-      }
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // refresh every 1m
-
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, [activeRoleId]);
-
-  const unreadCount = notificationsList.filter((n) => !n.isRead).length;
-
-  // Mark all as read
-  const handleMarkAllRead = async () => {
-    if (!activeRoleId) return;
-    try {
-      const category = activeRoleId === 6 ? "personal" : "dinas";
-      const res = await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category }),
-      });
-      if (res.ok) {
-        setNotificationsList((prev) => prev.map((n) => ({ ...n, isRead: true })));
-        toast.success("Semua notifikasi ditandai dibaca");
-      }
-    } catch (error) {
-      console.error("Error marking all read:", error);
-      toast.error("Gagal menandai notifikasi");
-    }
-  };
-
-  // Mark specific notification as read and redirect
-  const handleNotificationClick = async (notif: NotificationItem) => {
-    setIsNotifOpen(false);
-    if (!notif.isRead) {
-      try {
-        await fetch("/api/notifications", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: notif.id }),
-        });
-        setNotificationsList((prev) =>
-          prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
-        );
-      } catch (err) {
-        console.error("Failed to mark single notification as read:", err);
-      }
-    }
-    if (notif.redirectLink) {
-      router.push(notif.redirectLink);
-    }
-  };
 
   // Handle Switch Role
   const handleSwitchRole = (roleId: number) => {
@@ -237,82 +134,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
       {/* Right section: Notification & Switched Profile Dropdown */}
       <div className="flex items-center gap-4">
         {/* Lonceng Notifikasi */}
-        <div className="relative" ref={notifRef}>
-          <button
-            type="button"
-            onClick={() => setIsNotifOpen(!isNotifOpen)}
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-gray-border bg-gray-card text-gray-heading-main hover:bg-gray-sidebar-hover hover:scale-[1.02] cursor-pointer transition-all duration-200"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white ring-2 ring-gray-card animate-pulse">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          {/* Notif Dropdown Panel */}
-          {isNotifOpen && (
-            <div className="absolute right-0 mt-2.5 z-50 w-80 rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-4 transition-all duration-200 animate-in fade-in slide-in-from-top-3">
-              <div className="flex items-center justify-between border-b border-gray-divider pb-2 mb-2">
-                <span className="text-xs font-bold text-gray-heading-main">
-                  Notifikasi ({activeRoleId === 6 ? "Warga" : "Dinas"})
-                </span>
-                {unreadCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleMarkAllRead}
-                    className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
-                  >
-                    Tandai semua dibaca
-                  </button>
-                )}
-              </div>
-
-              <div className="max-h-60 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-                {notificationsList.length > 0 ? (
-                  notificationsList.map((notif) => (
-                    <div
-                      key={notif.id}
-                      onClick={() => handleNotificationClick(notif)}
-                      className={`p-2.5 rounded-xl border transition-all cursor-pointer text-left ${
-                        notif.isRead
-                          ? "bg-gray-card border-gray-border hover:bg-gray-sidebar-hover"
-                          : "bg-primary/5 border-primary/20 hover:bg-primary/10"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-1 mb-0.5">
-                        <span className={`text-xs font-bold leading-tight ${notif.isRead ? 'text-gray-heading-main' : 'text-primary-900'}`}>
-                          {notif.title}
-                        </span>
-                        <span className="text-[9px] text-gray-secondary-text shrink-0">
-                          {formatRelativeTime(notif.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-gray-body-text-btn line-clamp-2 leading-relaxed">
-                        {notif.message}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-8 text-center">
-                    <span className="text-xs text-gray-placeholder">
-                      Tidak ada notifikasi baru
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <NotificationBell />
 
         {/* Switched Profile & Role Switcher */}
         <div className="relative" ref={profileRef}>
           <button
             type="button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2.5 rounded-xl border border-gray-border bg-gray-card p-1.5 pr-3 hover:bg-gray-sidebar-hover hover:scale-[1.01] cursor-pointer transition-all duration-200 text-left"
+            className="flex items-center gap-2.5 rounded-xl border border-gray-border bg-gray-card p-1.5 pr-3 hover:bg-gray-sidebar-hover cursor-pointer transition-all duration-200 text-left"
           >
             {/* Avatar */}
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-900-20 text-primary-900 border border-primary/20">

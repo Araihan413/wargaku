@@ -371,14 +371,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }`}>
                         {item.title}
                       </span>
+                      <ChevronDown
+                        className={`h-4 w-4 text-current transition-all duration-300 ml-auto ${
+                          isCollapsed 
+                            ? 'opacity-0 scale-0 pointer-events-none duration-150 delay-0 hidden' 
+                            : 'opacity-100 scale-100 duration-300 delay-200'
+                        } ${open ? "rotate-180" : ""}`}
+                      />
                     </div>
-                    <ChevronDown
-                      className={`h-4 w-4 text-current transition-all duration-300 ml-auto mr-3 ${
-                        isCollapsed 
-                          ? 'opacity-0 scale-0 pointer-events-none duration-150 delay-0 hidden' 
-                          : 'opacity-100 scale-100 duration-300 delay-200'
-                      } ${open ? "rotate-180" : ""}`}
-                    />
                   </button>
                 ) : (
                   <Link
@@ -401,25 +401,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Submenu Accordion Panel (Desktop Expanded / Mobile) */}
                 {hasSub && !isCollapsed && open && (
-                  <div className="mt-1 space-y-1">
+                  <div className="mt-1">
                     {item.subItems!.map((sub, idx) => {
                       const isSubActive = isActive(sub.href);
                       const isLast = idx === item.subItems!.length - 1;
                       return (
                         <div key={sub.href} className="relative pl-7">
+                          <div className="pb-1">
                           {/* Vertical Connector Path */}
                           <div
-                            className={`absolute left-4 top-0 w-px bg-gray-divider ${
-                              isLast ? "h-[18px]" : "bottom-0"
+                            className={`absolute left-4 top-0 w-0.5 bg-gray-divider ${
+                              isLast ? "h-0" : "bottom-0"
                             }`}
                           />
-                          {/* Horizontal Branch Siku Path */}
-                          <div className="absolute left-4 top-[18px] w-3 h-px bg-gray-divider" />
+                          {/* Horizontal Branch Lengkung Path */}
+                          <div className="absolute left-4 top-0 w-3 h-4.25 rounded-bl-md border-l-2 border-b-2 border-gray-divider" /> 
+                          
 
                           <Link
                             href={sub.href}
                             onClick={onCloseMobile}
-                            className={`flex rounded-xl py-2 px-3 text-xs font-semibold transition-colors ${
+                            className={`flex rounded-lg py-2 px-3 text-xs font-semibold transition-colors ${
                               isSubActive
                                 ? "bg-primary/10 text-primary font-bold"
                                 : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
@@ -427,6 +429,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           >
                             {sub.title}
                           </Link>
+                          </div>
                         </div>
                       );
                     })}
@@ -442,33 +445,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Floating Popover Submenu Panel (Desktop Collapsed Mode) */}
                 {hasSub && isCollapsed && (
-                  <div className="absolute left-full top-10 -ml-4 z-50 w-56 rounded-2xl border border-gray-border bg-gray-card/95 backdrop-blur-xl p-2.5 shadow-2xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 origin-top-left">
-                    <div className="space-y-1">
+                  <div className="absolute left-full top-10 -ml-4 z-50 w-56 rounded-xl border border-gray-border bg-gray-card/95 backdrop-blur-xl p-2.5 shadow-2xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 origin-top-left">
+                    <div>
                       {item.subItems!.map((sub, idx) => {
                         const isSubActive = isActive(sub.href);
                         const isLast = idx === item.subItems!.length - 1;
                         return (
-                          <div key={sub.href} className="relative pl-7 text-left">
-                            {/* Vertical Connector Path */}
-                            <div
-                              className={`absolute left-4 top-0 w-px bg-gray-divider ${
-                                isLast ? "h-[18px]" : "bottom-0"
+                          <div key={sub.href} className="relative pl-7 text-left"> 
+                            <div className="pb-1">
+                              {/* Vertical Connector Path */}
+                              <div
+                                className={`absolute left-4 top-0 w-0.5 bg-gray-divider ${
+                                isLast ? "h-0" : "bottom-0"
                               }`}
-                            />
-                            {/* Horizontal Branch Siku Path */}
-                            <div className="absolute left-4 top-[18px] w-3 h-px bg-gray-divider" />
+                              />
+                              {/* Horizontal Branch Lengkung Path */}
+                              <div className="absolute left-4 top-0 w-3 h-4.25 rounded-bl-md border-l-2 border-b-2 border-gray-divider" /> 
 
-                            <Link
-                              href={sub.href}
-                              onClick={onCloseMobile}
-                              className={`flex rounded-xl py-2 px-3 text-xs font-semibold transition-colors ${
-                                isSubActive
-                                  ? "bg-primary/10 text-primary font-bold"
-                                  : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
-                              }`}
-                            >
-                              {sub.title}
-                            </Link>
+                              <Link
+                                href={sub.href}
+                                onClick={onCloseMobile}
+                                className={`flex rounded-lg py-2 px-3 text-xs font-semibold transition-colors ${
+                                  isSubActive
+                                    ? "bg-primary/10 text-primary font-bold"
+                                    : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
+                                }`}
+                              >
+                                {sub.title}
+                              </Link>
+                             </div>
                           </div>
                         );
                       })}
