@@ -134,7 +134,7 @@ export async function GET(request: Request) {
     const offset = searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined;
     const query = searchParams.get('query') || undefined;
     const gender = searchParams.get('gender') as 'L' | 'P' || undefined;
-    const relationship = searchParams.get('relationship') as 'Kepala_Keluarga' | 'Istri' | 'Anak' | 'Orang_Tua' | 'Lainnya' || undefined;
+    const relationship = searchParams.get('relationship') as 'Kepala_Keluarga' | 'Suami' | 'Istri' | 'Anak' | 'Orang_Tua' | 'Lainnya' || undefined;
     
     let isActive: boolean | undefined = undefined;
     if (searchParams.get('isActive') !== null) {

@@ -113,7 +113,7 @@ export const createWargaSchema = z.object({
         : 'Jenis kelamin tidak valid',
   }),
   
-  relationship: z.enum(['Kepala_Keluarga', 'Istri', 'Anak', 'Orang_Tua', 'Lainnya'], {
+  relationship: z.enum(['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Lainnya'], {
     error: (issue) =>
       issue.input === undefined
         ? 'Hubungan keluarga wajib diisi'

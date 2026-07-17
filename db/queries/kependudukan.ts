@@ -368,7 +368,7 @@ export async function listFamilyMembers(options: {
   limit?: number;
   offset?: number;
   gender?: 'L' | 'P';
-  relationship?: 'Kepala_Keluarga' | 'Istri' | 'Anak' | 'Orang_Tua' | 'Lainnya';
+  relationship?: 'Kepala_Keluarga' | 'Suami' | 'Istri' | 'Anak' | 'Orang_Tua' | 'Lainnya';
   isActive?: boolean;
   query?: string;
 } = {}) {
