@@ -89,7 +89,7 @@ export async function POST(
 
     // Cek otorisasi kepemilikan untuk Koordinator Kost
     const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 
@@ -100,7 +100,7 @@ export async function POST(
       isActive: false,
       checkOutDate: validatedData.checkOutDate,
       inactiveReason: validatedData.inactiveReason,
-      updatedBy: Number(session.user.id),
+      updatedBy: session.user.id,
     });
 
     return NextResponse.json({ message: 'Penyewa berhasil check-out' });

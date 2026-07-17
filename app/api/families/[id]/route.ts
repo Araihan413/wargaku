@@ -127,7 +127,7 @@ export async function GET(
     }
 
     const hasViewPerm = await hasPermission(session.user.roleId, 'view-residents');
-    const isOwnFamily = family.headUserId === Number(session.user.id);
+    const isOwnFamily = family.headUserId === session.user.id;
     const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
     if (!hasViewPerm && !(hasOwnFamilyPerm && isOwnFamily)) {
@@ -167,7 +167,7 @@ export async function PUT(
     }
 
     const hasManagePerm = await hasPermission(session.user.roleId, 'manage-residents');
-    const isOwnFamily = family.headUserId === Number(session.user.id);
+    const isOwnFamily = family.headUserId === session.user.id;
     const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
     if (!hasManagePerm && !(hasOwnFamilyPerm && isOwnFamily)) {

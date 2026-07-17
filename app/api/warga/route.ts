@@ -176,7 +176,7 @@ export async function POST(request: Request) {
     }
 
     const hasManagePerm = await hasPermission(session.user.roleId, 'manage-residents');
-    const isOwnFamily = family.headUserId === Number(session.user.id);
+    const isOwnFamily = family.headUserId === session.user.id;
     const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
     if (!hasManagePerm && !(hasOwnFamilyPerm && isOwnFamily)) {

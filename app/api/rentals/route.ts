@@ -120,7 +120,7 @@ export async function GET(request: Request) {
 
     // Jika user adalah Koordinator Kost (roleId = 5), paksa filter coordinatorUserId
     const isKoordinatorKost = session.user.roleId === 5;
-    const coordinatorUserId = isKoordinatorKost ? Number(session.user.id) : undefined;
+    const coordinatorUserId = isKoordinatorKost ? session.user.id : undefined;
 
     const result = await listRentalProperties({
       limit,

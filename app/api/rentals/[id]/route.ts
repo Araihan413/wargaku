@@ -137,7 +137,7 @@ export async function GET(
 
     // Cek otorisasi kepemilikan untuk Koordinator Kost
     const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke properti ini' }, { status: 403 });
     }
 
@@ -180,7 +180,7 @@ export async function PUT(
 
     // Cek otorisasi kepemilikan untuk Koordinator Kost
     const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke properti ini' }, { status: 403 });
     }
 
@@ -188,7 +188,7 @@ export async function PUT(
 
     // Koordinator Kost tidak boleh mengganti koordinator ke orang lain
     if (isKoordinatorKost) {
-      body.coordinatorUserId = Number(session.user.id);
+      body.coordinatorUserId = session.user.id;
     }
 
     const validatedData = updateRentalPropertySchema.parse(body);
@@ -236,7 +236,7 @@ export async function DELETE(
 
     // Cek otorisasi kepemilikan untuk Koordinator Kost
     const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke properti ini' }, { status: 403 });
     }
 

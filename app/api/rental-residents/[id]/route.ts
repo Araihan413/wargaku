@@ -163,7 +163,7 @@ export async function GET(
 
     // Cek otorisasi kepemilikan untuk Koordinator Kost
     const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 
@@ -214,7 +214,7 @@ export async function PUT(
     const isKoordinatorKost = session.user.roleId === 5;
     
     // Cek otorisasi kepemilikan untuk Koordinator Kost
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 
@@ -243,7 +243,7 @@ export async function PUT(
     const validatedData = updateRentalResidentSchema.parse(updateData);
     await updateRentalResident(residentId, {
       ...validatedData,
-      updatedBy: Number(session.user.id),
+      updatedBy: session.user.id,
     });
 
     return NextResponse.json({ message: 'Data penghuni berhasil diperbarui' });
@@ -296,7 +296,7 @@ export async function DELETE(
     const isKoordinatorKost = session.user.roleId === 5;
 
     // Cek otorisasi kepemilikan untuk Koordinator Kost
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 

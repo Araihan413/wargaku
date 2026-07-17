@@ -156,7 +156,7 @@ export async function GET(
 
     if (hasOwnFamilyPerm) {
       const family = await getFamilyById(member.familyId);
-      if (family && family.headUserId === Number(session.user.id)) {
+      if (family && family.headUserId === session.user.id) {
         return NextResponse.json(member);
       }
     }
@@ -199,7 +199,7 @@ export async function PUT(
     }
 
     const hasManagePerm = await hasPermission(session.user.roleId, 'manage-residents');
-    const isOwnFamily = family.headUserId === Number(session.user.id);
+    const isOwnFamily = family.headUserId === session.user.id;
     const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
     if (!hasManagePerm && !(hasOwnFamilyPerm && isOwnFamily)) {
@@ -270,7 +270,7 @@ export async function DELETE(
     }
 
     const hasManagePerm = await hasPermission(session.user.roleId, 'manage-residents');
-    const isOwnFamily = family.headUserId === Number(session.user.id);
+    const isOwnFamily = family.headUserId === session.user.id;
     const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
     if (!hasManagePerm && !(hasOwnFamilyPerm && isOwnFamily)) {

@@ -163,7 +163,7 @@ export async function GET(
 
     // Cek otorisasi kepemilikan untuk Koordinator Kost
     const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke properti ini' }, { status: 403 });
     }
 
@@ -224,7 +224,7 @@ export async function POST(
 
     // Cek otorisasi kepemilikan untuk Koordinator Kost
     const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== Number(session.user.id)) {
+    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke properti ini' }, { status: 403 });
     }
 
@@ -251,7 +251,7 @@ export async function POST(
     const residentId = await createRentalResident({
       ...validatedData,
       rentalPropertyId: propertyId,
-      createdBy: Number(session.user.id),
+      createdBy: session.user.id,
     });
 
     return NextResponse.json(
