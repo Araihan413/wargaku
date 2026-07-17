@@ -107,7 +107,7 @@ export const familyMembers = mysqlTable('family_members', {
   birthPlace: varchar('birth_place', { length: 50 }),
   birthDate: date('birth_date'),
   gender: mysqlEnum('gender', ['L', 'P']).notNull(),
-  relationship: mysqlEnum('relationship', ['Kepala_Keluarga', 'Istri', 'Anak', 'Orang_Tua', 'Lainnya']).notNull(),
+  relationship: mysqlEnum('relationship', ['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Lainnya']).notNull(),
   occupation: varchar('occupation', { length: 50 }),
   educationLevel: varchar('education_level', { length: 50 }),
   phone: varchar('phone', { length: 15 }),

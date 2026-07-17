@@ -1,0 +1,1 @@
+ALTER TABLE `family_members` MODIFY COLUMN `relationship` enum('Kepala_Keluarga','Suami','Istri','Anak','Orang_Tua','Lainnya') NOT NULL;
