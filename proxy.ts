@@ -4,8 +4,8 @@ import type { NextRequest } from 'next/server';
 export function proxy(request: NextRequest) {
   // Ambil token sesi dari cookies (mendukung cookie lokal & secure di produksi)
   const sessionToken =
-    request.cookies.get('better-auth.session-token') ||
-    request.cookies.get('__secure-better-auth.session-token');
+    request.cookies.get('better-auth.session_token') ||
+    request.cookies.get('__secure-better-auth.session_token');
 
   const { pathname } = request.nextUrl;
 
@@ -18,9 +18,9 @@ export function proxy(request: NextRequest) {
   }
 
   // 2. Jika rute adalah login/register tetapi sesi sudah aktif, alihkan ke /dashboard
-  if (isAuthRoute && sessionToken) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
+  // if (isAuthRoute && sessionToken) {
+  //   return NextResponse.redirect(new URL('/dashboard', request.url));
+  // }
 
   return NextResponse.next();
 }
