@@ -14,103 +14,21 @@ import {
   Lock,
   Mail,
   Loader2,
-  Eye,
-  EyeOff,
   Home,
   User,
   Phone,
   FileText,
-  MapPin,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
 } from "lucide-react";
 
+import { FormField } from "@/components/FormField"; 
+import { DwellingDropdown } from "@/components/register/DwellingDropdown";
 interface DwellingOption {
   id: number;
   label: string;
 }
-
-interface FormFieldProps {
-  id: string;
-  label: string;
-  type: string;
-  required?: boolean;
-  placeholder: string;
-  icon: React.ComponentType<{ className?: string }>;
-  maxLength?: number;
-  note?: string;
-  isPassword?: boolean;
-  showPassword?: boolean;
-  setShowPassword?: (show: boolean) => void;
-  registerProps?: any;
-  error?: string;
-}
-
-const FormField: React.FC<FormFieldProps> = ({
-  id,
-  label,
-  type,
-  required = false,
-  placeholder,
-  icon: Icon,
-  maxLength,
-  note,
-  isPassword = false,
-  showPassword,
-  setShowPassword,
-  registerProps,
-  error,
-}) => {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2"
-      >
-        {label}
-      </label>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <Icon className="h-4 w-4 text-slate-400" />
-        </div>
-        <input
-          id={id}
-          type={type}
-          required={required}
-          maxLength={maxLength}
-          {...registerProps}
-          className={`block w-full rounded-xl border ${
-            error
-              ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
-              : "border-slate-200 bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-          } py-3 pl-10 ${
-            isPassword ? "pr-10" : "pr-3"
-          } text-slate-900 placeholder-slate-400 sm:text-sm outline-none transition-all`}
-          placeholder={placeholder}
-        />
-        {isPassword && setShowPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
-          >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </button>
-        )}
-      </div>
-      {error ? (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
-      ) : note ? (
-        <p className="text-[10px] text-slate-400 mt-1">{note}</p>
-      ) : null}
-    </div>
-  );
-};
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -176,7 +94,7 @@ export default function RegisterPage() {
       type: "tel",
       placeholder: "081234567890",
       icon: Phone,
-      note: "Digunakan untuk notifikasi pengaduan & surat.",
+      note: "Digunakan untuk di hubungi oleh RT/RW.",
       registerProps: register("phone", {
         onChange: (e) => {
           setValue("phone", e.target.value.replace(/\D/g, ""));
@@ -320,7 +238,7 @@ export default function RegisterPage() {
           },
         }
       );
-    } catch (error) {
+    } catch {
       setIsLoading(false);
       toast.error("Terjadi kesalahan sistem. Silakan coba lagi.");
     }
@@ -330,12 +248,12 @@ export default function RegisterPage() {
     <div className="flex justify-center items-center gap-8 md:gap-16 w-full max-w-4xl">
 
       {/* Right Column: Multi-step Register Card */}
-      <div className="w-full max-w-md bg-white/70 backdrop-blur-xl border border-slate-200/50 p-8 rounded-3xl shadow-xl self-center">
+      <div className="w-full max-w-md bg-gray-card/70 backdrop-blur-xl border border-gray-border/50 p-8 rounded-3xl shadow-xl self-center">
         <div className="flex flex-col items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-900 text-center">
+          <h2 className="text-2xl font-bold text-gray-heading-main text-center">
             Daftar Akun
           </h2>
-          <div className="">
+          <div className="mt-2">
             <Image 
               src={wargakuText}
               alt="Text Wargaku"
@@ -344,7 +262,7 @@ export default function RegisterPage() {
             />
           </div>
           
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-gray-secondary-text mt-1">
             Registrasi Mandiri Kepala Keluarga Baru
           </p>
 
@@ -353,18 +271,18 @@ export default function RegisterPage() {
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300 ${
                 step === 1
-                  ? "bg-indigo-600 text-white"
-                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400"
+                  ? "bg-primary text-white"
+                  : "bg-secondary-100 text-secondary-900"
               }`}
             >
               1. Akun & Kontak
             </span>
-            <span className="text-slate-300">/</span>
+            <span className="text-gray-divider">/</span>
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300 ${
                 step === 2
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-100 text-slate-400"
+                  ? "bg-primary text-white"
+                  : "bg-gray-sidebar-hover text-gray-placeholder"
               }`}
             >
               2. Kependudukan
@@ -372,9 +290,9 @@ export default function RegisterPage() {
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+          <div className="w-full bg-gray-sidebar-hover h-1.5 rounded-full mt-3 overflow-hidden">
             <div
-              className="bg-indigo-600 h-full transition-all duration-500 ease-out rounded-full"
+              className="bg-primary h-full transition-all duration-500 ease-out rounded-full"
               style={{ width: step === 1 ? "50%" : "100%" }}
             ></div>
           </div>
@@ -396,7 +314,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="group flex w-full justify-center items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 transition-all duration-200"
+                className="group flex w-full justify-center items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-900 shadow-lg shadow-primary/25 transition-all duration-200"
               >
                 Lanjut
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -412,69 +330,21 @@ export default function RegisterPage() {
               <FormField key={field.id} {...field} />
             ))}
 
-            {/* Dropdown Alamat Rumah */}
-            <div>
-              <label
-                htmlFor="dwellingSelect"
-                className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2"
-              >
-                Alamat Rumah tinggal
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <MapPin className="h-4 w-4 text-slate-400" />
-                </div>
-                <select
-                  id="dwellingSelect"
-                  value={isManualDwelling ? "manual" : (dwellingId || "")}
-                  onChange={(e) => {
-                    if (e.target.value === "manual") {
-                      setValue("isManualDwelling", true);
-                      setValue("dwellingId", "");
-                    } else {
-                      setValue("isManualDwelling", false);
-                      setValue("dwellingId", e.target.value);
-                    }
-                  }}
-                  className={`block w-full rounded-xl border ${
-                    errors.dwellingId ? "border-red-500" : "border-slate-200"
-                  } bg-white py-3 pl-10 pr-3 text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 sm:text-sm outline-none transition-all appearance-none`}
-                >
-                  <option value="" disabled>
-                    Pilih alamat rumah terdaftar...
-                  </option>
-                  {dwellingsList.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                  <option value="manual">➕ Input Alamat Manual / Rumah Baru</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <svg
-                    className="h-4 w-4 text-slate-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-              {errors.dwellingId && (
-                <p className="text-xs text-red-500 mt-1">{errors.dwellingId.message}</p>
-              )}
-            </div>
+            <DwellingDropdown
+              dwellingsList={dwellingsList}
+              dwellingId={dwellingId!}
+              isManualDwelling={isManualDwelling}
+              onSelect={(id, isManual) => {
+                setValue("isManualDwelling", isManual);
+                setValue("dwellingId", id);
+              }}
+              error={errors.dwellingId?.message}
+            />
 
             {/* Input Alamat Manual (Kondisional) */}
             {isManualDwelling && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 animation-all duration-300">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              <div className="p-4 bg-gray-page-bg border border-gray-border rounded-2xl space-y-3 animation-all duration-300">
+                <p className="text-[10px] font-bold text-gray-secondary-text uppercase tracking-wider">
                   Detail Alamat Baru
                 </p>
 
@@ -484,12 +354,12 @@ export default function RegisterPage() {
                     type="text"
                     {...register("streetName")}
                     className={`block w-full rounded-lg border ${
-                      errors.streetName ? "border-red-500" : "border-slate-200"
-                    } bg-white py-2 px-3 text-xs text-slate-900 placeholder-slate-400 focus:border-indigo-500 outline-none`}
+                      errors.streetName ? "border-error" : "border-gray-border"
+                    } bg-gray-card py-2 px-3 text-xs text-gray-heading-main placeholder-gray-placeholder focus:border-primary outline-none`}
                     placeholder="Nama Jalan / Gang (Contoh: Jl. Mawar)"
                   />
                   {errors.streetName && (
-                    <p className="text-[10px] text-red-500 mt-1">{errors.streetName.message}</p>
+                    <p className="text-[10px] text-error mt-1">{errors.streetName.message}</p>
                   )}
                 </div>
 
@@ -498,13 +368,13 @@ export default function RegisterPage() {
                   <input
                     type="text"
                     {...register("blockNumber")}
-                    className="block w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-900 placeholder-slate-400 focus:border-indigo-500 outline-none"
+                    className="block w-full rounded-lg border border-gray-border bg-gray-card py-2 px-3 text-xs text-gray-heading-main placeholder-gray-placeholder focus:border-primary outline-none"
                     placeholder="Blok (Contoh: A4)"
                   />
                   <input
                     type="text"
                     {...register("houseNumber")}
-                    className="block w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-900 placeholder-slate-400 focus:border-indigo-500 outline-none"
+                    className="block w-full rounded-lg border border-gray-border bg-gray-card py-2 px-3 text-xs text-gray-heading-main placeholder-gray-placeholder focus:border-primary outline-none"
                     placeholder="No. Rumah (Contoh: 12)"
                   />
                 </div>
@@ -527,7 +397,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="flex items-center justify-center gap-1.5 w-1/3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all duration-200"
+                className="flex items-center justify-center gap-1.5 w-1/3 rounded-2xl border border-gray-border px-4 py-3 text-sm font-semibold text-gray-body-text-btn hover:bg-gray-sidebar-hover transition-all duration-200"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Kembali
@@ -536,7 +406,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex flex-1 justify-center items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="flex flex-1 justify-center items-center gap-1.5 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-900 shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -551,12 +421,12 @@ export default function RegisterPage() {
           </form>
         )}
 
-        <div className="text-center pt-4 mt-6 border-t border-slate-100 dark:border-slate-800/80">
-          <p className="text-sm text-slate-600">
+        <div className="text-center pt-4 mt-6 border-t border-gray-divider">
+          <p className="text-sm text-gray-secondary-text">
             Sudah memiliki akun?{" "}
             <Link
               href="/login"
-              className="font-semibold text-indigo-600 hover:text-indigo-500"
+              className="font-semibold text-primary hover:text-primary-900"
             >
               Masuk Sekarang
             </Link>

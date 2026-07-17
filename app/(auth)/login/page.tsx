@@ -80,14 +80,14 @@ export default function LoginPage() {
       
       {/* Right Column: Login Card */}
       <div className="col-span-1">
-        <div className="w-full max-w-md space-y-8 bg-white/70 backdrop-blur-xl border border-slate-200/50 p-8 rounded-3xl shadow-xl self-center">
+        <div className="w-full max-w-md space-y-8 bg-gray-card/70 backdrop-blur-xl border border-gray-border/50 p-8 rounded-3xl shadow-xl self-center">
           <div className="flex flex-col items-center">
             {/* Logo / Icon */}
-            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
+            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-heading-main">
               Selamat Datang!
             </h2>
-            <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
-              Masuk untuk mengakses akun <span className="text-indigo-600 dark:text-indigo-400">Wargaku</span> anda.
+            <p className="mt-2 text-center text-sm text-gray-secondary-text">
+              Masuk untuk mengakses akun <span className="text-primary font-semibold">Wargaku</span> anda.
             </p>
           </div>
 
@@ -97,13 +97,13 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2"
+                  className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2"
                 >
                   Email
                 </label>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Mail className="h-5 w-5 text-slate-400" />
+                    <Mail className="h-5 w-5 text-gray-placeholder" />
                   </div>
                   <input
                     id="email"
@@ -112,14 +112,14 @@ export default function LoginPage() {
                     {...register("email")}
                     className={`block w-full rounded-xl border ${
                       errors.email
-                        ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
-                        : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                    } bg-white dark:bg-slate-900/50 py-3 pl-10 pr-3 text-slate-900 dark:text-white placeholder-slate-400 sm:text-sm transition-all outline-none`}
+                        ? "border-error focus:ring-error/20 focus:border-error"
+                        : "border-gray-border focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    } bg-gray-card py-3 pl-10 pr-3 text-gray-heading-main placeholder-gray-placeholder sm:text-sm transition-all outline-none`}
                     placeholder="name@example.com"
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+                  <p className="text-xs text-error mt-1">{errors.email.message}</p>
                 )}
               </div>
 
@@ -128,14 +128,14 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between mb-2">
                   <label
                     htmlFor="password"
-                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider"
+                    className="block text-sm font-semibold text-gray-body-text-btn tracking-wider"
                   >
                     Password
                   </label>
                 </div>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Lock className="h-5 w-5 text-slate-400" />
+                    <Lock className="h-5 w-5 text-gray-placeholder" />
                   </div>
                   <input
                     id="password"
@@ -144,15 +144,15 @@ export default function LoginPage() {
                     {...register("password")}
                     className={`block w-full rounded-xl border ${
                       errors.password
-                        ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
-                        : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                    } bg-white dark:bg-slate-900/50 py-3 pl-10 pr-10 text-slate-900 dark:text-white placeholder-slate-400 sm:text-sm transition-all outline-none`}
+                        ? "border-error focus:ring-error/20 focus:border-error"
+                        : "border-gray-border focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    } bg-gray-card py-3 pl-10 pr-10 text-gray-heading-main placeholder-gray-placeholder sm:text-sm transition-all outline-none`}
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-placeholder hover:text-gray-heading-small"
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -162,7 +162,7 @@ export default function LoginPage() {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+                  <p className="text-xs text-error mt-1">{errors.password.message}</p>
                 )}
               </div>
             </div>
@@ -170,11 +170,11 @@ export default function LoginPage() {
             <div className="flex justify-between">
               <div className="flex gap-2 justify-center items-center">
                 <input type="checkbox" className="w-4 h-4 cursor-pointer"/>
-                <p className="text-sm">Ingat Saya</p>
+                <p className="text-sm text-gray-body-text-btn">Ingat Saya</p>
               </div>
               <div>
                 <button className="cursor-pointer">
-                  <p className="text-sm text-indigo-400 hover:text-indigo-500">Lupa Password?</p>
+                  <p className="text-sm text-primary-400 hover:text-primary">Lupa Password?</p>
                 </button>
               </div>
             </div>
@@ -183,7 +183,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative flex w-full justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-600/25 transition-all duration-200"
+                className="group relative flex w-full justify-center rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25 transition-all duration-200"
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -194,12 +194,12 @@ export default function LoginPage() {
             </div>
           </form>
 
-          <div className="text-center pt-4 border-t border-slate-100 dark:border-slate-800/80">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+          <div className="text-center pt-4 border-t border-gray-divider">
+            <p className="text-sm text-gray-secondary-text">
               Belum punya akun warga?{" "}
               <Link
                 href="/register"
-                className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                className="font-semibold text-primary hover:text-primary-900"
               >
                 Daftar Mandiri
               </Link>
