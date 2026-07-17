@@ -22,7 +22,7 @@ export async function listRentalProperties(options: {
   limit?: number;
   offset?: number;
   query?: string;
-  coordinatorUserId?: number;
+  coordinatorUserId?: string;
   isActive?: boolean;
 } = {}) {
   try {
@@ -255,7 +255,7 @@ export async function getRentalResidentByNik(nik: string) {
   }
 }
 
-export async function createRentalResident(data: CreateRentalResidentInput & { rentalPropertyId: number; createdBy: number }) {
+export async function createRentalResident(data: CreateRentalResidentInput & { rentalPropertyId: number; createdBy: string }) {
   // Parsing menggunakan validation schema
   const validated = createRentalResidentSchema.parse(data);
   try {
@@ -283,7 +283,7 @@ export async function createRentalResident(data: CreateRentalResidentInput & { r
   }
 }
 
-export async function updateRentalResident(id: number, data: UpdateRentalResidentInput & { updatedBy?: number }) {
+export async function updateRentalResident(id: number, data: UpdateRentalResidentInput & { updatedBy?: string }) {
   const validated = updateRentalResidentSchema.parse(data);
   try {
     const updateData: any = {

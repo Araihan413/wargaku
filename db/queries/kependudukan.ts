@@ -126,7 +126,7 @@ export async function getFamilyByNumber(familyNumber: string) {
 /**
  * Mengambil KK berdasarkan headUserId (Kepala Keluarga).
  */
-export async function getFamilyByHeadUserId(headUserId: number) {
+export async function getFamilyByHeadUserId(headUserId: string) {
   try {
     const [family] = await db
       .select()

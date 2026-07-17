@@ -24,7 +24,7 @@ export const roles = mysqlTable('roles', {
 
 // 1. users
 export const users = mysqlTable('users', {
-  id: int('id').autoincrement().primaryKey(),
+  id: varchar('id', { length: 255 }).primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
   email: varchar('email', { length: 100 }).notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
@@ -68,7 +68,7 @@ export const dwellings = mysqlTable('dwellings', {
   streetName: varchar('street_name', { length: 100 }).notNull(),
   blockNumber: varchar('block_number', { length: 20 }),
   houseNumber: varchar('house_number', { length: 20 }),
-  ownerUserId: int('owner_user_id').references(() => users.id),
+  ownerUserId: varchar('owner_user_id', { length: 255 }).references(() => users.id),
   ownerName: varchar('owner_name', { length: 100 }),
   ownerPhone: varchar('owner_phone', { length: 15 }),
   qrToken: varchar('qr_token', { length: 100 }).notNull().unique(),
@@ -85,7 +85,7 @@ export const families = mysqlTable('families', {
   id: int('id').autoincrement().primaryKey(),
   dwellingId: int('dwelling_id').notNull().references(() => dwellings.id),
   familyNumber: varchar('family_number', { length: 20 }).notNull(),
-  headUserId: int('head_user_id').notNull().references(() => users.id),
+  headUserId: varchar('head_user_id', { length: 255 }).notNull().references(() => users.id),
   headName: varchar('head_name', { length: 100 }).notNull(),
   unitNumber: varchar('unit_number', { length: 10 }),
   kkFile: varchar('kk_file', { length: 255 }),
@@ -123,7 +123,7 @@ export const rentalProperties = mysqlTable('rental_properties', {
   id: int('id').autoincrement().primaryKey(),
   dwellingId: int('dwelling_id').notNull().references(() => dwellings.id),
   name: varchar('name', { length: 100 }).notNull(),
-  coordinatorUserId: int('coordinator_user_id').references(() => users.id),
+  coordinatorUserId: varchar('coordinator_user_id', { length: 255 }).references(() => users.id),
   contactPerson: varchar('contact_person', { length: 100 }),
   phone: varchar('phone', { length: 15 }),
   totalRooms: int('total_rooms').notNull().default(0),
@@ -150,8 +150,8 @@ export const rentalResidents = mysqlTable('rental_residents', {
   ktpFile: varchar('ktp_file', { length: 255 }),
   verificationStatus: mysqlEnum('verification_status', ['pending', 'verified', 'rejected']).notNull().default('pending'),
   verificationNote: text('verification_note'),
-  createdBy: int('created_by').notNull().references(() => users.id),
-  updatedBy: int('updated_by').references(() => users.id),
+  createdBy: varchar('created_by', { length: 255 }).notNull().references(() => users.id),
+  updatedBy: varchar('updated_by', { length: 255 }).references(() => users.id),
   isActive: boolean('is_active').notNull().default(true),
   inactiveReason: mysqlEnum('inactive_reason', ['pindah', 'meninggal']),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -168,8 +168,8 @@ export const cashTransactions = mysqlTable('cash_transactions', {
   description: text('description'),
   receiptFile: varchar('receipt_file', { length: 255 }),
   status: mysqlEnum('status', ['pending', 'approved']).notNull().default('pending'),
-  createdBy: int('created_by').notNull().references(() => users.id),
-  approvedBy: int('approved_by').references(() => users.id),
+  createdBy: varchar('created_by', { length: 255 }).notNull().references(() => users.id),
+  approvedBy: varchar('approved_by', { length: 255 }).references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -182,7 +182,7 @@ export const announcements = mysqlTable('announcements', {
   category: mysqlEnum('category', ['umum', 'penting', 'mendesak']).notNull(),
   isPinned: boolean('is_pinned').notNull().default(false),
   pinUntil: timestamp('pin_until'),
-  createdBy: int('created_by').notNull().references(() => users.id),
+  createdBy: varchar('created_by', { length: 255 }).notNull().references(() => users.id),
   publishedAt: timestamp('published_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -196,7 +196,7 @@ export const activities = mysqlTable('activities', {
   eventDate: datetime('event_date').notNull(),
   location: varchar('location', { length: 255 }),
   isPinned: boolean('is_pinned').notNull().default(false),
-  createdBy: int('created_by').notNull().references(() => users.id),
+  createdBy: varchar('created_by', { length: 255 }).notNull().references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -211,8 +211,8 @@ export const letters = mysqlTable('letters', {
   notes: text('notes'),
   supportingDocument: varchar('supporting_document', { length: 255 }),
   status: mysqlEnum('status', ['menunggu_review', 'sedang_diproses', 'siap_diambil', 'selesai', 'ditolak']).notNull().default('menunggu_review'),
-  createdBy: int('created_by').references(() => users.id),
-  approvedBy: int('approved_by').references(() => users.id),
+  createdBy: varchar('created_by', { length: 255 }).references(() => users.id),
+  approvedBy: varchar('approved_by', { length: 255 }).references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -229,7 +229,7 @@ export const complaints = mysqlTable('complaints', {
   dwellingId: int('dwelling_id').references(() => dwellings.id),
   status: mysqlEnum('status', ['menunggu', 'proses', 'selesai', 'ditolak']).notNull().default('menunggu'),
   responseNote: text('response_note'),
-  handledBy: int('handled_by').references(() => users.id),
+  handledBy: varchar('handled_by', { length: 255 }).references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   resolvedAt: timestamp('resolved_at'),
 });
@@ -237,7 +237,7 @@ export const complaints = mysqlTable('complaints', {
 // 15. activity_logs
 export const activityLogs = mysqlTable('activity_logs', {
   id: int('id').autoincrement().primaryKey(),
-  userId: int('user_id').notNull().references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => users.id),
   action: varchar('action', { length: 50 }).notNull(),
   module: varchar('module', { length: 50 }).notNull(),
   description: text('description'),
@@ -248,10 +248,10 @@ export const activityLogs = mysqlTable('activity_logs', {
 // 16. smart_groups
 export const smartGroups = mysqlTable('smart_groups', {
   id: int('id').autoincrement().primaryKey(),
-  rtId: int('rt_id').notNull().references(() => users.id),
+  rtId: varchar('rt_id', { length: 255 }).notNull().references(() => users.id),
   name: varchar('name', { length: 100 }).notNull(),
   queryRules: json('query_rules').notNull(),
-  createdBy: int('created_by').notNull().references(() => users.id),
+  createdBy: varchar('created_by', { length: 255 }).notNull().references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -259,11 +259,11 @@ export const smartGroups = mysqlTable('smart_groups', {
 // 17. fee_rules
 export const feeRules = mysqlTable('fee_rules', {
   id: int('id').autoincrement().primaryKey(),
-  rtId: int('rt_id').notNull().references(() => users.id),
+  rtId: varchar('rt_id', { length: 255 }).notNull().references(() => users.id),
   name: varchar('name', { length: 100 }).notNull(),
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   isMandatory: boolean('is_mandatory').notNull().default(true),
-  createdBy: int('created_by').notNull().references(() => users.id),
+  createdBy: varchar('created_by', { length: 255 }).notNull().references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -280,7 +280,7 @@ export const feePayments = mysqlTable('fee_payments', {
   paymentMethod: mysqlEnum('payment_method', ['cash', 'transfer']),
   status: mysqlEnum('status', ['unpaid', 'partially_paid', 'paid']).notNull().default('unpaid'),
   isMandatory: boolean('is_mandatory').notNull().default(true),
-  recordedBy: int('recorded_by').references(() => users.id),
+  recordedBy: varchar('recorded_by', { length: 255 }).references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -288,7 +288,7 @@ export const feePayments = mysqlTable('fee_payments', {
 // 19. notifications
 export const notifications = mysqlTable('notifications', {
   id: int('id').autoincrement().primaryKey(),
-  userId: int('user_id').notNull().references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => users.id),
   title: varchar('title', { length: 150 }).notNull(),
   message: text('message').notNull(),
   category: mysqlEnum('category', ['personal', 'dinas']).notNull(),
@@ -323,7 +323,7 @@ export const sessions = mysqlTable('sessions', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: text('user_agent'),
-  userId: int('user_id').notNull().references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => users.id),
 });
 
 // Better Auth - accounts
@@ -331,7 +331,7 @@ export const accounts = mysqlTable('accounts', {
   id: varchar('id', { length: 255 }).primaryKey(),
   accountId: varchar('account_id', { length: 255 }).notNull(),
   providerId: varchar('provider_id', { length: 255 }).notNull(),
-  userId: int('user_id').notNull().references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => users.id),
   accessToken: text('access_token'),
   refreshToken: text('refresh_token'),
   idToken: text('id_token'),

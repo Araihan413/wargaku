@@ -24,12 +24,12 @@ export const createFamilySchema = z.object({
         : 'Nomor Kartu Keluarga harus berupa teks',
   }).regex(kkNumberRegex, 'Nomor Kartu Keluarga harus terdiri dari 16 digit angka'),
   
-  headUserId: z.number({
+  headUserId: z.string({
     error: (issue) =>
       issue.input === undefined
         ? 'ID User Kepala Keluarga wajib diisi'
-        : 'ID User Kepala Keluarga harus berupa angka',
-  }).int().positive(),
+        : 'ID User Kepala Keluarga harus berupa teks',
+  }),
   
   headName: z.string({
     error: (issue) =>

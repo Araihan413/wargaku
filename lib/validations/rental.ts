@@ -19,7 +19,7 @@ export const createRentalPropertySchema = z.object({
   }).min(2, 'Nama properti minimal 2 karakter')
     .max(100, 'Nama properti maksimal 100 karakter'),
     
-  coordinatorUserId: z.number().int().positive().optional().nullable(),
+  coordinatorUserId: z.string().optional().nullable(),
   contactPerson: z.string().max(100, 'Nama kontak maksimal 100 karakter').optional().nullable(),
   
   phone: z.string()

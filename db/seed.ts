@@ -166,7 +166,7 @@ async function main() {
   if (existingAdmins.length === 0) {
     // Tambahkan user
     await db.insert(schema.users).values({
-      id: 1,
+      id: '1',
       name: 'Super Admin Utama',
       email: adminEmail,
       password: hashedPassword,
@@ -179,7 +179,7 @@ async function main() {
       id: 'admin-credential-id',
       accountId: adminEmail,
       providerId: 'credential',
-      userId: 1,
+      userId: '1',
       password: hashedPassword,
     });
 
