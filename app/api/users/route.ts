@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
-import { listUsers, createUser, listRoles } from "@/db/queries/users";
+import { listUsers, listRoles } from "@/db/queries/users";
 import { createUserSchema } from "@/lib/validations/user";
 import { hashPassword } from "better-auth/crypto";
 import { randomUUID } from "crypto";
@@ -139,16 +139,38 @@ export async function POST(request: Request) {
     const hashedPassword = await hashPassword(validatedData.password);
     const userId = randomUUID();
 
-    const newUser = await createUser({
-      id: userId,
-      name: validatedData.name,
-      email: validatedData.email,
-      password: hashedPassword,
-      nik: validatedData.nik || null,
-      phone: validatedData.phone || null,
-      roleId: validatedData.roleId,
-      status: validatedData.status || "active",
-      emailVerified: false,
+    const newUser = await db.transaction(async (tx) => {
+      // 1. Insert user
+      await tx.insert(schema.users).values({
+        id: userId,
+        name: validatedData.name,
+        email: validatedData.email,
+        password: hashedPassword,
+        nik: validatedData.nik || null,
+        phone: validatedData.phone || null,
+        roleId: validatedData.roleId,
+        status: validatedData.status || "active",
+        emailVerified: false,
+      });
+
+      // 2. Insert account for Better Auth credentials
+      await tx.insert(schema.accounts).values({
+        id: randomUUID(),
+        accountId: validatedData.email,
+        providerId: "credential",
+        userId: userId,
+        password: hashedPassword,
+      });
+
+      return {
+        id: userId,
+        name: validatedData.name,
+        email: validatedData.email,
+        nik: validatedData.nik || null,
+        phone: validatedData.phone || null,
+        roleId: validatedData.roleId,
+        status: validatedData.status || "active",
+      };
     });
 
     return NextResponse.json({

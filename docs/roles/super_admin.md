@@ -32,10 +32,12 @@ Ketika Super Admin login, menu sidebar utama meliputi:
     *   `Aduan Warga Aktif`: Laporan keluhan warga yang berstatus `Menunggu` atau `Proses`.
 *   **SA-02: Manajemen Pengguna (User Account Management - CRUD)**
     Pengelolaan siklus hidup akun pengguna sistem Wargaku:
-    *   **Tambah Pengguna Manual:** Pengisian form (Nama, Email, NIK unik, Pilihan Role) untuk registrasi cepat.
-    *   **Suspend / Aktivasi Akun:** Tombol toggle untuk menangguhkan akun secara sementara (misal warga yang melanggar aturan atau pindah wilayah) sehingga tidak bisa login, dan mengaktifkannya kembali.
-    *   **Reset Password:** Mengirimkan tautan reset password otomatis ke email warga atau me-reset password menjadi default sistem secara manual.
-    *   **Mutasi Peran (Role Mutation):** Mengubah wewenang/hak akses pengguna secara langsung (misal mempromosikan warga biasa menjadi Sekretaris atau Bendahara). Perubahan ini **hanya memperbarui kolom `role` di tabel `users`** untuk hak akses dashboard, **tanpa mengganggu atau mengubah data kependudukan** mereka di tabel `families` (sebagai Kepala Keluarga) maupun `family_members`. Pengurus RT yang dimutasi tetap dapat mengakses fitur warga pribadinya secara normal.
+    *   **Tambah Pengguna Manual:** Pengisian form (Nama, Email, NIK unik, Pilihan Role) untuk registrasi cepat. Maksimal 2 akun Super Admin aktif/pending di sistem.
+    *   **Suspend / Aktivasi Akun:** Tombol toggle untuk menangguhkan akun secara sementara sehingga tidak bisa login. Akun Super Admin tidak dapat ditangguhkan oleh diri sendiri atau oleh sesama Super Admin (status dilindungi). Proses aktivasi kembali (*unsuspend*) akun Super Admin divalidasi agar tidak melebihi batas maksimal 2 akun aktif.
+    *   **Reset Password:** Mekanisme pemulihan akun yang aman menggunakan prinsip *Zero-Knowledge* dengan pembagian alur:
+        *   **Alur A (Warga, Pengurus, & Admin Biasa):** Super Admin menginisiasi pengiriman Link Reset unik (aktif 30 menit) ke email/WA pengguna tanpa mengetahui password baru. Pengguna mengisi password baru secara mandiri.
+        *   **Alur B (Super Admin):** Super Admin A menginisiasi reset untuk Super Admin B. Link Reset otomatis dikirim ke email Super Admin B. Jika email tidak tersedia (misal akun dummy dev), sistem melakukan *forced random password generation* yang hanya ditampilkan sekali di layar Super Admin A untuk diserahkan secara offline/lisan kepada Super Admin B.
+    *   **Mutasi Peran (Role Mutation):** Mengubah wewenang/hak akses warga/pengurus secara langsung (misal mempromosikan warga biasa menjadi Sekretaris atau Bendahara). Fitur mutasi ini terkunci untuk akun Super Admin: pilihan "Super Admin" dihilangkan dari dropdown mutasi peran, akun Super Admin tidak dapat dimutasi ke peran operasional lain, dan peran operasional tidak dapat dimutasi menjadi Super Admin (Super Admin baru hanya bisa dibuat secara bersih via Tambah Pengguna Baru). Perubahan peran operasional **hanya memperbarui kolom `role` di tabel `users`** tanpa mengganggu data kependudukan mereka di tabel `families` maupun `family_members`.
 *   **SA-03: Manajemen Role & Permission (Dynamic RBAC Matrix)**
     Mengatur pembagian hak akses fitur secara modular dan dinamis:
     *   **Matriks Hak Akses:** Tabel visual dengan baris berisi 6 role (Super Admin, Ketua RT, Sekretaris, Bendahara, Koordinator Properti Sewa, Warga) dan kolom berisi izin modul (`read_kependudukan`, `write_kependudukan`, `read_kas`, `write_kas`, `approve_kas`, `manage_surat`, `manage_properti`, `manage_complaint`, dll.).
@@ -57,6 +59,10 @@ Ketika Super Admin login, menu sidebar utama meliputi:
     Catatan riwayat transaksi data yang tidak dapat dimanipulasi oleh pengguna lain untuk melacak kebocoran data atau kecurangan keuangan:
     *   **Deteksi Aksi:** Log merekam aksi login, tambah data, edit data, hapus data, serta perubahan status verifikasi dokumen/kas.
     *   **Metadata Log:** Setiap log mencantumkan `Timestamp` (waktu), `Pelaku` (Nama & NIK), `Modul terkait` (Kependudukan, Keuangan, Surat), `Deskripsi Detail` (contoh: *"Mengubah saldo kas keluar Rp 500.000 menjadi Approved"*), serta `IP Address & User Agent` pelaku.
+*   **SA-09: Isolasi Peran & Integrasi NIK Profil (Role Isolation & Profile NIK)**
+    Pencegahan pencampuran data operasional dan data administratif:
+    *   **Lock Mode Tampilan:** Akun Super Admin terkunci sepenuhnya pada mode administrasi global. Menu switch role (beralih mode tampilan ke Warga/Pengurus) dinonaktifkan seluruhnya dari dropdown profil.
+    *   **Integrasi NIK Profil:** Jika Super Admin memiliki NIK yang terdaftar sebagai warga di wilayah RT setempat (tabel `family_members`), data kependudukan pribadi miliknya (anggota keluarga, KK, alamat) dapat dibaca secara otomatis di profilnya dalam format read-only tanpa harus berpindah ke dashboard warga.
 
 ---
 
@@ -136,3 +142,34 @@ flowchart TD
     G --> I[Selesai]
     H --> I
 ```
+
+### 4.4 Flow Reset Password (Zero-Knowledge)
+
+```mermaid
+flowchart TD
+    A[Mulai] --> B[Super Admin klik Reset Password di detail/profil user]
+    B --> C{Apakah target user memiliki peran Super Admin?}
+    
+    %% Alur A: Warga, Pengurus & Admin Biasa
+    C -->|Tidak - Alur A| D[Tampil Modal Konfirmasi: Kirim link reset ke email/WA?]
+    D --> E[Super Admin klik Konfirmasi]
+    E --> F[Sistem bangkitkan Token unik exp. 30 menit]
+    F --> G[Sistem kirim LINK reset ke email/WA user]
+    G --> H[Super Admin melihat notifikasi terkirim]
+    H --> I[User klik link -> Diarahkan ke halaman Buat Password Baru]
+    I --> J[User input password baru min. 8 karakter & Simpan]
+    J --> K[Password terupdate & User bisa login]
+    
+    %% Alur B: Target adalah Super Admin B
+    C -->|Ya - Alur B| L{Apakah Super Admin B memiliki email terdaftar?}
+    L -->|Ya| M[Sistem langsung kirim Link Reset ke email Super Admin B]
+    M --> I
+    L -->|Tidak/Dummy Dev| N[Sistem paksa generate password random secara otomatis]
+    N --> O[Sistem menampilkan password baru di layar Super Admin A HANYA 1 kali]
+    O --> P[Super Admin A menyerahkan password secara lisan/offline ke Super Admin B]
+    P --> Q[Super Admin B login menggunakan password random tersebut]
+    
+    K --> R[Selesai]
+    Q --> R
+```
+

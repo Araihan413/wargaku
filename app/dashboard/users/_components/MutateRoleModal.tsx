@@ -106,10 +106,12 @@ export const MutateRoleModal: React.FC<MutateRoleModalProps> = ({
             <CustomSelect
               value={targetRoleId.toString()}
               onChange={(val) => setTargetRoleId(val ? parseInt(val, 10) : "")}
-              options={roles.map((r) => ({
-                value: r.id.toString(),
-                label: r.name,
-              }))}
+              options={roles
+                .filter((r) => r.id !== 1)
+                .map((r) => ({
+                  value: r.id.toString(),
+                  label: r.name,
+                }))}
               placeholder="Pilih Peran Baru"
             />
           </div>

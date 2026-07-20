@@ -78,6 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
   const isOfficer = userBaseRoleId >= 2 && userBaseRoleId <= 5;
   
   const allowedRoles = React.useMemo(() => {
+    if (userBaseRoleId === 1) return [1];
     return isOfficer ? [userBaseRoleId, 6] : [6];
   }, [isOfficer, userBaseRoleId]);
 

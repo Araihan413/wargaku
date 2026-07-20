@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
-import { updateUserRole, updateUserStatus, updateUserPassword } from "@/db/queries/users";
+import { updateUserRole, updateUserStatus } from "@/db/queries/users";
 import { hashPassword } from "better-auth/crypto";
+import { randomUUID } from "crypto";
 import 'dotenv/config';
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -57,27 +58,20 @@ export async function PATCH(
         );
       }
 
-      // [S-02] Mutual SA protection: block editing another SA's roleId
-      if (targetRoleId === 1 && id !== session.user.id && validatedData.roleId !== 1) {
+      // [S-02] Mutual SA protection: block editing another SA's profile entirely
+      if (targetRoleId === 1 && id !== session.user.id) {
         return NextResponse.json(
-          { error: "Akun Super Admin lain tidak dapat diubah perannya" },
+          { error: "Profil akun Super Admin lain tidak dapat diubah" },
           { status: 403 }
         );
       }
 
-      // [S-03] Max 2 SA limit when promoting to SA
+      // [S-03] Cannot promote anyone to Super Admin via profile update (must use Add User instead)
       if (validatedData.roleId === 1 && targetRoleId !== 1) {
-        const existingSuperAdmins = await db
-          .select({ id: schema.users.id })
-          .from(schema.users)
-          .where(and(eq(schema.users.roleId, 1), ne(schema.users.status, "suspended")));
-
-        if (existingSuperAdmins.length >= 2) {
-          return NextResponse.json(
-            { error: "Batas maksimum 2 akun Super Admin aktif/pending telah tercapai" },
-            { status: 400 }
-          );
-        }
+        return NextResponse.json(
+          { error: "Mutasi ke peran Super Admin tidak diizinkan melalui pembaruan profil" },
+          { status: 400 }
+        );
       }
 
       // Check NIK duplicate (excluding this user)
@@ -192,24 +186,17 @@ export async function PATCH(
       // [S-02] Mutual SA protection: cannot mutate another SA's role
       if (targetRoleIdForMutate === 1) {
         return NextResponse.json(
-          { error: "Peran akun Super Admin lain tidak dapat diubah melalui fitur ini" },
+          { error: "Peran akun Super Admin lain tidak dapat diubah" },
           { status: 403 }
         );
       }
 
-      // [S-03] Max 2 SA limit when promoting to SA
+      // [S-03] Cannot mutate any user to Super Admin (SA must be created from scratch)
       if (roleId === 1) {
-        const existingSuperAdmins = await db
-          .select({ id: schema.users.id })
-          .from(schema.users)
-          .where(and(eq(schema.users.roleId, 1), ne(schema.users.status, "suspended")));
-
-        if (existingSuperAdmins.length >= 2) {
-          return NextResponse.json(
-            { error: "Batas maksimum 2 akun Super Admin aktif/pending telah tercapai" },
-            { status: 400 }
-          );
-        }
+        return NextResponse.json(
+          { error: "Peran Super Admin tidak dapat diberikan melalui mutasi peran" },
+          { status: 400 }
+        );
       }
 
       // Check if trying to mutate to an RT officer role (2, 3, or 4) and it already exists active
@@ -265,26 +252,46 @@ export async function PATCH(
         .where(eq(schema.users.id, id))
         .limit(1);
 
-      // [S-02] Mutual SA protection: cannot suspend another SA
+      // [S-02] Mutual SA protection: cannot suspend/activate another SA
       if (targetUserForSuspend[0]?.roleId === 1) {
         return NextResponse.json(
-          { error: "Akun Super Admin lain tidak dapat ditangguhkan melalui fitur ini" },
+          { error: "Status akun Super Admin lain tidak dapat diubah" },
           { status: 403 }
         );
       }
 
-      // If unsuspending/activating, check if they are an RT officer and another active officer already exists
-      if (status === "active") {
-        const userToActivate = targetUserForSuspend;
+      // If unsuspending/activating, check limits
+      if (status === "active" && targetUserForSuspend.length > 0) {
+        const targetRoleId = targetUserForSuspend[0].roleId;
 
-        if (userToActivate.length > 0 && [2, 3, 4].includes(userToActivate[0].roleId)) {
-          const roleId = userToActivate[0].roleId;
+        // [S-03] Limit active/pending Super Admins to max 2 when activating
+        if (targetRoleId === 1) {
+          const existingSuperAdmins = await db
+            .select({ id: schema.users.id })
+            .from(schema.users)
+            .where(
+              and(
+                eq(schema.users.roleId, 1),
+                ne(schema.users.status, "suspended")
+              )
+            );
+
+          if (existingSuperAdmins.length >= 2) {
+            return NextResponse.json(
+              { error: "Batas maksimum 2 akun Super Admin aktif/pending telah tercapai" },
+              { status: 400 }
+            );
+          }
+        }
+
+        // Check if target is an RT officer and another active officer already exists
+        if ([2, 3, 4].includes(targetRoleId)) {
           const existingOfficer = await db
             .select({ id: schema.users.id, name: schema.users.name })
             .from(schema.users)
             .where(
               and(
-                eq(schema.users.roleId, roleId),
+                eq(schema.users.roleId, targetRoleId),
                 ne(schema.users.status, "suspended"),
                 ne(schema.users.id, id)
               )
@@ -297,7 +304,7 @@ export async function PATCH(
               3: "Sekretaris",
               4: "Bendahara",
             };
-            const officerRoleName = roleNames[roleId];
+            const officerRoleName = roleNames[targetRoleId];
             return NextResponse.json(
               { error: `Tidak dapat mengaktifkan akun. Posisi ${officerRoleName} yang aktif sudah diisi oleh (${existingOfficer[0].name})` },
               { status: 400 }
@@ -320,7 +327,55 @@ export async function PATCH(
         return NextResponse.json({ error: "Password default tidak ditemukan" }, { status: 500 });
       }
       const hashedPassword = await hashPassword(defaultPassword);
-      await updateUserPassword(id, hashedPassword);
+
+      // Update both user and credentials account in a transaction (with self-healing for old missing accounts)
+      await db.transaction(async (tx) => {
+        await tx
+          .update(schema.users)
+          .set({ password: hashedPassword, updatedAt: new Date() })
+          .where(eq(schema.users.id, id));
+
+        const existingAccount = await tx
+          .select()
+          .from(schema.accounts)
+          .where(
+            and(
+              eq(schema.accounts.userId, id),
+              eq(schema.accounts.providerId, "credential")
+            )
+          )
+          .limit(1);
+
+        if (existingAccount.length > 0) {
+          await tx
+            .update(schema.accounts)
+            .set({ password: hashedPassword, updatedAt: new Date() })
+            .where(
+              and(
+                eq(schema.accounts.userId, id),
+                eq(schema.accounts.providerId, "credential")
+              )
+            );
+        } else {
+          // Self-healing: Create the missing account entry
+          const targetUser = await tx
+            .select({ email: schema.users.email })
+            .from(schema.users)
+            .where(eq(schema.users.id, id))
+            .limit(1);
+          
+          const email = targetUser[0]?.email || "";
+
+          await tx.insert(schema.accounts).values({
+            id: randomUUID(),
+            accountId: email,
+            providerId: "credential",
+            userId: id,
+            password: hashedPassword,
+          });
+        }
+      });
+
       return NextResponse.json({
         success: true,
         message: `Password berhasil di-reset menjadi ${defaultPassword}`,
