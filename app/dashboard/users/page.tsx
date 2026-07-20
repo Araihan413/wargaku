@@ -132,7 +132,7 @@ export default function UserManagementPage() {
   const handleResetPassword = async (user: UserItem) => {
     if (
       !confirm(
-        `Apakah Anda yakin ingin mereset password untuk ${user.name}? Password akan di-reset menjadi default 'wargaku123'.`
+        `Apakah Anda yakin ingin mereset password untuk ${user.name}? Password akan di-reset menjadi default sistem.`
       )
     ) {
       return;
@@ -147,7 +147,8 @@ export default function UserManagementPage() {
       });
 
       if (res.ok) {
-        toast.success(`Password untuk ${user.name} berhasil di-reset menjadi: wargaku123`);
+        const data = await res.json();
+        toast.success(`Password untuk ${user.name} berhasil di-reset menjadi: ${data.defaultPassword || 'wargaku123'}`);
       } else {
         const errorData = await res.json();
         toast.error(errorData.error || "Gagal mereset password");
