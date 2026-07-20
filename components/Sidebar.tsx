@@ -276,7 +276,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-gray-card border-r border-gray-border transition-all duration-300 ${
           isOpenMobile ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 ${isCollapsed ? "lg:w-20" : "lg:w-72"}`}
+        } lg:translate-x-0 ${isCollapsed ? "lg:w-20" : "lg:w-70"}`}
       >
         {/* Sidebar Header / Logo Section */} 
         <div className={`relative flex h-20 items-center justify-between border-b border-gray-border/60 ${isCollapsed ? 'px-4' : 'px-6'}`}>

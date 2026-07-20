@@ -76,6 +76,7 @@ export const createRentalResidentSchema = z.object({
   originAddress: z.string().optional().nullable(),
   occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable(),
   educationLevel: z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable(),
+  religion: z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']).optional().nullable(),
   roomNumber: z.string().max(10, 'Nomor kamar maksimal 10 karakter').optional().nullable(),
   
   checkInDate: z.preprocess((arg) => {

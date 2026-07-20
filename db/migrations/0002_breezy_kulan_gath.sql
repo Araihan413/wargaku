@@ -1,0 +1,2 @@
+ALTER TABLE `family_members` ADD `religion` enum('Islam','Kristen','Katolik','Hindu','Buddha','Khonghucu','Lainnya');--> statement-breakpoint
+ALTER TABLE `rental_residents` ADD `religion` enum('Islam','Kristen','Katolik','Hindu','Buddha','Khonghucu','Lainnya');

@@ -122,6 +122,7 @@ export const createWargaSchema = z.object({
   
   occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable(),
   educationLevel: z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable(),
+  religion: z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']).optional().nullable(),
   
   phone: z.string()
     .regex(indonesianPhoneRegex, 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)')
