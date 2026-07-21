@@ -21,7 +21,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const allowed = await hasPermission(session.user.roleId, "manage-users");
+    const allowed = 
+      await hasPermission(session.user.roleId, "manage-users") ||
+      await hasPermission(session.user.roleId, "manage-residents") ||
+      await hasPermission(session.user.roleId, "view-residents");
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -32,8 +35,10 @@ export async function GET(request: Request) {
     const roleId = searchParams.get("roleId") ? parseInt(searchParams.get("roleId")!, 10) : undefined;
     const status = searchParams.get("status") as "pending" | "active" | "suspended" | null || undefined;
     const query = searchParams.get("query") || undefined;
+    const withoutFamily = searchParams.get("withoutFamily") === "true";
+    const excludeExceptId = searchParams.get("excludeExceptId") || undefined;
 
-    const usersData = await listUsers({ limit, offset, roleId, status, query });
+    const usersData = await listUsers({ limit, offset, roleId, status, query, withoutFamily, excludeExceptId });
     const rolesData = await listRoles();
 
     return NextResponse.json({

@@ -23,7 +23,7 @@ interface UserTableProps {
   currentUserId: string;
   onMutateRole: (user: UserItem) => void;
   onResetPassword: (user: UserItem) => void;
-  onToggleSuspend: (user: UserItem) => void;
+  onToggleSuspend: (user: UserItem, targetStatus: "active" | "suspended") => void;
   onEdit: (user: UserItem) => void;
   onDetail: (user: UserItem) => void;
 }
@@ -47,7 +47,7 @@ export const UserTable: React.FC<UserTableProps> = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
+            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
               <th className="py-4 px-5">Nama & Email</th>
               <th className="py-4 px-5">NIK</th>
               <th className="py-4 px-5">Telepon</th>
@@ -178,10 +178,37 @@ export const UserTable: React.FC<UserTableProps> = ({
                         <Lock className="h-4.5 w-4.5" />
                       </button>
 
-                      {/* Suspend Toggle */}
-                      {u.status === "suspended" ? (
+                      {/* Suspend / Approve Toggles */}
+                      {u.status === "pending" ? (
+                        <>
+                          <button
+                            onClick={() => !isRoleOrStatusBlocked && onToggleSuspend(u, "active")}
+                            title={isRoleOrStatusBlocked ? "Tidak dapat menyetujui akun ini" : "Setujui Akun Warga"}
+                            disabled={isRoleOrStatusBlocked}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              isRoleOrStatusBlocked
+                                ? "text-gray-border cursor-not-allowed"
+                                : "text-success hover:bg-success/10 cursor-pointer"
+                            }`}
+                          >
+                            <UserCheck className="h-4.5 w-4.5" />
+                          </button>
+                          <button
+                            onClick={() => !isRoleOrStatusBlocked && onToggleSuspend(u, "suspended")}
+                            title={isRoleOrStatusBlocked ? "Tidak dapat menangguhkan akun ini" : "Tolak/Tangguhkan Akun"}
+                            disabled={isRoleOrStatusBlocked}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              isRoleOrStatusBlocked
+                                ? "text-gray-border cursor-not-allowed"
+                                : "text-error hover:bg-error/10 cursor-pointer"
+                            }`}
+                          >
+                            <UserX className="h-4.5 w-4.5" />
+                          </button>
+                        </>
+                      ) : u.status === "suspended" ? (
                         <button
-                          onClick={() => !isRoleOrStatusBlocked && onToggleSuspend(u)}
+                          onClick={() => !isRoleOrStatusBlocked && onToggleSuspend(u, "active")}
                           title={isRoleOrStatusBlocked ? "Tidak dapat mengaktifkan akun ini" : "Aktifkan Akun"}
                           disabled={isRoleOrStatusBlocked}
                           className={`p-1.5 rounded-lg transition-colors ${
@@ -194,7 +221,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                         </button>
                       ) : (
                         <button
-                          onClick={() => !isRoleOrStatusBlocked && onToggleSuspend(u)}
+                          onClick={() => !isRoleOrStatusBlocked && onToggleSuspend(u, "suspended")}
                           title={isRoleOrStatusBlocked ? (isSelf ? "Tidak dapat menangguhkan akun sendiri" : "Super Admin terlindungi") : "Tangguhkan Akun"}
                           disabled={isRoleOrStatusBlocked}
                           className={`p-1.5 rounded-lg transition-colors ${

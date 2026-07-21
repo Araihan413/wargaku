@@ -100,8 +100,8 @@ export default function UserManagementPage() {
     };
   }, [fetchUsers]);
 
-  const handleToggleSuspend = async (user: UserItem) => {
-    const nextStatus = user.status === "suspended" ? "active" : "suspended";
+  const handleToggleSuspend = async (user: UserItem, targetStatus?: "active" | "suspended") => {
+    const nextStatus = targetStatus || (user.status === "suspended" ? "active" : "suspended");
     try {
       const res = await fetch(`/api/users/${user.id}`, {
         method: "PATCH",

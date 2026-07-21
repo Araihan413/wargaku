@@ -1,0 +1,241 @@
+import React from "react";
+import { X, User, Phone, MapPin, Calendar, Briefcase, FileText, AlertTriangle, GraduationCap } from "lucide-react";
+import { RentalResidentItem } from "./RentalTable";
+
+interface TenantDetailModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  resident: RentalResidentItem | null;
+}
+
+export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
+  isOpen,
+  onClose,
+  resident,
+}) => {
+  if (!isOpen || !resident) return null;
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const addressStr = `Blok ${resident.blockNumber} No. ${resident.houseNumber}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Modal Content */}
+      <div className="relative w-full max-w-lg bg-gray-card border border-gray-border rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden z-10 mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-border shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-xl text-primary">
+              <User className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-heading-main">Profil & Detail Penyewa</h3>
+              <p className="text-[10px] text-gray-secondary-text">Rincian data kependudukan penghuni sewa</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-gray-heading-main transition-colors cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+          {/* Top Banner Status */}
+          <div className="flex items-center justify-between border border-gray-border bg-gray-sidebar-hover/10 rounded-xl p-4">
+            <div className="space-y-1">
+              <div className="text-[10px] text-gray-placeholder font-bold uppercase tracking-wider">Status Hunian</div>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                resident.isActive
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-rose-50 text-rose-700 border border-rose-200"
+              }`}>
+                {resident.isActive ? "Aktif Huni" : "Sudah Check-Out"}
+              </span>
+            </div>
+
+            <div className="space-y-1 text-right">
+              <div className="text-[10px] text-gray-placeholder font-bold uppercase tracking-wider">Status Dokumen</div>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                resident.verificationStatus === 'verified'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : resident.verificationStatus === 'rejected'
+                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}>
+                {resident.verificationStatus === 'verified' ? 'Terverifikasi' : resident.verificationStatus === 'rejected' ? 'Ditolak' : 'Menunggu Review'}
+              </span>
+            </div>
+          </div>
+
+          {/* Verification Notes Alert (If Rejected or Note Exists) */}
+          {resident.verificationStatus === 'rejected' && (
+            <div className="flex gap-2.5 bg-rose-50 border border-rose-200 rounded-xl p-4 text-xs text-rose-700 leading-relaxed font-semibold">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-rose-500 mt-0.5" />
+              <div>
+                <span className="block font-bold">Catatan Penolakan RT:</span>
+                <span className="block font-normal mt-0.5">{resident.verificationNote || "Tidak ada catatan spesifik."}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Personal Information */}
+          <div className="space-y-3">
+            <div className="text-xs text-gray-placeholder font-bold uppercase tracking-wider">Biodata Diri</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex gap-3 items-start">
+                <User className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Nama Lengkap</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">{resident.name}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 items-start">
+                <FileText className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">NIK (KTP)</span>
+                  <span className="text-xs font-mono font-semibold text-gray-heading-main">{resident.nik}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 items-start">
+                <Phone className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Nomor HP / WhatsApp</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">{resident.phone || "-"}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 items-start">
+                <GraduationCap className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Pendidikan</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">{resident.educationLevel || "-"}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 items-start">
+                <Briefcase className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Pekerjaan</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">{resident.occupation || "-"}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 items-start">
+                <Calendar className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Agama</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">{resident.religion || "-"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-gray-border" />
+
+          {/* Rental Properties Info */}
+          <div className="space-y-3">
+            <div className="text-xs text-gray-placeholder font-bold uppercase tracking-wider">Informasi Kontrak / Sewa</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex gap-3 items-start">
+                <MapPin className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Nama Properti & Alamat</span>
+                  <span className="text-xs font-semibold text-gray-heading-main block">{resident.propertyName}</span>
+                  <span className="text-[10px] text-gray-secondary-text mt-0.5 block">{addressStr}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 items-start">
+                <FileText className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Nomor Kamar</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">{resident.roomNumber || "Unit Utama"}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 items-start">
+                <Calendar className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Tanggal Masuk</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">{formatDate(resident.checkInDate)}</span>
+                </div>
+              </div>
+
+              {resident.checkOutDate && (
+                <div className="flex gap-3 items-start">
+                  <Calendar className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Tanggal Keluar</span>
+                    <span className="text-xs font-semibold text-red-600">{formatDate(resident.checkOutDate)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <hr className="border-gray-border" />
+
+          {/* Origin Address */}
+          <div className="space-y-2">
+            <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Alamat Asal</span>
+            <div className="text-xs text-gray-heading-main bg-gray-sidebar-hover/10 p-3 rounded-xl border border-gray-border leading-relaxed">
+              {resident.originAddress || "Tidak diisi"}
+            </div>
+          </div>
+
+          {/* KTP Document Link */}
+          {resident.ktpFile && (
+            <div className="space-y-2">
+              <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">File Scan KTP</span>
+              <div className="flex items-center justify-between p-3 bg-gray-sidebar-hover/20 rounded-xl border border-gray-border text-xs">
+                <span className="font-mono text-gray-secondary-text">{resident.ktpFile}</span>
+                <a
+                  href={resident.ktpFile}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-bold text-primary hover:underline"
+                >
+                  Buka Gambar
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end border-t border-gray-border px-6 py-4 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 bg-gray-sidebar-hover hover:bg-gray-border/50 border border-gray-border rounded-xl text-xs font-semibold text-gray-heading-main cursor-pointer transition-all"
+          >
+            Tutup Detail
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

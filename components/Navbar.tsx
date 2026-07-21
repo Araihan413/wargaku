@@ -110,7 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
   };
 
   return (
-    <header className="fixed top-0 right-0 z-40 flex h-16 items-center justify-between border-b border-gray-border bg-gray-card/95 backdrop-blur-xl px-6 transition-all duration-300 left-0 lg:left-72 group-data-[sidebar-collapsed=true]/layout:lg:left-20">
+    <header className="fixed top-0 right-0 z-40 flex h-16 items-center justify-between border-b border-gray-border bg-gray-card/95 backdrop-blur-xl px-6 transition-all duration-300 left-0 lg:left-70 group-data-[sidebar-collapsed=true]/layout:lg:left-20">
       {/* Left section: Hamburger / Breadcrumbs */}
       <div className="flex items-center gap-4">
         <button

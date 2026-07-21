@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
-import { updateUserRole, updateUserStatus } from "@/db/queries/users";
+import { updateUserRole } from "@/db/queries/users";
 import { hashPassword } from "better-auth/crypto";
 import { randomUUID } from "crypto";
 import 'dotenv/config';
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and, ne, } from "drizzle-orm";
 import { updateUserSchema } from "@/lib/validations/user";
 import { ZodError } from "zod";
 
@@ -313,7 +313,73 @@ export async function PATCH(
         }
       }
 
-      await updateUserStatus(id, status);
+      await db.transaction(async (tx) => {
+        // 1. Update status
+        await tx
+          .update(schema.users)
+          .set({ status, updatedAt: new Date() })
+          .where(eq(schema.users.id, id));
+
+        // 2. If activating, check if we need to auto-create KK
+        if (status === "active") {
+          const [user] = await tx
+            .select({
+              id: schema.users.id,
+              name: schema.users.name,
+              email: schema.users.email,
+              nik: schema.users.nik,
+              phone: schema.users.phone,
+              roleId: schema.users.roleId,
+              familyNumber: schema.users.familyNumber,
+              dwellingId: schema.users.dwellingId,
+              unitNumber: schema.users.unitNumber,
+            })
+            .from(schema.users)
+            .where(eq(schema.users.id, id))
+            .limit(1);
+
+          if (user && user.roleId === 6) {
+            // Check if family already exists for this headUserId
+            const [existingFamily] = await tx
+              .select({ id: schema.families.id })
+              .from(schema.families)
+              .where(eq(schema.families.headUserId, id))
+              .limit(1);
+
+            if (!existingFamily) {
+              const targetDwellingId = user.dwellingId;
+
+              // If we have a dwelling and the registration data, create the family and family member record
+              if (targetDwellingId && user.familyNumber && user.nik) {
+                const [insertFamily] = await tx.insert(schema.families).values({
+                  dwellingId: targetDwellingId,
+                  familyNumber: user.familyNumber,
+                  headUserId: id,
+                  headName: user.name,
+                  unitNumber: user.unitNumber || null,
+                  verificationStatus: "pending",
+                  checkInDate: new Date(),
+                  isActive: true,
+                });
+
+                const familyId = insertFamily.insertId;
+
+                // Add Head of Family to familyMembers table
+                await tx.insert(schema.familyMembers).values({
+                  familyId,
+                  name: user.name,
+                  nik: user.nik,
+                  relationship: "Kepala_Keluarga",
+                  gender: "L", // default value, required in schema
+                  phone: user.phone || null,
+                  isActive: true,
+                });
+              }
+            }
+          }
+        }
+      });
+
       return NextResponse.json({
         success: true,
         message: status === "suspended" ? "Akun berhasil ditangguhkan" : "Akun berhasil diaktifkan",
