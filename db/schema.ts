@@ -10,6 +10,7 @@ import {
   date,
   datetime,
   json,
+  unique,
 } from 'drizzle-orm/mysql-core';
 
 // 2. roles
@@ -38,7 +39,6 @@ export const users = mysqlTable('users', {
   familyNumber: varchar('family_number', { length: 20 }),
   dwellingId: int('dwelling_id'),
   unitNumber: varchar('unit_number', { length: 10 }),
-  manualAddress: text('manual_address'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -65,9 +65,8 @@ export const rolePermissions = mysqlTable('role_permissions', {
 // 5. dwellings
 export const dwellings = mysqlTable('dwellings', {
   id: int('id').autoincrement().primaryKey(),
-  streetName: varchar('street_name', { length: 100 }).notNull(),
-  blockNumber: varchar('block_number', { length: 20 }),
-  houseNumber: varchar('house_number', { length: 20 }),
+  blockNumber: varchar('block_number', { length: 20 }).notNull(),
+  houseNumber: varchar('house_number', { length: 20 }).notNull(),
   ownerUserId: varchar('owner_user_id', { length: 255 }).references(() => users.id),
   ownerName: varchar('owner_name', { length: 100 }),
   ownerPhone: varchar('owner_phone', { length: 15 }),
@@ -78,7 +77,9 @@ export const dwellings = mysqlTable('dwellings', {
   isActive: boolean('is_active').notNull().default(true),
   notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (table) => ({
+  uniqueAddressIdx: unique('unique_address_idx').on(table.blockNumber, table.houseNumber),
+}));
 
 // 6. families
 export const families = mysqlTable('families', {

@@ -22,6 +22,20 @@
       "when": 1784517204667,
       "tag": "0002_breezy_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1784598341388,
+      "tag": "0003_sloppy_ender_wiggin",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1784613951240,
+      "tag": "0004_true_marvex",
+      "breakpoints": true
     }
   ]
 }

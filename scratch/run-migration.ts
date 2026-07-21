@@ -1,21 +1,34 @@
-import { db } from '../db';
+import { db } from '../db/index';
 import { sql } from 'drizzle-orm';
 
-async function run() {
-  console.log('Running migrations via Drizzle db.execute...');
+async function main() {
+  console.log('🚀 Running migration manually...');
   try {
-    await db.execute(sql`ALTER TABLE \`family_members\` ADD \`religion\` enum('Islam','Kristen','Katolik','Hindu','Buddha','Khonghucu','Lainnya')`);
-    console.log('Success for family_members');
-  } catch (err: any) {
-    console.error('Error for family_members:', err.message);
-  }
+    const statements = [
+      `ALTER TABLE \`dwellings\` DROP INDEX \`unique_address_idx\``,
+      `ALTER TABLE \`dwellings\` MODIFY COLUMN \`block_number\` varchar(20) NOT NULL`,
+      `ALTER TABLE \`dwellings\` MODIFY COLUMN \`house_number\` varchar(20) NOT NULL`,
+      `ALTER TABLE \`dwellings\` ADD CONSTRAINT \`unique_address_idx\` UNIQUE(\`block_number\`,\`house_number\`)`,
+      `ALTER TABLE \`dwellings\` DROP COLUMN \`street_name\``,
+      `ALTER TABLE \`users\` DROP COLUMN \`manual_address\``
+    ];
 
-  try {
-    await db.execute(sql`ALTER TABLE \`rental_residents\` ADD \`religion\` enum('Islam','Kristen','Katolik','Hindu','Buddha','Khonghucu','Lainnya')`);
-    console.log('Success for rental_residents');
-  } catch (err: any) {
-    console.error('Error for rental_residents:', err.message);
+    for (const stmt of statements) {
+      console.log(`Executing: ${stmt}...`);
+      try {
+        await db.execute(sql.raw(stmt));
+        console.log('Success!');
+      } catch (err: any) {
+        console.error('Error details:', err.originalError || err.cause || err);
+      }
+    }
+
+    console.log('🎉 Manual migration finished!');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+    process.exit(1);
   }
 }
 
-run().catch(console.error);
+main();

@@ -1,0 +1,1 @@
+ALTER TABLE `dwellings` ADD CONSTRAINT `unique_address_idx` UNIQUE(`street_name`,`block_number`,`house_number`);
