@@ -3,6 +3,7 @@ import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql } from 'drizzle-orm';
 import { createFamilySchema, updateFamilySchema, createWargaSchema, updateWargaSchema } from '@/lib/validations/kependudukan';
 import { z } from 'zod';
+import { randomUUID } from 'crypto';
 
 // ==========================================
 // KARTU KELUARGA (FAMILIES) CRUD QUERIES
@@ -174,10 +175,42 @@ export async function listFamilies(options: {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Ambil data families
+    // Subquery untuk menghitung jumlah anggota keluarga aktif per KK
+    const memberCountSubquery = db
+      .select({
+        familyId: schema.familyMembers.familyId,
+        count: sql<number>`count(*)`.as('count')
+      })
+      .from(schema.familyMembers)
+      .where(eq(schema.familyMembers.isActive, true))
+      .groupBy(schema.familyMembers.familyId)
+      .as('mc');
+
+    // Ambil data families dengan detail alamat hunian dan jumlah anggota
     const data = await db
-      .select()
+      .select({
+        id: schema.families.id,
+        dwellingId: schema.families.dwellingId,
+        familyNumber: schema.families.familyNumber,
+        headUserId: schema.families.headUserId,
+        headName: schema.families.headName,
+        unitNumber: schema.families.unitNumber,
+        kkFile: schema.families.kkFile,
+        verificationStatus: schema.families.verificationStatus,
+        verificationNote: schema.families.verificationNote,
+        checkInDate: schema.families.checkInDate,
+        checkOutDate: schema.families.checkOutDate,
+        isActive: schema.families.isActive,
+        createdAt: schema.families.createdAt,
+        updatedAt: schema.families.updatedAt,
+        blockNumber: schema.dwellings.blockNumber,
+        houseNumber: schema.dwellings.houseNumber,
+        dwellingType: schema.dwellings.type,
+        memberCount: sql<number>`COALESCE(${memberCountSubquery.count}, 0)`.mapWith(Number)
+      })
       .from(schema.families)
+      .leftJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
+      .leftJoin(memberCountSubquery, eq(schema.families.id, memberCountSubquery.familyId))
       .where(whereClause)
       .limit(limit)
       .offset(offset)
@@ -188,10 +221,6 @@ export async function listFamilies(options: {
       .select({ count: sql`count(*)` })
       .from(schema.families)
       .where(whereClause);
-
-    // Ambil sql import helper
-    // Catatan: Jika drizzle-orm tidak mengekspor sql secara langsung di typescript bundler, 
-    // kita bisa mengimpor `sql` dari 'drizzle-orm' secara dinamis atau menggunakan import.
     
     const total = Number(totalResult[0]?.count ?? 0);
 
@@ -469,3 +498,461 @@ export async function deleteFamilyMember(id: number, inactiveReason: 'pindah' | 
     throw new Error('Gagal melakukan penonaktifan warga');
   }
 }
+
+export async function transferFamilyMember(data: {
+  memberId: number;
+  relationship: 'Kepala_Keluarga' | 'Suami' | 'Istri' | 'Anak' | 'Orang_Tua' | 'Lainnya';
+  createNewFamily: boolean;
+  targetFamilyId?: number | null;
+  familyNumber?: string | null;
+  dwellingId?: number | null;
+  unitNumber?: string | null;
+  checkInDate?: Date | null;
+}) {
+  return await db.transaction(async (tx) => {
+    // 1. Dapatkan data member yang mau dipindahkan
+    const [member] = await tx
+      .select()
+      .from(schema.familyMembers)
+      .where(eq(schema.familyMembers.id, data.memberId))
+      .limit(1);
+
+    if (!member) {
+      throw new Error(`Anggota keluarga dengan ID ${data.memberId} tidak ditemukan.`);
+    }
+
+    let finalFamilyId = data.targetFamilyId;
+
+    if (data.createNewFamily) {
+      if (!data.familyNumber || !data.dwellingId) {
+        throw new Error('Nomor KK dan ID Tempat Tinggal wajib diisi untuk membuat KK baru.');
+      }
+
+      // Pastikan NIK member ini unik di users jika ingin dikaitkan ke KK baru
+      const [existingUser] = await tx
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.nik, member.nik))
+        .limit(1);
+
+      let headUserId = existingUser?.id;
+
+      if (!headUserId) {
+        // Cari role ID untuk 'warga'
+        const [wargaRole] = await tx
+          .select({ id: schema.roles.id })
+          .from(schema.roles)
+          .where(eq(schema.roles.slug, 'warga'))
+          .limit(1);
+
+        if (!wargaRole) {
+          throw new Error('Role "warga" tidak ditemukan di database.');
+        }
+
+        // Buat user pasif baru
+        const newUserId = randomUUID();
+        await tx.insert(schema.users).values({
+          id: newUserId,
+          name: member.name,
+          email: `${member.nik}@wargaku.local`,
+          nik: member.nik,
+          phone: member.phone,
+          roleId: wargaRole.id,
+          status: 'active',
+        });
+        headUserId = newUserId;
+      }
+
+      // Pastikan nomor KK belum terdaftar di database
+      const [existingFamily] = await tx
+        .select()
+        .from(schema.families)
+        .where(eq(schema.families.familyNumber, data.familyNumber))
+        .limit(1);
+
+      if (existingFamily) {
+        throw new Error(`Nomor KK ${data.familyNumber} sudah terdaftar.`);
+      }
+
+      // Buat KK Baru
+      const [insertResult] = await tx.insert(schema.families).values({
+        dwellingId: data.dwellingId,
+        familyNumber: data.familyNumber,
+        headUserId: headUserId,
+        headName: member.name,
+        unitNumber: data.unitNumber || null,
+        checkInDate: data.checkInDate || new Date(),
+        verificationStatus: 'verified', // Karena dibuat oleh RT langsung
+        isActive: true,
+      });
+
+      finalFamilyId = insertResult.insertId;
+    }
+
+    if (!finalFamilyId) {
+      throw new Error('ID Kartu Keluarga tujuan tidak valid.');
+    }
+
+    // 2. Jika dipindahkan, update familyId dan relationship di familyMembers
+    await tx
+      .update(schema.familyMembers)
+      .set({
+        familyId: finalFamilyId,
+        relationship: data.relationship,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.familyMembers.id, data.memberId));
+
+    // Jika member dipindahkan menjadi Kepala Keluarga pada KK tujuan, pastikan tabel families juga terupdate
+    if (data.relationship === 'Kepala_Keluarga') {
+      const [existingUser] = await tx
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.nik, member.nik))
+        .limit(1);
+
+      let headUserId = existingUser?.id;
+
+      if (!headUserId) {
+        const [wargaRole] = await tx
+          .select({ id: schema.roles.id })
+          .from(schema.roles)
+          .where(eq(schema.roles.slug, 'warga'))
+          .limit(1);
+
+        const newUserId = randomUUID();
+        await tx.insert(schema.users).values({
+          id: newUserId,
+          name: member.name,
+          email: `${member.nik}@wargaku.local`,
+          nik: member.nik,
+          phone: member.phone,
+          roleId: wargaRole?.id || 1,
+          status: 'active',
+        });
+        headUserId = newUserId;
+      }
+
+      await tx
+        .update(schema.families)
+        .set({
+          headUserId: headUserId,
+          headName: member.name,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.families.id, finalFamilyId));
+    }
+
+    return finalFamilyId;
+  });
+}
+
+export async function changeFamilyHead(data: {
+  familyId: number;
+  newHeadMemberId: number;
+  oldHeadAction: 'suspend' | 'pindah' | 'none';
+  newHeadEmail?: string | null;
+}) {
+  return await db.transaction(async (tx) => {
+    // 1. Ambil KK
+    const [family] = await tx
+      .select()
+      .from(schema.families)
+      .where(eq(schema.families.id, data.familyId))
+      .limit(1);
+
+    if (!family) {
+      throw new Error(`Kartu Keluarga dengan ID ${data.familyId} tidak ditemukan.`);
+    }
+
+    // 2. Ambil anggota keluarga terpilih (calon kepala keluarga baru)
+    const [newHeadMember] = await tx
+      .select()
+      .from(schema.familyMembers)
+      .where(eq(schema.familyMembers.id, data.newHeadMemberId))
+      .limit(1);
+
+    if (!newHeadMember) {
+      throw new Error(`Anggota keluarga dengan ID ${data.newHeadMemberId} tidak ditemukan.`);
+    }
+
+    if (newHeadMember.familyId !== data.familyId) {
+      throw new Error('Anggota keluarga terpilih tidak berada dalam Kartu Keluarga ini.');
+    }
+
+    // 3. Cari/buat user login untuk Kepala Keluarga Baru
+    const [newHeadUser] = await tx
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.nik, newHeadMember.nik))
+      .limit(1);
+
+    let headUserId = newHeadUser?.id;
+
+    if (!headUserId) {
+      const [wargaRole] = await tx
+        .select({ id: schema.roles.id })
+        .from(schema.roles)
+        .where(eq(schema.roles.slug, 'warga'))
+        .limit(1);
+
+      if (!wargaRole) {
+        throw new Error('Role "warga" tidak ditemukan.');
+      }
+
+      const email = data.newHeadEmail && data.newHeadEmail.trim() !== '' 
+        ? data.newHeadEmail 
+        : `${newHeadMember.nik}@wargaku.local`;
+
+      const newUserId = randomUUID();
+      await tx.insert(schema.users).values({
+        id: newUserId,
+        name: newHeadMember.name,
+        email: email,
+        nik: newHeadMember.nik,
+        phone: newHeadMember.phone,
+        roleId: wargaRole.id,
+        status: 'active',
+      });
+      headUserId = newUserId;
+    } else if (data.newHeadEmail && data.newHeadEmail.trim() !== '') {
+      // Update email jika diinput baru
+      await tx
+        .update(schema.users)
+        .set({ email: data.newHeadEmail, updatedAt: new Date() })
+        .where(eq(schema.users.id, headUserId));
+    }
+
+    // 4. Proses Kepala Keluarga Lama
+    const oldHeadUserId = family.headUserId;
+    
+    // Cari member record Kepala Keluarga Lama di KK ini
+    const [oldHeadMember] = await tx
+      .select()
+      .from(schema.familyMembers)
+      .where(
+        and(
+          eq(schema.familyMembers.familyId, data.familyId),
+          eq(schema.familyMembers.relationship, 'Kepala_Keluarga')
+        )
+      )
+      .limit(1);
+
+    if (data.oldHeadAction === 'suspend') {
+      // Suspend akun kepala keluarga lama
+      await tx
+        .update(schema.users)
+        .set({
+          status: 'suspended',
+          nik: null, // Bebaskan NIK
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.users.id, oldHeadUserId));
+
+      if (oldHeadMember) {
+        await tx
+          .update(schema.familyMembers)
+          .set({
+            isActive: false,
+            inactiveReason: 'meninggal',
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.familyMembers.id, oldHeadMember.id));
+      }
+    } else if (data.oldHeadAction === 'pindah') {
+      // Tandai tidak aktif (pindah) di KK ini, tapi jangan suspend akun users-nya agar dia bisa login di KK barunya nanti
+      if (oldHeadMember) {
+        await tx
+          .update(schema.familyMembers)
+          .set({
+            isActive: false,
+            inactiveReason: 'pindah',
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.familyMembers.id, oldHeadMember.id));
+      }
+    } else if (data.oldHeadAction === 'none') {
+      // Hanya ganti hubungannya menjadi 'Lainnya' di KK ini (dia tetap tinggal di KK ini tapi bukan kepala lagi)
+      if (oldHeadMember) {
+        await tx
+          .update(schema.familyMembers)
+          .set({
+            relationship: 'Lainnya',
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.familyMembers.id, oldHeadMember.id));
+      }
+    }
+
+    // 5. Update data Kepala Keluarga Baru di KK (families) & familyMembers
+    await tx
+      .update(schema.familyMembers)
+      .set({
+        relationship: 'Kepala_Keluarga',
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.familyMembers.id, data.newHeadMemberId));
+
+    await tx
+      .update(schema.families)
+      .set({
+        headUserId: headUserId,
+        headName: newHeadMember.name,
+        verificationStatus: 'pending', // Paksa upload ulang KK baru
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.families.id, data.familyId));
+
+    return true;
+  });
+}
+
+export interface CreateDwellingInput {
+  blockNumber: string;
+  houseNumber: string;
+  type: 'permanen' | 'kos' | 'homestay';
+  notes?: string | null;
+}
+
+export interface CreateDwellingsBulkInput {
+  blockNumber: string;
+  startNumber: number;
+  endNumber: number;
+  type: 'permanen' | 'kos' | 'homestay';
+}
+
+export interface UpdateDwellingInput {
+  blockNumber: string;
+  houseNumber: string;
+  type: 'permanen' | 'kos' | 'homestay';
+  isActive?: boolean;
+  notes?: string | null;
+}
+
+export async function createDwelling(data: CreateDwellingInput) {
+  const [result] = await db.insert(schema.dwellings).values({
+    blockNumber: data.blockNumber,
+    houseNumber: data.houseNumber,
+    type: data.type,
+    qrToken: `qr-dwelling-${randomUUID()}`,
+    isActive: true,
+    notes: data.notes || null,
+  });
+  return result.insertId;
+}
+
+export async function createDwellingsBulk(data: CreateDwellingsBulkInput) {
+  return await db.transaction(async (tx) => {
+    const dwellingsInserted = [];
+    for (let num = data.startNumber; num <= data.endNumber; num++) {
+      const houseNumber = String(num);
+      
+      const [existing] = await tx
+        .select({ id: schema.dwellings.id })
+        .from(schema.dwellings)
+        .where(
+          and(
+            eq(schema.dwellings.blockNumber, data.blockNumber),
+            eq(schema.dwellings.houseNumber, houseNumber)
+          )
+        )
+        .limit(1);
+
+      if (!existing) {
+        const [result] = await tx.insert(schema.dwellings).values({
+          blockNumber: data.blockNumber,
+          houseNumber: houseNumber,
+          type: data.type,
+          qrToken: `qr-dwelling-${randomUUID()}`,
+          isActive: true,
+        });
+        dwellingsInserted.push(result.insertId);
+      }
+    }
+    return dwellingsInserted;
+  });
+}
+
+export async function updateDwelling(id: number, data: UpdateDwellingInput) {
+  await db
+    .update(schema.dwellings)
+    .set({
+      blockNumber: data.blockNumber,
+      houseNumber: data.houseNumber,
+      type: data.type,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      notes: data.notes,
+    })
+    .where(eq(schema.dwellings.id, id));
+  return true;
+}
+
+export async function deleteDwelling(id: number) {
+  await db
+    .update(schema.dwellings)
+    .set({ isActive: false })
+    .where(eq(schema.dwellings.id, id));
+  return true;
+}
+
+export interface ListDwellingsOptions {
+  limit?: number;
+  offset?: number;
+  query?: string;
+  type?: 'permanen' | 'kos' | 'homestay';
+  isActive?: boolean;
+}
+
+export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
+  const limit = options.limit ?? 10;
+  const offset = options.offset ?? 0;
+  
+  let whereClause = undefined;
+  const conditions = [];
+
+  if (options.isActive !== undefined) {
+    conditions.push(eq(schema.dwellings.isActive, options.isActive));
+  }
+  if (options.type) {
+    conditions.push(eq(schema.dwellings.type, options.type));
+  }
+  if (options.query) {
+    const searchVal = `%${options.query}%`;
+    conditions.push(
+      or(
+        like(schema.dwellings.blockNumber, searchVal),
+        like(schema.dwellings.houseNumber, searchVal),
+        like(schema.dwellings.notes, searchVal)
+      )
+    );
+  }
+
+  if (conditions.length > 0) {
+    whereClause = and(...conditions);
+  }
+
+  const data = await db
+    .select()
+    .from(schema.dwellings)
+    .where(whereClause)
+    .limit(limit)
+    .offset(offset)
+    .orderBy(desc(schema.dwellings.createdAt));
+
+  const [totalResult] = await db
+    .select({ count: sql`count(*)` })
+    .from(schema.dwellings)
+    .where(whereClause);
+
+  const total = Number(totalResult?.count ?? 0);
+
+  return {
+    data,
+    metadata: {
+      total,
+      limit,
+      offset,
+    },
+  };
+}
+

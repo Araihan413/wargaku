@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
-import { listFamilies, createFamily } from '@/db/queries/kependudukan';
-import { createFamilySchema } from '@/lib/validations/kependudukan';
-import { ZodError } from 'zod';
+import { listFamilies } from '@/db/queries/kependudukan';
 
 /**
  * @openapi
@@ -137,32 +135,4 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
 
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-residents');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
-    const body = await request.json();
-    const validatedData = createFamilySchema.parse(body);
-
-    const familyId = await createFamily(validatedData);
-
-    return NextResponse.json({ id: familyId, message: 'Kartu Keluarga berhasil dibuat' }, { status: 201 });
-  } catch (error: any) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Validasi input gagal', issues: error.issues }, { status: 400 });
-    }
-    console.error('Error in POST /api/families:', error);
-    return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 400 });
-  }
-}

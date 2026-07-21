@@ -138,3 +138,50 @@ export const updateWargaSchema = createWargaSchema.partial().extend({
   isActive: z.boolean().optional(),
   inactiveReason: z.enum(['pindah', 'meninggal']).optional().nullable(),
 });
+
+export const transferFamilyMemberSchema = z.object({
+  memberId: z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'ID Anggota wajib diisi'
+        : 'ID Anggota harus berupa angka',
+  }).int().positive(),
+  relationship: z.enum(['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Lainnya'], {
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Hubungan keluarga baru wajib diisi'
+        : 'Hubungan keluarga tidak valid',
+  }),
+  createNewFamily: z.boolean({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Status pembuatan KK baru wajib diisi'
+        : 'Status pembuatan KK baru tidak valid',
+  }),
+  targetFamilyId: z.number().int().positive().optional().nullable(),
+  familyNumber: z.preprocess((arg) => (arg === '' ? null : arg), z.string().regex(kkNumberRegex, 'Nomor Kartu Keluarga harus terdiri dari 16 digit angka').optional().nullable()),
+  dwellingId: z.number().int().positive().optional().nullable(),
+  unitNumber: z.string().max(10, 'Nomor unit maksimal 10 karakter').optional().nullable(),
+  checkInDate: z.preprocess((arg) => {
+    if (arg === '' || arg === null || arg === undefined) return undefined;
+    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+    return arg;
+  }, z.date().optional()),
+});
+
+export const changeFamilyHeadSchema = z.object({
+  newHeadMemberId: z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'ID Kepala Keluarga baru wajib diisi'
+        : 'ID Kepala Keluarga baru harus berupa angka',
+  }).int().positive(),
+  oldHeadAction: z.enum(['suspend', 'pindah', 'none'], {
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Tindakan untuk Kepala Keluarga lama wajib diisi'
+        : 'Tindakan untuk Kepala Keluarga lama tidak valid',
+  }),
+  newHeadEmail: z.string().email('Email tidak valid').optional().nullable().or(z.literal('')),
+});
+

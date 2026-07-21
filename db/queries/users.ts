@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, or, like, desc, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, sql, notInArray } from "drizzle-orm";
 
 export interface ListUsersOptions {
   limit?: number;
@@ -8,6 +8,8 @@ export interface ListUsersOptions {
   roleId?: number;
   status?: "pending" | "active" | "suspended";
   query?: string;
+  withoutFamily?: boolean;
+  excludeExceptId?: string;
 }
 
 export async function listUsers(options: ListUsersOptions = {}) {
@@ -30,6 +32,22 @@ export async function listUsers(options: ListUsersOptions = {}) {
         like(schema.users.nik, `%${options.query}%`)
       )
     );
+  }
+
+  if (options.withoutFamily) {
+    const familiesList = await db
+      .select({ headUserId: schema.families.headUserId })
+      .from(schema.families);
+    
+    let headUserIds = familiesList.map((f) => f.headUserId).filter(Boolean) as string[];
+    
+    if (options.excludeExceptId) {
+      headUserIds = headUserIds.filter((id) => id !== options.excludeExceptId);
+    }
+
+    if (headUserIds.length > 0) {
+      conditions.push(notInArray(schema.users.id, headUserIds));
+    }
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

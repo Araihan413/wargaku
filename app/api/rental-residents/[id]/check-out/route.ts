@@ -82,6 +82,10 @@ export async function POST(
       return NextResponse.json({ error: 'Penghuni tidak ditemukan' }, { status: 404 });
     }
 
+    if (resident.verificationStatus !== 'verified') {
+      return NextResponse.json({ error: 'Penyewa dengan status pending/ditolak tidak dapat melakukan check-out' }, { status: 400 });
+    }
+
     const property = await getRentalPropertyById(resident.rentalPropertyId);
     if (!property) {
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });

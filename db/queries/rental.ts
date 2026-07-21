@@ -314,3 +314,100 @@ export async function deleteRentalResident(id: number) {
     throw new Error('Gagal menghapus data penghuni');
   }
 }
+
+export async function listAllRentalResidents(options: {
+  limit?: number;
+  offset?: number;
+  isActive?: boolean;
+  verificationStatus?: 'pending' | 'verified' | 'rejected';
+  query?: string;
+}) {
+  try {
+    const limit = options.limit ?? 10;
+    const offset = options.offset ?? 0;
+
+    const conditions: (SQL | undefined)[] = [];
+
+    if (options.isActive !== undefined) {
+      conditions.push(eq(schema.rentalResidents.isActive, options.isActive));
+    }
+    if (options.verificationStatus !== undefined) {
+      conditions.push(eq(schema.rentalResidents.verificationStatus, options.verificationStatus));
+    }
+    if (options.query) {
+      conditions.push(
+        or(
+          like(schema.rentalResidents.name, `%${options.query}%`),
+          like(schema.rentalResidents.nik, `%${options.query}%`),
+          like(schema.rentalProperties.name, `%${options.query}%`)
+        )
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const data = await db
+      .select({
+        id: schema.rentalResidents.id,
+        name: schema.rentalResidents.name,
+        nik: schema.rentalResidents.nik,
+        phone: schema.rentalResidents.phone,
+        tenantType: schema.rentalResidents.tenantType,
+        roomNumber: schema.rentalResidents.roomNumber,
+        checkInDate: schema.rentalResidents.checkInDate,
+        checkOutDate: schema.rentalResidents.checkOutDate,
+        verificationStatus: schema.rentalResidents.verificationStatus,
+        verificationNote: schema.rentalResidents.verificationNote,
+        isActive: schema.rentalResidents.isActive,
+        ktpFile: schema.rentalResidents.ktpFile,
+        originAddress: schema.rentalResidents.originAddress,
+        occupation: schema.rentalResidents.occupation,
+        educationLevel: schema.rentalResidents.educationLevel,
+        religion: schema.rentalResidents.religion,
+        propertyName: schema.rentalProperties.name,
+        rentalPropertyId: schema.rentalProperties.id,
+        blockNumber: schema.dwellings.blockNumber,
+        houseNumber: schema.dwellings.houseNumber,
+      })
+      .from(schema.rentalResidents)
+      .innerJoin(
+        schema.rentalProperties,
+        eq(schema.rentalResidents.rentalPropertyId, schema.rentalProperties.id)
+      )
+      .innerJoin(
+        schema.dwellings,
+        eq(schema.rentalProperties.dwellingId, schema.dwellings.id)
+      )
+      .where(whereClause)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(schema.rentalResidents.createdAt));
+
+    const countResult = await db
+      .select({ count: sql`count(*)` })
+      .from(schema.rentalResidents)
+      .innerJoin(
+        schema.rentalProperties,
+        eq(schema.rentalResidents.rentalPropertyId, schema.rentalProperties.id)
+      )
+      .innerJoin(
+        schema.dwellings,
+        eq(schema.rentalProperties.dwellingId, schema.dwellings.id)
+      )
+      .where(whereClause);
+
+    const total = Number(countResult[0]?.count ?? 0);
+
+    return {
+      data,
+      metadata: {
+        total,
+        limit,
+        offset,
+      },
+    };
+  } catch (error) {
+    console.error('Error in listAllRentalResidents:', error);
+    throw new Error('Gagal mengambil daftar semua penghuni sewa');
+  }
+}
