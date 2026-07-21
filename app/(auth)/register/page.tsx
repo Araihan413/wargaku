@@ -58,20 +58,12 @@ export default function RegisterPage() {
       name: "",
       nik: "",
       familyNumber: "",
-      isManualDwelling: false,
       dwellingId: "",
-      streetName: "",
-      blockNumber: "",
-      houseNumber: "",
       unitNumber: "",
     },
     mode: "onTouched",
   });
 
-  const isManualDwelling = useWatch({
-    control,
-    name: "isManualDwelling",
-  });
   const dwellingId = useWatch({
     control,
     name: "dwellingId",
@@ -195,17 +187,6 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterInput) => {
     setIsLoading(true);
 
-    // Format alamat manual jika dipilih
-    let formattedManualAddress = "";
-    if (data.isManualDwelling) {
-      const parts = [
-        data.streetName,
-        data.blockNumber ? `Blok ${data.blockNumber}` : "",
-        data.houseNumber ? `No. ${data.houseNumber}` : "",
-      ].filter(Boolean);
-      formattedManualAddress = parts.join(" ");
-    }
-
     try {
       await authClient.signUp.email(
         {
@@ -217,9 +198,8 @@ export default function RegisterPage() {
           roleId: 6, // Role 'Warga'
           status: "pending", // Status default pending menunggu persetujuan RT
           familyNumber: data.familyNumber,
-          dwellingId: data.isManualDwelling ? undefined : Number(data.dwellingId),
+          dwellingId: Number(data.dwellingId),
           unitNumber: data.unitNumber || undefined,
-          manualAddress: data.isManualDwelling ? formattedManualAddress : undefined,
         },
         {
           onRequest: () => {
@@ -333,53 +313,11 @@ export default function RegisterPage() {
             <DwellingDropdown
               dwellingsList={dwellingsList}
               dwellingId={dwellingId!}
-              isManualDwelling={isManualDwelling}
-              onSelect={(id, isManual) => {
-                setValue("isManualDwelling", isManual);
+              onSelect={(id) => {
                 setValue("dwellingId", id);
               }}
               error={errors.dwellingId?.message}
             />
-
-            {/* Input Alamat Manual (Kondisional) */}
-            {isManualDwelling && (
-              <div className="p-4 bg-gray-page-bg border border-gray-border rounded-2xl space-y-3 animation-all duration-300">
-                <p className="text-[10px] font-bold text-gray-secondary-text uppercase tracking-wider">
-                  Detail Alamat Baru
-                </p>
-
-                {/* Nama Jalan/Gang */}
-                <div>
-                  <input
-                    type="text"
-                    {...register("streetName")}
-                    className={`block w-full rounded-lg border ${
-                      errors.streetName ? "border-error" : "border-gray-border"
-                    } bg-gray-card py-2 px-3 text-xs text-gray-heading-main placeholder-gray-placeholder focus:border-primary outline-none`}
-                    placeholder="Nama Jalan / Gang (Contoh: Jl. Mawar)"
-                  />
-                  {errors.streetName && (
-                    <p className="text-[10px] text-error mt-1">{errors.streetName.message}</p>
-                  )}
-                </div>
-
-                {/* Blok & Nomor Rumah */}
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    {...register("blockNumber")}
-                    className="block w-full rounded-lg border border-gray-border bg-gray-card py-2 px-3 text-xs text-gray-heading-main placeholder-gray-placeholder focus:border-primary outline-none"
-                    placeholder="Blok (Contoh: A4)"
-                  />
-                  <input
-                    type="text"
-                    {...register("houseNumber")}
-                    className="block w-full rounded-lg border border-gray-border bg-gray-card py-2 px-3 text-xs text-gray-heading-main placeholder-gray-placeholder focus:border-primary outline-none"
-                    placeholder="No. Rumah (Contoh: 12)"
-                  />
-                </div>
-              </div>
-            )}
 
             {/* Nomor Pintu/Unit (Kontrakan - Opsional) */}
             <FormField

@@ -25,11 +25,7 @@ export const registerSchema = z.object({
     .string()
     .min(1, "Nomor Kartu Keluarga wajib diisi")
     .regex(/^\d{16}$/, "Nomor Kartu Keluarga (KK) harus terdiri dari 16 digit angka"),
-  isManualDwelling: z.boolean(),
-  dwellingId: z.string().optional(),
-  streetName: z.string().optional(),
-  blockNumber: z.string().optional(),
-  houseNumber: z.string().optional(),
+  dwellingId: z.string().min(1, "Alamat rumah wajib dipilih"),
   unitNumber: z.string().optional(),
 }).superRefine((data, ctx) => {
   // Pengecekan kecocokan password
@@ -39,25 +35,6 @@ export const registerSchema = z.object({
       message: "Konfirmasi password tidak cocok",
       path: ["confirmPassword"],
     });
-  }
-
-  // Pengecekan validasi alamat kondisional
-  if (!data.isManualDwelling) {
-    if (!data.dwellingId || data.dwellingId.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Silakan pilih alamat rumah Anda atau pilih opsi Input Manual",
-        path: ["dwellingId"],
-      });
-    }
-  } else {
-    if (!data.streetName || data.streetName.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Nama Jalan/Gang wajib diisi untuk alamat manual",
-        path: ["streetName"],
-      });
-    }
   }
 });
 

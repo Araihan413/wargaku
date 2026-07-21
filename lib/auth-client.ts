@@ -12,7 +12,6 @@ export const authClient = createAuthClient({
         familyNumber: { type: 'string', required: false },
         dwellingId: { type: 'number', required: false },
         unitNumber: { type: 'string', required: false },
-        manualAddress: { type: 'string', required: false },
       },
     }),
   ],

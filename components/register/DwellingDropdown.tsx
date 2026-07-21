@@ -9,15 +9,13 @@ interface DwellingOption {
 interface DwellingDropdownProps {
   dwellingsList: DwellingOption[];
   dwellingId: string;
-  isManualDwelling: boolean;
-  onSelect: (id: string, isManual: boolean) => void;
+  onSelect: (id: string) => void;
   error?: string;
 }
 
 export const DwellingDropdown: React.FC<DwellingDropdownProps> = ({
   dwellingsList,
   dwellingId,
-  isManualDwelling,
   onSelect,
   error,
 }) => {
@@ -53,10 +51,8 @@ export const DwellingDropdown: React.FC<DwellingDropdownProps> = ({
             <MapPin className="h-4 w-4 text-gray-placeholder" />
           </span>
 
-          <span className={!dwellingId && !isManualDwelling ? "text-gray-placeholder" : ""}>
-            {isManualDwelling
-              ? "Input Alamat Manual / Rumah Baru"
-              : dwellingsList.find((d) => String(d.id) === String(dwellingId))?.label ||
+          <span className={!dwellingId ? "text-gray-placeholder" : ""}>
+            {dwellingsList.find((d) => String(d.id) === String(dwellingId))?.label ||
                 "Pilih alamat rumah terdaftar..."}
           </span>
 
@@ -80,43 +76,23 @@ export const DwellingDropdown: React.FC<DwellingDropdownProps> = ({
                     key={option.id}
                     type="button"
                     onClick={() => {
-                      onSelect(String(option.id), false);
+                      onSelect(String(option.id));
                       setIsDropdownOpen(false);
                     }}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs text-left transition-all ${
-                      String(dwellingId) === String(option.id) && !isManualDwelling
+                      String(dwellingId) === String(option.id)
                         ? "bg-primary text-white font-semibold"
                         : "text-gray-heading-main hover:bg-gray-sidebar-hover cursor-pointer"
                     }`}
                   >
                     <span>{option.label}</span>
-                    {String(dwellingId) === String(option.id) && !isManualDwelling && (
+                    {String(dwellingId) === String(option.id) && (
                       <Check className="h-4 w-4" />
                     )}
                   </button>
                 ))
               )}
 
-              <div className="border-t border-gray-divider my-1"></div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onSelect("", true);
-                  setIsDropdownOpen(false);
-                }}
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs text-left transition-all ${
-                  isManualDwelling
-                    ? "bg-primary text-white font-semibold"
-                    : "text-primary hover:bg-gray-sidebar-hover font-medium cursor-pointer"
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <PlusCircle className="h-4 w-4" />
-                  Input Alamat Manual / Rumah Baru
-                </span>
-                {isManualDwelling && <Check className="h-4 w-4" />}
-              </button>
             </div>
           </div>
         )}
