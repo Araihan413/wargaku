@@ -183,11 +183,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
-    // Aturan Lock untuk Warga
+    // Aturan Lock untuk Warga (hanya bisa ubah jika berstatus draft atau rejected)
     if (!hasManagePerm) {
-      if (family.verificationStatus === 'verified') {
+      if (family.verificationStatus === 'verified' || family.verificationStatus === 'pending') {
         return NextResponse.json(
-          { error: 'Keluarga telah terverifikasi. Tidak dapat menambah anggota keluarga baru.' },
+          { error: 'Data keluarga sedang dalam proses verifikasi atau telah disetujui RT. Silakan ajukan perubahan data terlebih dahulu.' },
           { status: 403 }
         );
       }

@@ -5,6 +5,7 @@ import { hasPermission } from '@/lib/rbac';
 import { getFamilyMemberById, updateFamilyMember, deleteFamilyMember, getFamilyById } from '@/db/queries/kependudukan';
 import { updateWargaSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
+import { deleteCloudinaryFileByUrl } from '@/lib/cloudinary';
 
 /**
  * @openapi
@@ -210,10 +211,10 @@ export async function PUT(
     let updateData: any;
 
     if (!hasManagePerm) {
-      // Perilaku Warga: cek aturan lock status verified
-      if (family.verificationStatus === 'verified') {
+      // Perilaku Warga: cek aturan lock status verified/pending
+      if (family.verificationStatus === 'verified' || family.verificationStatus === 'pending') {
         return NextResponse.json(
-          { error: 'Keluarga telah terverifikasi. Data anggota keluarga dikunci. Silakan ajukan perubahan data.' },
+          { error: 'Data keluarga sedang dalam proses verifikasi atau telah disetujui RT. Silakan ajukan perubahan data terlebih dahulu.' },
           { status: 403 }
         );
       }
@@ -227,6 +228,12 @@ export async function PUT(
     }
 
     const validated = updateWargaSchema.parse(updateData);
+
+    // Hapus file KTP lama dari Cloudinary jika diganti dengan file baru
+    if (validated.ktpFile && member.ktpFile && validated.ktpFile !== member.ktpFile) {
+      await deleteCloudinaryFileByUrl(member.ktpFile);
+    }
+
     await updateFamilyMember(memberId, validated);
 
     return NextResponse.json({ message: 'Data warga berhasil diperbarui' });
@@ -279,9 +286,9 @@ export async function DELETE(
 
     // Aturan Lock untuk Warga
     if (!hasManagePerm) {
-      if (family.verificationStatus === 'verified') {
+      if (family.verificationStatus === 'verified' || family.verificationStatus === 'pending') {
         return NextResponse.json(
-          { error: 'Keluarga telah terverifikasi. Tidak dapat menghapus anggota keluarga.' },
+          { error: 'Data keluarga sedang dalam proses verifikasi atau telah disetujui RT. Silakan ajukan perubahan data terlebih dahulu.' },
           { status: 403 }
         );
       }

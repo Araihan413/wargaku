@@ -1,60 +1,161 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2, AlertCircle, Home } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { ArrowLeft, Loader2, AlertCircle, Home, Send } from "lucide-react";
+import { toast } from "sonner";
+import { WargaKKHeader } from "./_components/WargaKKHeader";
+import { WargaMemberTable } from "./_components/WargaMemberTable";
+import { AddWargaMemberModal } from "./_components/AddWargaMemberModal";
+import { EditWargaMemberModal } from "./_components/EditWargaMemberModal";
+import { DeleteWargaMemberModal } from "./_components/DeleteWargaMemberModal";
+import { WargaFamilyDetail, WargaFamilyMember } from "./types";
 
-export default function FamilyPageLoader() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+export default function StandaloneWargaFamilyPage() {
+  const [familyId, setFamilyId] = useState<number | null>(null);
+  const [familyDetail, setFamilyDetail] = useState<WargaFamilyDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Modals state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedMemberForEdit, setSelectedMemberForEdit] = useState<WargaFamilyMember | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedMemberForDelete, setSelectedMemberForDelete] = useState<WargaFamilyMember | null>(null);
+
+  const [isSubmittingToRT, setIsSubmittingToRT] = useState(false);
+
+  const handleSubmitToRT = async () => {
+    if (!familyDetail) return;
+    setIsSubmittingToRT(true);
+    try {
+      const res = await fetch(`/api/families/${familyDetail.id}/submit`, {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        toast.success("Berkas Kartu Keluarga berhasil dikirim ke RT!");
+        fetchFamilyDetails(familyDetail.id);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal mengirim berkas ke RT");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem saat mengirim.");
+    } finally {
+      setIsSubmittingToRT(false);
+    }
+  };
+
+  const handleConfirmSubmit = () => {
+    toast("Konfirmasi Pengiriman Data", {
+      description: "Apakah Anda yakin data Kartu Keluarga sudah sesuai? Setelah dikirim, data akan dikunci untuk verifikasi RT.",
+      action: {
+        label: "Ya, Kirim",
+        onClick: () => {
+          handleSubmitToRT();
+        },
+      },
+      cancel: {
+        label: "Batal",
+        onClick: () => {},
+      },
+      duration: 15000,
+    });
+  };
+
+  // Helper to fetch family details
+  const fetchFamilyDetails = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`/api/families/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFamilyDetail(data);
+      } else {
+        const err = await res.json();
+        setError(err.error || "Gagal memuat rincian Kartu Keluarga");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Terjadi kesalahan sistem saat mengambil data");
+    }
+  }, []);
+
+  // Initial fetch on mount
   useEffect(() => {
-    async function getMyFamily() {
+    let isMounted = true;
+
+    async function loadData() {
       try {
         const res = await fetch("/api/families/my");
-        if (res.ok) {
+        if (!res.ok) {
           const data = await res.json();
-          router.replace(`/dashboard/residents/keluarga/${data.id}`);
+          if (isMounted) {
+            setError(data.error || "Gagal memuat data Kartu Keluarga Anda.");
+          }
+          return;
+        }
+
+        const data = await res.json();
+        if (!isMounted) return;
+        setFamilyId(data.id);
+
+        const detailRes = await fetch(`/api/families/${data.id}`);
+        if (detailRes.ok) {
+          const detailData = await detailRes.json();
+          if (isMounted) {
+            setFamilyDetail(detailData);
+          }
         } else {
-          const data = await res.json();
-          setError(data.error || "Gagal memuat data keluarga Anda.");
-          setIsLoading(false);
+          const err = await detailRes.json();
+          if (isMounted) {
+            setError(err.error || "Gagal memuat rincian Kartu Keluarga");
+          }
         }
       } catch (err) {
         console.error(err);
-        setError("Terjadi kesalahan koneksi sistem.");
-        setIsLoading(false);
+        if (isMounted) {
+          setError("Terjadi kesalahan koneksi sistem.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
-    getMyFamily();
-  }, [router]);
+    loadData();
 
-  if (isLoading) {
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (isLoading && !familyDetail) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center gap-3">
+      <div className="flex h-96 flex-col items-center justify-center gap-2">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm text-gray-secondary-text">Mengalihkan ke halaman keluarga Anda...</span>
+        <span className="text-sm font-medium text-gray-placeholder">Memuat Data Kartu Keluarga...</span>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !familyDetail) {
     return (
-      <div className="mx-auto max-w-md my-12 rounded-2xl border border-red-100 bg-red-50/50 p-6 text-center shadow-sm">
+      <div className="mx-auto max-w-md my-12 rounded-3xl border border-red-100 bg-red-50/50 p-6 text-center shadow-sm">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-error/10 text-error">
           <AlertCircle className="h-6 w-6" />
         </div>
         <h3 className="mt-4 text-lg font-bold text-gray-heading-main">Keluarga Belum Terdaftar</h3>
         <p className="mt-2 text-sm text-gray-secondary-text leading-relaxed">
-          {error}
+          {error || "Data Kartu Keluarga Anda belum terdaftar di sistem. Silakan hubungi Ketua RT."}
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 rounded-xl bg-primary hover:bg-primary-900 text-white px-4 py-2.5 text-sm font-semibold cursor-pointer shadow-sm transition-all"
+            className="flex items-center gap-2 rounded-xl bg-primary hover:bg-primary-900 text-white px-4 py-2.5 text-xs font-bold shadow-sm transition-all"
           >
             <Home className="h-4 w-4" />
             Kembali ke Beranda
@@ -64,5 +165,116 @@ export default function FamilyPageLoader() {
     );
   }
 
-  return null;
+  const isLocked = familyDetail.verificationStatus === "verified" || familyDetail.verificationStatus === "pending";
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="p-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-gray-secondary-text cursor-pointer transition-colors"
+            title="Kembali ke Beranda"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-heading-main">
+              Kelola Anggota Keluarga
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-secondary-text mt-0.5">
+              Lengkapi berkas Kartu Keluarga, scan KTP, dan atur biodata anggota keluarga Anda.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 1. Header Card & Verification Alert Status */}
+      <WargaKKHeader
+        family={familyDetail}
+        onRefresh={() => {
+          if (familyId) fetchFamilyDetails(familyId);
+        }}
+      />
+
+      {/* 2. List of Family Members Table */}
+      <WargaMemberTable
+        members={familyDetail.members || []}
+        isLocked={isLocked}
+        onAddMember={() => setIsAddModalOpen(true)}
+        onEditMember={(member) => {
+          setSelectedMemberForEdit(member);
+          setIsEditModalOpen(true);
+        }}
+        onDeleteMember={(member) => {
+          setSelectedMemberForDelete(member);
+          setIsDeleteModalOpen(true);
+        }}
+      />
+
+      {/* Modals */}
+      {/* Add Member Modal */}
+      {familyId && (
+        <AddWargaMemberModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSuccess={() => {
+            setIsAddModalOpen(false);
+            fetchFamilyDetails(familyId);
+          }}
+          familyId={familyId}
+        />
+      )}
+
+      {/* Edit Member Modal */}
+      <EditWargaMemberModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedMemberForEdit(null);
+        }}
+        onSuccess={() => {
+          setIsEditModalOpen(false);
+          setSelectedMemberForEdit(null);
+          if (familyId) fetchFamilyDetails(familyId);
+        }}
+        member={selectedMemberForEdit}
+      />
+
+      {/* Delete Member Modal */}
+      <DeleteWargaMemberModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedMemberForDelete(null);
+        }}
+        onSuccess={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedMemberForDelete(null);
+          if (familyId) fetchFamilyDetails(familyId);
+        }}
+        member={selectedMemberForDelete}
+      />
+
+      {/* Action Button: Kirim ke RT */}
+      {!isLocked && (familyDetail.verificationStatus === "draft" || familyDetail.verificationStatus === "rejected") && familyDetail.kkFile && (
+        <div className="flex justify-end pt-4 border-t border-gray-border/40 mt-6">
+          <button
+            type="button"
+            onClick={handleConfirmSubmit}
+            disabled={isSubmittingToRT}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98] duration-150"
+          >
+            {isSubmittingToRT ? (
+              <Loader2 className="h-4.5 w-4.5 animate-spin" />
+            ) : (
+              <Send className="h-4.5 w-4.5" />
+            )}
+            <span>Verifikasi Ke RT</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }

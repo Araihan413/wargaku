@@ -5,6 +5,7 @@ import { hasPermission } from '@/lib/rbac';
 import { getFamilyById, updateFamily, deleteFamily } from '@/db/queries/kependudukan';
 import { updateFamilySchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
+import { deleteCloudinaryFileByUrl } from '@/lib/cloudinary';
 
 /**
  * @openapi
@@ -199,6 +200,12 @@ export async function PUT(
     }
 
     const validated = updateFamilySchema.parse(updateData);
+
+    // Hapus file KK lama dari Cloudinary jika diganti dengan file baru
+    if (validated.kkFile && family.kkFile && validated.kkFile !== family.kkFile) {
+      await deleteCloudinaryFileByUrl(family.kkFile);
+    }
+
     await updateFamily(familyId, validated);
 
     return NextResponse.json({ message: 'Data Kartu Keluarga berhasil diperbarui' });

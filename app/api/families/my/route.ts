@@ -44,7 +44,16 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ id: family.id });
+    return NextResponse.json({
+      id: family.id,
+      familyNumber: family.familyNumber,
+      headUserId: family.headUserId,
+      headName: family.headName,
+      verificationStatus: family.verificationStatus,
+      verificationNote: family.verificationNote,
+      kkFile: family.kkFile,
+      dwellingId: family.dwellingId,
+    });
   } catch (error: any) {
     console.error('Error in GET /api/families/my:', error);
     return NextResponse.json({ error: 'Kesalahan server internal' }, { status: 500 });
