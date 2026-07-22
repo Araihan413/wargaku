@@ -18,6 +18,7 @@ interface CustomSelectProps {
   label?: string;
   disabled?: boolean;
   className?: string;
+  size?: "sm" | "md";
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -28,6 +29,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   label,
   disabled = false,
   className = "",
+  size = "md",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -164,22 +166,30 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         onKeyDown={handleKeyDown}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`flex w-full items-center justify-between rounded-xl border border-gray-border bg-gray-card py-2.5 px-3 text-gray-heading-main text-sm outline-none transition-all cursor-pointer select-none text-left disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`flex w-full items-center justify-between rounded-xl border border-gray-border outline-none transition-all cursor-pointer select-none text-left disabled:opacity-50 disabled:cursor-not-allowed ${
+          size === "sm"
+            ? "bg-gray-page-bg py-2 px-3.5 text-xs text-gray-heading-main"
+            : "bg-gray-card py-2.5 px-3 text-sm text-gray-heading-main"
+        } ${
           isOpen ? "border-primary ring-2 ring-primary/20" : "focus:border-primary focus:ring-2 focus:ring-primary/20"
         }`}
       >
         <span className="flex items-center gap-2 truncate">
           {selectedOption?.icon && (
-            <selectedOption.icon className="h-4.5 w-4.5 shrink-0 text-gray-placeholder" />
+            <selectedOption.icon
+              className={`shrink-0 text-gray-placeholder ${
+                size === "sm" ? "h-4 w-4" : "h-4.5 w-4.5"
+              }`}
+            />
           )}
           <span className={selectedOption ? "text-gray-heading-main" : "text-gray-placeholder"}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
         </span>
         <ChevronDown
-          className={`h-4.5 w-4.5 shrink-0 text-gray-placeholder transition-transform duration-200 ${
-            isOpen ? "transform rotate-180 text-primary" : ""
-          }`}
+          className={`shrink-0 text-gray-placeholder transition-transform duration-200 ${
+            size === "sm" ? "h-4 w-4" : "h-4.5 w-4.5"
+          } ${isOpen ? "transform rotate-180 text-primary" : ""}`}
         />
       </button>
 
@@ -204,7 +214,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                 aria-selected={isSelected}
                 onClick={() => handleSelectOption(opt)}
                 onMouseEnter={() => setFocusedIndex(idx)}
-                className={`flex items-center gap-2 rounded-lg py-2 px-2.5 text-sm cursor-pointer transition-colors outline-none select-none ${
+                className={`flex items-center gap-2 rounded-lg py-2 px-2.5 cursor-pointer transition-colors outline-none select-none ${
+                  size === "sm" ? "text-xs" : "text-sm"
+                } ${
                   isSelected
                     ? "bg-primary/10 text-primary font-bold"
                     : isFocused
@@ -214,9 +226,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               >
                 {opt.icon && (
                   <opt.icon
-                    className={`h-4.5 w-4.5 shrink-0 ${
-                      isSelected ? "text-primary" : "text-gray-placeholder"
-                    }`}
+                    className={`shrink-0 ${
+                      size === "sm" ? "h-4 w-4" : "h-4.5 w-4.5"
+                    } ${isSelected ? "text-primary" : "text-gray-placeholder"}`}
                   />
                 )}
                 <span className="truncate">{opt.label}</span>

@@ -1,11 +1,44 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, UserPlus, FileText, Phone, User, Calendar, MapPin, Briefcase, Home } from "lucide-react";
+import { X, Loader2, UserPlus, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, Upload, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { createRentalResidentSchema } from "@/lib/validations/rental";
+import { FileUploadModal } from "@/components/FileUploadModal";
+import { uploadFileToCloudinary } from "@/lib/upload-helper";
+import { AutocompleteInput } from "@/components/AutocompleteInput";
+
+const commonOccupations = [
+  "Belum/Tidak Bekerja",
+  "Mengurus Rumah Tangga",
+  "Pelajar/Mahasiswa",
+  "Pensiunan",
+  "Pegawai Negeri Sipil (PNS)",
+  "Tentara Nasional Indonesia (TNI)",
+  "Kepolisian RI (POLRI)",
+  "Karyawan Swasta",
+  "Karyawan BUMN",
+  "Karyawan BUMD",
+  "Buruh Harian Lepas",
+  "Petani/Pekebun",
+  "Nelayan",
+  "Pedagang",
+  "Wiraswasta",
+];
+
+const commonEducations = [
+  "Tidak/Belum Sekolah",
+  "SD / Sederajat",
+  "SMP / Sederajat",
+  "SMA / SMK / Sederajat",
+  "Diploma I / II",
+  "Akademi / Diploma III (D3)",
+  "Diploma IV / Sarjana (S1)",
+  "Magister (S2)",
+  "Doktor (S3)",
+];
 
 interface CheckInTenantModalProps {
   isOpen: boolean;
@@ -43,6 +76,17 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
   const [properties, setProperties] = useState<RentalPropertyOption[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+  const [showKtpModal, setShowKtpModal] = useState(false);
+
+  const handleSelectLocalKtp = (file: File) => {
+    setValue("ktpFile", file as any);
+    toast.success("Berkas KTP lokal berhasil dipilih!");
+  };
+
+  const handleSelectDriveKtp = (url: string) => {
+    setValue("ktpFile", url);
+    toast.success("Tautan Google Drive KTP berhasil dipilih!");
+  };
 
   const {
     register,
@@ -50,6 +94,7 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     control,
     setValue,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(createRentalResidentSchema),
@@ -67,6 +112,8 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
       ktpFile: "",
     },
   });
+
+  const ktpFile = watch("ktpFile");
 
   // Fetch active rental properties
   useEffect(() => {
@@ -147,16 +194,27 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     }
 
     try {
-      // Simulate file upload setting
-      const submitData = {
-        ...data,
-        ktpFile: data.ktpFile || `/uploads/ktp/ktp_${data.nik}.jpg`,
-      };
+      let finalKtpUrl = "";
+
+      if (data.ktpFile instanceof File) {
+        try {
+          const uploadRes = await uploadFileToCloudinary(data.ktpFile, "ktp");
+          finalKtpUrl = uploadRes.url;
+        } catch (err) {
+          toast.error("Gagal mengunggah berkas KTP.");
+          return;
+        }
+      } else if (typeof data.ktpFile === "string") {
+        finalKtpUrl = data.ktpFile;
+      }
 
       const response = await fetch(`/api/rentals/${selectedPropertyId}/residents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify({
+          ...data,
+          ktpFile: finalKtpUrl,
+        }),
       });
 
       const result = await response.json();
@@ -328,16 +386,59 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Occupation */}
-              <FormField
-                id="occupation"
-                label="Pekerjaan (Opsional)"
-                type="text"
-                placeholder="Pekerjaan utama"
-                registerProps={register("occupation")}
-                icon={Briefcase}
-                error={errors.occupation?.message}
-              />
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
+                  Pekerjaan (Opsional)
+                </label>
+                <div className="relative">
+                  <Controller
+                    name="occupation"
+                    control={control}
+                    render={({ field }) => (
+                      <AutocompleteInput
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        suggestions={commonOccupations}
+                        placeholder="Pekerjaan utama"
+                        className="pl-10 py-3 bg-gray-card text-gray-heading-main border border-gray-border"
+                      />
+                    )}
+                  />
+                  <Briefcase className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-placeholder pointer-events-none" />
+                </div>
+                {errors.occupation && (
+                  <p className="text-xs text-error font-medium mt-1">{errors.occupation.message}</p>
+                )}
+              </div>
 
+              {/* Education Level */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
+                  Pendidikan Terakhir (Opsional)
+                </label>
+                <div className="relative">
+                  <Controller
+                    name="educationLevel"
+                    control={control}
+                    render={({ field }) => (
+                      <AutocompleteInput
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        suggestions={commonEducations}
+                        placeholder="Contoh: S1 / SMA"
+                        className="pl-10 py-3 bg-gray-card text-gray-heading-main border border-gray-border"
+                      />
+                    )}
+                  />
+                  <GraduationCap className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-placeholder pointer-events-none" />
+                </div>
+                {errors.educationLevel && (
+                  <p className="text-xs text-error font-medium mt-1">{errors.educationLevel.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Religion */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
@@ -378,29 +479,40 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
               )}
             </div>
 
-            {/* Mock KTP upload input */}
-            <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
-                Upload Foto / Scan KTP (Simulasi)
+            {/* Scan KTP File Upload */}
+            <div className="space-y-2.5 border-t border-gray-border pt-3">
+              <label className="text-xs font-bold text-gray-heading-main flex items-center gap-1.5">
+                <Upload className="h-3.5 w-3.5 text-primary" />
+                <span>Berkas Scan KTP Penyewa <span className="text-error">*</span></span>
               </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  placeholder="File KTP (otomatis dibuat jika kosong)"
-                  {...register("ktpFile")}
-                  className="flex-1 rounded-xl border border-gray-border bg-gray-card py-3 px-4 text-gray-heading-main placeholder-gray-placeholder sm:text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    setValue("ktpFile", `/uploads/ktp/ktp_${Math.floor(100000 + Math.random() * 900000)}.jpg`);
-                    toast.success("Foto KTP disimulasikan berhasil diunggah!");
-                  }}
-                  className="px-4 py-3 bg-gray-sidebar-hover hover:bg-gray-border/50 border border-gray-border rounded-xl text-sm font-semibold text-gray-heading-main cursor-pointer transition-all"
+                  onClick={() => setShowKtpModal(true)}
+                  className="rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-xs font-bold text-primary flex items-center justify-center gap-2 cursor-pointer transition-colors max-w-full truncate"
                 >
-                  Ambil Foto KTP
+                  <Upload className="h-4 w-4 shrink-0" />
+                  <span className="truncate font-sans font-bold">
+                    {ktpFile
+                      ? ((ktpFile as any) instanceof File ? (ktpFile as any).name : "Google Drive Terpilih")
+                      : "Pilih Berkas KTP"}
+                  </span>
                 </button>
+
+                {ktpFile ? (
+                  <span className="text-[11px] font-medium text-emerald-600 truncate flex items-center gap-1">
+                    ✓ Berkas KTP Terpasang (Unggah Saat Simpan)
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-medium text-amber-600 flex items-center gap-1">
+                    ⚠️ Wajib Unggah Berkas KTP
+                  </span>
+                )}
               </div>
+              {errors.ktpFile && (
+                <p className="text-xs text-error font-medium mt-1">{errors.ktpFile.message}</p>
+              )}
             </div>
           </div>
 
@@ -431,6 +543,16 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
           </div>
         </form>
       </div>
+
+      <FileUploadModal
+        isOpen={showKtpModal}
+        onClose={() => setShowKtpModal(false)}
+        title="Pilih Berkas KTP Penyewa"
+        description="Pilih sumber dokumen Scan KTP untuk check-in penyewa kos/kontrakan baru."
+        onSelectLocalFile={handleSelectLocalKtp}
+        onSelectDriveUrl={handleSelectDriveKtp}
+        isLoading={false}
+      />
     </div>
   );
 };

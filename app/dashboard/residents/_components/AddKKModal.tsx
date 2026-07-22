@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, CreditCard, Calendar, User, Home, Loader2, Info } from "lucide-react";
+import { X, CreditCard, Calendar, User, Home, Loader2, Info, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { createFamilySchema } from "@/lib/validations/kependudukan";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { DwellingOption, UserOption } from "../types";
+import { uploadFileToCloudinary } from "@/lib/upload-helper";
 
 interface AddKKModalProps {
   isOpen: boolean;
@@ -22,6 +23,22 @@ export const AddKKModal: React.FC<AddKKModalProps> = ({
   const [dwellings, setDwellings] = useState<DwellingOption[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  const [isUploadingKK, setIsUploadingKK] = useState(false);
+
+  const handleKKFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingKK(true);
+    try {
+      const res = await uploadFileToCloudinary(file, "kk");
+      setValue("kkFile", res.url);
+    } catch (err) {
+      console.error("Upload error:", err);
+    } finally {
+      setIsUploadingKK(false);
+    }
+  };
 
   const {
     register,
@@ -239,6 +256,34 @@ export const AddKKModal: React.FC<AddKKModalProps> = ({
               icon={User}
               error={errors.headName?.message}
             />
+
+            {/* Scan KK File Upload */}
+            <div className="space-y-2 border-t border-gray-border pt-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-heading-main flex items-center gap-1.5">
+                  <Upload className="h-3.5 w-3.5 text-primary" />
+                  <span>Unggah Berkas Scan KK</span>
+                </label>
+                {isUploadingKK && (
+                  <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Mengunggah...
+                  </span>
+                )}
+              </div>
+
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                disabled={isUploadingKK}
+                onChange={handleKKFileUpload}
+                className="block w-full text-xs text-gray-secondary-text file:mr-3 file:rounded-xl file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-primary hover:file:bg-primary/20 cursor-pointer disabled:opacity-60"
+              />
+
+              <input
+                type="hidden"
+                {...register("kkFile")}
+              />
+            </div>
 
             {/* Check In Date */}
             <FormField
