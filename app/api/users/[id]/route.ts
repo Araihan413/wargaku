@@ -357,7 +357,7 @@ export async function PATCH(
                   headUserId: id,
                   headName: user.name,
                   unitNumber: user.unitNumber || null,
-                  verificationStatus: "pending",
+                  verificationStatus: "draft",
                   checkInDate: new Date(),
                   isActive: true,
                 });
