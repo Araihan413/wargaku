@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import logo from '@/public/logo/logo.webp';
 import Image from "next/image";
 import { useRoleStore } from "@/lib/store/use-role-store";
+import { useFamilyVerification } from "@/lib/hooks/use-family-verification";
+import { toast } from "sonner";
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -30,11 +32,13 @@ import {
   LogOut,
   X,
   User,
+  Lock,
 } from "lucide-react";
 
 interface SidebarSubItem {
   title: string;
   href: string;
+  requiresVerification?: boolean;
 }
 
 interface SidebarItem {
@@ -43,6 +47,7 @@ interface SidebarItem {
   href?: string;
   subItems?: SidebarSubItem[];
   roles: number[];
+  requiresVerification?: boolean;
 }
 
 // Full schema of dynamic, role-based sidebar items
@@ -195,7 +200,7 @@ const sidebarItems: SidebarItem[] = [
     roles: [6],
     subItems: [
       { title: "Kelola Anggota Keluarga", href: "/dashboard/family" },
-      { title: "Riwayat & Pengajuan Surat", href: "/dashboard/family/surat" },
+      { title: "Riwayat & Pengajuan Surat", href: "/dashboard/family/surat", requiresVerification: true },
     ],
   },
   {
@@ -203,12 +208,14 @@ const sidebarItems: SidebarItem[] = [
     icon: Search,
     href: "/dashboard/neighborhood",
     roles: [6],
+    requiresVerification: true,
   },
   {
     title: "Kelola Properti Pribadi",
     icon: Building2,
     href: "/dashboard/my-properties",
     roles: [6],
+    requiresVerification: true,
   },
 ];
 
@@ -233,7 +240,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
 
   const { activeRoleId } = useRoleStore();
-  const currentRoleId = activeRoleId ?? user.roleId;
+  const baseRoleId = user?.roleId;
+  const currentRoleId = baseRoleId === 6 ? 6 : (activeRoleId ?? baseRoleId);
+  const { isVerified, isLoading: isVerificationLoading } = useFamilyVerification(baseRoleId);
+
+  const isLocked = (requiresVerification?: boolean) =>
+    currentRoleId === 6 && Boolean(requiresVerification) && !isVerificationLoading && !isVerified;
 
   // Filter items matching the current active role
   const filteredItems = useMemo(() => {
@@ -383,8 +395,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ) : (
                   <Link
                     href={item.href || "#"}
-                    onClick={onCloseMobile}
-                    className={parentClassName}
+                    onClick={(e) => {
+                      if (isLocked(item.requiresVerification)) {
+                        e.preventDefault();
+                        toast.error("Menu ini terkunci. Unggah scan KK dan tunggu verifikasi Ketua RT.");
+                        return;
+                      }
+                      onCloseMobile();
+                    }}
+                    className={`${parentClassName} ${
+                      isLocked(item.requiresVerification)
+                        ? "opacity-60 cursor-not-allowed"
+                        : ""
+                    }`}
                   >
                     <div className={iconContainerClassName}>
                       <Icon className="h-5 w-5 shrink-0" />
@@ -395,6 +418,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }`}>
                         {item.title}
                       </span>
+                      {isLocked(item.requiresVerification) && (
+                        <Lock className="h-3.5 w-3.5 text-amber-500 ml-auto shrink-0" />
+                      )}
                     </div>
                   </Link>
                 )}
@@ -405,6 +431,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {item.subItems!.map((sub, idx) => {
                       const isSubActive = isActive(sub.href);
                       const isLast = idx === item.subItems!.length - 1;
+                      const isSubLocked = isLocked(sub.requiresVerification);
                       return (
                         <div key={sub.href} className="relative pl-7">
                           <div className="pb-1">
@@ -420,14 +447,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                           <Link
                             href={sub.href}
-                            onClick={onCloseMobile}
-                            className={`flex rounded-lg py-2 px-3 text-xs font-semibold transition-colors ${
-                              isSubActive
+                            onClick={(e) => {
+                              if (isSubLocked) {
+                                e.preventDefault();
+                                toast.error("Menu ini terkunci. Unggah scan KK dan tunggu verifikasi Ketua RT.");
+                                return;
+                              }
+                              onCloseMobile();
+                            }}
+                            className={`flex items-center justify-between rounded-lg py-2 px-3 text-xs font-semibold transition-colors ${
+                              isSubLocked
+                                ? "text-gray-secondary-text/60 cursor-not-allowed"
+                                : isSubActive
                                 ? "bg-primary/10 text-primary font-bold"
                                 : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
                             }`}
                           >
-                            {sub.title}
+                            <span>{sub.title}</span>
+                            {isSubLocked && <Lock className="h-3 w-3 text-amber-500 shrink-0 ml-1.5" />}
                           </Link>
                           </div>
                         </div>
@@ -450,6 +487,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {item.subItems!.map((sub, idx) => {
                         const isSubActive = isActive(sub.href);
                         const isLast = idx === item.subItems!.length - 1;
+                        const isSubLocked = isLocked(sub.requiresVerification);
                         return (
                           <div key={sub.href} className="relative pl-7 text-left"> 
                             <div className="pb-1">
@@ -464,14 +502,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                               <Link
                                 href={sub.href}
-                                onClick={onCloseMobile}
-                                className={`flex rounded-lg py-2 px-3 text-xs font-semibold transition-colors ${
-                                  isSubActive
+                                onClick={(e) => {
+                                  if (isSubLocked) {
+                                    e.preventDefault();
+                                    toast.error("Menu ini terkunci. Unggah scan KK dan tunggu verifikasi Ketua RT.");
+                                    return;
+                                  }
+                                  onCloseMobile();
+                                }}
+                                className={`flex items-center justify-between rounded-lg py-2 px-3 text-xs font-semibold transition-colors ${
+                                  isSubLocked
+                                    ? "text-gray-secondary-text/60 cursor-not-allowed"
+                                    : isSubActive
                                     ? "bg-primary/10 text-primary font-bold"
                                     : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
                                 }`}
                               >
-                                {sub.title}
+                                <span>{sub.title}</span>
+                                {isSubLocked && <Lock className="h-3 w-3 text-amber-500 shrink-0 ml-1.5" />}
                               </Link>
                              </div>
                           </div>

@@ -84,7 +84,7 @@ export async function PATCH(
                 headUserId: id,
                 headName: user.name,
                 unitNumber: user.unitNumber || null,
-                verificationStatus: "pending", // Biarkan KK pending sampai diupload berkas fisiknya
+                verificationStatus: "draft", // KK mulai dari status draf sebelum diupload berkas fisiknya
                 checkInDate: new Date(),
                 isActive: true,
               });

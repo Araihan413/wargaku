@@ -5,6 +5,7 @@ import { useRoleStore } from "@/lib/store/use-role-store";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { KetuaRTDashboard } from "./_components/KetuaRTDashboard";
+import { WargaDashboard } from "./_components/WargaDashboard";
 
 export default function Dashboard() {
   const { data: session, isPending } = authClient.useSession();
@@ -40,7 +41,12 @@ export default function Dashboard() {
 
   if (!session) return null;
 
-  const currentRoleId = activeRoleId ?? session.user.roleId;
+  const validActiveRole =
+    activeRoleId !== null && allowedRoles.includes(activeRoleId)
+      ? activeRoleId
+      : null;
+
+  const currentRoleId = validActiveRole ?? session.user.roleId;
 
   // Render dashboard based on active role
   switch (currentRoleId) {
@@ -74,13 +80,6 @@ export default function Dashboard() {
         </div>
       );
     default: // Warga / Koordinator Kost
-      return (
-        <div className="space-y-4 rounded-2xl border border-gray-border bg-gray-card p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-heading-main">Dashboard Warga</h1>
-          <p className="text-gray-secondary-text">
-            Selamat datang di aplikasi layanan Wargaku. Di sini Anda dapat melihat pengumuman, kegiatan mendatang, transparansi keuangan kas RT, mengajukan surat pengantar, dan membuat laporan pengaduan secara mandiri.
-          </p>
-        </div>
-      );
+      return <WargaDashboard />;
   }
 }

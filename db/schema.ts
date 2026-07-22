@@ -90,7 +90,7 @@ export const families = mysqlTable('families', {
   headName: varchar('head_name', { length: 100 }).notNull(),
   unitNumber: varchar('unit_number', { length: 10 }),
   kkFile: varchar('kk_file', { length: 255 }),
-  verificationStatus: mysqlEnum('verification_status', ['pending', 'verified', 'rejected']).notNull().default('pending'),
+  verificationStatus: mysqlEnum('verification_status', ['draft', 'pending', 'verified', 'rejected']).notNull().default('draft'),
   verificationNote: text('verification_note'),
   checkInDate: date('check_in_date').notNull(),
   checkOutDate: date('check_out_date'),

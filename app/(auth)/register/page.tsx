@@ -205,10 +205,11 @@ export default function RegisterPage() {
           onRequest: () => {
             setIsLoading(true);
           },
-          onSuccess: () => {
+          onSuccess: async () => {
+            await authClient.signOut();
             setIsLoading(false);
             toast.success(
-              "Registrasi berhasil! Akun Anda berstatus PENDING menunggu verifikasi RT."
+              "Registrasi mandiri berhasil! Akun Anda berstatus PENDING menunggu verifikasi RT."
             );
             router.push("/login");
           },

@@ -89,7 +89,12 @@ export const createRentalResidentSchema = z.object({
         : 'Format tanggal check-in tidak valid',
   })),
   
-  ktpFile: z.string().max(255).optional().nullable(),
+  ktpFile: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Scan KTP wajib diunggah untuk anak kos'
+        : 'Scan KTP harus berupa teks',
+  }).min(1, 'Scan KTP wajib diunggah untuk anak kos').max(255),
 });
 
 export const updateRentalResidentSchema = createRentalResidentSchema.partial().extend({

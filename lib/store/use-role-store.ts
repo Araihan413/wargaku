@@ -4,6 +4,7 @@ interface RoleState {
   activeRoleId: number | null;
   setActiveRoleId: (roleId: number) => void;
   initialize: (defaultRoleId: number, allowedRoles: number[]) => void;
+  resetRole: () => void;
 }
 
 export const useRoleStore = create<RoleState>((set) => ({
@@ -12,6 +13,12 @@ export const useRoleStore = create<RoleState>((set) => ({
     set({ activeRoleId: roleId });
     if (typeof window !== 'undefined') {
       document.cookie = `active_role_id=${roleId}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    }
+  },
+  resetRole: () => {
+    set({ activeRoleId: null });
+    if (typeof window !== 'undefined') {
+      document.cookie = 'active_role_id=; path=/; max-age=0; SameSite=Lax';
     }
   },
   initialize: (defaultRoleId, allowedRoles) => {
@@ -37,3 +44,4 @@ export const useRoleStore = create<RoleState>((set) => ({
     });
   },
 }));
+

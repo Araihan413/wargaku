@@ -6,16 +6,25 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { Lock, Mail, Loader2, Eye, EyeOff } from "lucide-react";
-import bigLogo from "@/public/logo/bigLogo.webp"
+import bigLogo from "@/public/logo/bigLogo.webp";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginInput } from "@/lib/validations/auth";
+import { PendingVerificationCard } from "./_components/PendingVerificationCard";
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingUser, setPendingUser] = useState<{
+    name?: string;
+    email?: string;
+    nik?: string;
+    phone?: string;
+    familyNumber?: string;
+    unitNumber?: string;
+  } | null>(null);
 
   const {
     register,
@@ -31,30 +40,49 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginInput) => {
     setIsLoading(true);
-    console.log(data)
 
     try {
-      await authClient.signIn.email(
-        {
-          email: data.email,
-          password: data.password,
-        },
-        {
-          onRequest: () => {
-            setIsLoading(true);
-          },
-          onSuccess: () => {
-            setIsLoading(false);
-            toast.success("Login berhasil! Mengalihkan...");
-            router.push("/dashboard");
-            router.refresh();
-          },
-          onError: (ctx) => {
-            setIsLoading(false);
-            toast.error(ctx.error.message || "Email atau password salah.");
-          },
-        }
-      );
+      const res = await authClient.signIn.email({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (res.error) {
+        setIsLoading(false);
+        toast.error(res.error.message || "Email atau password salah.");
+        return;
+      }
+
+      const user = res.data?.user as any;
+
+      if (user?.status === "pending") {
+        await authClient.signOut();
+        setIsLoading(false);
+        setPendingUser({
+          name: user.name,
+          email: user.email,
+          nik: user.nik,
+          phone: user.phone,
+          familyNumber: user.familyNumber,
+          unitNumber: user.unitNumber,
+        });
+        toast.warning(
+          "Akun Anda berstatus PENDING. Silakan tunggu verifikasi dari Ketua RT."
+        );
+        return;
+      }
+
+      if (user?.status === "suspended") {
+        await authClient.signOut();
+        setIsLoading(false);
+        toast.error("Akun Anda telah ditangguhkan. Silakan hubungi pengurus RT.");
+        return;
+      }
+
+      setIsLoading(false);
+      toast.success("Login berhasil! Mengalihkan...");
+      router.push("/dashboard");
+      router.refresh();
     } catch (error) {
       setIsLoading(false);
       console.log("Terjadi kesalahan:", error);
@@ -63,11 +91,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="grid md:grid-cols-2 items-center gap-8 md:gap-16 w-full max-w-375"> 
+    <div className="grid md:grid-cols-2 items-center gap-8 md:gap-16 w-full max-w-375">
       {/* Left Column: Logo (Hidden/Stacked nicely on mobile) */}
       <div className="col-span-1 w-full">
         <div className="flex justify-center items-center shrink-0">
-          <Image 
+          <Image
             src={bigLogo}
             alt="Logo Wargaku"
             width={200}
@@ -77,136 +105,151 @@ export default function LoginPage() {
           />
         </div>
       </div>
-      
-      {/* Right Column: Login Card */}
-      <div className="col-span-1">
-        <div className="w-full max-w-md space-y-8 bg-gray-card/70 backdrop-blur-xl border border-gray-border/50 p-8 rounded-3xl shadow-xl self-center">
-          <div className="flex flex-col items-center">
-            {/* Logo / Icon */}
-            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-heading-main">
-              Selamat Datang!
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-secondary-text">
-              Masuk untuk mengakses akun <span className="text-primary font-semibold">Wargaku</span> anda.
-            </p>
-          </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div className="space-y-4 rounded-sm">
-              {/* Email Field */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2"
-                >
-                  Email
-                </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Mail className="h-5 w-5 text-gray-placeholder" />
+      {/* Right Column: Login Card or Pending Verification Card */}
+      <div className="col-span-1 flex justify-center">
+        {pendingUser ? (
+          <PendingVerificationCard
+            user={pendingUser}
+            onBackToLogin={() => setPendingUser(null)}
+          />
+        ) : (
+          <div className="w-full max-w-md space-y-8 bg-gray-card/70 backdrop-blur-xl border border-gray-border/50 p-8 rounded-3xl shadow-xl self-center">
+            <div className="flex flex-col items-center">
+              {/* Logo / Icon */}
+              <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-heading-main">
+                Selamat Datang!
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-secondary-text">
+                Masuk untuk mengakses akun{" "}
+                <span className="text-primary font-semibold">Wargaku</span> anda.
+              </p>
+            </div>
+
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+              <div className="space-y-4 rounded-sm">
+                {/* Email Field */}
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2"
+                  >
+                    Email
+                  </label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <Mail className="h-5 w-5 text-gray-placeholder" />
+                    </div>
+                    <input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      {...register("email")}
+                      className={`block w-full rounded-xl border ${
+                        errors.email
+                          ? "border-error focus:ring-error/20 focus:border-error"
+                          : "border-gray-border focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      } bg-gray-card py-3 pl-10 pr-3 text-gray-heading-main placeholder-gray-placeholder sm:text-sm transition-all outline-none`}
+                      placeholder="name@example.com"
+                    />
                   </div>
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    {...register("email")}
-                    className={`block w-full rounded-xl border ${
-                      errors.email
-                        ? "border-error focus:ring-error/20 focus:border-error"
-                        : "border-gray-border focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    } bg-gray-card py-3 pl-10 pr-3 text-gray-heading-main placeholder-gray-placeholder sm:text-sm transition-all outline-none`}
-                    placeholder="name@example.com"
-                  />
+                  {errors.email && (
+                    <p className="text-xs text-error mt-1">
+                      {errors.email.message}
+                    </p>
+                  )}
                 </div>
-                {errors.email && (
-                  <p className="text-xs text-error mt-1">{errors.email.message}</p>
-                )}
+
+                {/* Password Field */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-semibold text-gray-body-text-btn tracking-wider"
+                    >
+                      Password
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <Lock className="h-5 w-5 text-gray-placeholder" />
+                    </div>
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      {...register("password")}
+                      className={`block w-full rounded-xl border ${
+                        errors.password
+                          ? "border-error focus:ring-error/20 focus:border-error"
+                          : "border-gray-border focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      } bg-gray-card py-3 pl-10 pr-10 text-gray-heading-main placeholder-gray-placeholder sm:text-sm transition-all outline-none`}
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-placeholder hover:text-gray-heading-small"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-xs text-error mt-1">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* Password Field */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-semibold text-gray-body-text-btn tracking-wider"
-                  >
-                    Password
-                  </label>
+              <div className="flex justify-between">
+                <div className="flex gap-2 justify-center items-center">
+                  <input type="checkbox" className="w-4 h-4 cursor-pointer" />
+                  <p className="text-sm text-gray-body-text-btn">Ingat Saya</p>
                 </div>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Lock className="h-5 w-5 text-gray-placeholder" />
-                  </div>
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    {...register("password")}
-                    className={`block w-full rounded-xl border ${
-                      errors.password
-                        ? "border-error focus:ring-error/20 focus:border-error"
-                        : "border-gray-border focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    } bg-gray-card py-3 pl-10 pr-10 text-gray-heading-main placeholder-gray-placeholder sm:text-sm transition-all outline-none`}
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-placeholder hover:text-gray-heading-small"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
+                <div>
+                  <button type="button" className="cursor-pointer">
+                    <p className="text-sm text-primary-400 hover:text-primary">
+                      Lupa Password?
+                    </p>
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-xs text-error mt-1">{errors.password.message}</p>
-                )}
               </div>
-            </div>
 
-            <div className="flex justify-between">
-              <div className="flex gap-2 justify-center items-center">
-                <input type="checkbox" className="w-4 h-4 cursor-pointer"/>
-                <p className="text-sm text-gray-body-text-btn">Ingat Saya</p>
-              </div>
               <div>
-                <button className="cursor-pointer">
-                  <p className="text-sm text-primary-400 hover:text-primary">Lupa Password?</p>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="group relative flex w-full justify-center rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25 transition-all duration-200"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "Masuk"
+                  )}
                 </button>
               </div>
-            </div>
+            </form>
 
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative flex w-full justify-center rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25 transition-all duration-200"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  "Masuk"
-                )}
-              </button>
+            <div className="text-center pt-4 border-t border-gray-divider">
+              <p className="text-sm text-gray-secondary-text">
+                Belum punya akun warga?{" "}
+                <Link
+                  href="/register"
+                  className="font-semibold text-primary hover:text-primary-900"
+                >
+                  Daftar Mandiri
+                </Link>
+              </p>
             </div>
-          </form>
-
-          <div className="text-center pt-4 border-t border-gray-divider">
-            <p className="text-sm text-gray-secondary-text">
-              Belum punya akun warga?{" "}
-              <Link
-                href="/register"
-                className="font-semibold text-primary hover:text-primary-900"
-              >
-                Daftar Mandiri
-              </Link>
-            </p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
+

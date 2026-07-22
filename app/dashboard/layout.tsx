@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { useRoleStore } from "@/lib/store/use-role-store";
 
 const subscribeSidebar = (callback: () => void) => {
   window.addEventListener("storage", callback);
@@ -44,6 +45,7 @@ export default function DashboardLayout({
   };
 
   const handleLogout = async () => {
+    useRoleStore.getState().resetRole();
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
@@ -57,6 +59,27 @@ export default function DashboardLayout({
     });
   };
 
+  const user = session?.user;
+
+  React.useEffect(() => {
+    if (!isPending && user) {
+      const userStatus = (user as any).status;
+      if (userStatus === "pending" || userStatus === "suspended") {
+        useRoleStore.getState().resetRole();
+        authClient.signOut().then(() => {
+          if (userStatus === "pending") {
+            toast.error(
+              "Akun Anda berstatus PENDING (menunggu verifikasi RT). Akses dashboard belum diizinkan."
+            );
+          } else {
+            toast.error("Akun Anda ditangguhkan.");
+          }
+          router.push("/login");
+        });
+      }
+    }
+  }, [user, isPending, router]);
+
   if (isPending) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-page-bg">
@@ -69,7 +92,14 @@ export default function DashboardLayout({
     return null;
   }
 
-  const user = session.user;
+  const currentStatus = (session.user as any).status;
+  if (currentStatus === "pending" || currentStatus === "suspended") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-page-bg">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div

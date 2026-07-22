@@ -6,10 +6,6 @@ import {
   UserX,
   Loader2,
   Users,
-  Mail,
-  Phone,
-  Calendar,
-  Home,
   CheckCircle2,
   X
 } from "lucide-react";
@@ -158,7 +154,7 @@ export default function RegistrationApprovalsPage() {
       </div>
 
       {/* Main Content Card */}
-      <div className="bg-gray-card border border-gray-border rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-gray-card border border-gray-border rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-primary/10 text-primary rounded-xl">
@@ -192,52 +188,49 @@ export default function RegistrationApprovalsPage() {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-border bg-gray-sidebar-hover/10 text-gray-heading-main font-bold text-[10px]">
-                  <th className="py-3.5 px-5">Nama / Kontak</th>
-                  <th className="py-3.5 px-5">NIK</th>
-                  <th className="py-3.5 px-5">Nomor KK</th>
-                  <th className="py-3.5 px-5">Rencana Alamat</th>
-                  <th className="py-3.5 px-5 text-center">Tanggal Daftar</th>
-                  <th className="py-3.5 px-5 text-right">Aksi</th>
+                <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
+                  <th className="py-4 px-5">Nama & Kontak</th>
+                  <th className="py-4 px-5">NIK</th>
+                  <th className="py-4 px-5">Nomor KK</th>
+                  <th className="py-4 px-5">Rencana Alamat</th>
+                  <th className="py-4 px-5 text-center">Tanggal Daftar</th>
+                  <th className="py-4 px-5 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-border text-xs text-gray-heading-main">
+              <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
                 {pendingList.map((user) => {
                   const addressStr = user.blockNumber
                     ? `Blok ${user.blockNumber} No. ${user.houseNumber || "-"}`
                     : "Belum diset";
 
                   return (
-                    <tr key={user.id} className="hover:bg-gray-sidebar-hover/30 transition-colors">
-                      <td className="py-3.5 px-5">
-                        <div className="font-semibold text-gray-heading-main">{user.name}</div>
-                        <div className="flex items-center gap-1.5 text-[10px] text-gray-placeholder mt-0.5">
-                          <Mail className="h-3 w-3 shrink-0" />
-                          <span>{user.email}</span>
+                    <tr key={user.id} className="hover:bg-gray-sidebar-hover/40 transition-colors">
+                      <td className="py-4 px-5">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-gray-heading-main">
+                            {user.name}
+                          </span>
+                          <span className="text-xs text-gray-secondary-text">
+                            {user.email}
+                          </span>
                           {user.phone && (
-                            <>
-                              <span className="text-gray-border">•</span>
-                              <Phone className="h-3 w-3 shrink-0" />
-                              <span>{user.phone}</span>
-                            </>
+                            <span className="text-xs text-gray-secondary-text">
+                              {user.phone}
+                            </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3.5 px-5 font-mono text-gray-secondary-text">{user.nik}</td>
-                      <td className="py-3.5 px-5 font-mono text-gray-secondary-text">{user.familyNumber || "-"}</td>
-                      <td className="py-3.5 px-5">
-                        <div className="flex items-center gap-1.5">
-                          <Home className="h-3.5 w-3.5 text-gray-placeholder shrink-0" />
-                          <span>{addressStr} {user.unitNumber ? `(Unit ${user.unitNumber})` : ""}</span>
-                        </div>
+                      <td className="py-4 px-5 font-mono text-gray-secondary-text">{user.nik}</td>
+                      <td className="py-4 px-5 font-mono text-gray-secondary-text">{user.familyNumber || "-"}</td>
+                      <td className="py-4 px-5 text-gray-secondary-text">
+                        <span>
+                          {addressStr} {user.unitNumber ? `(Unit ${user.unitNumber})` : ""}
+                        </span>
                       </td>
-                      <td className="py-3.5 px-5 text-center text-gray-secondary-text font-medium">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 text-gray-placeholder" />
-                          <span>{formatDate(user.createdAt)}</span>
-                        </div>
+                      <td className="py-4 px-5 text-center text-gray-secondary-text">
+                        <span>{formatDate(user.createdAt)}</span>
                       </td>
-                      <td className="py-3.5 px-5 text-right">
+                      <td className="py-4 px-5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
