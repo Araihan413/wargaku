@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { CustomSelect } from "@/components/CustomSelect";
 import { EnrichedCitizen, QueryRule } from "@/db/queries/smart-groups";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 const fieldOptions = [
   { value: "name", label: "Nama Warga" },
@@ -95,6 +96,11 @@ export default function SmartGroupsPage() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [selectedSavedGroupId, setSelectedSavedGroupId] = useState<string>("");
+
+  // Delete saved group confirmation state
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [groupIdToDelete, setGroupIdToDelete] = useState<number | null>(null);
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false);
 
   // Load Saved Groups
   const fetchSavedGroups = useCallback(async () => {
@@ -219,19 +225,26 @@ export default function SmartGroupsPage() {
     }
   };
 
-  // Delete saved group template
-  const handleDeleteGroup = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus kelompok warga ini?")) return;
+  const handleDeleteGroup = (id: number) => {
+    setGroupIdToDelete(id);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const executeDeleteGroup = async () => {
+    if (groupIdToDelete === null) return;
+    setIsDeletingGroup(true);
     try {
-      const res = await fetch(`/api/smart-groups/${id}`, {
+      const res = await fetch(`/api/smart-groups/${groupIdToDelete}`, {
         method: "DELETE"
       });
       if (res.ok) {
         toast.success("Kelompok warga berhasil dihapus");
         fetchSavedGroups();
-        if (selectedSavedGroupId === String(id)) {
+        if (selectedSavedGroupId === String(groupIdToDelete)) {
           setSelectedSavedGroupId("");
         }
+        setIsDeleteConfirmOpen(false);
+        setGroupIdToDelete(null);
       } else {
         const err = await res.json();
         toast.error(err.error || "Gagal menghapus kelompok");
@@ -239,6 +252,8 @@ export default function SmartGroupsPage() {
     } catch (err) {
       console.error(err);
       toast.error("Terjadi kesalahan koneksi");
+    } finally {
+      setIsDeletingGroup(false);
     }
   };
 
@@ -777,6 +792,22 @@ export default function SmartGroupsPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Dialog: Konfirmasi Hapus Kelompok */}
+      <ConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => {
+          setIsDeleteConfirmOpen(false);
+          setGroupIdToDelete(null);
+        }}
+        onConfirm={executeDeleteGroup}
+        title="Hapus Kelompok Warga?"
+        description="Apakah Anda yakin ingin menghapus kelompok warga ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={isDeletingGroup}
+      />
     </div>
   );
 }

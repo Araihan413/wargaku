@@ -17,6 +17,7 @@ import { CheckInTenantModal } from "./_components/CheckInTenantModal";
 import { VerifyTenantModal } from "./_components/VerifyTenantModal";
 import { CheckOutTenantModal } from "./_components/CheckOutTenantModal";
 import { TenantDetailModal } from "./_components/TenantDetailModal";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 export default function ResidentsPage() {
   const [activeTab, setActiveTab] = useState<"kk" | "penyewa" | "hunian">("kk");
@@ -64,6 +65,11 @@ export default function ResidentsPage() {
   const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
   const [selectedFamilyForDisable, setSelectedFamilyForDisable] = useState<FamilyItem | null>(null);
   const [isDisabling, setIsDisabling] = useState(false);
+
+  // Disable Dwelling Confirmation states
+  const [isDisableDwellingConfirmOpen, setIsDisableDwellingConfirmOpen] = useState(false);
+  const [dwellingToDisable, setDwellingToDisable] = useState<DwellingItem | null>(null);
+  const [isDisablingDwelling, setIsDisablingDwelling] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -150,16 +156,24 @@ export default function ResidentsPage() {
     }
   }, [activeTab, fetchDwellings]);
 
-  const handleDisableDwelling = async (dwelling: DwellingItem) => {
-    if (!confirm(`Apakah Anda yakin ingin menonaktifkan hunian Blok ${dwelling.blockNumber} No. ${dwelling.houseNumber}?`)) return;
+  const handleDisableDwelling = (dwelling: DwellingItem) => {
+    setDwellingToDisable(dwelling);
+    setIsDisableDwellingConfirmOpen(true);
+  };
+
+  const executeDisableDwelling = async () => {
+    if (!dwellingToDisable) return;
+    setIsDisablingDwelling(true);
     try {
-      const res = await fetch(`/api/dwellings/${dwelling.id}`, {
+      const res = await fetch(`/api/dwellings/${dwellingToDisable.id}`, {
         method: "DELETE",
       });
 
       if (res.ok) {
         toast.success("Hunian berhasil dinonaktifkan");
         fetchDwellings();
+        setIsDisableDwellingConfirmOpen(false);
+        setDwellingToDisable(null);
       } else {
         const err = await res.json();
         toast.error(err.error || "Gagal menonaktifkan hunian");
@@ -167,6 +181,8 @@ export default function ResidentsPage() {
     } catch (error) {
       console.error(error);
       toast.error("Terjadi kesalahan sistem saat menonaktifkan hunian");
+    } finally {
+      setIsDisablingDwelling(false);
     }
   };
 
@@ -582,6 +598,27 @@ export default function ResidentsPage() {
           setSelectedRenter(null);
         }}
         resident={selectedRenter}
+      />
+
+      {/* Modal Dialog: Konfirmasi Nonaktifkan Hunian */}
+      <ConfirmModal
+        isOpen={isDisableDwellingConfirmOpen}
+        onClose={() => {
+          setIsDisableDwellingConfirmOpen(false);
+          setDwellingToDisable(null);
+        }}
+        onConfirm={executeDisableDwelling}
+        title="Nonaktifkan Hunian?"
+        description={
+          <p>
+            Apakah Anda yakin ingin menonaktifkan hunian <strong>Blok {dwellingToDisable?.blockNumber} No. {dwellingToDisable?.houseNumber}</strong>?
+            Tindakan ini akan menonaktifkan hunian tersebut di dalam sistem.
+          </p>
+        }
+        confirmText="Ya, Nonaktifkan"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={isDisablingDwelling}
       />
     </div>
   );

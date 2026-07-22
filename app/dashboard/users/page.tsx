@@ -11,6 +11,7 @@ import { AddUserModal } from "./_components/AddUserModal";
 import { MutateRoleModal } from "./_components/MutateRoleModal";
 import { EditUserModal } from "./_components/EditUserModal";
 import { UserDetailModal } from "./_components/UserDetailModal";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 export default function UserManagementPage() {
   const { data: session } = authClient.useSession();
@@ -49,6 +50,11 @@ export default function UserManagementPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserItem | null>(null);
   const [selectedUserForDetail, setSelectedUserForDetail] = useState<UserItem | null>(null);
+
+  // Reset Password Confirmation State
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [userToReset, setUserToReset] = useState<UserItem | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const openEditModal = (user: UserItem) => {
     setSelectedUserForEdit(user);
@@ -129,16 +135,16 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleResetPassword = async (user: UserItem) => {
-    if (
-      !confirm(
-        `Apakah Anda yakin ingin mereset password untuk ${user.name}? Password akan di-reset menjadi default sistem.`
-      )
-    ) {
-      return;
-    }
+  const handleResetPassword = (user: UserItem) => {
+    setUserToReset(user);
+    setIsResetConfirmOpen(true);
+  };
+
+  const executeResetPassword = async () => {
+    if (!userToReset) return;
+    setIsResettingPassword(true);
     try {
-      const res = await fetch(`/api/users/${user.id}`, {
+      const res = await fetch(`/api/users/${userToReset.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -148,7 +154,9 @@ export default function UserManagementPage() {
 
       if (res.ok) {
         const data = await res.json();
-        toast.success(`Password untuk ${user.name} berhasil di-reset menjadi: ${data.defaultPassword || 'wargaku123'}`);
+        toast.success(`Password untuk ${userToReset.name} berhasil di-reset menjadi: ${data.defaultPassword || 'wargaku123'}`);
+        setIsResetConfirmOpen(false);
+        setUserToReset(null);
       } else {
         const errorData = await res.json();
         toast.error(errorData.error || "Gagal mereset password");
@@ -156,6 +164,8 @@ export default function UserManagementPage() {
     } catch (err) {
       console.error(err);
       toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -273,6 +283,27 @@ export default function UserManagementPage() {
           user={selectedUserForDetail}
         />
       )}
+
+      {/* Modal Dialog: Konfirmasi Reset Password */}
+      <ConfirmModal
+        isOpen={isResetConfirmOpen}
+        onClose={() => {
+          setIsResetConfirmOpen(false);
+          setUserToReset(null);
+        }}
+        onConfirm={executeResetPassword}
+        title="Reset Password Pengguna?"
+        description={
+          <p>
+            Apakah Anda yakin ingin mereset password untuk <span className="font-bold text-gray-heading-main">{userToReset?.name}</span>? 
+            Password akan di-reset menjadi default sistem.
+          </p>
+        }
+        confirmText="Ya, Reset"
+        cancelText="Batal"
+        variant="warning"
+        isLoading={isResettingPassword}
+      />
     </div>
   );
 }
