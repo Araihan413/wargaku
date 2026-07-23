@@ -19,8 +19,10 @@ interface NotificationItem {
 // Helper for relative time formatting
 const formatRelativeTime = (dateStr: string): string => {
   const now = new Date();
-  const past = new Date(dateStr);
-  const diffMs = now.getTime() - past.getTime();
+  // Strip 'Z' to force parsing in local time, solving local database timezone offset bugs
+  const cleanDateStr = dateStr.endsWith("Z") ? dateStr.slice(0, -1) : dateStr;
+  const past = new Date(cleanDateStr);
+  const diffMs = Math.max(0, now.getTime() - past.getTime());
   const diffMins = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -131,7 +133,7 @@ export const NotificationBell: React.FC = () => {
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white ring-2 ring-gray-card animate-pulse">
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-error text-[8px] font-bold text-white ring-2 ring-gray-card">
             {unreadCount}
           </span>
         )}
@@ -187,6 +189,18 @@ export const NotificationBell: React.FC = () => {
                 </span>
               </div>
             )}
+          </div>
+
+          <div className="border-t border-gray-divider pt-2 mt-2 text-center">
+            <button
+              onClick={() => {
+                setIsNotifOpen(false);
+                router.push("/dashboard/notifications");
+              }}
+              className="w-full text-center text-xs font-bold text-primary hover:underline py-1 cursor-pointer block"
+            >
+              Lihat Semua Notifikasi
+            </button>
           </div>
         </div>
       )}

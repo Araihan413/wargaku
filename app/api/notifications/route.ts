@@ -66,19 +66,31 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const category = (searchParams.get('category') as 'personal' | 'dinas') || 'personal';
+    const category = (searchParams.get('category') as 'personal' | 'dinas' | 'all') || 'personal';
+    const paginated = searchParams.get('paginated') === 'true';
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    // Build conditions list
+    const conditions = [eq(notifications.userId, session.user.id)];
+    if (category !== 'all') {
+      conditions.push(eq(notifications.category, category));
+    }
 
     const result = await db
       .select()
       .from(notifications)
-      .where(
-        and(
-          eq(notifications.userId, session.user.id),
-          eq(notifications.category, category)
-        )
-      )
+      .where(and(...conditions))
       .orderBy(desc(notifications.createdAt))
-      .limit(20);
+      .limit(limit)
+      .offset(offset);
+
+    if (paginated) {
+      return NextResponse.json({
+        data: result,
+        hasMore: result.length === limit,
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error: any) {
@@ -114,21 +126,82 @@ export async function PATCH(request: Request) {
     } else {
       // Mark all notifications in category as read
       const targetCategory = category || 'personal';
-      await db
-        .update(notifications)
-        .set({ isRead: true })
-        .where(
-          and(
-            eq(notifications.userId, session.user.id),
-            eq(notifications.category, targetCategory),
-            eq(notifications.isRead, false)
-          )
-        );
+      if (targetCategory === 'all') {
+        await db
+          .update(notifications)
+          .set({ isRead: true })
+          .where(
+            and(
+              eq(notifications.userId, session.user.id),
+              eq(notifications.isRead, false)
+            )
+          );
+      } else {
+        await db
+          .update(notifications)
+          .set({ isRead: true })
+          .where(
+            and(
+              eq(notifications.userId, session.user.id),
+              eq(notifications.category, targetCategory),
+              eq(notifications.isRead, false)
+            )
+          );
+      }
     }
 
     return NextResponse.json({ message: 'Berhasil menandai notifikasi sebagai telah dibaca' });
   } catch (error: any) {
     console.error('Error in PATCH /api/notifications:', error);
+    return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const idStr = searchParams.get('id');
+    const category = searchParams.get('category') as 'personal' | 'dinas' | 'all';
+
+    if (idStr) {
+      const id = parseInt(idStr);
+      await db
+        .delete(notifications)
+        .where(
+          and(
+            eq(notifications.id, id),
+            eq(notifications.userId, session.user.id)
+          )
+        );
+    } else {
+      const targetCategory = category || 'personal';
+      if (targetCategory === 'all') {
+        await db
+          .delete(notifications)
+          .where(eq(notifications.userId, session.user.id));
+      } else {
+        await db
+          .delete(notifications)
+          .where(
+            and(
+              eq(notifications.userId, session.user.id),
+              eq(notifications.category, targetCategory)
+            )
+          );
+      }
+    }
+
+    return NextResponse.json({ message: 'Berhasil menghapus notifikasi' });
+  } catch (error: any) {
+    console.error('Error in DELETE /api/notifications:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
