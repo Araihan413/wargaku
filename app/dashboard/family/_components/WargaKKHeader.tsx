@@ -13,11 +13,13 @@ import {
   CheckCircle2,
   ExternalLink,
   Download,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { FileUploadModal } from "@/components/FileUploadModal";
 import { downloadFileAsPdf } from "@/lib/download-pdf-helper";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface WargaKKHeaderProps {
   family: WargaFamilyDetail;
@@ -28,6 +30,8 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
   const [isRequestingChange, setIsRequestingChange] = useState(false);
   const [isUploadingKK, setIsUploadingKK] = useState(false);
   const [showKkUploadForm, setShowKkUploadForm] = useState(false);
+  const [isCancellingSubmit, setIsCancellingSubmit] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const isLocked = family.verificationStatus === "verified" || family.verificationStatus === "pending";
 
@@ -84,7 +88,7 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
       });
 
       if (res.ok) {
-        toast.success("Permohonan perubahan data berhasil diajukan. Status KK kembali ke 'pending' dan form dapat diedit.");
+        toast.success("Permohonan perubahan data berhasil diajukan. Status KK kembali ke 'draf' dan form dapat diedit.");
         onRefresh();
       } else {
         const err = await res.json();
@@ -95,6 +99,30 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
       toast.error("Terjadi kesalahan koneksi sistem.");
     } finally {
       setIsRequestingChange(false);
+    }
+  };
+
+  // Cancel verification submit handler
+  const handleCancelSubmit = async () => {
+    setIsCancellingSubmit(true);
+    try {
+      const res = await fetch(`/api/families/${family.id}/cancel-submit`, {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        toast.success("Pengajuan verifikasi berhasil dibatalkan!");
+        setShowCancelConfirm(false);
+        onRefresh();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal membatalkan pengajuan");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan koneksi sistem.");
+    } finally {
+      setIsCancellingSubmit(false);
     }
   };
 
@@ -214,6 +242,23 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
                 <span>Ajukan Perubahan Data</span>
               </button>
             )}
+
+            {/* Cancel Verification Button when Pending */}
+            {family.verificationStatus === "pending" && (
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={isCancellingSubmit}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 px-4 py-2.5 text-xs font-bold text-red-800 transition-colors shadow-sm cursor-pointer disabled:opacity-60"
+              >
+                {isCancellingSubmit ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-700" />
+                )}
+                <span>Batalkan Pengajuan</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -228,6 +273,19 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
         onSelectLocalFile={handleSelectLocalFile}
         onSelectDriveUrl={handleSelectDriveUrl}
         isLoading={isUploadingKK}
+      />
+
+      {/* Confirm Modal Cancel Verification */}
+      <ConfirmModal
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancelSubmit}
+        title="Batalkan Pengajuan Verifikasi"
+        description="Apakah Anda yakin ingin membatalkan pengajuan verifikasi Kartu Keluarga ini? Status KK Anda akan kembali menjadi Draf dan Ketua RT tidak akan menerima permohonan verifikasi ini."
+        confirmText="Ya, Batalkan"
+        cancelText="Batal"
+        isLoading={isCancellingSubmit}
+        variant="danger"
       />
 
       {/* Alert Banners */}

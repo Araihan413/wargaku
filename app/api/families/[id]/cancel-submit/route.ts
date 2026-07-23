@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { getFamilyById } from '@/db/queries/kependudukan';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export async function POST(
   request: Request,
@@ -33,26 +33,44 @@ export async function POST(
 
     // Pastikan user adalah Kepala Keluarga atau pemilik KK ini
     if (family.headUserId !== session.user.id) {
-      return NextResponse.json({ error: 'Hanya Kepala Keluarga yang berhak mengajukan perubahan data' }, { status: 403 });
+      return NextResponse.json({ error: 'Hanya Kepala Keluarga yang berhak membatalkan pengajuan berkas KK' }, { status: 403 });
     }
 
-    // Ubah status verifikasi kembali ke draft agar pengurusan edit/upload KK terbuka
+    // Periksa status saat ini, hanya boleh batal jika berstatus pending
+    if (family.verificationStatus !== 'pending') {
+      return NextResponse.json({ error: 'Pengajuan tidak dapat dibatalkan karena tidak berstatus pending' }, { status: 400 });
+    }
+
+    // Ubah status verifikasi kembali ke draft
     await db
       .update(schema.families)
       .set({
         verificationStatus: 'draft',
         verificationNote: null,
-        draftOpenedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(schema.families.id, familyId));
 
+    // Hapus notifikasi "Verifikasi KK Baru" yang dikirim ke RT
+    try {
+      await db
+        .delete(schema.notifications)
+        .where(
+          and(
+            eq(schema.notifications.redirectLink, `/dashboard/approvals/documents/${familyId}`),
+            eq(schema.notifications.category, 'dinas')
+          )
+        );
+    } catch (notifErr) {
+      console.error("Failed to delete notifications on cancel-submit:", notifErr);
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Permohonan perubahan data berhasil diajukan. Halaman kelola data telah dibuka kembali.',
+      message: 'Pengajuan verifikasi Kartu Keluarga berhasil dibatalkan dan dikembalikan ke Draf.',
     });
   } catch (error: any) {
-    console.error('Error in POST /api/families/[id]/request-change:', error);
+    console.error('Error in POST /api/families/[id]/cancel-submit:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }

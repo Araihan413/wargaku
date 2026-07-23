@@ -29,9 +29,12 @@ export interface WargaFamilyDetail {
   kkFile?: string | null;
   verificationStatus: VerificationStatusType;
   verificationNote?: string | null;
+  hasVerified: boolean;
+  draftOpenedAt?: string | null;
   checkInDate: string;
   checkOutDate?: string | null;
   isActive: boolean;
+  updatedAt: string;
   dwellingAddress?: {
     blockNumber: string;
     houseNumber: string;

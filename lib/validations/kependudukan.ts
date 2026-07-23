@@ -9,6 +9,16 @@ const nikRegex = /^[0-9]{16}$/;
 // Regex untuk validasi nomor telepon Indonesia (misal: 081234567890 atau +6281234567890)
 const indonesianPhoneRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
 
+// Helper to convert string to Title Case (ignores casing differences)
+export const toTitleCase = (val: string): string => {
+  return val
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 export const createFamilySchema = z.object({
   dwellingId: z.number({
     error: (issue) =>
@@ -73,6 +83,12 @@ export const updateFamilySchema = createFamilySchema.partial().extend({
   isActive: z.boolean().optional(),
   verificationStatus: z.enum(['pending', 'verified', 'rejected']).optional(),
   verificationNote: z.string().optional().nullable(),
+  hasVerified: z.boolean().optional(),
+  lastVerifiedAt: z.preprocess((arg) => {
+    if (arg === '' || arg === null || arg === undefined) return undefined;
+    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+    return arg;
+  }, z.date().optional().nullable()),
 });
 
 export const createWargaSchema = z.object({
@@ -89,7 +105,8 @@ export const createWargaSchema = z.object({
         ? 'Nama lengkap warga wajib diisi'
         : 'Nama lengkap warga harus berupa teks',
   }).min(2, 'Nama lengkap minimal 2 karakter')
-    .max(100, 'Nama lengkap maksimal 100 karakter'),
+    .max(100, 'Nama lengkap maksimal 100 karakter')
+    .transform((val) => toTitleCase(val)),
     
   nik: z.string({
     error: (issue) =>
@@ -98,7 +115,7 @@ export const createWargaSchema = z.object({
         : 'NIK harus berupa teks',
   }).regex(nikRegex, 'NIK harus terdiri dari 16 digit angka'),
   
-  birthPlace: z.string().max(50, 'Tempat lahir maksimal 50 karakter').optional().nullable(),
+  birthPlace: z.string().max(50, 'Tempat lahir maksimal 50 karakter').optional().nullable().transform((val) => val ? toTitleCase(val) : val),
   
   birthDate: z.preprocess((arg) => {
     if (arg === '' || arg === null || arg === undefined) return null;
@@ -120,8 +137,8 @@ export const createWargaSchema = z.object({
         : 'Hubungan keluarga tidak valid',
   }),
   
-  occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable(),
-  educationLevel: z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable(),
+  occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable().transform((val) => val ? toTitleCase(val) : val),
+  educationLevel: z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable().transform((val) => val ? toTitleCase(val) : val),
   religion: z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']).optional().nullable(),
   
   phone: z.string()

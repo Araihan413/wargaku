@@ -56,6 +56,29 @@ export async function POST(
       })
       .where(eq(schema.families.id, familyId));
 
+    // Kirim notifikasi ke Ketua RT
+    try {
+      const rts = await db
+        .select({ id: schema.users.id })
+        .from(schema.users)
+        .where(eq(schema.users.roleId, 2));
+
+      if (rts.length > 0) {
+        const insertPromises = rts.map((rt) =>
+          db.insert(schema.notifications).values({
+            userId: rt.id,
+            title: "Verifikasi KK Baru",
+            message: `Warga bernama ${family.headName} mengirimkan pengajuan berkas Kartu Keluarga untuk diverifikasi.`,
+            category: "dinas",
+            redirectLink: `/dashboard/approvals/documents/${familyId}`,
+          })
+        );
+        await Promise.all(insertPromises);
+      }
+    } catch (notifErr) {
+      console.error("Failed to create notifications for RTs:", notifErr);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Berkas Kartu Keluarga berhasil dikirim ke Ketua RT untuk verifikasi.',

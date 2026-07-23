@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, AlertCircle, Home, Send } from "lucide-react";
+import { Loader2, AlertCircle, Home, Send, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { WargaKKHeader } from "./_components/WargaKKHeader";
 import { WargaMemberTable } from "./_components/WargaMemberTable";
@@ -10,6 +10,7 @@ import { AddWargaMemberModal } from "./_components/AddWargaMemberModal";
 import { EditWargaMemberModal } from "./_components/EditWargaMemberModal";
 import { DeleteWargaMemberModal } from "./_components/DeleteWargaMemberModal";
 import { WargaFamilyDetail, WargaFamilyMember } from "./types";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 export default function StandaloneWargaFamilyPage() {
   const [familyId, setFamilyId] = useState<number | null>(null);
@@ -23,8 +24,35 @@ export default function StandaloneWargaFamilyPage() {
   const [selectedMemberForEdit, setSelectedMemberForEdit] = useState<WargaFamilyMember | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedMemberForDelete, setSelectedMemberForDelete] = useState<WargaFamilyMember | null>(null);
+  const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
 
   const [isSubmittingToRT, setIsSubmittingToRT] = useState(false);
+  const [isCancellingChange, setIsCancellingChange] = useState(false);
+  const [showCancelChangeConfirm, setShowCancelChangeConfirm] = useState(false);
+
+  const handleCancelChange = async () => {
+    if (!familyDetail) return;
+    setIsCancellingChange(true);
+    try {
+      const res = await fetch(`/api/families/${familyDetail.id}/cancel-change`, {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        toast.success("Perubahan berhasil dibatalkan!");
+        setShowCancelChangeConfirm(false);
+        fetchFamilyDetails(familyDetail.id);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal membatalkan perubahan");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsCancellingChange(false);
+    }
+  };
 
   const handleSubmitToRT = async () => {
     if (!familyDetail) return;
@@ -36,6 +64,7 @@ export default function StandaloneWargaFamilyPage() {
 
       if (res.ok) {
         toast.success("Berkas Kartu Keluarga berhasil dikirim ke RT!");
+        setIsConfirmSubmitOpen(false);
         fetchFamilyDetails(familyDetail.id);
       } else {
         const err = await res.json();
@@ -50,20 +79,7 @@ export default function StandaloneWargaFamilyPage() {
   };
 
   const handleConfirmSubmit = () => {
-    toast("Konfirmasi Pengiriman Data", {
-      description: "Apakah Anda yakin data Kartu Keluarga sudah sesuai? Setelah dikirim, data akan dikunci untuk verifikasi RT.",
-      action: {
-        label: "Ya, Kirim",
-        onClick: () => {
-          handleSubmitToRT();
-        },
-      },
-      cancel: {
-        label: "Batal",
-        onClick: () => {},
-      },
-      duration: 15000,
-    });
+    setIsConfirmSubmitOpen(true);
   };
 
   // Helper to fetch family details
@@ -167,27 +183,32 @@ export default function StandaloneWargaFamilyPage() {
 
   const isLocked = familyDetail.verificationStatus === "verified" || familyDetail.verificationStatus === "pending";
 
+  const baseTime = familyDetail?.draftOpenedAt
+    ? new Date(familyDetail.draftOpenedAt).getTime()
+    : familyDetail
+    ? new Date(familyDetail.updatedAt).getTime()
+    : 0;
+
+  const hasUnsubmittedChanges = familyDetail
+    ? (familyDetail.members || []).some((member) => {
+        const memberUpdated = new Date(member.updatedAt || "").getTime();
+        const memberCreated = new Date(member.createdAt || "").getTime();
+        return memberUpdated > baseTime + 2000 || memberCreated > baseTime + 2000;
+      }) || new Date(familyDetail.updatedAt).getTime() > baseTime + 2000
+    : false;
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="p-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-gray-secondary-text cursor-pointer transition-colors"
-            title="Kembali ke Beranda"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-heading-main">
-              Kelola Anggota Keluarga
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-secondary-text mt-0.5">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-heading-main">
+            Kelola Anggota Keluarga
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-secondary-text mt-0.5">
               Lengkapi berkas Kartu Keluarga, scan KTP, dan atur biodata anggota keluarga Anda.
             </p>
           </div>
-        </div>
       </div>
 
       {/* 1. Header Card & Verification Alert Status */}
@@ -257,14 +278,58 @@ export default function StandaloneWargaFamilyPage() {
         member={selectedMemberForDelete}
       />
 
-      {/* Action Button: Kirim ke RT */}
+      {/* Confirm Submit to RT Modal */}
+      <ConfirmModal
+        isOpen={isConfirmSubmitOpen}
+        onClose={() => setIsConfirmSubmitOpen(false)}
+        onConfirm={handleSubmitToRT}
+        title="Konfirmasi Pengiriman Data"
+        description="Apakah Anda yakin data Kartu Keluarga sudah sesuai? Setelah dikirim, data akan dikunci untuk verifikasi RT."
+        confirmText="Ya, Kirim"
+        cancelText="Batal"
+        isLoading={isSubmittingToRT}
+        variant="primary"
+      />
+
+      {/* Confirm Cancel Change Modal */}
+      <ConfirmModal
+        isOpen={showCancelChangeConfirm}
+        onClose={() => setShowCancelChangeConfirm(false)}
+        onConfirm={handleCancelChange}
+        title="Batalkan Perubahan Data"
+        description="Apakah Anda yakin ingin membatalkan pengajuan perubahan data KK ini? Status KK Anda akan dikunci kembali ke Terverifikasi."
+        confirmText="Ya, Batalkan"
+        cancelText="Batal"
+        isLoading={isCancellingChange}
+        variant="danger"
+      />
+
+      {/* Action Button Section */}
       {!isLocked && (familyDetail.verificationStatus === "draft" || familyDetail.verificationStatus === "rejected") && familyDetail.kkFile && (
-        <div className="flex justify-end pt-4 border-t border-gray-border/40 mt-6">
+        <div className="flex justify-end items-center gap-3 pt-4 border-t border-gray-border/40 mt-6">
+          {/* Batalkan Perubahan (Only shown if draft, already verified, and NO changes) */}
+          {familyDetail.verificationStatus === "draft" && familyDetail.hasVerified && !hasUnsubmittedChanges && (
+            <button
+              type="button"
+              onClick={() => setShowCancelChangeConfirm(true)}
+              disabled={isCancellingChange}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 text-red-800 px-5 py-3 text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-60 duration-150 active:scale-95"
+            >
+              {isCancellingChange ? (
+                <Loader2 className="h-4.5 w-4.5 animate-spin" />
+              ) : (
+                <XCircle className="h-4.5 w-4.5 text-red-700" />
+              )}
+              <span>Batalkan Perubahan</span>
+            </button>
+          )}
+
+          {/* Verifikasi Ke RT (Disabled if draft, verified before, but no changes yet) */}
           <button
             type="button"
             onClick={handleConfirmSubmit}
-            disabled={isSubmittingToRT}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98] duration-150"
+            disabled={isSubmittingToRT || (familyDetail.verificationStatus === "draft" && familyDetail.hasVerified && !hasUnsubmittedChanges)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98] duration-150 disabled:pointer-events-none disabled:hover:scale-100"
           >
             {isSubmittingToRT ? (
               <Loader2 className="h-4.5 w-4.5 animate-spin" />

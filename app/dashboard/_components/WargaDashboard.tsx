@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, QrCode, Home, Download } from "lucide-react";
+import { toast } from "sonner";
+import QRCode from "qrcode";
 import { WargaHeaderBanner } from "./warga/WargaHeaderBanner";
 import { WargaQuickActions } from "./warga/WargaQuickActions";
 import { WargaAnnouncementsWidget, AnnouncementItem } from "./warga/WargaAnnouncementsWidget";
@@ -16,12 +18,22 @@ interface WargaDashboardData {
     email: string;
     phone?: string;
   };
+  dwelling: {
+    id: number;
+    blockNumber: string;
+    houseNumber: string;
+    qrToken: string;
+    type: "permanen" | "kos" | "homestay";
+    latitude?: string | null;
+    longitude?: string | null;
+  } | null;
   family: {
     id: number;
     familyNumber: string;
     verificationStatus: "draft" | "pending" | "verified" | "rejected";
     verificationNote?: string | null;
     headName: string;
+    hasVerified: boolean;
     totalMembers: number;
   } | null;
   announcements: AnnouncementItem[];
@@ -109,7 +121,23 @@ export function WargaDashboard() {
     );
   }
 
-  const isVerified = data?.family?.verificationStatus === "verified";
+  const isVerified = data?.family?.hasVerified || data?.family?.verificationStatus === "verified";
+
+  const downloadQRCode = async (token: string, block: string, houseNum: string) => {
+    try {
+      const url = await QRCode.toDataURL(token, { width: 400, margin: 2 });
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `QR_Rumah_Blok_${block}_No_${houseNum}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("QR Code Rumah berhasil diunduh");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal mengunduh QR Code");
+    }
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -156,6 +184,42 @@ export function WargaDashboard() {
 
       {/* 2. Quick Actions */}
       <WargaQuickActions isVerified={isVerified} />
+
+      {/* 2.5 Detail Rumah Tinggal */}
+      {isVerified && data.dwelling && (
+        <div className="rounded-3xl border border-gray-border bg-gray-card p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 animate-in fade-in slide-in-from-top-3 duration-250">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
+              <Home className="h-6 w-6" />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-bold tracking-wider text-primary font-sans">Detail Rumah Tinggal Anda</span>
+              <h3 className="text-lg font-bold text-gray-heading-main">
+                Blok {data.dwelling.blockNumber} No. {data.dwelling.houseNumber}
+              </h3>
+              <p className="text-xs text-gray-secondary-text">
+                Tipe Hunian: <span className="font-semibold capitalize">{data.dwelling.type}</span>
+                {data.dwelling.latitude && data.dwelling.longitude && (
+                  <span className="ml-2 font-mono text-[10px] text-gray-placeholder">
+                    ({data.dwelling.latitude}, {data.dwelling.longitude})
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button
+              onClick={() => downloadQRCode(data.dwelling!.qrToken, data.dwelling!.blockNumber, data.dwelling!.houseNumber)}
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-700 px-4 py-2.5 text-xs font-bold text-white transition-colors shadow-sm w-full md:w-auto cursor-pointer"
+            >
+              <QrCode className="h-4 w-4" />
+              <span>Unduh QR Code Rumah</span>
+              <Download className="h-3.5 w-3.5 ml-0.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 3. Stats Ringkasan */}
       <WargaStatsWidget stats={data.stats} finance={data.finance} />

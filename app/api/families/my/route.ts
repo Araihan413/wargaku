@@ -53,6 +53,7 @@ export async function GET() {
       verificationNote: family.verificationNote,
       kkFile: family.kkFile,
       dwellingId: family.dwellingId,
+      hasVerified: family.hasVerified,
     });
   } catch (error: any) {
     console.error('Error in GET /api/families/my:', error);

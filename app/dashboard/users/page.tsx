@@ -12,6 +12,7 @@ import { MutateRoleModal } from "./_components/MutateRoleModal";
 import { EditUserModal } from "./_components/EditUserModal";
 import { UserDetailModal } from "./_components/UserDetailModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 
 export default function UserManagementPage() {
   const { data: session } = authClient.useSession();
@@ -24,22 +25,11 @@ export default function UserManagementPage() {
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  // Debounce search query to prevent excessive API calls
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchQuery]);
 
   // Modals & Popups States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

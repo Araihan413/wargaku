@@ -26,9 +26,30 @@ export async function GET() {
         phone: schema.users.phone,
         nik: schema.users.nik,
         roleId: schema.users.roleId,
+        dwellingId: schema.users.dwellingId,
       })
       .from(schema.users)
       .where(eq(schema.users.id, userId));
+
+    // Fetch user's primary residence (dwelling)
+    let dwellingData = null;
+    if (user?.dwellingId) {
+      const [dwelling] = await db
+        .select({
+          id: schema.dwellings.id,
+          blockNumber: schema.dwellings.blockNumber,
+          houseNumber: schema.dwellings.houseNumber,
+          qrToken: schema.dwellings.qrToken,
+          type: schema.dwellings.type,
+          latitude: schema.dwellings.latitude,
+          longitude: schema.dwellings.longitude,
+        })
+        .from(schema.dwellings)
+        .where(eq(schema.dwellings.id, user.dwellingId));
+      if (dwelling) {
+        dwellingData = dwelling;
+      }
+    }
 
     // Check if user is head of family or member
     let familyData: {
@@ -37,6 +58,7 @@ export async function GET() {
       verificationStatus: "draft" | "pending" | "verified" | "rejected";
       verificationNote: string | null;
       headName: string;
+      hasVerified: boolean;
       totalMembers: number;
     } | null = null;
 
@@ -47,6 +69,7 @@ export async function GET() {
         verificationStatus: schema.families.verificationStatus,
         verificationNote: schema.families.verificationNote,
         headName: schema.families.headName,
+        hasVerified: schema.families.hasVerified,
       })
       .from(schema.families)
       .where(and(eq(schema.families.headUserId, userId), eq(schema.families.isActive, true)));
@@ -78,6 +101,7 @@ export async function GET() {
             verificationStatus: schema.families.verificationStatus,
             verificationNote: schema.families.verificationNote,
             headName: schema.families.headName,
+            hasVerified: schema.families.hasVerified,
           })
           .from(schema.families)
           .where(eq(schema.families.id, member.familyId));
@@ -187,8 +211,10 @@ export async function GET() {
         name: user?.name,
         email: user?.email,
         phone: user?.phone,
+        dwellingId: user?.dwellingId,
       },
       family: familyData,
+      dwelling: dwellingData,
       announcements: latestAnnouncements,
       activities: upcomingActivities,
       finance: {

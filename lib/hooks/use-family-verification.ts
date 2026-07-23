@@ -7,6 +7,7 @@ export type VerificationStatusType = "pending" | "verified" | "rejected" | "unsu
 
 export interface FamilyVerificationState {
   isVerified: boolean;
+  hasVerified: boolean;
   verificationStatus: VerificationStatusType;
   hasUploadedKK: boolean;
   verificationNote: string | null;
@@ -19,6 +20,7 @@ export function useFamilyVerification(userRoleId?: number): FamilyVerificationSt
   const currentRoleId = userRoleId === 6 ? 6 : (activeRoleId ?? userRoleId);
 
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatusType>("unsubmitted");
+  const [hasVerified, setHasVerified] = useState<boolean>(false);
   const [hasUploadedKK, setHasUploadedKK] = useState<boolean>(false);
   const [verificationNote, setVerificationNote] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -46,10 +48,12 @@ export function useFamilyVerification(userRoleId?: number): FamilyVerificationSt
           const data = await res.json();
           if (ignore) return;
           setVerificationStatus(data.verificationStatus || "pending");
+          setHasVerified(Boolean(data.hasVerified));
           setHasUploadedKK(Boolean(data.kkFile));
           setVerificationNote(data.verificationNote || null);
         } else {
           setVerificationStatus("unsubmitted");
+          setHasVerified(false);
           setHasUploadedKK(false);
         }
       } catch (err) {
@@ -73,7 +77,8 @@ export function useFamilyVerification(userRoleId?: number): FamilyVerificationSt
   const isNonWarga = currentRoleId !== undefined && currentRoleId !== 6;
 
   return {
-    isVerified: isNonWarga || verificationStatus === "verified",
+    isVerified: isNonWarga || hasVerified || verificationStatus === "verified",
+    hasVerified: isNonWarga ? true : hasVerified,
     verificationStatus: isNonWarga ? "verified" : verificationStatus,
     hasUploadedKK: isNonWarga ? true : hasUploadedKK,
     verificationNote: isNonWarga ? null : verificationNote,

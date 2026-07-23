@@ -11,7 +11,7 @@ const options: swaggerJSDoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
         description: 'Server Development Lokal',
       },
     ],

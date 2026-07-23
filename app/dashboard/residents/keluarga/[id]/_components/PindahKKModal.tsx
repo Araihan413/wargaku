@@ -39,7 +39,6 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
     control,
     reset,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(transferFamilyMemberSchema),
@@ -54,8 +53,6 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
       checkInDate: "",
     },
   });
-
-  const watchCreateNewFamily = watch("createNewFamily");
 
   // Keep memberId updated in form state when prop changes
   useEffect(() => {

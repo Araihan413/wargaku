@@ -124,6 +124,43 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
 
   if (!isOpen || !member) return null;
 
+  const checkHasChanges = () => {
+    if (!member) return false;
+
+    const normalize = (val: string | null | undefined) => (val || "").trim().toLowerCase();
+
+    const isNameChanged = normalize(name) !== normalize(member.name);
+    const isNikChanged = normalize(nik) !== normalize(member.nik);
+    const isRelationshipChanged = normalize(relationship) !== normalize(member.relationship);
+    const isGenderChanged = normalize(gender) !== normalize(member.gender);
+    const isBirthPlaceChanged = normalize(birthPlace) !== normalize(member.birthPlace);
+
+    const cleanDate = (d: string | null | undefined) => (d ? d.split("T")[0] : "");
+    const isBirthDateChanged = cleanDate(birthDate) !== cleanDate(member.birthDate);
+
+    const isOccupationChanged = normalize(occupation) !== normalize(member.occupation);
+    const isEducationChanged = normalize(educationLevel) !== normalize(member.educationLevel);
+    const isReligionChanged = normalize(religion) !== normalize(member.religion);
+    const isPhoneChanged = normalize(phone) !== normalize(member.phone);
+
+    const isKtpChanged =
+      ktpFile instanceof File || normalize(ktpFile as string) !== normalize(member.ktpFile);
+
+    return (
+      isNameChanged ||
+      isNikChanged ||
+      isRelationshipChanged ||
+      isGenderChanged ||
+      isBirthPlaceChanged ||
+      isBirthDateChanged ||
+      isOccupationChanged ||
+      isEducationChanged ||
+      isReligionChanged ||
+      isPhoneChanged ||
+      isKtpChanged
+    );
+  };
+
   const isHead = member.relationship === "Kepala_Keluarga";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -399,8 +436,8 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isLoading}
-              className="rounded-xl bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary-900 cursor-pointer disabled:opacity-60 flex items-center gap-1.5 shadow-sm"
+              disabled={isLoading || !checkHasChanges()}
+              className="rounded-xl bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary-900 cursor-pointer disabled:opacity-60 flex items-center gap-1.5 shadow-sm disabled:cursor-not-allowed"
             >
               {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Simpan Perubahan
