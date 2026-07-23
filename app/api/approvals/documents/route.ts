@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     });
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
     const isAllowed = await hasPermission(session.user.roleId, "verify-documents");

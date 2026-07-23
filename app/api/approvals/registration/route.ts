@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -41,7 +41,7 @@ export async function GET() {
       .where(
         and(
           eq(schema.users.status, "pending"),
-          eq(schema.users.roleId, 6)
+          inArray(schema.users.roleId, [5, 6])
         )
       )
       .orderBy(desc(schema.users.createdAt));

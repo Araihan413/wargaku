@@ -106,7 +106,24 @@ export async function PATCH(
         }
       });
 
-      return NextResponse.json({ success: true, message: "Pendaftaran warga berhasil disetujui" });
+      if (user.roleId === 5) {
+        console.log(`
+=======================================================
+[SIMULASI KIRIM EMAIL AKTIVASI KOORDINATOR KOST]
+=======================================================
+Kepada: ${user.email} (${user.name})
+Subjek: Akun Koordinator Kost Anda Telah Aktif
+Isi Pesan:
+Halo ${user.name},
+
+Penunjukan Anda sebagai Koordinator Kost telah disetujui oleh pengurus RT.
+Silakan klik tautan berikut untuk membuat password akun Anda:
+http://localhost:3000/auth/reset-password?token=activation-${id}
+=======================================================
+        `);
+      }
+
+      return NextResponse.json({ success: true, message: "Pendaftaran berhasil disetujui" });
     } else {
       // action === "reject"
       // 1. Log simulasi email berisi catatan penolakan ke console server

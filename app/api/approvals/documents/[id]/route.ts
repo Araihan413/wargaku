@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
 import { updateFamily, getFamilyById } from "@/db/queries/kependudukan";
 import { updateRentalResident, getRentalResidentById } from "@/db/queries/rental";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
 
 export async function PATCH(
   request: Request,
@@ -57,7 +59,26 @@ export async function PATCH(
       await updateFamily(documentId, {
         verificationStatus: status,
         verificationNote: note,
+        hasVerified: status === "verified" ? true : undefined,
+        lastVerifiedAt: status === "verified" ? new Date() : undefined,
       });
+
+      // Kirim notifikasi ke Warga (Kepala Keluarga)
+      try {
+        if (family.headUserId) {
+          await db.insert(schema.notifications).values({
+            userId: family.headUserId,
+            title: action === "approve" ? "Kartu Keluarga Terverifikasi" : "Kartu Keluarga Ditolak",
+            message: action === "approve"
+              ? "Berkas Kartu Keluarga Anda telah berhasil diverifikasi dan disetujui oleh Ketua RT."
+              : `Pengajuan berkas Kartu Keluarga Anda ditolak oleh Ketua RT. Alasan: "${note}"`,
+            category: "personal",
+            redirectLink: "/dashboard/family",
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to create notification for Warga:", notifErr);
+      }
 
       return NextResponse.json({
         success: true,
@@ -77,6 +98,23 @@ export async function PATCH(
         verificationNote: note,
         updatedBy: session.user.id,
       });
+
+      // Kirim notifikasi ke Warga (Pendaftar Penghuni Sewa)
+      try {
+        if (resident.createdBy) {
+          await db.insert(schema.notifications).values({
+            userId: resident.createdBy,
+            title: action === "approve" ? "Berkas KTP Penghuni Disetujui" : "Berkas KTP Penghuni Ditolak",
+            message: action === "approve"
+              ? `Berkas KTP untuk penghuni bernama ${resident.name} telah berhasil diverifikasi dan disetujui oleh Ketua RT.`
+              : `Berkas KTP untuk penghuni bernama ${resident.name} ditolak oleh Ketua RT. Alasan: "${note}"`,
+            category: "personal",
+            redirectLink: "/dashboard/rentals",
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to create notification for Rental Resident:", notifErr);
+      }
 
       return NextResponse.json({
         success: true,

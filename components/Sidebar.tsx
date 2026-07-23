@@ -103,7 +103,7 @@ const sidebarItems: SidebarItem[] = [
     roles: [2],
     subItems: [
       { title: "Persetujuan Registrasi", href: "/dashboard/approvals/registration" },
-      { title: "Persetujuan Berkas KK/KTP", href: "/dashboard/approvals/documents" },
+      { title: "Verifikasi Kependudukan", href: "/dashboard/approvals/documents" },
       { title: "Persetujuan Kas Masuk/Keluar", href: "/dashboard/approvals/kas" },
     ],
   },
@@ -207,7 +207,7 @@ const sidebarItems: SidebarItem[] = [
     title: "Peta Hunian & Tetangga",
     icon: Search,
     href: "/dashboard/neighborhood",
-    roles: [6],
+    roles: [1, 2, 3, 4, 6],
     requiresVerification: true,
   },
   {
@@ -243,6 +243,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const baseRoleId = user?.roleId;
   const currentRoleId = baseRoleId === 6 ? 6 : (activeRoleId ?? baseRoleId);
   const { isVerified, isLoading: isVerificationLoading } = useFamilyVerification(baseRoleId);
+
+  const [pendingRegCount, setPendingRegCount] = useState<number>(0);
+  const [pendingDocCount, setPendingDocCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (currentRoleId !== 2 && currentRoleId !== 3) return;
+
+    const fetchCounts = async () => {
+      try {
+        const [regRes, docRes] = await Promise.all([
+          fetch("/api/approvals/registration"),
+          fetch("/api/approvals/documents?type=family&status=pending")
+        ]);
+
+        if (regRes.ok) {
+          const regData = await regRes.json();
+          setPendingRegCount(regData.data?.length || 0);
+        }
+        if (docRes.ok) {
+          const docData = await docRes.json();
+          setPendingDocCount(docData.data?.length || 0);
+        }
+      } catch (err) {
+        console.error("Error fetching approvals count:", err);
+      }
+    };
+
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [currentRoleId]);
+
+  const totalPendingApprovals = pendingRegCount + pendingDocCount;
+
+  const getBadgeCount = (href: string) => {
+    if (href === "/dashboard/approvals/registration") return pendingRegCount;
+    if (href === "/dashboard/approvals/documents") return pendingDocCount;
+    return 0;
+  };
 
   const isLocked = (requiresVerification?: boolean) =>
     currentRoleId === 6 && Boolean(requiresVerification) && !isVerificationLoading && !isVerified;
@@ -375,7 +414,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className={parentClassName}
                   >
                     <div className={iconContainerClassName}>
-                      <Icon className="h-5 w-5 shrink-0" />
+                      <div className="relative shrink-0">
+                        <Icon className="h-5 w-5" />
+                        {item.title === "Antrean Persetujuan" && totalPendingApprovals > 0 && isCollapsed && (
+                          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-rose-600 border border-white" />
+                        )}
+                      </div>
                       <span className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${
                         isCollapsed 
                           ? 'opacity-0 max-w-0 pointer-events-none duration-150 delay-0' 
@@ -383,6 +427,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }`}>
                         {item.title}
                       </span>
+                      {item.title === "Antrean Persetujuan" && totalPendingApprovals > 0 && !isCollapsed && (
+                        <span className="ml-2 inline-flex items-center justify-center px-1 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
+                          {totalPendingApprovals}
+                        </span>
+                      )}
                       <ChevronDown
                         className={`h-4 w-4 text-current transition-all duration-300 ml-auto ${
                           isCollapsed 
@@ -463,7 +512,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
                             }`}
                           >
-                            <span>{sub.title}</span>
+                            <span className="flex items-center gap-2">
+                              {sub.title}
+                              {getBadgeCount(sub.href) > 0 && (
+                                <span className="inline-flex items-center justify-center px-1 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
+                                  {getBadgeCount(sub.href)}
+                                </span>
+                              )}
+                            </span>
                             {isSubLocked && <Lock className="h-3 w-3 text-amber-500 shrink-0 ml-1.5" />}
                           </Link>
                           </div>
@@ -518,10 +574,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
                                 }`}
                               >
-                                <span>{sub.title}</span>
-                                {isSubLocked && <Lock className="h-3 w-3 text-amber-500 shrink-0 ml-1.5" />}
-                              </Link>
-                             </div>
+                               <span className="flex items-center gap-2">
+                                 {sub.title}
+                                 {getBadgeCount(sub.href) > 0 && (
+                                   <span className="inline-flex items-center justify-center px-1 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
+                                     {getBadgeCount(sub.href)}
+                                   </span>
+                                 )}
+                               </span>
+                               {isSubLocked && <Lock className="h-3 w-3 text-amber-500 shrink-0 ml-1.5" />}
+                             </Link>
+                            </div>
                           </div>
                         );
                       })}

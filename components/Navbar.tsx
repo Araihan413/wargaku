@@ -26,7 +26,7 @@ const getPageTitle = (pathname: string): string => {
   if (pathname.startsWith("/dashboard/smart-groups")) return "Kelompok Warga (Smart Group)";
   if (pathname.startsWith("/dashboard/qr-codes")) return "Cetak QR Code Rumah";
   if (pathname.startsWith("/dashboard/approvals/registration")) return "Persetujuan Registrasi";
-  if (pathname.startsWith("/dashboard/approvals/documents")) return "Persetujuan Berkas KK/KTP";
+  if (pathname.startsWith("/dashboard/approvals/documents")) return "Verifikasi Kependudukan";
   if (pathname.startsWith("/dashboard/approvals/kas")) return "Persetujuan Kas";
   if (pathname.startsWith("/dashboard/surat/approvals")) return "Persetujuan Surat";
   if (pathname.startsWith("/dashboard/surat/archive")) return "Arsip Surat RT";

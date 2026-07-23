@@ -10,8 +10,10 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 import { DocumentPreviewModal } from "./_components/DocumentPreviewModal";
 import { VerifyConfirmModal } from "./_components/VerifyConfirmModal";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 
 interface FamilyItem {
   id: number;
@@ -47,8 +49,8 @@ export default function DocumentApprovalsPage() {
   const [activeTab, setActiveTab] = useState<"family" | "rental_resident">("family");
   const [statusFilter, setStatusFilter] = useState<"pending" | "verified" | "rejected">("pending");
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  
+  const debouncedQuery = useDebounce(searchQuery, 400);
+
   const [familiesList, setFamiliesList] = useState<FamilyItem[]>([]);
   const [rentalList, setRentalList] = useState<RentalResidentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,14 +64,6 @@ export default function DocumentApprovalsPage() {
   const [selectedTitle, setSelectedTitle] = useState("");
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-
-  // Debounce search query
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 400);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
 
   const fetchDocuments = useCallback(async () => {
     await Promise.resolve(); // Defers state updates to avoid synchronous setState in useEffect
@@ -168,10 +162,10 @@ export default function DocumentApprovalsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-heading-main tracking-tight">
-            Persetujuan Berkas KK/KTP
+            Verifikasi Kependudukan
           </h1>
           <p className="text-xs text-gray-secondary-text mt-1">
-            Tinjau dan verifikasi dokumen scan KK/KTP yang diunggah warga secara mandiri
+            Tinjau dan verifikasi data kependudukan beserta dokumen pendukung (KK & KTP) warga secara mandiri
           </p>
         </div>
       </div>
@@ -267,7 +261,7 @@ export default function DocumentApprovalsPage() {
                     <th className="py-4 px-5">Alamat Alokasi</th>
                     <th className="py-4 px-5 text-center">Jumlah Anggota</th>
                     <th className="py-4 px-5 text-center">Mulai Tinggal</th>
-                    <th className="py-4 px-5 text-center">Berkas KK</th>
+                    <th className="py-4 px-5 text-center">Tinjau KK & Anggota</th>
                     {statusFilter === "rejected" && <th className="py-4 px-5">Alasan Ditolak</th>}
                     <th className="py-4 px-5 text-right">Aksi</th>
                   </tr>
@@ -293,17 +287,13 @@ export default function DocumentApprovalsPage() {
                           <span>{formatDate(fam.checkInDate)}</span>
                         </td>
                         <td className="py-4 px-5 text-center">
-                          {fam.kkFile ? (
-                            <button
-                              onClick={() => handleOpenPreview(fam.kkFile!, `KK - ${fam.headName}`)}
-                              className="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1"
-                            >
-                              <Eye className="h-3 w-3" />
-                              Pratinjau
-                            </button>
-                          ) : (
-                            <span className="text-gray-placeholder italic text-[10px]">Belum diunggah</span>
-                          )}
+                          <Link
+                            href={`/dashboard/approvals/documents/${fam.id}`}
+                            className="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            Tinjau Berkas
+                          </Link>
                         </td>
                         {statusFilter === "rejected" && (
                           <td className="py-4 px-5 max-w-xs truncate text-rose-600 font-medium">
