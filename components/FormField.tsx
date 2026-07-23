@@ -15,6 +15,7 @@ export interface FormFieldProps {
   setShowPassword?: (show: boolean) => void;
   registerProps?: any;
   error?: string;
+  readOnly?: boolean;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -31,6 +32,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   setShowPassword,
   registerProps,
   error,
+  readOnly = false,
 }) => {
   return (
     <div>
@@ -49,10 +51,13 @@ export const FormField: React.FC<FormFieldProps> = ({
           type={type}
           required={required}
           maxLength={maxLength}
+          readOnly={readOnly}
           {...registerProps}
           className={`block w-full rounded-xl border ${
             error
               ? "border-error focus:ring-error/20 focus:border-error"
+              : readOnly
+              ? "border-gray-border bg-gray-sidebar-hover/20 text-gray-secondary-text cursor-not-allowed"
               : "border-gray-border bg-gray-card focus:border-primary focus:ring-2 focus:ring-primary/20"
           } py-3 pl-10 ${
             isPassword ? "pr-10" : "pr-3"

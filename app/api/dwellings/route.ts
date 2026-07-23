@@ -14,6 +14,11 @@ const createDwellingSchema = z.object({
   houseNumber: z.string().optional().nullable(),
   type: z.enum(['permanen', 'kos', 'homestay']),
   notes: z.string().optional().nullable(),
+  latitude: z.string().optional().nullable(),
+  longitude: z.string().optional().nullable(),
+  ownerUserId: z.string().optional().nullable(),
+  ownerName: z.string().optional().nullable(),
+  ownerPhone: z.string().optional().nullable(),
   startNumber: z.preprocess((val) => (val === '' ? null : val), z.number().int().positive().optional().nullable()),
   endNumber: z.preprocess((val) => (val === '' ? null : val), z.number().int().positive().optional().nullable()),
 }).superRefine((data, ctx) => {
@@ -98,6 +103,7 @@ export async function GET(request: Request) {
         blockNumber: dwellings.blockNumber,
         houseNumber: dwellings.houseNumber,
         type: dwellings.type,
+        ownerUserId: dwellings.ownerUserId,
       })
       .from(dwellings)
       .where(eq(dwellings.isActive, true));
@@ -111,6 +117,7 @@ export async function GET(request: Request) {
         blockNumber: d.blockNumber,
         houseNumber: d.houseNumber,
         type: d.type,
+        ownerUserId: d.ownerUserId,
       };
     });
 
@@ -150,6 +157,11 @@ export async function POST(request: Request) {
         houseNumber: validatedData.houseNumber!.trim(),
         type: validatedData.type,
         notes: validatedData.notes,
+        latitude: validatedData.latitude,
+        longitude: validatedData.longitude,
+        ownerUserId: validatedData.ownerUserId,
+        ownerName: validatedData.ownerName,
+        ownerPhone: validatedData.ownerPhone,
       });
       return NextResponse.json({ success: true, id: dwellingId, message: 'Hunian berhasil ditambahkan' }, { status: 201 });
     } else {

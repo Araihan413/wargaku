@@ -34,6 +34,7 @@ const segmentMap: Record<string, string> = {
   rentals: "Properti Sewa",
   family: "Anggota Keluarga",
   warga: "Warga",
+  notifications: "Notifikasi",
   "rental-residents": "Penyewa",
   "check-out": "Check Out",
 };

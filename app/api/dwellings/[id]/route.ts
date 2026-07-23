@@ -11,6 +11,11 @@ const updateDwellingSchema = z.object({
   type: z.enum(['permanen', 'kos', 'homestay']),
   isActive: z.boolean().optional(),
   notes: z.string().optional().nullable(),
+  latitude: z.string().optional().nullable(),
+  longitude: z.string().optional().nullable(),
+  ownerUserId: z.string().optional().nullable(),
+  ownerName: z.string().optional().nullable(),
+  ownerPhone: z.string().optional().nullable(),
 });
 
 export async function PUT(
@@ -45,6 +50,11 @@ export async function PUT(
       type: validatedData.type,
       isActive: validatedData.isActive,
       notes: validatedData.notes,
+      latitude: validatedData.latitude,
+      longitude: validatedData.longitude,
+      ownerUserId: validatedData.ownerUserId,
+      ownerName: validatedData.ownerName,
+      ownerPhone: validatedData.ownerPhone,
     });
 
     return NextResponse.json({ success: true, message: 'Data hunian berhasil diperbarui' });

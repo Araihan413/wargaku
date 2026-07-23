@@ -18,6 +18,7 @@ import { VerifyTenantModal } from "./_components/VerifyTenantModal";
 import { CheckOutTenantModal } from "./_components/CheckOutTenantModal";
 import { TenantDetailModal } from "./_components/TenantDetailModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 
 export default function ResidentsPage() {
   const [activeTab, setActiveTab] = useState<"kk" | "penyewa" | "hunian">("kk");
@@ -31,7 +32,7 @@ export default function ResidentsPage() {
 
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedActive, setSelectedActive] = useState("true"); // Default to show only active
 
@@ -70,15 +71,6 @@ export default function ResidentsPage() {
   const [isDisableDwellingConfirmOpen, setIsDisableDwellingConfirmOpen] = useState(false);
   const [dwellingToDisable, setDwellingToDisable] = useState<DwellingItem | null>(null);
   const [isDisablingDwelling, setIsDisablingDwelling] = useState(false);
-
-  // Debounce search query
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
 
   // Fetch Families
   const fetchFamilies = useCallback(async () => {

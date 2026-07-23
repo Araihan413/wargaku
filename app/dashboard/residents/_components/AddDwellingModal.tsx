@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, Home, Layers, PlusCircle } from "lucide-react";
+import { X, Loader2, Home, Layers, PlusCircle, MapPin, User, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { z } from "zod";
+import { OwnerSearchSelect } from "./OwnerSearchSelect";
 
 const addDwellingSchema = z.object({
   mode: z.enum(["single", "bulk"]),
@@ -13,6 +14,11 @@ const addDwellingSchema = z.object({
   houseNumber: z.string().optional().nullable(),
   type: z.enum(["permanen", "kos", "homestay"]),
   notes: z.string().optional().nullable(),
+  latitude: z.string().optional().nullable(),
+  longitude: z.string().optional().nullable(),
+  ownerUserId: z.string().optional().nullable(),
+  ownerName: z.string().optional().nullable(),
+  ownerPhone: z.string().optional().nullable(),
   startNumber: z.preprocess((val) => {
     if (val === "" || val === null || val === undefined) return undefined;
     const num = Number(val);
@@ -76,6 +82,9 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"single" | "bulk">("single");
 
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -91,10 +100,57 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
       houseNumber: "",
       type: "permanen" as "permanen" | "kos" | "homestay",
       notes: "",
+      latitude: "",
+      longitude: "",
+      ownerUserId: "",
+      ownerName: "-",
+      ownerPhone: "-",
       startNumber: undefined as number | undefined,
       endNumber: undefined as number | undefined,
     },
   });
+
+  const ownerUserId = useWatch({
+    control,
+    name: "ownerUserId",
+  });
+
+  const ownerName = useWatch({
+    control,
+    name: "ownerName",
+  });
+
+  const handleOwnerSelect = (user: any | null) => {
+    if (user) {
+      setValue("ownerUserId", user.id);
+      setValue("ownerName", user.name);
+      setValue("ownerPhone", user.phone || "-");
+    } else {
+      setValue("ownerUserId", "");
+      setValue("ownerName", "-");
+      setValue("ownerPhone", "-");
+    }
+  };
+
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setIsLoadingUsers(true);
+    }
+  }
+
+  React.useEffect(() => {
+    if (isOpen) {
+      fetch("/api/users?limit=100&status=active")
+        .then((res) => res.json())
+        .then((data) => {
+          setUsers(data.users || []);
+        })
+        .catch((err) => console.error(err))
+        .finally(() => setIsLoadingUsers(false));
+    }
+  }, [isOpen]);
 
   const handleTabChange = (tab: "single" | "bulk") => {
     setActiveTab(tab);
@@ -258,6 +314,71 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
                       {errors.notes.message}
                     </p>
                   )}
+                </div>
+
+                {/* Latitude & Longitude (Single) */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    id="latitude"
+                    label="Latitude (Opsional)"
+                    type="text"
+                    placeholder="Contoh: -6.200000"
+                    registerProps={register("latitude")}
+                    icon={MapPin}
+                    error={errors.latitude?.message}
+                  />
+                  <FormField
+                    id="longitude"
+                    label="Longitude (Opsional)"
+                    type="text"
+                    placeholder="Contoh: 106.816666"
+                    registerProps={register("longitude")}
+                    icon={MapPin}
+                    error={errors.longitude?.message}
+                  />
+                </div>
+                <p className="text-[10px] text-gray-placeholder -mt-2">
+                  Tips: Anda dapat menyalin koordinat ini dari Google Maps (klik kanan pada peta &rarr; salin koordinat).
+                </p>
+
+                {/* Owner Aset (Optional) */}
+                <div className="space-y-4 border-t border-gray-border/50 pt-4 animate-in slide-in-from-top-2 duration-200">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Pemilik Hunian/Aset</h4>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
+                      Pilih Pemilik Terdaftar (Opsional)
+                    </label>
+                    <OwnerSearchSelect
+                      users={users}
+                      isLoading={isLoadingUsers}
+                      selectedUserId={ownerUserId}
+                      selectedUserName={ownerName}
+                      onSelect={handleOwnerSelect}
+                    />
+                  </div>
+
+                  <FormField
+                    id="ownerName"
+                    label="Nama Pemilik (Otomatis)"
+                    type="text"
+                    placeholder="-"
+                    registerProps={register("ownerName")}
+                    icon={User}
+                    error={errors.ownerName?.message}
+                    readOnly={true}
+                  />
+
+                  <FormField
+                    id="ownerPhone"
+                    label="No HP Pemilik (Otomatis)"
+                    type="text"
+                    placeholder="-"
+                    registerProps={register("ownerPhone")}
+                    icon={Phone}
+                    error={errors.ownerPhone?.message}
+                    readOnly={true}
+                  />
                 </div>
               </>
             ) : (

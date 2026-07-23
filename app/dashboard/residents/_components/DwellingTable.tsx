@@ -9,6 +9,11 @@ export interface DwellingItem {
   qrToken: string;
   isActive: boolean;
   notes?: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+  ownerPhone?: string | null;
 }
 
 interface DwellingTableProps {

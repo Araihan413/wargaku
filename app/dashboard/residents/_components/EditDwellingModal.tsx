@@ -1,12 +1,13 @@
-import React, { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import React, { useEffect, useState } from "react";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, Home, Pencil } from "lucide-react";
+import { X, Loader2, Home, Pencil, MapPin, User, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { DwellingItem } from "./DwellingTable";
 import { z } from "zod";
+import { OwnerSearchSelect } from "./OwnerSearchSelect";
 
 const editDwellingSchema = z.object({
   blockNumber: z.string().min(1, "Nomor blok wajib diisi").max(20),
@@ -14,6 +15,11 @@ const editDwellingSchema = z.object({
   type: z.enum(["permanen", "kos", "homestay"]),
   isActive: z.boolean(),
   notes: z.string().optional().nullable(),
+  latitude: z.string().optional().nullable(),
+  longitude: z.string().optional().nullable(),
+  ownerUserId: z.string().optional().nullable(),
+  ownerName: z.string().optional().nullable(),
+  ownerPhone: z.string().optional().nullable(),
 });
 
 type EditDwellingForm = z.infer<typeof editDwellingSchema>;
@@ -37,11 +43,15 @@ export const EditDwellingModal: React.FC<EditDwellingModalProps> = ({
   onSuccess,
   dwelling,
 }) => {
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
   const {
     register,
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<EditDwellingForm>({
     resolver: zodResolver(editDwellingSchema),
@@ -51,8 +61,55 @@ export const EditDwellingModal: React.FC<EditDwellingModalProps> = ({
       type: "permanen",
       isActive: true,
       notes: "",
+      latitude: "",
+      longitude: "",
+      ownerUserId: "",
+      ownerName: "-",
+      ownerPhone: "-",
     },
   });
+
+  const ownerUserId = useWatch({
+    control,
+    name: "ownerUserId",
+  });
+
+  const ownerName = useWatch({
+    control,
+    name: "ownerName",
+  });
+
+  const handleOwnerSelect = (user: any | null) => {
+    if (user) {
+      setValue("ownerUserId", user.id);
+      setValue("ownerName", user.name);
+      setValue("ownerPhone", user.phone || "-");
+    } else {
+      setValue("ownerUserId", "");
+      setValue("ownerName", "-");
+      setValue("ownerPhone", "-");
+    }
+  };
+
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setIsLoadingUsers(true);
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/users?limit=100&status=active")
+        .then((res) => res.json())
+        .then((data) => {
+          setUsers(data.users || []);
+        })
+        .catch((err) => console.error(err))
+        .finally(() => setIsLoadingUsers(false));
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (dwelling) {
@@ -62,6 +119,11 @@ export const EditDwellingModal: React.FC<EditDwellingModalProps> = ({
         type: dwelling.type,
         isActive: dwelling.isActive,
         notes: dwelling.notes || "",
+        latitude: dwelling.latitude || "",
+        longitude: dwelling.longitude || "",
+        ownerUserId: dwelling.ownerUserId || "",
+        ownerName: dwelling.ownerName || "-",
+        ownerPhone: dwelling.ownerPhone || "-",
       });
     }
   }, [dwelling, reset]);
@@ -209,6 +271,71 @@ export const EditDwellingModal: React.FC<EditDwellingModalProps> = ({
                   {errors.notes.message}
                 </p>
               )}
+            </div>
+
+            {/* Latitude & Longitude */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                id="latitude"
+                label="Latitude (Opsional)"
+                type="text"
+                placeholder="Contoh: -6.200000"
+                registerProps={register("latitude")}
+                icon={MapPin}
+                error={errors.latitude?.message}
+              />
+              <FormField
+                id="longitude"
+                label="Longitude (Opsional)"
+                type="text"
+                placeholder="Contoh: 106.816666"
+                registerProps={register("longitude")}
+                icon={MapPin}
+                error={errors.longitude?.message}
+              />
+            </div>
+            <p className="text-[10px] text-gray-placeholder -mt-2">
+              Tips: Anda dapat menyalin koordinat ini dari Google Maps (klik kanan pada peta &rarr; salin koordinat).
+            </p>
+
+            {/* Owner Aset (Optional) */}
+            <div className="space-y-4 border-t border-gray-border/50 pt-4 animate-in slide-in-from-top-2 duration-200">
+              <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Pemilik Hunian/Aset</h4>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
+                  Pilih Pemilik Terdaftar (Opsional)
+                </label>
+                <OwnerSearchSelect
+                  users={users}
+                  isLoading={isLoadingUsers}
+                  selectedUserId={ownerUserId}
+                  selectedUserName={ownerName}
+                  onSelect={handleOwnerSelect}
+                />
+              </div>
+
+              <FormField
+                id="ownerName"
+                label="Nama Pemilik (Otomatis)"
+                type="text"
+                placeholder="-"
+                registerProps={register("ownerName")}
+                icon={User}
+                error={errors.ownerName?.message}
+                readOnly={true}
+              />
+
+              <FormField
+                id="ownerPhone"
+                label="No HP Pemilik (Otomatis)"
+                type="text"
+                placeholder="-"
+                registerProps={register("ownerPhone")}
+                icon={Phone}
+                error={errors.ownerPhone?.message}
+                readOnly={true}
+              />
             </div>
           </div>
 

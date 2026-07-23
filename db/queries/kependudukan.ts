@@ -812,6 +812,11 @@ export interface CreateDwellingInput {
   houseNumber: string;
   type: 'permanen' | 'kos' | 'homestay';
   notes?: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+  ownerPhone?: string | null;
 }
 
 export interface CreateDwellingsBulkInput {
@@ -827,6 +832,11 @@ export interface UpdateDwellingInput {
   type: 'permanen' | 'kos' | 'homestay';
   isActive?: boolean;
   notes?: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+  ownerPhone?: string | null;
 }
 
 export async function createDwelling(data: CreateDwellingInput) {
@@ -837,6 +847,11 @@ export async function createDwelling(data: CreateDwellingInput) {
     qrToken: `qr-dwelling-${randomUUID()}`,
     isActive: true,
     notes: data.notes || null,
+    latitude: data.latitude || null,
+    longitude: data.longitude || null,
+    ownerUserId: data.ownerUserId || null,
+    ownerName: data.ownerName || null,
+    ownerPhone: data.ownerPhone || null,
   });
   return result.insertId;
 }
@@ -881,7 +896,12 @@ export async function updateDwelling(id: number, data: UpdateDwellingInput) {
       houseNumber: data.houseNumber,
       type: data.type,
       isActive: data.isActive !== undefined ? data.isActive : true,
-      notes: data.notes,
+      notes: data.notes || null,
+      latitude: data.latitude || null,
+      longitude: data.longitude || null,
+      ownerUserId: data.ownerUserId || null,
+      ownerName: data.ownerName || null,
+      ownerPhone: data.ownerPhone || null,
     })
     .where(eq(schema.dwellings.id, id));
   return true;
