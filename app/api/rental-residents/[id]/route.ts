@@ -139,11 +139,6 @@ export async function GET(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
     const { id } = await params;
     const residentId = Number(id);
 
@@ -161,9 +156,12 @@ export async function GET(
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    // Cek otorisasi kepemilikan untuk Koordinator Kost
-    const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
+    // Check authorization: RT/Admin (manage-boarding), coordinator, or owner
+    const isGlobalAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
+    const isCoordinator = property.coordinatorUserId === session.user.id;
+    const isOwner = property.dwelling?.ownerUserId === session.user.id;
+
+    if (!isGlobalAllowed && !isCoordinator && !isOwner) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 
@@ -187,13 +185,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
-    const hasVerifyPerm = await hasPermission(session.user.roleId, 'verify-documents');
-
-    if (!isAllowed && !hasVerifyPerm) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
     const { id } = await params;
     const residentId = Number(id);
 
@@ -211,15 +202,17 @@ export async function PUT(
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    const isKoordinatorKost = session.user.roleId === 5;
-    
-    // Cek otorisasi kepemilikan untuk Koordinator Kost
-    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
+    // Check authorization: RT/Admin (manage-boarding or verify-documents) or direct coordinator
+    const isGlobalAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
+    const hasVerifyPerm = await hasPermission(session.user.roleId, 'verify-documents');
+    const isCoordinator = property.coordinatorUserId === session.user.id;
+
+    if (!isGlobalAllowed && !hasVerifyPerm && !isCoordinator) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 
-    // Jika Koordinator Kost mencoba mengedit data yang sudah verified
-    if (isKoordinatorKost && resident.verificationStatus === 'verified') {
+    // If a coordinator attempts to edit verified data (lock it unless user has verify-documents permission)
+    if (isCoordinator && !hasVerifyPerm && resident.verificationStatus === 'verified') {
       return NextResponse.json(
         { error: 'Data penyewa yang terverifikasi dikunci. Silakan hubungi pengurus RT untuk melakukan perubahan.' },
         { status: 403 }
@@ -230,10 +223,10 @@ export async function PUT(
     let updateData: any;
 
     if (hasVerifyPerm) {
-      // RT/Admin: Bisa mengubah status verifikasi
+      // RT/Admin: Can change verification status
       updateData = body;
     } else {
-      // Koordinator Kost / Pengguna Lain: Hapus kolom verifikasi
+      // Coordinator: Strip out verification columns to prevent self-approval
       const safeBody = { ...body };
       delete safeBody.verificationStatus;
       delete safeBody.verificationNote;
@@ -269,13 +262,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
-    const hasVerifyPerm = await hasPermission(session.user.roleId, 'verify-documents');
-
-    if (!isAllowed && !hasVerifyPerm) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
     const { id } = await params;
     const residentId = Number(id);
 
@@ -293,17 +279,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    const isKoordinatorKost = session.user.roleId === 5;
+    // Check authorization: RT/Admin (manage-boarding) or direct coordinator
+    const isGlobalAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
+    const isCoordinator = property.coordinatorUserId === session.user.id;
 
-    // Cek otorisasi kepemilikan untuk Koordinator Kost
-    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
+    if (!isGlobalAllowed && !isCoordinator) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 
-    // Hanya status pending yang boleh di-hard delete oleh Koordinator Kost
-    if (isKoordinatorKost && resident.verificationStatus !== 'pending') {
+    // Only pending status can be hard-deleted by coordinators
+    if (isCoordinator && !isGlobalAllowed && resident.verificationStatus !== 'pending') {
       return NextResponse.json(
-        { error: 'Hanya data berstatus pending yang dapat dihapus.' },
+        { error: 'Hanya data berstatus pending yang dapat dihapus oleh pengelola.' },
         { status: 403 }
       );
     }

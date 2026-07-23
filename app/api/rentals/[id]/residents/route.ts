@@ -144,11 +144,6 @@ export async function GET(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
     const { id } = await params;
     const propertyId = Number(id);
 
@@ -161,9 +156,12 @@ export async function GET(
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    // Cek otorisasi kepemilikan untuk Koordinator Kost
-    const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
+    // Check authorization: RT/Admin (manage-boarding), coordinator, or owner
+    const isGlobalAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
+    const isCoordinator = property.coordinatorUserId === session.user.id;
+    const isOwner = property.dwelling?.ownerUserId === session.user.id;
+
+    if (!isGlobalAllowed && !isCoordinator && !isOwner) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke properti ini' }, { status: 403 });
     }
 
@@ -205,11 +203,6 @@ export async function POST(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
     const { id } = await params;
     const propertyId = Number(id);
 
@@ -222,10 +215,12 @@ export async function POST(
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    // Cek otorisasi kepemilikan untuk Koordinator Kost
-    const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses ke properti ini' }, { status: 403 });
+    // Check write authorization: RT/Admin (manage-boarding) or direct coordinator
+    const isGlobalAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
+    const isCoordinator = property.coordinatorUserId === session.user.id;
+
+    if (!isGlobalAllowed && !isCoordinator) {
+      return NextResponse.json({ error: 'Hanya pengelola (koordinator) atau pengurus RT yang dapat mendaftarkan check-in' }, { status: 403 });
     }
 
     const body = await request.json();

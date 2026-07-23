@@ -23,6 +23,7 @@ export async function listRentalProperties(options: {
   offset?: number;
   query?: string;
   coordinatorUserId?: string;
+  ownerUserId?: string;
   isActive?: boolean;
 } = {}) {
   try {
@@ -37,6 +38,9 @@ export async function listRentalProperties(options: {
     if (options.coordinatorUserId !== undefined) {
       conditions.push(eq(schema.rentalProperties.coordinatorUserId, options.coordinatorUserId));
     }
+    if (options.ownerUserId !== undefined) {
+      conditions.push(eq(schema.dwellings.ownerUserId, options.ownerUserId));
+    }
     if (options.query) {
       conditions.push(like(schema.rentalProperties.name, `%${options.query}%`));
     }
@@ -44,8 +48,23 @@ export async function listRentalProperties(options: {
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const data = await db
-      .select()
+      .select({
+        id: schema.rentalProperties.id,
+        dwellingId: schema.rentalProperties.dwellingId,
+        name: schema.rentalProperties.name,
+        coordinatorUserId: schema.rentalProperties.coordinatorUserId,
+        contactPerson: schema.rentalProperties.contactPerson,
+        phone: schema.rentalProperties.phone,
+        totalRooms: schema.rentalProperties.totalRooms,
+        isActive: schema.rentalProperties.isActive,
+        createdAt: schema.rentalProperties.createdAt,
+        updatedAt: schema.rentalProperties.updatedAt,
+        blockNumber: schema.dwellings.blockNumber,
+        houseNumber: schema.dwellings.houseNumber,
+        type: schema.dwellings.type,
+      })
       .from(schema.rentalProperties)
+      .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
       .where(whereClause)
       .limit(limit)
       .offset(offset)
@@ -54,6 +73,7 @@ export async function listRentalProperties(options: {
     const totalResult = await db
       .select({ count: sql`count(*)` })
       .from(schema.rentalProperties)
+      .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
       .where(whereClause);
 
     const total = Number(totalResult[0]?.count ?? 0);
@@ -409,5 +429,20 @@ export async function listAllRentalResidents(options: {
   } catch (error) {
     console.error('Error in listAllRentalResidents:', error);
     throw new Error('Gagal mengambil daftar semua penghuni sewa');
+  }
+}
+
+export async function isPropertyOwner(propertyId: number, userId: string): Promise<boolean> {
+  try {
+    const [result] = await db
+      .select({ ownerUserId: schema.dwellings.ownerUserId })
+      .from(schema.rentalProperties)
+      .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
+      .where(eq(schema.rentalProperties.id, propertyId))
+      .limit(1);
+    return result?.ownerUserId === userId;
+  } catch (error) {
+    console.error('Error in isPropertyOwner:', error);
+    return false;
   }
 }

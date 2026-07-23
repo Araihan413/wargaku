@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X, Loader2, UserPlus, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, Upload, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
@@ -94,7 +94,6 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     control,
     setValue,
     reset,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(createRentalResidentSchema),
@@ -113,7 +112,10 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     },
   });
 
-  const ktpFile = watch("ktpFile");
+  const ktpFile = useWatch({
+    control,
+    name: "ktpFile",
+  });
 
   // Fetch active rental properties
   useEffect(() => {

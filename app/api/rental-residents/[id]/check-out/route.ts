@@ -65,11 +65,6 @@ export async function POST(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
     const { id } = await params;
     const residentId = Number(id);
 
@@ -91,10 +86,12 @@ export async function POST(
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    // Cek otorisasi kepemilikan untuk Koordinator Kost
-    const isKoordinatorKost = session.user.roleId === 5;
-    if (isKoordinatorKost && property.coordinatorUserId !== session.user.id) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
+    // Check write authorization: RT/Admin (manage-boarding) or direct coordinator
+    const isGlobalAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
+    const isCoordinator = property.coordinatorUserId === session.user.id;
+
+    if (!isGlobalAllowed && !isCoordinator) {
+      return NextResponse.json({ error: 'Hanya pengelola (koordinator) atau pengurus RT yang dapat memproses check-out' }, { status: 403 });
     }
 
     const body = await request.json();
