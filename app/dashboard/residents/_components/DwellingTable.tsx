@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, ChevronLeft, ChevronRight, Pencil, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Pencil, Ban, CheckCircle, XCircle, Eye } from "lucide-react";
 
 export interface DwellingItem {
   id: number;
@@ -14,6 +14,8 @@ export interface DwellingItem {
   ownerUserId?: string | null;
   ownerName?: string | null;
   ownerPhone?: string | null;
+  totalRooms?: number | null;
+  occupiedRooms?: number | null;
 }
 
 interface DwellingTableProps {
@@ -23,6 +25,7 @@ interface DwellingTableProps {
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
   totalItems: number;
+  onDetail: (dwelling: DwellingItem) => void;
   onEdit: (dwelling: DwellingItem) => void;
   onDisable: (dwelling: DwellingItem) => void;
 }
@@ -34,6 +37,7 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
   setCurrentPage,
   totalPages,
   totalItems,
+  onDetail,
   onEdit,
   onDisable,
 }) => {
@@ -76,15 +80,22 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
                       {addressStr}
                     </td>
                     <td className="py-4 px-5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium uppercase ${
-                        d.type === 'permanen' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                          : d.type === 'kos' 
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200' 
-                          : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                      }`}>
-                        {d.type}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium uppercase w-fit ${
+                          d.type === 'permanen' 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : d.type === 'kos' 
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                            : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                        }`}>
+                          {d.type}
+                        </span>
+                        {d.type === 'kos' && d.totalRooms !== undefined && d.totalRooms !== null && (
+                          <span className="text-[11px] font-semibold text-amber-600">
+                            {d.occupiedRooms ?? 0} / {d.totalRooms} Kamar Terisi
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-5 font-mono text-xs text-gray-secondary-text">
                       {d.qrToken}
@@ -114,6 +125,13 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
                     <td className="py-4 px-5 text-right">
                       <div className="flex items-center justify-end gap-2.5">
                         <button
+                          onClick={() => onDetail(d)}
+                          className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-primary transition-colors cursor-pointer"
+                          title="Detail Hunian"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => onEdit(d)}
                           className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-gray-heading-main transition-colors cursor-pointer"
                           title="Edit Hunian"
@@ -126,7 +144,7 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
                             className="p-1.5 hover:bg-red-50 rounded-lg text-gray-secondary-text hover:text-error transition-colors cursor-pointer"
                             title="Nonaktifkan Hunian"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Ban className="h-4 w-4" />
                           </button>
                         )}
                       </div>

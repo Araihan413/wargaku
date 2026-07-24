@@ -250,8 +250,9 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
             {/* Block Number */}
             <FormField
               id="blockNumber"
-              label="Nama/Nomor Blok"
+              label="Blok Hunian"
               type="text"
+              required={true}
               placeholder="Contoh: A, B, C, atau Gang Merpati"
               registerProps={register("blockNumber")}
               icon={Home}
@@ -260,22 +261,21 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
 
             {/* Dwelling Type */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
-                Tipe Hunian
-              </label>
               <Controller
                 name="type"
                 control={control}
                 render={({ field }) => (
                   <div>
                     <CustomSelect
+                      label="Tipe Hunian"
+                      required={true}
                       value={field.value}
                       onChange={field.onChange}
                       options={dwellingTypeOptions}
                       placeholder="-- Pilih Tipe Hunian --"
                     />
                     {errors.type && (
-                      <p className="text-xs text-error font-medium mt-1">
+                      <p className="text-xs text-error font-semibold mt-1">
                         {errors.type.message}
                       </p>
                     )}
@@ -291,6 +291,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
                   id="houseNumber"
                   label="Nomor Rumah"
                   type="text"
+                  required={true}
                   placeholder="Contoh: 12, 14A, 35B"
                   registerProps={register("houseNumber")}
                   icon={Home}
@@ -299,18 +300,18 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
 
                 {/* Notes (Single) */}
                 <div className="space-y-1.5">
-                  <label htmlFor="notes" className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
-                    Catatan Hunian (Opsional)
+                  <label htmlFor="notes" className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Catatan Hunian
                   </label>
                   <textarea
                     id="notes"
                     placeholder="Contoh: Depan pos satpam, cat pagar hitam"
                     rows={3}
                     {...register("notes")}
-                    className="w-full rounded-xl border border-gray-border bg-gray-card py-3 px-4 text-gray-heading-main placeholder-gray-placeholder sm:text-sm outline-none transition-all resize-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className="w-full rounded-xl border border-gray-border bg-gray-card py-2.5 px-3.5 text-gray-heading-main placeholder-gray-placeholder text-sm outline-none transition-all resize-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                   {errors.notes && (
-                    <p className="text-xs text-error font-medium mt-1">
+                    <p className="text-xs text-error font-semibold mt-1">
                       {errors.notes.message}
                     </p>
                   )}
@@ -320,7 +321,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     id="latitude"
-                    label="Latitude (Opsional)"
+                    label="Latitude"
                     type="text"
                     placeholder="Contoh: -6.200000"
                     registerProps={register("latitude")}
@@ -329,7 +330,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
                   />
                   <FormField
                     id="longitude"
-                    label="Longitude (Opsional)"
+                    label="Longitude"
                     type="text"
                     placeholder="Contoh: 106.816666"
                     registerProps={register("longitude")}
@@ -341,13 +342,13 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
                   Tips: Anda dapat menyalin koordinat ini dari Google Maps (klik kanan pada peta &rarr; salin koordinat).
                 </p>
 
-                {/* Owner Aset (Optional) */}
+                {/* Owner Aset */}
                 <div className="space-y-4 border-t border-gray-border/50 pt-4 animate-in slide-in-from-top-2 duration-200">
                   <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Pemilik Hunian/Aset</h4>
                   
                   <div>
-                    <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
-                      Pilih Pemilik Terdaftar (Opsional)
+                    <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                      Pilih Pemilik Terdaftar
                     </label>
                     <OwnerSearchSelect
                       users={users}
@@ -360,7 +361,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
 
                   <FormField
                     id="ownerName"
-                    label="Nama Pemilik (Otomatis)"
+                    label="Nama Pemilik"
                     type="text"
                     placeholder="-"
                     registerProps={register("ownerName")}
@@ -371,7 +372,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
 
                   <FormField
                     id="ownerPhone"
-                    label="No HP Pemilik (Otomatis)"
+                    label="No HP Pemilik"
                     type="text"
                     placeholder="-"
                     registerProps={register("ownerPhone")}
@@ -388,6 +389,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
                   id="startNumber"
                   label="Nomor Rumah Awal"
                   type="number"
+                  required={true}
                   placeholder="Contoh: 1"
                   registerProps={register("startNumber")}
                   icon={Home}
@@ -399,6 +401,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
                   id="endNumber"
                   label="Nomor Rumah Akhir"
                   type="number"
+                  required={true}
                   placeholder="Contoh: 50"
                   registerProps={register("endNumber")}
                   icon={Home}

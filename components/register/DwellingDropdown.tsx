@@ -36,8 +36,8 @@ export const DwellingDropdown: React.FC<DwellingDropdownProps> = ({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <label className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2">
-        Alamat Rumah Tinggal
+      <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+        Alamat Rumah Tinggal <span className="text-red-500 ml-0.5">*</span>
       </label>
       <div className="relative">
         <button
@@ -45,7 +45,7 @@ export const DwellingDropdown: React.FC<DwellingDropdownProps> = ({
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className={`flex w-full items-center justify-between rounded-xl border ${
             error ? "border-error" : "border-gray-border"
-          } bg-gray-card py-3 pl-10 pr-4 text-left text-gray-heading-main focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm outline-none transition-all cursor-pointer`}
+          } bg-gray-card py-2.5 pl-10 pr-4 text-left text-gray-heading-main focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm outline-none transition-all cursor-pointer`}
         >
           <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <MapPin className="h-4 w-4 text-gray-placeholder" />

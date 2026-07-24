@@ -461,53 +461,63 @@ export default function PropertyDetailsPage() {
             
             <form onSubmit={handleUpdate} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-heading-main block">Nama Properti</label>
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                  Nama Properti <span className="text-red-500 ml-0.5">*</span>
+                </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-heading-main block">Jumlah Kamar/Pintu</label>
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Jumlah Kamar/Pintu <span className="text-red-500 ml-0.5">*</span>
+                  </label>
                   <input
                     type="number"
                     min={1}
                     value={totalRooms || ""}
                     onChange={(e) => setTotalRooms(Number(e.target.value))}
-                    className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-heading-main block">WhatsApp Bisnis</label>
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    WhatsApp Bisnis
+                  </label>
                   <input
                     type="text"
                     value={businessPhone}
                     onChange={(e) => setBusinessPhone(e.target.value)}
-                    className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-heading-main block">Nama Kontak Pengelola</label>
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                  Nama Kontak Pengelola
+                </label>
                 <input
                   type="text"
                   value={contactPerson}
                   onChange={(e) => setContactPerson(e.target.value)}
-                  className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
 
               {/* Coordinator Assignment Option (Hidden for Homestay) */}
               {property.dwelling.type !== "homestay" && (
                 <div className="space-y-1.5 border-t border-gray-border/50 pt-4">
-                  <label className="text-xs font-bold text-gray-heading-main block">Penunjukan Koordinator (Penjaga)</label>
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Penunjukan Koordinator (Penjaga)
+                  </label>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <button
                       type="button"
@@ -541,46 +551,54 @@ export default function PropertyDetailsPage() {
                         </p>
                       )}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-heading-main uppercase block">Email Koordinator</label>
+                        <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                          Email Koordinator <span className="text-red-500 ml-0.5">*</span>
+                        </label>
                         <input
                           type="email"
                           placeholder="email@example.com"
                           value={coordEmail}
                           onChange={(e) => setCoordEmail(e.target.value)}
-                          className="w-full bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                          className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                           required
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-heading-main uppercase block">NIK Koordinator</label>
+                        <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                          NIK Koordinator <span className="text-red-500 ml-0.5">*</span>
+                        </label>
                         <input
                           type="text"
                           placeholder="16 digit NIK"
                           value={coordNik}
                           onChange={(e) => setCoordNik(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                          className="w-full bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                          className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                           required
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-heading-main uppercase block">Nama Koordinator</label>
+                        <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                          Nama Koordinator <span className="text-red-500 ml-0.5">*</span>
+                        </label>
                         <input
                           type="text"
                           placeholder="Nama Lengkap"
                           value={coordName}
                           onChange={(e) => setCoordName(e.target.value)}
-                          className="w-full bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                          className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                           required
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-heading-main uppercase block">Nomor HP/WA</label>
+                        <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                          Nomor HP/WA
+                        </label>
                         <input
                           type="text"
                           placeholder="081..."
                           value={coordPhone}
                           onChange={(e) => setCoordPhone(e.target.value)}
-                          className="w-full bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                          className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                         />
                       </div>
                     </div>

@@ -85,30 +85,30 @@ export async function POST(request: Request) {
     // 2. Handle Case B: Penunjukan Koordinator Baru (belum terdaftar di users)
     let coordinatorId = validated.coordinatorUserId || null;
 
-    if (!coordinatorId && body.coordinatorEmail && body.coordinatorNik && body.coordinatorName) {
+    if (!coordinatorId && body.coordinatorName && body.coordinatorPhone) {
+      const cleanPhone = body.coordinatorPhone.replace(/[-\s]/g, '');
+
+      // Check if a user with this phone number already exists
       const [existingUser] = await db
         .select({ id: schema.users.id })
         .from(schema.users)
-        .where(
-          or(
-            eq(schema.users.email, body.coordinatorEmail),
-            eq(schema.users.nik, body.coordinatorNik)
-          )
-        )
+        .where(eq(schema.users.phone, cleanPhone))
         .limit(1);
 
       if (existingUser) {
         coordinatorId = existingUser.id;
       } else {
         const newUserId = crypto.randomUUID();
+        const tempEmail = `pending-${cleanPhone}-${Math.random().toString(36).substring(2, 7)}@wargaku.temp`;
+
         await db.insert(schema.users).values({
           id: newUserId,
           name: body.coordinatorName,
-          email: body.coordinatorEmail,
-          nik: body.coordinatorNik,
-          phone: body.coordinatorPhone || null,
+          email: tempEmail,
+          phone: cleanPhone,
           roleId: 5, // Koordinator Kost
           status: 'pending', // RT must approve this coordinator user account
+          emailVerified: false,
         });
         coordinatorId = newUserId;
       }
@@ -122,6 +122,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       id: propertyId,
+      coordinatorId: coordinatorId,
       message: 'Properti pribadi berhasil didaftarkan',
     }, { status: 201 });
 

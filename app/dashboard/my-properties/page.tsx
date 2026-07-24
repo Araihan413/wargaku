@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Home,  Users, ShieldAlert, Loader2, ArrowRight, X, Building2 } from "lucide-react";
+import { Plus, Home, Users, ShieldAlert, Loader2, ArrowRight, X, Building2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { useFamilyVerification } from "@/lib/hooks/use-family-verification";
+import { DwellingSearchSelect } from "./_components/DwellingSearchSelect";
+import { CoordinatorSearchSelect } from "./_components/CoordinatorSearchSelect";
 
 interface PropertyItem {
   id: number;
@@ -19,6 +21,10 @@ interface PropertyItem {
   blockNumber: string;
   houseNumber: string;
   type: string;
+  coordinatorName?: string | null;
+  coordinatorPhone?: string | null;
+  coordinatorStatus?: "pending" | "active" | "suspended" | null;
+  coordinatorHasPassword?: boolean | null;
 }
 
 interface DwellingOption {
@@ -28,6 +34,14 @@ interface DwellingOption {
   houseNumber: string;
   type: string;
   ownerUserId: string | null;
+}
+
+function formatWhatsAppLink(phone: string, text: string) {
+  const cleanPhone = phone.replace(/\D/g, "");
+  const formattedPhone = cleanPhone.startsWith("0")
+    ? "62" + cleanPhone.slice(1)
+    : cleanPhone;
+  return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`;
 }
 
 export default function MyPropertiesPage() {
@@ -51,11 +65,24 @@ export default function MyPropertiesPage() {
   const [businessPhone, setBusinessPhone] = useState("");
   const [coordinatorOption, setCoordinatorOption] = useState<"self" | "other">("self");
 
-  // Coordinator Account States (Case B)
-  const [coordEmail, setCoordEmail] = useState("");
-  const [coordNik, setCoordNik] = useState("");
+  // Coordinator Search / Invite States
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [selectedCoordUserId, setSelectedCoordUserId] = useState<string | null>(null);
+  const [selectedCoordUserName, setSelectedCoordUserName] = useState<string>("");
+  const [coordSubOption, setCoordSubOption] = useState<"search" | "invite">("search");
+
+  // Coordinator Account States (Case B - Manual Invite)
   const [coordName, setCoordName] = useState("");
   const [coordPhone, setCoordPhone] = useState("");
+
+  // Invitation link popup details
+  const [inviteModalData, setInviteModalData] = useState<{
+    propertyName: string;
+    coordinatorName: string;
+    inviteLink: string;
+    phone: string;
+  } | null>(null);
 
   const fetchProperties = useCallback(async () => {
     try {
@@ -93,6 +120,21 @@ export default function MyPropertiesPage() {
     }
   }, [sessionUserId]);
 
+  const fetchUsers = useCallback(async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await fetch("/api/users?limit=100&status=active");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (sessionUserId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -100,6 +142,7 @@ export default function MyPropertiesPage() {
       fetchDwellings();
     }
   }, [sessionUserId, fetchProperties, fetchDwellings]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,16 +172,24 @@ export default function MyPropertiesPage() {
     if (coordinatorOption === "self") {
       payload.coordinatorUserId = sessionUserId;
     } else {
-      // Coordinator is another person
-      if (!coordEmail.trim() || !coordNik.trim() || !coordName.trim()) {
-        toast.error("Data Koordinator Baru wajib diisi lengkap");
-        setIsSubmitting(false);
-        return;
+      if (coordSubOption === "search") {
+        if (!selectedCoordUserId) {
+          toast.error("Pilih koordinator warga terdaftar terlebih dahulu");
+          setIsSubmitting(false);
+          return;
+        }
+        payload.coordinatorUserId = selectedCoordUserId;
+      } else {
+        // Invite new coordinator
+        if (!coordName.trim() || !coordPhone.trim()) {
+          toast.error("Nama dan nomor HP/WA penjaga wajib diisi");
+          setIsSubmitting(false);
+          return;
+        }
+        payload.coordinatorName = coordName;
+        payload.coordinatorPhone = coordPhone;
+        payload.coordinatorUserId = null;
       }
-      payload.coordinatorEmail = coordEmail;
-      payload.coordinatorNik = coordNik;
-      payload.coordinatorName = coordName;
-      payload.coordinatorPhone = coordPhone || null;
     }
 
     try {
@@ -150,23 +201,32 @@ export default function MyPropertiesPage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(
-          coordinatorOption === "other"
-            ? "Properti berhasil didaftarkan! Akun koordinator baru sedang menunggu persetujuan RT."
-            : "Properti pribadi berhasil didaftarkan"
-        );
+        toast.success("Properti pribadi berhasil didaftarkan");
         setIsModalOpen(false);
+
+        // If it was an invitation, open the WhatsApp Invite Modal!
+        if (coordinatorOption === "other" && coordSubOption === "invite" && data.coordinatorId) {
+          const inviteUrl = `${window.location.origin}/register/coordinator?id=${data.coordinatorId}`;
+          setInviteModalData({
+            propertyName: propertyName,
+            coordinatorName: coordName,
+            inviteLink: inviteUrl,
+            phone: coordPhone,
+          });
+        }
+
         // Reset Form
         setSelectedDwellingId("");
         setPropertyName("");
         setTotalRooms(0);
         setContactPerson("");
         setBusinessPhone("");
-        setCoordEmail("");
-        setCoordNik("");
         setCoordName("");
         setCoordPhone("");
         setCoordinatorOption("self");
+        setCoordSubOption("search");
+        setSelectedCoordUserId(null);
+        setSelectedCoordUserName("");
         fetchProperties();
       } else {
         toast.error(data.error || "Gagal mendaftarkan properti");
@@ -181,6 +241,17 @@ export default function MyPropertiesPage() {
 
   const handleModalClose = () => {
     setIsModalOpen(false);
+    setSelectedDwellingId("");
+    setPropertyName("");
+    setTotalRooms(0);
+    setContactPerson("");
+    setBusinessPhone("");
+    setCoordName("");
+    setCoordPhone("");
+    setCoordinatorOption("self");
+    setCoordSubOption("search");
+    setSelectedCoordUserId(null);
+    setSelectedCoordUserName("");
   };
 
   if (isVerificationLoading || isLoading) {
@@ -227,6 +298,9 @@ export default function MyPropertiesPage() {
               return;
             }
             setIsModalOpen(true);
+            if (users.length === 0) {
+              fetchUsers();
+            }
           }}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-700 px-4 py-2.5 text-xs font-bold text-white transition-all shadow-sm shrink-0 cursor-pointer"
         >
@@ -248,6 +322,9 @@ export default function MyPropertiesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {properties.map((p) => {
             const isSelfManaged = p.coordinatorUserId === sessionUserId;
+            const isPendingRegister = p.coordinatorUserId !== null && !isSelfManaged && p.coordinatorHasPassword === false;
+            const isPendingApproval = p.coordinatorUserId !== null && !isSelfManaged && p.coordinatorHasPassword === true && p.coordinatorStatus === "pending";
+
             return (
               <div
                 key={p.id}
@@ -264,13 +341,25 @@ export default function MyPropertiesPage() {
                         Blok {p.blockNumber} No. {p.houseNumber}
                       </span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 ${
-                      p.type === "kos"
-                        ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                        : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                    }`}>
-                      {p.type}
-                    </span>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                        p.type === "kos"
+                          ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                          : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                      }`}>
+                        {p.type}
+                      </span>
+                      {isPendingRegister && (
+                        <span className="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100">
+                          Pending Registrasi
+                        </span>
+                      )}
+                      {isPendingApproval && (
+                        <span className="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-orange-50 text-orange-600 border border-orange-100">
+                          Pending RT
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Stats Grid */}
@@ -287,14 +376,33 @@ export default function MyPropertiesPage() {
                       <div>
                         <p className="text-[10px] text-gray-placeholder leading-none">Pengelola</p>
                         <p className="font-bold text-gray-heading-main mt-0.5 truncate max-w-22.5">
-                          {isSelfManaged ? "Kelola Sendiri" : p.contactPerson || "Ditunjuk"}
+                          {isSelfManaged ? "Kelola Sendiri" : p.coordinatorName || p.contactPerson || "Ditunjuk"}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-gray-border/50 flex justify-end">
+                <div className="mt-5 pt-4 border-t border-gray-border/50 flex justify-between items-center">
+                  <div>
+                    {isPendingRegister && (
+                      <button
+                        onClick={() => {
+                          const inviteUrl = `${window.location.origin}/register/coordinator?id=${p.coordinatorUserId}`;
+                          setInviteModalData({
+                            propertyName: p.name,
+                            coordinatorName: p.coordinatorName || "Penjaga Kos",
+                            inviteLink: inviteUrl,
+                            phone: p.coordinatorPhone || "",
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/50 border border-emerald-200/60 px-2.5 py-1 rounded-xl transition-all cursor-pointer"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <span>Kirim Link WA</span>
+                      </button>
+                    )}
+                  </div>
                   <Link
                     href={`/dashboard/my-properties/${p.id}`}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-primary group-hover:gap-2.5 transition-all"
@@ -311,195 +419,300 @@ export default function MyPropertiesPage() {
 
       {/* Registration Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={handleModalClose} />
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity" onClick={handleModalClose} />
 
           {/* Modal Content */}
-          <div className="relative w-full max-w-lg rounded-3xl border border-gray-border bg-gray-card p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-border animate-in fade-in zoom-in-95 duration-200">
-            <button
-              onClick={handleModalClose}
-              className="absolute right-4 top-4 rounded-xl p-1.5 text-gray-secondary-text hover:bg-gray-sidebar-hover transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <h2 className="text-lg font-bold text-gray-heading-main mb-1">Daftarkan Properti Sewa Baru</h2>
-            <p className="text-xs text-gray-secondary-text mb-6">
-              Lengkapi berkas pendaftaran berikut untuk mendaftarkan aset sewaan Anda.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Dwelling Dropdown */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-heading-main block">Pilih Alamat Fisik Properti</label>
-                <select
-                  value={selectedDwellingId}
-                  onChange={(e) => setSelectedDwellingId(e.target.value)}
-                  className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3 py-2.5 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
-                  required
-                >
-                  <option value="" disabled className="bg-gray-card">-- Pilih Tempat Tinggal Anda --</option>
-                  {dwellings.map((d) => (
-                    <option key={d.id} value={d.id} className="bg-gray-card">
-                      {d.label} ({d.type === "kos" ? "Kos" : "Homestay"})
-                    </option>
-                  ))}
-                </select>
+          <div className="relative w-full max-w-lg bg-gray-card border border-gray-border rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden z-10 mx-4 animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-border shrink-0">
+              <div>
+                <h2 className="text-sm font-bold text-gray-heading-main">Daftarkan Properti Sewa Baru</h2>
+                <p className="text-[10px] text-gray-secondary-text mt-0.5">
+                  Lengkapi berkas pendaftaran berikut untuk mendaftarkan aset sewaan Anda.
+                </p>
               </div>
+              <button
+                onClick={handleModalClose}
+                className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-gray-heading-main transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-              {/* Property Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-heading-main block">Nama Properti</label>
-                <input
-                  type="text"
-                  placeholder="Misal: Kos Melati, Villa Sentosa"
-                  value={propertyName}
-                  onChange={(e) => setPropertyName(e.target.value)}
-                  className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary transition-all"
-                  required
-                />
-              </div>
-
-              {/* Capacity Rooms & Phone */}
-              <div className="grid grid-cols-2 gap-4">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              {/* Form Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+                {/* Dwelling Dropdown */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-heading-main block">Jumlah Kamar/Pintu</label>
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Pilih Alamat Fisik Properti <span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                  <DwellingSearchSelect
+                    dwellings={dwellings}
+                    selectedDwellingId={selectedDwellingId}
+                    onSelect={setSelectedDwellingId}
+                    placeholder="-- Pilih Tempat Tinggal Anda (Ketik untuk mencari) --"
+                  />
+                </div>
+
+                {/* Property Name */}
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Nama Properti <span className="text-red-500 ml-0.5">*</span>
+                  </label>
                   <input
-                    type="number"
-                    min={1}
-                    value={totalRooms || ""}
-                    onChange={(e) => setTotalRooms(Number(e.target.value))}
-                    className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                    type="text"
+                    placeholder="Misal: Kos Melati, Villa Sentosa"
+                    value={propertyName}
+                    onChange={(e) => setPropertyName(e.target.value)}
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                     required
                   />
                 </div>
+
+                {/* Capacity Rooms & Phone */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                      Jumlah Kamar/Pintu <span className="text-red-500 ml-0.5">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={totalRooms || ""}
+                      onChange={(e) => setTotalRooms(Number(e.target.value))}
+                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                      Nomor HP/WA Bisnis
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Format: 081234567890"
+                      value={businessPhone}
+                      onChange={(e) => setBusinessPhone(e.target.value)}
+                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Manager/Contact Person */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-heading-main block">Nomor HP/WA Bisnis</label>
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Nama Kontak Pengelola
+                  </label>
                   <input
                     type="text"
-                    placeholder="Format: 081234567890"
-                    value={businessPhone}
-                    onChange={(e) => setBusinessPhone(e.target.value)}
-                    className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                    placeholder="Misal: Bu Budi (Kos Melati)"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
+
+                {/* Coordinator Assignment Option (Hidden for Homestay) */}
+                {!isHomestaySelected && (
+                  <div className="space-y-1.5 border-t border-gray-border/50 pt-4">
+                    <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                      Penunjukan Koordinator (Penjaga)
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setCoordinatorOption("self")}
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                          coordinatorOption === "self"
+                            ? "bg-primary border-primary text-white"
+                            : "bg-gray-sidebar-hover/10 border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover/30"
+                        }`}
+                      >
+                        Kelola Sendiri
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCoordinatorOption("other")}
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                          coordinatorOption === "other"
+                            ? "bg-primary border-primary text-white"
+                            : "bg-gray-sidebar-hover/10 border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover/30"
+                        }`}
+                      >
+                        Tunjuk Orang Lain
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-options for Coordinator (Search vs. Invite) */}
+                {!isHomestaySelected && coordinatorOption === "other" && (
+                  <div className="space-y-3 animate-in fade-in duration-200">
+                    <div className="flex gap-2 p-1 bg-gray-sidebar-hover/30 rounded-xl border border-gray-border/50">
+                      <button
+                        type="button"
+                        onClick={() => setCoordSubOption("search")}
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          coordSubOption === "search"
+                            ? "bg-gray-card text-gray-heading-main shadow-sm"
+                            : "text-gray-secondary-text hover:text-gray-heading-main"
+                        }`}
+                      >
+                        Pilih dari Warga Terdaftar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCoordSubOption("invite")}
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          coordSubOption === "invite"
+                            ? "bg-gray-card text-gray-heading-main shadow-sm"
+                            : "text-gray-secondary-text hover:text-gray-heading-main"
+                        }`}
+                      >
+                        Undang Penjaga Baru
+                      </button>
+                    </div>
+
+                    {coordSubOption === "search" ? (
+                      <div className="space-y-1.5">
+                        <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                          Cari Nama Warga <span className="text-red-500 ml-0.5">*</span>
+                        </label>
+                        <CoordinatorSearchSelect
+                          users={users}
+                          isLoading={isLoadingUsers}
+                          selectedUserId={selectedCoordUserId}
+                          selectedUserName={selectedCoordUserName}
+                          onSelect={(u) => {
+                            setSelectedCoordUserId(u?.id || null);
+                            setSelectedCoordUserName(u?.name || "");
+                            if (u) {
+                              setContactPerson(u.name);
+                              setBusinessPhone(u.phone || "");
+                            } else {
+                              setContactPerson("");
+                              setBusinessPhone("");
+                            }
+                          }}
+                          placeholder="-- Cari nama warga di RT ini --"
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-3 bg-gray-sidebar-hover/20 p-4 rounded-2xl border border-gray-border/60 animate-in slide-in-from-top-2 duration-200">
+                        <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-100 p-2.5 rounded-lg">
+                          Silakan isi nama dan nomor WA penjaga kos. Tautan pendaftaran akan dibuat setelah properti disimpan.
+                        </p>
+                        <div className="space-y-1.5">
+                          <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                            Nama Calon Penjaga <span className="text-red-500 ml-0.5">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Nama Lengkap Penjaga"
+                            value={coordName}
+                            onChange={(e) => setCoordName(e.target.value)}
+                            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                            Nomor HP/WA Penjaga <span className="text-red-500 ml-0.5">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Contoh: 081234567890"
+                            value={coordPhone}
+                            onChange={(e) => setCoordPhone(e.target.value)}
+                            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Manager/Contact Person */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-heading-main block">Nama Kontak Pengelola</label>
-                <input
-                  type="text"
-                  placeholder="Misal: Bu Budi (Kos Melati)"
-                  value={contactPerson}
-                  onChange={(e) => setContactPerson(e.target.value)}
-                  className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              {/* Coordinator Assignment Option (Hidden for Homestay) */}
-              {!isHomestaySelected && (
-                <div className="space-y-1.5 border-t border-gray-border/50 pt-4">
-                  <label className="text-xs font-bold text-gray-heading-main block">Penunjukan Koordinator (Penjaga)</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setCoordinatorOption("self")}
-                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                        coordinatorOption === "self"
-                          ? "bg-primary border-primary text-white"
-                          : "bg-gray-sidebar-hover/10 border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover/30"
-                      }`}
-                    >
-                      Kelola Sendiri
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCoordinatorOption("other")}
-                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                        coordinatorOption === "other"
-                          ? "bg-primary border-primary text-white"
-                          : "bg-gray-sidebar-hover/10 border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover/30"
-                      }`}
-                    >
-                      Tunjuk Orang Lain
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Case B: Coordinator Account Form */}
-              {!isHomestaySelected && coordinatorOption === "other" && (
-                <div className="space-y-3 bg-gray-sidebar-hover/20 p-4 rounded-2xl border border-gray-border/60 animate-in slide-in-from-top-2 duration-200">
-                  <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-100 p-2.5 rounded-lg">
-                    Calon Koordinator yang ditunjuk wajib melengkapi email aktif untuk pembuatan akun login (status pending persetujuan RT).
-                  </p>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-heading-main uppercase tracking-wider block">Email Calon Koordinator</label>
-                    <input
-                      type="email"
-                      placeholder="email@example.com"
-                      value={coordEmail}
-                      onChange={(e) => setCoordEmail(e.target.value)}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-heading-main uppercase tracking-wider block">NIK Calon Koordinator</label>
-                    <input
-                      type="text"
-                      placeholder="16 digit NIK"
-                      value={coordNik}
-                      onChange={(e) => setCoordNik(e.target.value)}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-heading-main uppercase tracking-wider block">Nama Calon Koordinator</label>
-                    <input
-                      type="text"
-                      placeholder="Nama Lengkap"
-                      value={coordName}
-                      onChange={(e) => setCoordName(e.target.value)}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-heading-main uppercase tracking-wider block">Nomor HP/WA</label>
-                    <input
-                      type="text"
-                      placeholder="081..."
-                      value={coordPhone}
-                      onChange={(e) => setCoordPhone(e.target.value)}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Submit Buttons */}
-              <div className="flex items-center gap-3 pt-4 border-t border-gray-border/50">
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-3 border-t border-gray-border px-6 py-4 shrink-0 bg-gray-card">
                 <button
                   type="button"
                   onClick={handleModalClose}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-border hover:bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text cursor-pointer transition-colors"
+                  className="px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-semibold text-gray-secondary-text cursor-pointer transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-700 disabled:bg-primary/50 text-xs font-bold text-white cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+                  className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50"
                 >
-                  {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   <span>Simpan Properti</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Modal Pop-up */}
+      {inviteModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-xs" onClick={() => setInviteModalData(null)} />
+          <div className="relative w-full max-w-md bg-gray-card border border-gray-border rounded-2xl shadow-xl flex flex-col p-6 z-10 mx-4 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setInviteModalData(null)}
+              className="absolute right-4 top-4 p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text transition-colors cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+                <MessageCircle className="h-6 w-6" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-heading-main">Kirim Tautan Undangan Penjaga</h3>
+              <p className="text-xs text-gray-secondary-text leading-relaxed">
+                Tautan pendaftaran pengelola untuk <strong>{inviteModalData.propertyName}</strong> telah berhasil dibuat. Silakan kirim tautan di bawah ini ke WhatsApp <strong>{inviteModalData.coordinatorName}</strong> agar mereka dapat melengkapi akunnya.
+              </p>
+
+              {/* Readonly Link Box */}
+              <div className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl p-3 text-left">
+                <p className="text-[10px] font-bold text-gray-placeholder uppercase mb-1">Tautan Registrasi</p>
+                <p className="text-xs text-gray-heading-main font-mono truncate select-all">{inviteModalData.inviteLink}</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="w-full flex gap-3 mt-4">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(inviteModalData.inviteLink);
+                    toast.success("Tautan pendaftaran berhasil disalin!");
+                  }}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-border hover:bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text cursor-pointer transition-colors"
+                >
+                  Salin Tautan
+                </button>
+                <a
+                  href={formatWhatsAppLink(
+                    inviteModalData.phone,
+                    `Halo ${inviteModalData.coordinatorName}, saya telah mendaftarkan Anda sebagai koordinator properti sewa ${inviteModalData.propertyName} di aplikasi Wargaku. Silakan lengkapi data diri dan kata sandi akun Anda melalui tautan pendaftaran berikut:\n\n${inviteModalData.inviteLink}`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Kirim WhatsApp</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}
