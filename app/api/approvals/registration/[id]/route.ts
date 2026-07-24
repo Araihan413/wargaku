@@ -5,6 +5,8 @@ import { hasPermission } from "@/lib/rbac";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { sendEmail } from "@/lib/mail";
+import { getWargaApprovalEmail, getCoordActivationEmail, getRegistrationRejectionEmail } from "@/lib/emails/templates";
 
 export async function PATCH(
   request: Request,
@@ -107,47 +109,63 @@ export async function PATCH(
       });
 
       if (user.roleId === 5) {
-        console.log(`
-=======================================================
-[SIMULASI KIRIM EMAIL AKTIVASI KOORDINATOR KOST]
-=======================================================
-Kepada: ${user.email} (${user.name})
-Subjek: Akun Koordinator Kost Anda Telah Aktif
-Isi Pesan:
-Halo ${user.name},
+        const origin = request.headers.get("origin") || process.env.BETTER_AUTH_URL || "http://localhost:3000";
+        const activationLink = `${origin}/auth/reset-password?token=activation-${id}`;
 
-Penunjukan Anda sebagai Koordinator Kost telah disetujui oleh pengurus RT.
-Silakan klik tautan berikut untuk membuat password akun Anda:
-http://localhost:3000/auth/reset-password?token=activation-${id}
-=======================================================
-        `);
+        try {
+          await sendEmail({
+            to: { email: user.email, name: user.name },
+            subject: "Akun Koordinator Kost Anda Telah Aktif",
+            htmlContent: getCoordActivationEmail(user.name, activationLink),
+          });
+        } catch (mailErr) {
+          console.error("Gagal mengirim email aktivasi ke koordinator:", mailErr);
+        }
+      } else if (user.roleId === 6) {
+        const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000";
+        const loginLink = `${origin}/login`;
+
+        try {
+          await sendEmail({
+            to: { email: user.email, name: user.name },
+            subject: "Akun Wargaku Anda Telah Aktif",
+            htmlContent: getWargaApprovalEmail(user.name, loginLink),
+          });
+        } catch (mailErr) {
+          console.error("Gagal mengirim email aktivasi ke warga:", mailErr);
+        }
       }
 
       return NextResponse.json({ success: true, message: "Pendaftaran berhasil disetujui" });
     } else {
       // action === "reject"
-      // 1. Log simulasi email berisi catatan penolakan ke console server
-      console.log(`
-=======================================================
-[SIMULASI KIRIM EMAIL PENOLAKAN REGISTRASI]
-=======================================================
-Kepada: ${user.email} (${user.name})
-Subjek: Pendaftaran Akun Wargaku Ditolak
-Isi Pesan:
-Halo ${user.name},
+      try {
+        await sendEmail({
+          to: { email: user.email, name: user.name },
+          subject: "Pendaftaran Akun Wargaku Ditolak",
+          htmlContent: getRegistrationRejectionEmail(user.name, rejectReason || ""),
+        });
+      } catch (mailErr) {
+        console.error("Gagal mengirim email penolakan registrasi ke warga:", mailErr);
+      }
 
-Pendaftaran akun mandiri Anda di Wargaku telah ditolak oleh pengurus RT.
-Alasan Penolakan:
-"${rejectReason || "Data pendaftaran tidak sesuai / tidak valid."}"
+      // 2. Hapus data referensi terlebih dahulu untuk menghindari Foreign Key constraint violation, lalu hapus data user utama
+      await db.transaction(async (tx) => {
+        // Set coordinatorUserId ke null pada properti sewa yang menunjuk user ini
+        await tx
+          .update(schema.rentalProperties)
+          .set({ coordinatorUserId: null })
+          .where(eq(schema.rentalProperties.coordinatorUserId, id));
 
-Silakan lakukan registrasi ulang dengan data yang benar di aplikasi.
-=======================================================
-      `);
+        // Hapus akun & sesi terkait better-auth
+        await tx.delete(schema.accounts).where(eq(schema.accounts.userId, id));
+        await tx.delete(schema.sessions).where(eq(schema.sessions.userId, id));
 
-      // 2. Hapus data user pending tersebut agar NIK dan Email-nya terbebas untuk didaftarkan ulang
-      await db.delete(schema.users).where(eq(schema.users.id, id));
+        // Hapus user utama
+        await tx.delete(schema.users).where(eq(schema.users.id, id));
+      });
 
-      return NextResponse.json({ success: true, message: "Pendaftaran warga berhasil ditolak & email simulasi terkirim" });
+      return NextResponse.json({ success: true, message: "Pendaftaran warga berhasil ditolak & email penolakan terkirim" });
     }
   } catch (error: any) {
     console.error("Error in PATCH /api/approvals/registration/[id]:", error);

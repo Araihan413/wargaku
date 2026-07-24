@@ -4,7 +4,7 @@ import {
   ChevronRight,
   Eye,
   Pencil,
-  Trash2,
+  Ban,
   CheckCircle,
   AlertCircle,
   XCircle,
@@ -83,11 +83,11 @@ export const KKTable: React.FC<KKTableProps> = ({
                       {f.headName}
                     </td>
                     <td className="py-4 px-5 text-gray-secondary-text">
-                      <div>
+                      <div >
                         <span className="text-gray-heading-main font-medium">{addressStr}</span>
                         {f.unitNumber && (
-                          <span className="ml-1.5 text-xs bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-gray-secondary-text">
-                            Unit {f.unitNumber}
+                          <span className="ml-1.5 text-[10px] bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-gray-secondary-text">
+                            {f.unitNumber}
                           </span>
                         )}
                       </div>
@@ -155,7 +155,7 @@ export const KKTable: React.FC<KKTableProps> = ({
                             title="Nonaktifkan Kartu Keluarga"
                             className="p-1.5 text-gray-secondary-text hover:text-error hover:bg-error/10 rounded-lg cursor-pointer transition-colors"
                           >
-                            <Trash2 className="h-4.5 w-4.5" />
+                            <Ban className="h-4.5 w-4.5" />
                           </button>
                         )}
 

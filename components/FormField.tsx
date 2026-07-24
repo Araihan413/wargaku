@@ -38,9 +38,9 @@ export const FormField: React.FC<FormFieldProps> = ({
     <div>
       <label
         htmlFor={id}
-        className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2"
+        className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5"
       >
-        {label}
+        {label} {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -59,9 +59,9 @@ export const FormField: React.FC<FormFieldProps> = ({
               : readOnly
               ? "border-gray-border bg-gray-sidebar-hover/20 text-gray-secondary-text cursor-not-allowed"
               : "border-gray-border bg-gray-card focus:border-primary focus:ring-2 focus:ring-primary/20"
-          } py-3 pl-10 ${
-            isPassword ? "pr-10" : "pr-3"
-          } text-gray-heading-main placeholder-gray-placeholder sm:text-sm outline-none transition-all`}
+          } py-2.5 pl-10 ${
+            isPassword ? "pr-10" : "pr-3.5"
+          } text-gray-heading-main placeholder-gray-placeholder text-sm outline-none transition-all`}
           placeholder={placeholder}
         />
         {isPassword && setShowPassword && (

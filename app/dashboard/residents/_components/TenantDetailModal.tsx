@@ -1,6 +1,7 @@
 import React from "react";
-import { X, User, Phone, MapPin, Calendar, Briefcase, FileText, AlertTriangle, GraduationCap } from "lucide-react";
+import { X, User, Phone, MapPin, Calendar, Briefcase, FileText, AlertTriangle, GraduationCap, Download, Eye } from "lucide-react";
 import { RentalResidentItem } from "./RentalTable";
+import Image from "next/image";
 
 interface TenantDetailModalProps {
   isOpen: boolean;
@@ -13,6 +14,23 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
   onClose,
   resident,
 }) => {
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
+
   if (!isOpen || !resident) return null;
 
   const formatDate = (dateString: string) => {
@@ -207,22 +225,50 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
           </div>
 
           {/* KTP Document Link */}
-          {resident.ktpFile && (
-            <div className="space-y-2">
-              <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">File Scan KTP</span>
-              <div className="flex items-center justify-between p-3 bg-gray-sidebar-hover/20 rounded-xl border border-gray-border text-xs">
-                <span className="font-mono text-gray-secondary-text">{resident.ktpFile}</span>
-                <a
-                  href={resident.ktpFile}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-bold text-primary hover:underline"
-                >
-                  Buka Gambar
-                </a>
+          <div className="space-y-2.5">
+            <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Berkas Scan KTP</span>
+            {resident.ktpFile ? (
+              <div className="border border-gray-border rounded-2xl overflow-hidden bg-gray-card/50 p-4 space-y-3 shadow-sm">
+                <div className="relative aspect-video max-h-56 w-full rounded-xl border border-gray-border bg-gray-950/5 overflow-hidden flex items-center justify-center">
+                  <Image
+                    src={resident.ktpFile}
+                    alt={`KTP ${resident.name}`}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <div className="flex gap-2.5">
+                  <a
+                    href={resident.ktpFile}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-bold text-gray-heading-main transition-all cursor-pointer shadow-sm"
+                  >
+                    <Eye className="h-4 w-4 text-gray-secondary-text" />
+                    Buka Layar Penuh
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => downloadFile(resident.ktpFile!, `KTP_${resident.name.replace(/\s+/g, "_")}.jpg`)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                  >
+                    <Download className="h-4 w-4" />
+                    Unduh KTP
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 text-xs font-semibold leading-relaxed shadow-sm">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
+                <div>
+                  <span className="block font-bold">Berkas KTP Belum Diunggah</span>
+                  <span className="block font-normal text-[10px] text-amber-600/90 mt-0.5">
+                    Penyewa ini belum memiliki berkas scan KTP terunggah di dalam sistem.
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Footer */}

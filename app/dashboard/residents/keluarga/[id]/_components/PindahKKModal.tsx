@@ -223,9 +223,6 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
               <>
                 {/* Search Target Family */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-                    Pilih Kartu Keluarga Tujuan
-                  </label>
                   <div className="relative mb-2">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-placeholder" />
                     <input
@@ -233,7 +230,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                       placeholder="Cari nomor KK atau nama kepala keluarga..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-transparent pl-9 pr-4 py-2 border border-gray-border rounded-xl text-sm placeholder-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      className="w-full bg-gray-card pl-9 pr-4 py-2.5 border border-gray-border rounded-xl text-sm placeholder-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                     />
                   </div>
                   {isLoadingOptions ? (
@@ -247,13 +244,15 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                       render={({ field }) => (
                         <div>
                           <CustomSelect
+                            label="Pilih Kartu Keluarga Tujuan"
+                            required={true}
                             value={field.value ? field.value.toString() : ""}
                             onChange={(val) => field.onChange(val ? Number(val) : null)}
                             options={familySelectOptions}
                             placeholder="-- Pilih Kartu Keluarga --"
                           />
                           {errors.targetFamilyId && (
-                            <p className="text-xs text-error font-medium mt-1">
+                            <p className="text-xs text-error font-semibold mt-1">
                               {errors.targetFamilyId.message}
                             </p>
                           )}
@@ -265,22 +264,21 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
 
                 {/* Relationship Option */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-gray-heading-main">
-                    Hubungan Keluarga Baru di KK Tujuan
-                  </label>
                   <Controller
                     name="relationship"
                     control={control}
                     render={({ field }) => (
                       <div>
                         <CustomSelect
+                          label="Hubungan Keluarga Baru di KK Tujuan"
+                          required={true}
                           value={field.value}
                           onChange={field.onChange}
                           options={relationshipOptions}
                           placeholder="-- Pilih Hubungan --"
                         />
                         {errors.relationship && (
-                          <p className="text-xs text-error font-medium mt-1">
+                          <p className="text-xs text-error font-semibold mt-1">
                             {errors.relationship.message}
                           </p>
                         )}
@@ -304,6 +302,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                   id="familyNumber"
                   label="Nomor Kartu Keluarga (KK) Baru"
                   type="text"
+                  required={true}
                   placeholder="16 digit nomor KK baru"
                   registerProps={register("familyNumber")}
                   icon={CreditCard}
@@ -311,22 +310,21 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                 />
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-gray-heading-main">
-                    Alamat Hunian Baru
-                  </label>
                   <Controller
                     name="dwellingId"
                     control={control}
                     render={({ field }) => (
                       <div>
                         <CustomSelect
+                          label="Alamat Hunian Baru"
+                          required={true}
                           value={field.value ? field.value.toString() : ""}
                           onChange={(val) => field.onChange(val ? Number(val) : null)}
                           options={dwellingSelectOptions}
                           placeholder="-- Pilih Alamat Hunian --"
                         />
                         {errors.dwellingId && (
-                          <p className="text-xs text-error font-medium mt-1">
+                          <p className="text-xs text-error font-semibold mt-1">
                             {errors.dwellingId.message}
                           </p>
                         )}
@@ -337,7 +335,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
 
                 <FormField
                   id="unitNumber"
-                  label="Nomor Pintu/Unit (Opsional jika kos/kontrakan berderet)"
+                  label="Nomor Pintu / Unit"
                   type="text"
                   placeholder="Contoh: Kamar A-1, Pintu 3"
                   registerProps={register("unitNumber")}
@@ -349,6 +347,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                   id="checkInDate"
                   label="Tanggal Mulai Tinggal di Hunian Baru"
                   type="date"
+                  required={true}
                   placeholder="Pilih tanggal"
                   registerProps={register("checkInDate")}
                   icon={Calendar}

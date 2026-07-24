@@ -26,7 +26,10 @@ export const registerSchema = z.object({
     .min(1, "Nomor Kartu Keluarga wajib diisi")
     .regex(/^\d{16}$/, "Nomor Kartu Keluarga (KK) harus terdiri dari 16 digit angka"),
   dwellingId: z.string().min(1, "Alamat rumah wajib dipilih"),
-  unitNumber: z.string().optional(),
+  unitNumber: z
+    .string()
+    .max(10, "Nomor unit/blok tambahan maksimal 10 karakter")
+    .optional(),
 }).superRefine((data, ctx) => {
   // Pengecekan kecocokan password
   if (data.password !== data.confirmPassword) {

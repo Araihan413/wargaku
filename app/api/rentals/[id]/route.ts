@@ -5,6 +5,9 @@ import { hasPermission } from '@/lib/rbac';
 import { getRentalPropertyById, updateRentalProperty, deleteRentalProperty } from '@/db/queries/rental';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+import { db } from '@/db';
+import * as schema from '@/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
 
 /**
  * @openapi
@@ -185,6 +188,7 @@ export async function PUT(
     }
 
     const body = await request.json();
+    const oldCoordinatorId = property.coordinatorUserId;
 
     // Koordinator Kost tidak boleh mengganti koordinator ke orang lain
     if (isKoordinatorKost) {
@@ -193,6 +197,56 @@ export async function PUT(
 
     const validatedData = updateRentalPropertySchema.parse(body);
     await updateRentalProperty(propertyId, validatedData);
+
+    // Jika coordinatorUserId berubah, lakukan pembersihan status koordinator lama
+    if (oldCoordinatorId && validatedData.coordinatorUserId !== oldCoordinatorId) {
+      // Hitung apakah koordinator lama masih memegang properti sewa aktif lainnya
+      const activePropertiesCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.rentalProperties)
+        .where(and(
+          eq(schema.rentalProperties.coordinatorUserId, oldCoordinatorId),
+          eq(schema.rentalProperties.isActive, true)
+        ))
+        .then(res => Number(res[0]?.count || 0));
+
+      if (activePropertiesCount === 0) {
+        // Cek apakah user koordinator lama terdaftar sebagai warga tetap (mempunyai NIK di family_members)
+        const [oldCoordinatorUser] = await db
+          .select()
+          .from(schema.users)
+          .where(eq(schema.users.id, oldCoordinatorId))
+          .limit(1);
+
+        if (oldCoordinatorUser) {
+          let isResident = false;
+          if (oldCoordinatorUser.nik) {
+            const [residentCheck] = await db
+              .select()
+              .from(schema.familyMembers)
+              .where(eq(schema.familyMembers.nik, oldCoordinatorUser.nik))
+              .limit(1);
+            if (residentCheck) {
+              isResident = true;
+            }
+          }
+
+          if (isResident) {
+            // Jika warga setempat -> Turunkan role menjadi Warga biasa (4)
+            await db
+              .update(schema.users)
+              .set({ roleId: 4 })
+              .where(eq(schema.users.id, oldCoordinatorId));
+          } else {
+            // Jika orang luar -> Suspend akun login-nya
+            await db
+              .update(schema.users)
+              .set({ status: 'suspended' })
+              .where(eq(schema.users.id, oldCoordinatorId));
+          }
+        }
+      }
+    }
 
     return NextResponse.json({ message: 'Informasi properti sewa berhasil diperbarui' });
   } catch (error: any) {

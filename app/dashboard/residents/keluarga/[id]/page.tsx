@@ -11,6 +11,7 @@ import { EditAnggotaModal } from "./_components/EditAnggotaModal";
 import { NonaktifkanAnggotaModal } from "./_components/NonaktifkanAnggotaModal";
 import { PindahKKModal } from "./_components/PindahKKModal";
 import { GantiKepalaKeluargaModal } from "./_components/GantiKepalaKeluargaModal";
+import { FamilyDocumentsCard } from "./_components/FamilyDocumentsCard";
 import { FamilyDetail, FamilyMemberItem } from "../../types";
 
 interface PageProps {
@@ -147,6 +148,9 @@ export default function FamilyDetailPage({ params }: PageProps) {
         familyDetail={familyDetail}
         onChangeHead={() => setIsGantiKepalaModalOpen(true)}
       />
+
+      {/* Family Documents Download & View Section */}
+      <FamilyDocumentsCard familyDetail={familyDetail} />
 
       {/* Family Members Table */}
       <AnggotaTable

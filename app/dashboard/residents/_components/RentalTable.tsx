@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, ChevronLeft, ChevronRight, Eye, CheckCircle, LogOut } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Eye, CheckCircle, LogOut, Pencil } from "lucide-react";
 
 export interface RentalResidentItem {
   id: number;
@@ -34,6 +34,7 @@ interface RentalTableProps {
   onDetail: (resident: RentalResidentItem) => void;
   onVerify: (resident: RentalResidentItem) => void;
   onCheckOut: (resident: RentalResidentItem) => void;
+  onEdit: (resident: RentalResidentItem) => void;
 }
 
 export const RentalTable: React.FC<RentalTableProps> = ({
@@ -46,6 +47,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   onDetail,
   onVerify,
   onCheckOut,
+  onEdit,
 }) => {
   const formatDate = (dateString: string) => {
     try {
@@ -156,6 +158,13 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                           title="Detail Penyewa"
                         >
                           <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onEdit(r)}
+                          className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-primary transition-colors cursor-pointer"
+                          title="Edit Data Penyewa"
+                        >
+                          <Pencil className="h-4 w-4" />
                         </button>
                         {r.verificationStatus === 'pending' && (
                           <button

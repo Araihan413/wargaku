@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Plus, AlertTriangle, Loader2, Home } from "lucide-react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Plus, AlertTriangle, Loader2, Home, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ResidentsTabNav } from "./_components/ResidentsTabNav";
 import { KKSearchFilter } from "./_components/KKSearchFilter";
@@ -12,16 +12,22 @@ import { CustomSelect } from "@/components/CustomSelect";
 import { DwellingTable, DwellingItem } from "./_components/DwellingTable";
 import { AddDwellingModal } from "./_components/AddDwellingModal";
 import { EditDwellingModal } from "./_components/EditDwellingModal";
+import { DwellingDetailModal } from "./_components/DwellingDetailModal";
 import { RentalTable, RentalResidentItem } from "./_components/RentalTable";
+import { EditTenantModal } from "./_components/EditTenantModal";
 import { CheckInTenantModal } from "./_components/CheckInTenantModal";
 import { VerifyTenantModal } from "./_components/VerifyTenantModal";
 import { CheckOutTenantModal } from "./_components/CheckOutTenantModal";
 import { TenantDetailModal } from "./_components/TenantDetailModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { CoordinatorTable, CoordinatorItem } from "./_components/CoordinatorTable";
+import { AddCoordinatorModal } from "./_components/AddCoordinatorModal";
+import { EditCoordinatorModal } from "./_components/EditCoordinatorModal";
+import { CoordinatorDetailModal } from "./_components/CoordinatorDetailModal";
 
 export default function ResidentsPage() {
-  const [activeTab, setActiveTab] = useState<"kk" | "penyewa" | "hunian">("kk");
+  const [activeTab, setActiveTab] = useState<"kk" | "penyewa" | "hunian" | "koordinator">("kk");
 
   // Kartu Keluarga List states
   const [families, setFamilies] = useState<FamilyItem[]>([]);
@@ -48,6 +54,9 @@ export default function ResidentsPage() {
   const [isAddDwellingOpen, setIsAddDwellingOpen] = useState(false);
   const [isEditDwellingOpen, setIsEditDwellingOpen] = useState(false);
   const [selectedDwellingForEdit, setSelectedDwellingForEdit] = useState<DwellingItem | null>(null);
+  const [selectedDwellingType, setSelectedDwellingType] = useState("");
+  const [selectedDwellingForDetail, setSelectedDwellingForDetail] = useState<number | null>(null);
+  const [isDetailDwellingOpen, setIsDetailDwellingOpen] = useState(false);
 
   // Renters states
   const [rentersList, setRentersList] = useState<RentalResidentItem[]>([]);
@@ -60,7 +69,22 @@ export default function ResidentsPage() {
   const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isEditRenterOpen, setIsEditRenterOpen] = useState(false);
   const [selectedRenter, setSelectedRenter] = useState<RentalResidentItem | null>(null);
+
+  // Coordinator states
+  const [coordinatorsList, setCoordinatorsList] = useState<CoordinatorItem[]>([]);
+  const [isCoordinatorsLoading, setIsCoordinatorsLoading] = useState(false);
+  const [isAddCoordinatorOpen, setIsAddCoordinatorOpen] = useState(false);
+  const [isDeactivateCoordOpen, setIsDeactivateCoordOpen] = useState(false);
+  const [selectedCoordForDeactivate, setSelectedCoordForDeactivate] = useState<CoordinatorItem | null>(null);
+  const [isDeactivatingCoord, setIsDeactivatingCoord] = useState(false);
+  const [selectedCoordinatorStatus, setSelectedCoordinatorStatus] = useState("");
+  const [coordinatorsCurrentPage, setCoordinatorsCurrentPage] = useState(1);
+  const [selectedCoordinatorForEdit, setSelectedCoordinatorForEdit] = useState<CoordinatorItem | null>(null);
+  const [isEditCoordinatorOpen, setIsEditCoordinatorOpen] = useState(false);
+  const [selectedCoordinatorForDetail, setSelectedCoordinatorForDetail] = useState<CoordinatorItem | null>(null);
+  const [isDetailCoordinatorOpen, setIsDetailCoordinatorOpen] = useState(false);
 
   // Disable KK Confirmation states
   const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
@@ -123,6 +147,9 @@ export default function ResidentsPage() {
       if (debouncedSearchQuery) {
         url += `&query=${encodeURIComponent(debouncedSearchQuery)}`;
       }
+      if (selectedDwellingType) {
+        url += `&type=${selectedDwellingType}`;
+      }
 
       const res = await fetch(url);
       if (res.ok) {
@@ -138,7 +165,7 @@ export default function ResidentsPage() {
     } finally {
       setIsDwellingsLoading(false);
     }
-  }, [dwellingsCurrentPage, debouncedSearchQuery]);
+  }, [dwellingsCurrentPage, debouncedSearchQuery, selectedDwellingType]);
 
   useEffect(() => {
     if (activeTab === "hunian") {
@@ -219,6 +246,59 @@ export default function ResidentsPage() {
     }
   }, [activeTab, fetchRenters]);
 
+  // Fetch Coordinators
+  const fetchCoordinators = useCallback(async () => {
+    setIsCoordinatorsLoading(true);
+    try {
+      const res = await fetch("/api/coordinators");
+      if (res.ok) {
+        const data = await res.json();
+        setCoordinatorsList(data);
+      } else {
+        toast.error("Gagal mengambil data koordinator");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Terjadi kesalahan koneksi saat memuat data koordinator");
+    } finally {
+      setIsCoordinatorsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "koordinator") {
+      Promise.resolve().then(() => {
+        fetchCoordinators();
+      });
+    }
+  }, [activeTab, fetchCoordinators]);
+
+  const handleDeactivateCoordinator = async () => {
+    if (!selectedCoordForDeactivate) return;
+    setIsDeactivatingCoord(true);
+    try {
+      const res = await fetch(`/api/coordinators/${selectedCoordForDeactivate.id}`, {
+        method: "PUT",
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        toast.success(result.message || "Akun koordinator berhasil dinonaktifkan");
+        setIsDeactivateCoordOpen(false);
+        setSelectedCoordForDeactivate(null);
+        fetchCoordinators();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal menonaktifkan koordinator");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsDeactivatingCoord(false);
+    }
+  };
+
   const handleDisableKK = async () => {
     if (!selectedFamilyForDisable) return;
     setIsDisabling(true);
@@ -265,6 +345,28 @@ export default function ResidentsPage() {
     }
   };
 
+  const filteredCoordinators = useMemo(() => {
+    return coordinatorsList.filter((c) => {
+      const matchesSearch =
+        !searchQuery.trim() ||
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.nik && c.nik.includes(searchQuery)) ||
+        (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesStatus =
+        !selectedCoordinatorStatus || c.status === selectedCoordinatorStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [coordinatorsList, searchQuery, selectedCoordinatorStatus]);
+
+  const coordinatorsTotalPages = Math.ceil(filteredCoordinators.length / itemsPerPage) || 1;
+
+  const paginatedCoordinators = useMemo(() => {
+    const startIndex = (coordinatorsCurrentPage - 1) * itemsPerPage;
+    return filteredCoordinators.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredCoordinators, coordinatorsCurrentPage, itemsPerPage]);
+
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
 
   return (
@@ -297,6 +399,16 @@ export default function ResidentsPage() {
           >
             <Plus className="h-4.5 w-4.5" />
             Check-In Penyewa
+          </button>
+        )}
+
+        {activeTab === "koordinator" && (
+          <button
+            onClick={() => setIsAddCoordinatorOpen(true)}
+            className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
+          >
+            <Plus className="h-4.5 w-4.5" />
+            Tambah Koordinator
           </button>
         )}
       </div>
@@ -412,6 +524,10 @@ export default function ResidentsPage() {
               setSelectedRenter(renter);
               setIsCheckOutOpen(true);
             }}
+            onEdit={(renter) => {
+              setSelectedRenter(renter);
+              setIsEditRenterOpen(true);
+            }}
           />
         </div>
       )}
@@ -428,9 +544,26 @@ export default function ResidentsPage() {
                   setSearchQuery(e.target.value);
                   setDwellingsCurrentPage(1);
                 }}
-                className="w-full text-xs bg-gray-sidebar-hover/30 border border-gray-border rounded-xl pl-10 pr-4 py-3 placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+                className="w-full text-xs bg-gray-sidebar-hover/30 border border-gray-border rounded-xl pl-10 pr-4 py-2.5 placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary transition-all"
               />
-              <Home className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-placeholder" />
+              <Home className="absolute left-3.5 top-3 h-4 w-4 text-gray-placeholder" />
+            </div>
+
+            <div className="w-full sm:w-48 shrink-0">
+              <CustomSelect
+                value={selectedDwellingType}
+                onChange={(val) => {
+                  setSelectedDwellingType(val);
+                  setDwellingsCurrentPage(1);
+                }}
+                options={[
+                  { value: "", label: "Semua Tipe Hunian" },
+                  { value: "permanen", label: "Permanen" },
+                  { value: "kos", label: "Kos" },
+                  { value: "homestay", label: "Homestay" },
+                ]}
+                placeholder="Tipe Hunian"
+              />
             </div>
           </div>
 
@@ -441,11 +574,74 @@ export default function ResidentsPage() {
             setCurrentPage={setDwellingsCurrentPage}
             totalPages={Math.ceil(dwellingsTotalItems / itemsPerPage) || 1}
             totalItems={dwellingsTotalItems}
+            onDetail={(dwelling) => {
+              setSelectedDwellingForDetail(dwelling.id);
+              setIsDetailDwellingOpen(true);
+            }}
             onEdit={(dwelling) => {
               setSelectedDwellingForEdit(dwelling);
               setIsEditDwellingOpen(true);
             }}
             onDisable={handleDisableDwelling}
+          />
+        </div>
+      )}
+
+      {activeTab === "koordinator" && (
+        <div className="space-y-4">
+          {/* Coordinators Search & Filters */}
+          <div className="flex flex-col md:flex-row items-center gap-4 bg-gray-card border border-gray-border p-4 rounded-2xl shadow-sm">
+            <div className="relative flex-1 w-full">
+              <input
+                type="text"
+                placeholder="Cari nama koordinator atau NIK..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCoordinatorsCurrentPage(1);
+                }}
+                className="w-full text-xs bg-gray-sidebar-hover/30 border border-gray-border rounded-xl pl-10 pr-4 py-2.5 placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+              />
+              <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-placeholder" />
+            </div>
+
+            <div className="w-full sm:w-48 shrink-0">
+              <CustomSelect
+                value={selectedCoordinatorStatus}
+                onChange={(val) => {
+                  setSelectedCoordinatorStatus(val);
+                  setCoordinatorsCurrentPage(1);
+                }}
+                options={[
+                  { value: "", label: "Semua Status" },
+                  { value: "active", label: "Aktif" },
+                  { value: "pending", label: "Pending" },
+                  { value: "suspended", label: "Nonaktif" },
+                ]}
+                placeholder="Status Akun"
+              />
+            </div>
+          </div>
+
+          <CoordinatorTable
+            coordinators={paginatedCoordinators}
+            isLoading={isCoordinatorsLoading}
+            currentPage={coordinatorsCurrentPage}
+            setCurrentPage={setCoordinatorsCurrentPage}
+            totalPages={coordinatorsTotalPages}
+            totalItems={filteredCoordinators.length}
+            onDetail={(coord) => {
+              setSelectedCoordinatorForDetail(coord);
+              setIsDetailCoordinatorOpen(true);
+            }}
+            onEdit={(coord) => {
+              setSelectedCoordinatorForEdit(coord);
+              setIsEditCoordinatorOpen(true);
+            }}
+            onDeactivate={(coord) => {
+              setSelectedCoordForDeactivate(coord);
+              setIsDeactivateCoordOpen(true);
+            }}
           />
         </div>
       )}
@@ -592,6 +788,29 @@ export default function ResidentsPage() {
         resident={selectedRenter}
       />
 
+      <EditTenantModal
+        isOpen={isEditRenterOpen}
+        onClose={() => {
+          setIsEditRenterOpen(false);
+          setSelectedRenter(null);
+        }}
+        onSuccess={() => {
+          setIsEditRenterOpen(false);
+          setSelectedRenter(null);
+          fetchRenters();
+        }}
+        resident={selectedRenter}
+      />
+
+      <DwellingDetailModal
+        isOpen={isDetailDwellingOpen}
+        onClose={() => {
+          setIsDetailDwellingOpen(false);
+          setSelectedDwellingForDetail(null);
+        }}
+        dwellingId={selectedDwellingForDetail}
+      />
+
       {/* Modal Dialog: Konfirmasi Nonaktifkan Hunian */}
       <ConfirmModal
         isOpen={isDisableDwellingConfirmOpen}
@@ -611,6 +830,63 @@ export default function ResidentsPage() {
         cancelText="Batal"
         variant="danger"
         isLoading={isDisablingDwelling}
+      />
+
+      {/* Modal Dialog: Konfirmasi Copot Jabatan Koordinator */}
+      <ConfirmModal
+        isOpen={isDeactivateCoordOpen}
+        onClose={() => {
+          setIsDeactivateCoordOpen(false);
+          setSelectedCoordForDeactivate(null);
+        }}
+        onConfirm={handleDeactivateCoordinator}
+        title="Copot Jabatan Koordinator?"
+        description={
+          <div className="space-y-2 text-xs leading-relaxed text-gray-secondary-text">
+            <p>
+              Apakah Anda yakin ingin mencopot jabatan dan menonaktifkan akun koordinator untuk <strong>{selectedCoordForDeactivate?.name}</strong>?
+            </p>
+            <p className="font-semibold text-amber-600">
+              ! PENTING: Tindakan ini otomatis mengalihkan seluruh properti sewa yang dikelolanya kembali ke Pemilik Properti masing-masing.
+            </p>
+          </div>
+        }
+        confirmText="Ya, Copot Jabatan"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={isDeactivatingCoord}
+      />
+
+      <AddCoordinatorModal
+        isOpen={isAddCoordinatorOpen}
+        onClose={() => setIsAddCoordinatorOpen(false)}
+        onSuccess={() => {
+          setIsAddCoordinatorOpen(false);
+          fetchCoordinators();
+        }}
+      />
+
+      <EditCoordinatorModal
+        isOpen={isEditCoordinatorOpen}
+        onClose={() => {
+          setIsEditCoordinatorOpen(false);
+          setSelectedCoordinatorForEdit(null);
+        }}
+        onSuccess={() => {
+          setIsEditCoordinatorOpen(false);
+          setSelectedCoordinatorForEdit(null);
+          fetchCoordinators();
+        }}
+        coordinator={selectedCoordinatorForEdit}
+      />
+
+      <CoordinatorDetailModal
+        isOpen={isDetailCoordinatorOpen}
+        onClose={() => {
+          setIsDetailCoordinatorOpen(false);
+          setSelectedCoordinatorForDetail(null);
+        }}
+        coordinator={selectedCoordinatorForDetail}
       />
     </div>
   );

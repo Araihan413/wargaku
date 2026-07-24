@@ -149,6 +149,7 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
               id="familyNumber"
               label="Nomor Kartu Keluarga (KK)"
               type="text"
+              required={true}
               placeholder="16 digit nomor KK"
               registerProps={register("familyNumber")}
               icon={CreditCard}
@@ -157,9 +158,6 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
 
             {/* Dwelling Allocation */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
-                Alamat Rumah / Hunian
-              </label>
               {isLoadingOptions ? (
                 <div className="flex items-center gap-2 py-2 px-3 border border-gray-border rounded-xl bg-gray-sidebar-hover text-gray-placeholder text-sm">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -171,6 +169,8 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
                   control={control}
                   render={({ field }) => (
                     <CustomSelect
+                      label="Alamat Rumah / Hunian"
+                      required={true}
                       value={field.value ? field.value.toString() : ""}
                       onChange={(val) => field.onChange(val ? Number(val) : undefined)}
                       options={dwellingSelectOptions}
@@ -189,7 +189,7 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
             {/* Unit Number */}
             <FormField
               id="unitNumber"
-              label="Nomor Unit (Opsional)"
+              label="Nomor Unit"
               type="text"
               placeholder="Contoh: A-10, Lt. 2 (Jika apartemen/kos/kontrakan)"
               registerProps={register("unitNumber")}
@@ -202,6 +202,7 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
               id="checkInDate"
               label="Tanggal Masuk Hunian"
               type="date"
+              required={true}
               placeholder=""
               registerProps={register("checkInDate")}
               icon={Calendar}
@@ -215,14 +216,13 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
 
               {/* Status Verifikasi */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
-                  Status Verifikasi
-                </label>
                 <Controller
                   name="verificationStatus"
                   control={control}
                   render={({ field }) => (
                     <CustomSelect
+                      label="Status Verifikasi"
+                      required={true}
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val)}
                       options={verificationOptions}
@@ -239,15 +239,15 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
 
               {/* Catatan Verifikasi */}
               <div className="space-y-1">
-                <label htmlFor="verificationNote" className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
-                  Catatan Verifikasi (Opsional)
+                <label htmlFor="verificationNote" className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                  Catatan Verifikasi
                 </label>
                 <textarea
                   id="verificationNote"
                   rows={2}
                   placeholder="Beri alasan jika berkas KK ditolak atau catatan tambahan..."
                   {...register("verificationNote")}
-                  className="block w-full rounded-xl border border-gray-border bg-gray-card p-3 text-gray-heading-main placeholder-gray-placeholder text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+                  className="block w-full rounded-xl border border-gray-border bg-gray-card py-2.5 px-3.5 text-gray-heading-main placeholder-gray-placeholder text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
                 />
                 {errors.verificationNote && (
                   <p className="text-xs font-semibold text-error mt-0.5">

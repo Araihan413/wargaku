@@ -320,10 +320,10 @@ export default function RegisterPage() {
               error={errors.dwellingId?.message}
             />
 
-            {/* Nomor Pintu/Unit (Kontrakan - Opsional) */}
+            {/* Nomor Pintu/Unit (Kontrakan) */}
             <FormField
               id="unitNumber"
-              label="Nomor Pintu / Unit (Opsional)"
+              label="Nomor Pintu / Unit"
               type="text"
               placeholder="Contoh: Kamar 03 (Diisi jika menyewa/sekat)"
               icon={Home}

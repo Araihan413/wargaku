@@ -125,9 +125,6 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
           <div className="flex-1 overflow-y-auto pr-1.5 pb-2 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
             {/* New Head Selection */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-heading-main">
-                Pilih Kepala Keluarga Baru
-              </label>
               {memberOptions.length === 0 ? (
                 <div className="p-3 bg-gray-sidebar-hover border border-gray-border rounded-xl text-xs text-gray-secondary-text text-center">
                   Tidak ada anggota keluarga lain yang aktif untuk dijadikan Kepala Keluarga.
@@ -139,13 +136,15 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
                   render={({ field }) => (
                     <div>
                       <CustomSelect
+                        label="Pilih Kepala Keluarga Baru"
+                        required={true}
                         value={field.value ? field.value.toString() : ""}
                         onChange={(val) => field.onChange(val ? Number(val) : null)}
                         options={memberOptions}
                         placeholder="-- Pilih Anggota Keluarga --"
                       />
                       {errors.newHeadMemberId && (
-                        <p className="text-xs text-error font-medium mt-1">
+                        <p className="text-xs text-error font-semibold mt-1">
                           {errors.newHeadMemberId.message}
                         </p>
                       )}
@@ -157,22 +156,21 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
 
             {/* Old Head Action Selection */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-heading-main">
-                Tindakan Terhadap Kepala Keluarga Lama ({currentHeadName})
-              </label>
               <Controller
                 name="oldHeadAction"
                 control={control}
                 render={({ field }) => (
                   <div>
                     <CustomSelect
+                      label={`Tindakan Terhadap Kepala Keluarga Lama (${currentHeadName})`}
+                      required={true}
                       value={field.value}
                       onChange={field.onChange}
                       options={actionOptions}
                       placeholder="-- Pilih Tindakan --"
                     />
                     {errors.oldHeadAction && (
-                      <p className="text-xs text-error font-medium mt-1">
+                      <p className="text-xs text-error font-semibold mt-1">
                         {errors.oldHeadAction.message}
                       </p>
                     )}

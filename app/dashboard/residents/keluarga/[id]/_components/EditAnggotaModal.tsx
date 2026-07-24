@@ -151,6 +151,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               id="name"
               label="Nama Lengkap"
               type="text"
+              required={true}
               placeholder="Sesuai KTP / Akta Kelahiran"
               registerProps={register("name")}
               icon={User}
@@ -162,6 +163,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               id="nik"
               label="Nomor Induk Kependudukan (NIK)"
               type="text"
+              required={true}
               placeholder="16 digit nomor NIK"
               registerProps={register("nik")}
               icon={CreditCard}
@@ -171,14 +173,13 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
             <div className="grid grid-cols-2 gap-4">
               {/* Gender */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
-                  Jenis Kelamin
-                </label>
                 <Controller
                   name="gender"
                   control={control}
                   render={({ field }) => (
                     <CustomSelect
+                      label="Jenis Kelamin"
+                      required={true}
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val)}
                       options={genderOptions}
@@ -195,14 +196,13 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
 
               {/* Relationship */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
-                  Hubungan Keluarga
-                </label>
                 <Controller
                   name="relationship"
                   control={control}
                   render={({ field }) => (
                     <CustomSelect
+                      label="Hubungan Keluarga"
+                      required={true}
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val)}
                       options={relationshipOptions}
@@ -222,7 +222,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               {/* Birth Place */}
               <FormField
                 id="birthPlace"
-                label="Tempat Lahir (Opsional)"
+                label="Tempat Lahir"
                 type="text"
                 placeholder="Contoh: Jakarta"
                 registerProps={register("birthPlace")}
@@ -233,7 +233,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               {/* Birth Date */}
               <FormField
                 id="birthDate"
-                label="Tanggal Lahir (Opsional)"
+                label="Tanggal Lahir"
                 type="date"
                 placeholder=""
                 registerProps={register("birthDate")}
@@ -245,14 +245,12 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
             <div className="grid grid-cols-2 gap-4">
               {/* Religion */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
-                  Agama (Opsional)
-                </label>
                 <Controller
                   name="religion"
                   control={control}
                   render={({ field }) => (
                     <CustomSelect
+                      label="Agama"
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val)}
                       options={religionOptions}
@@ -265,7 +263,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               {/* Phone */}
               <FormField
                 id="phone"
-                label="No. HP / WhatsApp (Opsional)"
+                label="No. HP / WhatsApp"
                 type="text"
                 placeholder="Contoh: 08123456789"
                 registerProps={register("phone")}
@@ -278,7 +276,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               {/* Occupation */}
               <FormField
                 id="occupation"
-                label="Pekerjaan (Opsional)"
+                label="Pekerjaan"
                 type="text"
                 placeholder="Contoh: Karyawan Swasta"
                 registerProps={register("occupation")}
@@ -289,7 +287,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               {/* Education Level */}
               <FormField
                 id="educationLevel"
-                label="Pendidikan Terakhir (Opsional)"
+                label="Pendidikan Terakhir"
                 type="text"
                 placeholder="Contoh: S1 Teknik Informatika"
                 registerProps={register("educationLevel")}

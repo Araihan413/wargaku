@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useForm, Controller, useWatch } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, UserPlus, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, Upload, GraduationCap } from "lucide-react";
+import { X, Loader2, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, Upload, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
-import { createRentalResidentSchema } from "@/lib/validations/rental";
+import { updateRentalResidentSchema } from "@/lib/validations/rental";
 import { FileUploadModal } from "@/components/FileUploadModal";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
+import { RentalResidentItem } from "./RentalTable";
 
 const commonOccupations = [
   "Belum/Tidak Bekerja",
@@ -40,17 +41,11 @@ const commonEducations = [
   "Doktor (S3)",
 ];
 
-interface CheckInTenantModalProps {
+interface EditTenantModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-}
-
-interface RentalPropertyOption {
-  id: number;
-  name: string;
-  blockNumber: string;
-  houseNumber: string;
+  resident: RentalResidentItem | null;
 }
 
 const religionOptions: SelectOption[] = [
@@ -68,15 +63,46 @@ const tenantTypeOptions: SelectOption[] = [
   { value: "keluarga", label: "Keluarga (Satu KK)" },
 ];
 
-export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
+export const EditTenantModal: React.FC<EditTenantModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  resident,
 }) => {
-  const [properties, setProperties] = useState<RentalPropertyOption[]>([]);
-  const [isLoadingProperties, setIsLoadingProperties] = useState(false);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
   const [showKtpModal, setShowKtpModal] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(updateRentalResidentSchema),
+  });
+
+  const ktpFile = watch("ktpFile");
+
+  // Populate data when resident changes
+  useEffect(() => {
+    if (resident) {
+      reset({
+        name: resident.name,
+        nik: resident.nik,
+        phone: resident.phone || "",
+        tenantType: resident.tenantType,
+        roomNumber: resident.roomNumber || "",
+        checkInDate: resident.checkInDate ? new Date(resident.checkInDate) : new Date(),
+        occupation: resident.occupation || "",
+        educationLevel: resident.educationLevel || "",
+        religion: (resident.religion as any) || null,
+        originAddress: resident.originAddress || "",
+        ktpFile: resident.ktpFile || "",
+      });
+    }
+  }, [resident, reset]);
 
   const handleSelectLocalKtp = (file: File) => {
     setValue("ktpFile", file as any);
@@ -88,121 +114,22 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     toast.success("Tautan Google Drive KTP berhasil dipilih!");
   };
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: zodResolver(createRentalResidentSchema),
-    defaultValues: {
-      tenantType: "perorangan" as "perorangan" | "keluarga",
-      name: "",
-      nik: "",
-      phone: "",
-      originAddress: "",
-      occupation: "",
-      educationLevel: "",
-      religion: "Islam" as any,
-      roomNumber: "",
-      checkInDate: new Date(),
-      ktpFile: "",
-    },
-  });
-
-  const ktpFile = useWatch({
-    control,
-    name: "ktpFile",
-  });
-
-  // Fetch active rental properties
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const fetchProperties = async () => {
-      setIsLoadingProperties(true);
-      try {
-        const res = await fetch("/api/rentals?isActive=true");
-        if (res.ok) {
-          const data = await res.json();
-          // The response has `data` which is an array of rentalProperties. Let's see if we need to fetch their dwellings.
-          // In the database query `listRentalProperties`, it returns rentalProperties data.
-          // Let's fetch details or map them.
-          // Wait! In `listRentalProperties`, does it return blockNumber & houseNumber?
-          // Let's check `listRentalProperties` in `db/queries/rental.ts` again. It returns `data` which is an array of rentalProperties.
-          // In db, `rentalProperties` table has no blockNumber/houseNumber, but they references `dwellings.id`.
-          // Wait! In `/api/rentals` endpoint, the GET handler returns `listRentalProperties` which is not joined with dwellings!
-          // Ah! Let's check if the API returns dwelling details.
-          // If it doesn't, we can fetch active dwellings or active rentals list.
-          // Wait, let's look at `/api/rentals` results. It has `dwellingId`.
-          // We can fetch active dwellings or we can look up from `/api/dwellings` which contains the label!
-          // Actually, let's fetch `/api/rentals?isActive=true` and load the dwellings to show name and block/house.
-          // Wait! Let's write a simple helper fetch in this modal or make the dropdown list names.
-          // Let's first map the properties.
-          const propertiesData = data.data || [];
-          
-          // Let's fetch all dwellings to map ID to label.
-          const dwellingsRes = await fetch("/api/dwellings");
-          if (dwellingsRes.ok) {
-            const dwellingsData = await dwellingsRes.json();
-            const mapped = propertiesData.map((p: any) => {
-              const d = dwellingsData.find((dw: any) => dw.id === p.dwellingId);
-              return {
-                id: p.id,
-                name: p.name,
-                blockNumber: d?.blockNumber || "",
-                houseNumber: d?.houseNumber || "",
-              };
-            });
-            setProperties(mapped);
-          } else {
-            setProperties(propertiesData.map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              blockNumber: "",
-              houseNumber: "",
-            })));
-          }
-        } else {
-          toast.error("Gagal memuat properti sewa");
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoadingProperties(false);
-      }
-    };
-
-    fetchProperties();
-  }, [isOpen]);
-
-  const propertyOptions: SelectOption[] = properties.map((p) => ({
-    value: String(p.id),
-    label: `${p.name} (Blok ${p.blockNumber} No. ${p.houseNumber})`,
-  }));
-
   const handleClose = () => {
     reset();
-    setSelectedPropertyId("");
     onClose();
   };
 
   const onSubmit = async (data: any) => {
-    if (!selectedPropertyId) {
-      toast.error("Properti sewa wajib dipilih");
-      return;
-    }
+    if (!resident) return;
 
     try {
-      let finalKtpUrl = "";
+      let finalKtpUrl = resident.ktpFile || "";
 
       if (data.ktpFile instanceof File) {
         try {
           const uploadRes = await uploadFileToCloudinary(data.ktpFile, "ktp");
           finalKtpUrl = uploadRes.url;
-        } catch (err) {
+        } catch {
           toast.error("Gagal mengunggah berkas KTP.");
           return;
         }
@@ -210,11 +137,20 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
         finalKtpUrl = data.ktpFile;
       }
 
-      const response = await fetch(`/api/rentals/${selectedPropertyId}/residents`, {
-        method: "POST",
+      // Convert Date object to YYYY-MM-DD string
+      let checkInDateStr = resident.checkInDate;
+      if (data.checkInDate instanceof Date) {
+        checkInDateStr = data.checkInDate.toISOString().split("T")[0];
+      } else if (typeof data.checkInDate === "string") {
+        checkInDateStr = data.checkInDate.split("T")[0];
+      }
+
+      const response = await fetch(`/api/rental-residents/${resident.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
+          checkInDate: checkInDateStr,
           ktpFile: finalKtpUrl,
         }),
       });
@@ -222,10 +158,10 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Gagal melakukan check-in penyewa");
+        throw new Error(result.error || "Gagal memperbarui data penyewa");
       }
 
-      toast.success("Penyewa berhasil check-in. Menunggu verifikasi dokumen.");
+      toast.success("Data penyewa berhasil diperbarui.");
       handleClose();
       onSuccess();
     } catch (error: any) {
@@ -233,57 +169,48 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !resident) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm cursor-default"
         onClick={handleClose}
       />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-2xl bg-gray-card border border-gray-border rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden z-10 mx-4">
+      <div className="relative w-full max-w-2xl bg-gray-card border border-gray-border rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-border shrink-0">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-primary/10 rounded-xl text-primary">
-              <UserPlus className="h-5 w-5" />
+              <User className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-gray-heading-main">Check-In Penyewa Baru</h3>
-              <p className="text-[10px] text-gray-secondary-text">Daftarkan penyewa kos/kontrakan baru</p>
+              <h3 className="text-sm font-bold text-gray-heading-main">Edit Data Penyewa</h3>
+              <p className="text-[10px] text-gray-secondary-text">Perbarui rincian data penyewa kos/kontrakan</p>
             </div>
           </div>
           <button
             onClick={handleClose}
             className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-gray-heading-main transition-colors cursor-pointer"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {/* Property Selector */}
-            <div className="space-y-1.5">
-              {isLoadingProperties ? (
-                <div className="flex items-center gap-2 text-xs text-gray-placeholder py-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  Memuat daftar properti sewa...
-                </div>
-              ) : (
-                <CustomSelect
-                  label="Pilih Properti Sewa"
-                  required={true}
-                  value={selectedPropertyId}
-                  onChange={(val) => setSelectedPropertyId(val)}
-                  options={propertyOptions}
-                  placeholder="-- Pilih Properti Sewa --"
-                />
-              )}
+            
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex gap-3 text-xs text-primary leading-relaxed font-semibold mb-2">
+              <Home className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-bold">Properti: {resident.propertyName}</p>
+                <p className="mt-0.5">Blok {resident.blockNumber} No. {resident.houseNumber}</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -296,7 +223,7 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
                     <CustomSelect
                       label="Tipe Penyewa"
                       required={true}
-                      value={field.value}
+                      value={field.value || ""}
                       onChange={field.onChange}
                       options={tenantTypeOptions}
                       placeholder="-- Tipe --"
@@ -473,8 +400,8 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
 
             {/* Scan KTP File Upload */}
             <div className="space-y-2.5 border-t border-gray-border pt-3">
-              <label className="text-xs font-bold text-gray-heading-main flex items-center gap-1.5">
-                <Upload className="h-3.5 w-3.5 text-primary" />
+              <label className="text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Upload className="h-4 w-4 text-primary" />
                 <span>Berkas Scan KTP Penyewa <span className="text-error">*</span></span>
               </label>
 
@@ -487,7 +414,7 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
                   <Upload className="h-4 w-4 shrink-0" />
                   <span className="truncate font-sans font-bold">
                     {ktpFile
-                      ? ((ktpFile as any) instanceof File ? (ktpFile as any).name : "Google Drive Terpilih")
+                      ? (((ktpFile as any) instanceof File) ? (ktpFile as any).name : "KTP Terpasang (Ganti Berkas)")
                       : "Pilih Berkas KTP"}
                   </span>
                 </button>
@@ -503,7 +430,7 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
                 )}
               </div>
               {errors.ktpFile && (
-                <p className="text-xs text-error font-medium mt-1">{errors.ktpFile.message}</p>
+                <p className="text-xs text-error font-semibold mt-1">{errors.ktpFile.message}</p>
               )}
             </div>
           </div>
@@ -526,10 +453,10 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Mendaftarkan...
+                  Menyimpan...
                 </>
               ) : (
-                "Daftarkan Penyewa"
+                "Simpan Perubahan"
               )}
             </button>
           </div>
@@ -540,7 +467,7 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
         isOpen={showKtpModal}
         onClose={() => setShowKtpModal(false)}
         title="Pilih Berkas KTP Penyewa"
-        description="Pilih sumber dokumen Scan KTP untuk check-in penyewa kos/kontrakan baru."
+        description="Pilih sumber dokumen Scan KTP untuk memperbarui data penyewa."
         onSelectLocalFile={handleSelectLocalKtp}
         onSelectDriveUrl={handleSelectDriveKtp}
         isLoading={false}

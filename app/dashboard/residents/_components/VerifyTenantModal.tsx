@@ -123,7 +123,7 @@ export const VerifyTenantModal: React.FC<VerifyTenantModalProps> = ({
 
           {/* KTP Document Simulation */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-gray-heading-main">
+            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
               Dokumen KTP yang Diunggah
             </label>
             <div className="border border-gray-border rounded-xl p-4 bg-gray-sidebar-hover/10 flex flex-col items-center justify-center gap-3 min-h-36">
@@ -148,8 +148,8 @@ export const VerifyTenantModal: React.FC<VerifyTenantModalProps> = ({
           {/* Conditional Reject Form */}
           {showRejectForm && (
             <div className="space-y-1.5 p-4 border border-rose-200 bg-rose-50/50 rounded-xl animate-in slide-in-from-top-2 duration-200">
-              <label htmlFor="rejectNote" className="block text-xs font-bold text-rose-800">
-                Alasan Penolakan Dokumen
+              <label htmlFor="rejectNote" className="block text-sm font-semibold text-rose-800 mb-1.5">
+                Alasan Penolakan Dokumen <span className="text-red-500 ml-0.5">*</span>
               </label>
               <textarea
                 id="rejectNote"
@@ -157,7 +157,7 @@ export const VerifyTenantModal: React.FC<VerifyTenantModalProps> = ({
                 rows={3}
                 value={rejectNote}
                 onChange={(e) => setRejectNote(e.target.value)}
-                className="w-full text-xs bg-white border border-rose-300 rounded-xl px-4 py-3 placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-rose-500 transition-all resize-none"
+                className="w-full text-sm bg-white border border-rose-300 rounded-xl px-3.5 py-2.5 placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all resize-none"
               />
             </div>
           )}

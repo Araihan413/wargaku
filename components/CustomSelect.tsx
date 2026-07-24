@@ -16,6 +16,7 @@ interface CustomSelectProps {
   options: SelectOption[];
   placeholder?: string;
   label?: string;
+  required?: boolean;
   disabled?: boolean;
   className?: string;
   size?: "sm" | "md";
@@ -27,6 +28,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   options,
   placeholder = "Pilih salah satu...",
   label,
+  required = false,
   disabled = false,
   className = "",
   size = "md",
@@ -146,8 +148,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
       {label && (
-        <span className="block text-xs font-bold text-gray-heading-main uppercase tracking-wider mb-2">
-          {label}
+        <span className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+          {label} {required && <span className="text-red-500 ml-0.5">*</span>}
         </span>
       )}
       <button
@@ -169,7 +171,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         className={`flex w-full items-center justify-between rounded-xl border border-gray-border outline-none transition-all cursor-pointer select-none text-left disabled:opacity-50 disabled:cursor-not-allowed ${
           size === "sm"
             ? "bg-gray-page-bg py-2 px-3.5 text-xs text-gray-heading-main"
-            : "bg-gray-card py-2.5 px-3 text-sm text-gray-heading-main"
+            : "bg-gray-card py-2.5 px-3.5 text-sm text-gray-heading-main"
         } ${
           isOpen ? "border-primary ring-2 ring-primary/20" : "focus:border-primary focus:ring-2 focus:ring-primary/20"
         }`}

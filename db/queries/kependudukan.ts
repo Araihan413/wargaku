@@ -952,8 +952,33 @@ export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
   }
 
   const data = await db
-    .select()
+    .select({
+      id: schema.dwellings.id,
+      blockNumber: schema.dwellings.blockNumber,
+      houseNumber: schema.dwellings.houseNumber,
+      ownerUserId: schema.dwellings.ownerUserId,
+      ownerName: schema.dwellings.ownerName,
+      ownerPhone: schema.dwellings.ownerPhone,
+      qrToken: schema.dwellings.qrToken,
+      latitude: schema.dwellings.latitude,
+      longitude: schema.dwellings.longitude,
+      type: schema.dwellings.type,
+      isActive: schema.dwellings.isActive,
+      notes: schema.dwellings.notes,
+      createdAt: schema.dwellings.createdAt,
+      totalRooms: schema.rentalProperties.totalRooms,
+      occupiedRooms: sql<number>`(
+        SELECT COUNT(*)
+        FROM ${schema.rentalResidents} rr
+        WHERE rr.rental_property_id = ${schema.rentalProperties.id}
+          AND rr.is_active = true
+      )`.mapWith(Number),
+    })
     .from(schema.dwellings)
+    .leftJoin(
+      schema.rentalProperties,
+      eq(schema.dwellings.id, schema.rentalProperties.dwellingId)
+    )
     .where(whereClause)
     .limit(limit)
     .offset(offset)
@@ -973,6 +998,119 @@ export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
       limit,
       offset,
     },
+  };
+}
+
+export async function getDwellingDetailById(id: number) {
+  const [dwelling] = await db
+    .select()
+    .from(schema.dwellings)
+    .where(eq(schema.dwellings.id, id))
+    .limit(1);
+
+  if (!dwelling) return null;
+
+  if (dwelling.type === 'permanen') {
+    const activeFamilies = await db
+      .select({
+        id: schema.families.id,
+        familyNumber: schema.families.familyNumber,
+        headName: schema.families.headName,
+        unitNumber: schema.families.unitNumber,
+        checkInDate: schema.families.checkInDate,
+        verificationStatus: schema.families.verificationStatus,
+      })
+      .from(schema.families)
+      .where(
+        and(
+          eq(schema.families.dwellingId, id),
+          eq(schema.families.isActive, true)
+        )
+      );
+
+    const familiesWithMemberCount = await Promise.all(
+      activeFamilies.map(async (fam) => {
+        const [memberCountRes] = await db
+          .select({ count: sql`count(*)` })
+          .from(schema.familyMembers)
+          .where(
+            and(
+              eq(schema.familyMembers.familyId, fam.id),
+              eq(schema.familyMembers.isActive, true)
+            )
+          );
+        return {
+          ...fam,
+          memberCount: Number(memberCountRes?.count ?? 0),
+        };
+      })
+    );
+
+    return {
+      ...dwelling,
+      families: familiesWithMemberCount,
+    };
+  }
+
+  if (dwelling.type === 'kos' || dwelling.type === 'homestay') {
+    const [property] = await db
+      .select()
+      .from(schema.rentalProperties)
+      .where(
+        and(
+          eq(schema.rentalProperties.dwellingId, id),
+          eq(schema.rentalProperties.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (property) {
+      let coordinator = null;
+      if (property.coordinatorUserId) {
+        const [coordUser] = await db
+          .select({
+            id: schema.users.id,
+            name: schema.users.name,
+            phone: schema.users.phone,
+            email: schema.users.email,
+          })
+          .from(schema.users)
+          .where(eq(schema.users.id, property.coordinatorUserId))
+          .limit(1);
+        coordinator = coordUser || null;
+      }
+
+      const [activeResidentsCountRes] = await db
+        .select({ count: sql`count(*)` })
+        .from(schema.rentalResidents)
+        .where(
+          and(
+            eq(schema.rentalResidents.rentalPropertyId, property.id),
+            eq(schema.rentalResidents.isActive, true)
+          )
+        );
+
+      const activeResidentsCount = Number(activeResidentsCountRes?.count ?? 0);
+      const vacantRooms = Math.max(0, property.totalRooms - activeResidentsCount);
+
+      return {
+        ...dwelling,
+        property: {
+          id: property.id,
+          name: property.name,
+          contactPerson: property.contactPerson,
+          phone: property.phone,
+          totalRooms: property.totalRooms,
+          activeResidentsCount,
+          vacantRooms,
+          coordinator,
+        },
+      };
+    }
+  }
+
+  return {
+    ...dwelling,
   };
 }
 
