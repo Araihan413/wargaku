@@ -20,15 +20,28 @@ export const createRentalPropertySchema = z.object({
     .max(100, 'Nama properti maksimal 100 karakter'),
     
   coordinatorUserId: z.string().optional().nullable(),
+  coordinatorName: z.string().max(100, 'Nama koordinator maksimal 100 karakter').optional().nullable(),
+  coordinatorPhone: z.preprocess(
+    (val) => (typeof val === 'string' ? val.replace(/[-\s]/g, '') : val),
+    z.string()
+      .regex(indonesianPhoneRegex, 'Nomor HP/WhatsApp koordinator tidak valid. Gunakan format Indonesia (misal: 081234567890)')
+      .optional()
+      .nullable()
+      .or(z.literal(''))
+      .or(z.literal(null))
+  ),
   contactPerson: z.string().max(100, 'Nama kontak maksimal 100 karakter').optional().nullable(),
   
-  phone: z.string()
-    .regex(indonesianPhoneRegex, 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)')
-    .optional()
-    .nullable()
-    .or(z.literal(''))
-    .or(z.literal(null)),
-    
+  phone: z.preprocess(
+    (val) => (typeof val === 'string' ? val.replace(/[-\s]/g, '') : val),
+    z.string()
+      .regex(indonesianPhoneRegex, 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)')
+      .optional()
+      .nullable()
+      .or(z.literal(''))
+      .or(z.literal(null))
+  ),
+  
   totalRooms: z.number({
     error: (issue) =>
       issue.input === undefined

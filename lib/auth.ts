@@ -2,6 +2,9 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { sendEmail } from './mail';
+import { getWargaRegistrationEmail } from './emails/templates';
 
 export const auth = betterAuth({
   // beritahu untuk berkomunikasi dengan mysql
@@ -14,6 +17,48 @@ export const auth = betterAuth({
       verification: schema.verifications,
     },
   }),
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          if (user.roleId === 6 && user.status === 'pending') {
+            try {
+              // 1. Kirim notifikasi internal ke Ketua RT
+              const rts = await db
+                .select({ id: schema.users.id })
+                .from(schema.users)
+                .where(eq(schema.users.roleId, 2));
+
+              if (rts.length > 0) {
+                const insertPromises = rts.map((rt) =>
+                  db.insert(schema.notifications).values({
+                    userId: rt.id,
+                    title: "Pendaftaran Warga Baru",
+                    message: `Warga bernama ${user.name} telah mendaftar dan menunggu persetujuan Anda.`,
+                    category: "dinas",
+                    redirectLink: `/dashboard/approvals/registration`,
+                  })
+                );
+                await Promise.all(insertPromises);
+              }
+
+              // 2. Kirim email konfirmasi ke Warga
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000";
+              const loginLink = `${appUrl}/login`;
+
+              await sendEmail({
+                to: { email: user.email, name: user.name },
+                subject: "Pendaftaran Akun Wargaku Berhasil",
+                htmlContent: getWargaRegistrationEmail(user.name, loginLink),
+              });
+            } catch (err) {
+              console.error("Gagal mengirim notifikasi registrasi warga ke RT atau email warga:", err);
+            }
+          }
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
   },

@@ -1,9 +1,9 @@
 import React from "react";
-import { Users, UserCheck, Home } from "lucide-react";
+import { Users, UserCheck, Home, UserCog } from "lucide-react";
 
 interface ResidentsTabNavProps {
-  activeTab: "kk" | "penyewa" | "hunian";
-  onTabChange: (tab: "kk" | "penyewa" | "hunian") => void;
+  activeTab: "kk" | "penyewa" | "hunian" | "koordinator";
+  onTabChange: (tab: "kk" | "penyewa" | "hunian" | "koordinator") => void;
 }
 
 export const ResidentsTabNav: React.FC<ResidentsTabNavProps> = ({
@@ -22,10 +22,16 @@ export const ResidentsTabNav: React.FC<ResidentsTabNavProps> = ({
       icon: UserCheck,
     },
     {
+      id: "koordinator" as const,
+      label: "Koordinator Kos",
+      icon: UserCog,
+    },
+    {
       id: "hunian" as const,
       label: "Hunian & Properti",
       icon: Home,
     },
+    
   ];
 
   return (

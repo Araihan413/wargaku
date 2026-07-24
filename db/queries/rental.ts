@@ -62,9 +62,14 @@ export async function listRentalProperties(options: {
         blockNumber: schema.dwellings.blockNumber,
         houseNumber: schema.dwellings.houseNumber,
         type: schema.dwellings.type,
+        coordinatorName: schema.users.name,
+        coordinatorPhone: schema.users.phone,
+        coordinatorStatus: schema.users.status,
+        coordinatorHasPassword: sql<boolean>`CASE WHEN ${schema.users.password} IS NOT NULL THEN true ELSE false END`,
       })
       .from(schema.rentalProperties)
       .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
+      .leftJoin(schema.users, eq(schema.rentalProperties.coordinatorUserId, schema.users.id))
       .where(whereClause)
       .limit(limit)
       .offset(offset)
