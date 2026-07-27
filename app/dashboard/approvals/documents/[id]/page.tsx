@@ -441,7 +441,7 @@ export default function DocumentVerificationWorkspacePage() {
             {/* Family Members Check List */}
             <div className="space-y-3">
               <h3 className="text-[10px] font-bold text-gray-secondary-text uppercase tracking-wider">
-                Daftar Anggota Keluarga ({family.members.length} Jiwa)
+                Daftar Anggota Keluarga ({family.members.length} orang)
               </h3>
               
               <div className="space-y-3">

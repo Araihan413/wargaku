@@ -271,7 +271,7 @@ export default function NeighborhoodPage() {
                 </div>
                 <h3 className="text-sm font-bold text-gray-heading-main mb-1">Koordinat Lokasi Belum Dilengkapi</h3>
                 <p className="text-[11px] text-gray-secondary-text max-w-xs">
-                  Koordinat lintang & bujur untuk rumah **Blok {selectedDwelling?.blockNumber} No. {selectedDwelling?.houseNumber}** belum dimasukkan oleh Pengurus RT.
+                  Koordinat lintang & bujur untuk rumah <b>&quot;Blok {selectedDwelling?.blockNumber} No. {selectedDwelling?.houseNumber}&quot;</b> belum dimasukkan oleh Pengurus RT.
                 </p>
               </div>
             )}

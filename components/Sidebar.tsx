@@ -293,11 +293,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     );
   }, [currentRoleId]);
 
-  const isActive = (href?: string) => (href ? pathname === href : false);
+  const isActive = useCallback(
+    (href?: string) => {
+      if (!href) return false;
+      if (href === "/dashboard") return pathname === "/dashboard";
+      if (href === "/dashboard/family" && pathname.startsWith("/dashboard/family/surat")) {
+        return false;
+      }
+      return pathname === href || pathname.startsWith(href + "/");
+    },
+    [pathname]
+  );
+
   const isChildActive = useCallback(
     (subItems?: SidebarSubItem[]) =>
-      subItems ? subItems.some((sub) => pathname === sub.href) : false,
-    [pathname]
+      subItems ? subItems.some((sub) => isActive(sub.href)) : false,
+    [isActive]
   );
 
   // Keep accordion open if a child item is active

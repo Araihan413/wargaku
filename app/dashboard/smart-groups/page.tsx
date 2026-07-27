@@ -660,7 +660,7 @@ export default function SmartGroupsPage() {
                 {citizens.map((citizen) => (
                   <tr key={citizen.id} className="hover:bg-gray-sidebar-hover/30 transition-colors print:hover:bg-transparent">
                     <td className="py-4 px-5 font-semibold">{citizen.name}</td>
-                    <td className="py-4 px-5 font-mono text-gray-secondary-text">{citizen.nik}</td>
+                    <td className="py-4 px-5 font-mono text-xs text-gray-secondary-text">{citizen.nik}</td>
                     <td className="py-4 px-5 text-center font-medium">{citizen.age} Thn</td>
                     <td className="py-4 px-5 text-center">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${

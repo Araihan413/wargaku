@@ -274,16 +274,21 @@ export default function DocumentApprovalsPage() {
                         <td className="py-4 px-5">
                           <div className="font-semibold text-gray-heading-main">{fam.headName}</div>
                         </td>
-                        <td className="py-4 px-5 font-mono text-gray-secondary-text">{fam.familyNumber}</td>
-                        <td className="py-4 px-5">
-                          <span>
-                            {addressStr} {fam.unitNumber ? `(Unit ${fam.unitNumber})` : ""}
-                          </span>
+                        <td className="py-4 px-5 font-mono text-sm font-semibold text-gray-secondary-text">{fam.familyNumber}</td>
+                        <td className="py-4 px-5 text-gray-secondary-text">
+                          <div>
+                            <span className="text-gray-heading-main font-semibold">{addressStr}</span>
+                            {fam.unitNumber && (
+                              <span className="ml-1.5 text-[10px] font-semibold bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-gray-secondary-text">
+                                {fam.unitNumber}
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="py-4 px-5 text-center font-medium">
-                          <span>{fam.memberCount} jiwa</span>
+                        <td className="py-4 px-5 text-center font-semibold text-gray-heading-main">
+                          <span>{fam.memberCount} orang</span>
                         </td>
-                        <td className="py-4 px-5 text-center text-gray-secondary-text">
+                        <td className="py-4 px-5 font-semibold text-center text-gray-secondary-text">
                           <span>{formatDate(fam.checkInDate)}</span>
                         </td>
                         <td className="py-4 px-5 text-center">
