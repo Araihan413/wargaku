@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Plus, Home, Users, ShieldAlert, Loader2, ArrowRight, X, Building2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth-client";
 import { useFamilyVerification } from "@/lib/hooks/use-family-verification";
 import { DwellingSearchSelect } from "./_components/DwellingSearchSelect";
 import { CoordinatorSearchSelect } from "./_components/CoordinatorSearchSelect";
+import { validateAndParseRoomPattern } from "@/lib/room-helper";
 
 interface PropertyItem {
   id: number;
@@ -34,6 +35,7 @@ interface DwellingOption {
   houseNumber: string;
   type: string;
   ownerUserId: string | null;
+  hasActiveRental?: boolean;
 }
 
 function formatWhatsAppLink(phone: string, text: string) {
@@ -64,8 +66,20 @@ export default function MyPropertiesPage() {
   const [contactPerson, setContactPerson] = useState("");
   const [businessPhone, setBusinessPhone] = useState("");
   const [coordinatorOption, setCoordinatorOption] = useState<"self" | "other">("self");
+  const [notes, setNotes] = useState("");
+  const [roomPattern, setRoomPattern] = useState("");
 
-  // Coordinator Search / Invite States
+  // Auto-validate and parse pattern
+  const patternResult = useMemo(() => {
+    if (!roomPattern.trim()) {
+      return { isValid: true, rooms: [], error: "" };
+    }
+    return validateAndParseRoomPattern(roomPattern);
+  }, [roomPattern]);
+
+  const patternError = patternResult.isValid ? "" : patternResult.error || "Pola penomoran tidak valid";
+  const generatedPreview = patternResult.rooms;
+
   const [users, setUsers] = useState<any[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [selectedCoordUserId, setSelectedCoordUserId] = useState<string | null>(null);
@@ -107,10 +121,11 @@ export default function MyPropertiesPage() {
       const res = await fetch("/api/dwellings");
       if (res.ok) {
         const json = await res.json();
-        // Filter: dwellings owned by user or unclaimed (null), of type kos or homestay
+        // Filter: dwellings owned by user or unclaimed (null), not registered, of type kos or homestay
         const filtered = json.filter(
           (d: DwellingOption) =>
             (d.ownerUserId === sessionUserId || !d.ownerUserId) &&
+            !d.hasActiveRental &&
             (d.type === "kos" || d.type === "homestay")
         );
         setDwellings(filtered);
@@ -154,7 +169,8 @@ export default function MyPropertiesPage() {
       toast.error("Nama properti wajib diisi");
       return;
     }
-    if (totalRooms <= 0) {
+    const activeTotalRooms = roomPattern.trim() && patternResult.isValid ? patternResult.rooms.length : Number(totalRooms);
+    if (activeTotalRooms <= 0) {
       toast.error("Jumlah kamar harus lebih dari 0");
       return;
     }
@@ -164,9 +180,11 @@ export default function MyPropertiesPage() {
     const payload: any = {
       dwellingId: Number(selectedDwellingId),
       name: propertyName,
-      totalRooms: Number(totalRooms),
+      totalRooms: activeTotalRooms,
       contactPerson: contactPerson || null,
       phone: businessPhone || null,
+      notes: notes || null,
+      roomPattern: roomPattern || null,
     };
 
     if (coordinatorOption === "self") {
@@ -221,6 +239,8 @@ export default function MyPropertiesPage() {
         setTotalRooms(0);
         setContactPerson("");
         setBusinessPhone("");
+        setNotes("");
+        setRoomPattern("");
         setCoordName("");
         setCoordPhone("");
         setCoordinatorOption("self");
@@ -246,6 +266,8 @@ export default function MyPropertiesPage() {
     setTotalRooms(0);
     setContactPerson("");
     setBusinessPhone("");
+    setNotes("");
+    setRoomPattern("");
     setCoordName("");
     setCoordPhone("");
     setCoordinatorOption("self");
@@ -473,6 +495,45 @@ export default function MyPropertiesPage() {
                   />
                 </div>
 
+                {/* Shorthand Room Pattern */}
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Pola Penomoran Kamar (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: a1-a6, b1-b8, c1"
+                    value={roomPattern}
+                    onChange={(e) => setRoomPattern(e.target.value)}
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                  <p className="text-[10px] text-gray-secondary-text leading-relaxed">
+                    Mendukung penomoran otomatis. Kosongkan jika ingin nomor urut default (01, 02, dst.).
+                  </p>
+                  {patternError && (
+                    <p className="text-[10px] font-semibold text-rose-600 animate-in fade-in duration-200">
+                      {patternError}
+                    </p>
+                  )}
+                  {generatedPreview.length > 0 && (
+                    <div className="p-3 bg-gray-sidebar-hover/10 border border-gray-border/60 rounded-xl space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                      <span className="text-[10px] font-bold text-gray-heading-main block">
+                        Pratinjau Hasil ({generatedPreview.length} Kamar):
+                      </span>
+                      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
+                        {generatedPreview.map((rm) => (
+                          <span
+                            key={rm}
+                            className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold font-mono"
+                          >
+                            {rm}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Capacity Rooms & Phone */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -482,9 +543,10 @@ export default function MyPropertiesPage() {
                     <input
                       type="number"
                       min={1}
-                      value={totalRooms || ""}
+                      value={roomPattern.trim() && patternResult.isValid ? patternResult.rooms.length : (totalRooms || "")}
                       onChange={(e) => setTotalRooms(Number(e.target.value))}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      disabled={!!roomPattern.trim() && patternResult.isValid}
+                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-70 disabled:bg-gray-100"
                       required
                     />
                   </div>
@@ -513,6 +575,19 @@ export default function MyPropertiesPage() {
                     value={contactPerson}
                     onChange={(e) => setContactPerson(e.target.value)}
                     className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+
+                {/* Description/Notes */}
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Keterangan
+                  </label>
+                  <textarea
+                    placeholder="Catatan tambahan mengenai kos/kontrakan (opsional)"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all min-h-[80px] resize-none"
                   />
                 </div>
 

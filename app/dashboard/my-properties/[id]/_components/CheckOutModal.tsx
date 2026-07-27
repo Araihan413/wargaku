@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Loader2, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { CustomSelect } from "@/components/CustomSelect";
 
 interface CheckOutModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkOutDate, setCheckOutDate] = useState(new Date().toISOString().split("T")[0]);
   const [inactiveReason, setInactiveReason] = useState<"pindah" | "meninggal">("pindah");
+  const [notes, setNotes] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +39,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
         body: JSON.stringify({
           checkOutDate: new Date(checkOutDate),
           inactiveReason,
+          notes: notes || null,
         }),
       });
 
@@ -59,6 +62,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
   const handleClose = () => {
     setCheckOutDate(new Date().toISOString().split("T")[0]);
     setInactiveReason("pindah");
+    setNotes("");
     onClose();
   };
 
@@ -91,27 +95,42 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Check-Out Date */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-heading-main block">Tanggal Keluar (Check-Out)</label>
+            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+              Tanggal Keluar (Check-Out) <span className="text-red-500 ml-0.5">*</span>
+            </label>
             <input
               type="date"
               value={checkOutDate}
               onChange={(e) => setCheckOutDate(e.target.value)}
-              className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3.5 py-2.5 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
+              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-xs text-gray-heading-main block focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               required
             />
           </div>
 
           {/* Inactive Reason */}
+          <CustomSelect
+            value={inactiveReason}
+            onChange={(val) => setInactiveReason(val as "pindah" | "meninggal")}
+            options={[
+              { value: "pindah", label: "Selesai Sewa / Pindah" },
+              { value: "meninggal", label: "Meninggal Dunia" },
+            ]}
+            label="Alasan Penonaktifan"
+            required
+          />
+
+          {/* Checkout Keterangan */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-heading-main block">Alasan Penonaktifan</label>
-            <select
-              value={inactiveReason}
-              onChange={(e) => setInactiveReason(e.target.value as "pindah" | "meninggal")}
-              className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-3 py-2.5 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all"
-            >
-              <option value="pindah" className="bg-gray-card">Selesai Sewa / Pindah</option>
-              <option value="meninggal" className="bg-gray-card">Meninggal Dunia</option>
-            </select>
+            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+              Keterangan
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Catatan tambahan mengenai check-out (opsional)"
+              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+              rows={3}
+            />
           </div>
 
           {/* Submit */}
