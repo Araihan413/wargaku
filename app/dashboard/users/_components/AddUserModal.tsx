@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -9,6 +9,7 @@ import {
   CreditCard,
   Phone,
   Loader2,
+  Home,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createUserSchema, CreateUserType } from "@/lib/validations/user";
@@ -16,11 +17,19 @@ import { FormField } from "@/components/FormField";
 import { RoleItem } from "../types";
 import { CustomSelect } from "@/components/CustomSelect";
 
+interface DwellingOption {
+  id: number;
+  blockNumber: string;
+  houseNumber: string;
+  label?: string;
+}
+
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   roles: RoleItem[];
+  fixedRoleId?: number;
 }
 
 export const AddUserModal: React.FC<AddUserModalProps> = ({
@@ -28,14 +37,18 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
   onClose,
   onSuccess,
   roles,
+  fixedRoleId,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [dwellings, setDwellings] = useState<DwellingOption[]>([]);
+  const [isLoadingDwellings, setIsLoadingDwellings] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateUserType>({
     resolver: zodResolver(createUserSchema),
@@ -45,10 +58,57 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
       password: "",
       nik: "",
       phone: "",
-      roleId: 6,
+      roleId: fixedRoleId ?? 6,
       status: "active",
+      familyNumber: "",
+      dwellingId: undefined,
+      unitNumber: "",
+      gender: undefined,
     },
   });
+
+  const selectedRoleId = watch("roleId");
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        name: "",
+        email: "",
+        password: "",
+        nik: "",
+        phone: "",
+        roleId: fixedRoleId ?? 6,
+        status: "active",
+        familyNumber: "",
+        dwellingId: undefined,
+        unitNumber: "",
+        gender: undefined,
+      });
+    }
+  }, [isOpen, fixedRoleId, reset]);
+
+  // Fetch dwellings when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchDwellings = async () => {
+      setIsLoadingDwellings(true);
+      try {
+        const res = await fetch("/api/dwellings");
+        if (res.ok) {
+          const data = await res.json();
+          setDwellings(data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat hunian:", err);
+      } finally {
+        setIsLoadingDwellings(false);
+      }
+    };
+
+    fetchDwellings();
+  }, [isOpen]);
 
   const handleClose = () => {
     reset();
@@ -155,30 +215,124 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
               />
             </div>
 
-            {/* Pilihan Peran */}
-            <div>
-              <label className="block text-xs font-bold text-gray-heading-main uppercase tracking-wider mb-2">
-                Peran Akses / Role
-              </label>
-              <Controller
-                control={control}
-                name="roleId"
-                render={({ field }) => (
-                  <CustomSelect
-                    value={field.value.toString()}
-                    onChange={(val) => field.onChange(val ? parseInt(val, 10) : 6)}
-                    options={roles.map((r) => ({
-                      value: r.id.toString(),
-                      label: r.name,
-                    }))}
-                    placeholder="Pilih Peran Akses"
+             {/* Pilihan Peran */}
+             {!fixedRoleId && (
+               <div>
+                 <label className="block text-xs font-bold text-gray-heading-main uppercase tracking-wider mb-2">
+                   Peran Akses / Role
+                 </label>
+                 <Controller
+                   control={control}
+                   name="roleId"
+                   render={({ field }) => (
+                     <CustomSelect
+                       value={field.value.toString()}
+                       onChange={(val) => field.onChange(val ? parseInt(val, 10) : 6)}
+                       options={roles.map((r) => ({
+                         value: r.id.toString(),
+                         label: r.name,
+                       }))}
+                       placeholder="Pilih Peran Akses"
+                     />
+                   )}
+                 />
+                 {errors.roleId && (
+                   <p className="text-xs text-error mt-1">{errors.roleId.message}</p>
+                 )}
+               </div>
+             )}
+
+            {/* Conditional Warga Fields */}
+            {selectedRoleId === 6 && (
+              <div className="border-t border-gray-border pt-4 mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <h4 className="text-xs font-bold text-primary uppercase tracking-wider">
+                  Informasi Kepala Keluarga & KK
+                </h4>
+
+                <FormField
+                  id="familyNumber"
+                  label="Nomor Kartu Keluarga (KK)"
+                  type="text"
+                  required={true}
+                  placeholder="16 digit nomor KK"
+                  registerProps={register("familyNumber")}
+                  icon={CreditCard}
+                  error={errors.familyNumber?.message}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Dwelling Allocation */}
+                  <div className="space-y-1">
+                    {isLoadingDwellings ? (
+                      <div className="flex items-center gap-2 py-2 px-3 border border-gray-border rounded-xl bg-gray-sidebar-hover text-gray-placeholder text-sm">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        Memuat hunian...
+                      </div>
+                    ) : (
+                      <Controller
+                        name="dwellingId"
+                        control={control}
+                        render={({ field }) => (
+                          <CustomSelect
+                            label="Alamat Rumah / Hunian"
+                            required={true}
+                            value={field.value ? field.value.toString() : ""}
+                            onChange={(val) => field.onChange(val ? Number(val) : undefined)}
+                            options={dwellings.map((d) => ({
+                              value: d.id.toString(),
+                              label: d.label || `Blok ${d.blockNumber} No. ${d.houseNumber}`,
+                            }))}
+                            placeholder="Pilih Hunian..."
+                          />
+                        )}
+                      />
+                    )}
+                    {errors.dwellingId && (
+                      <p className="text-xs font-semibold text-error mt-0.5">
+                        {errors.dwellingId.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Unit Number */}
+                  <FormField
+                    id="unitNumber"
+                    label="Nomor Unit (Opsional)"
+                    type="text"
+                    placeholder="Contoh: A-10"
+                    registerProps={register("unitNumber")}
+                    icon={Home}
+                    error={errors.unitNumber?.message}
                   />
-                )}
-              />
-              {errors.roleId && (
-                <p className="text-xs text-error mt-1">{errors.roleId.message}</p>
-              )}
-            </div>
+                </div>
+
+                {/* Gender Select */}
+                <div className="space-y-1">
+                  <Controller
+                    name="gender"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomSelect
+                        label="Jenis Kelamin Kepala Keluarga"
+                        required={true}
+                        value={field.value || ""}
+                        onChange={(val) => field.onChange(val || undefined)}
+                        options={[
+                          { value: "L", label: "Laki-laki" },
+                          { value: "P", label: "Perempuan" },
+                        ]}
+                        placeholder="Pilih Jenis Kelamin..."
+                      />
+                    )}
+                  />
+                  {errors.gender && (
+                    <p className="text-xs font-semibold text-error mt-0.5">
+                      {errors.gender.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions Footer */}

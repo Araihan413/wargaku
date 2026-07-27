@@ -25,6 +25,7 @@ import { CoordinatorTable, CoordinatorItem } from "./_components/CoordinatorTabl
 import { AddCoordinatorModal } from "./_components/AddCoordinatorModal";
 import { EditCoordinatorModal } from "./_components/EditCoordinatorModal";
 import { CoordinatorDetailModal } from "./_components/CoordinatorDetailModal";
+import { AddUserModal } from "../users/_components/AddUserModal";
 
 export default function ResidentsPage() {
   const [activeTab, setActiveTab] = useState<"kk" | "penyewa" | "hunian" | "koordinator">("kk");
@@ -87,6 +88,7 @@ export default function ResidentsPage() {
   const [isDetailCoordinatorOpen, setIsDetailCoordinatorOpen] = useState(false);
 
   // Disable KK Confirmation states
+  const [isAddWargaOpen, setIsAddWargaOpen] = useState(false);
   const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
   const [selectedFamilyForDisable, setSelectedFamilyForDisable] = useState<FamilyItem | null>(null);
   const [isDisabling, setIsDisabling] = useState(false);
@@ -389,6 +391,16 @@ export default function ResidentsPage() {
           >
             <Plus className="h-4.5 w-4.5" />
             Tambah Hunian
+          </button>
+        )}
+
+        {activeTab === "kk" && (
+          <button
+            onClick={() => setIsAddWargaOpen(true)}
+            className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
+          >
+            <Plus className="h-4.5 w-4.5" />
+            Tambah Akun Warga
           </button>
         )}
 
@@ -887,6 +899,17 @@ export default function ResidentsPage() {
           setSelectedCoordinatorForDetail(null);
         }}
         coordinator={selectedCoordinatorForDetail}
+      />
+
+      <AddUserModal
+        isOpen={isAddWargaOpen}
+        onClose={() => setIsAddWargaOpen(false)}
+        onSuccess={() => {
+          setIsAddWargaOpen(false);
+          fetchFamilies();
+        }}
+        roles={[]}
+        fixedRoleId={6}
       />
     </div>
   );

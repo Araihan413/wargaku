@@ -62,13 +62,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const allowed = await hasPermission(session.user.roleId, "manage-users");
+    const body = await request.json();
+    const validatedData = createUserSchema.parse(body);
+
+    const allowed = 
+      await hasPermission(session.user.roleId, "manage-users") ||
+      (await hasPermission(session.user.roleId, "manage-residents") && validatedData.roleId === 6);
+      
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
-    const body = await request.json();
-    const validatedData = createUserSchema.parse(body);
 
     // Check if email already exists
     const existingUserByEmail = await db
@@ -156,6 +159,9 @@ export async function POST(request: Request) {
         roleId: validatedData.roleId,
         status: validatedData.status || "active",
         emailVerified: false,
+        familyNumber: validatedData.familyNumber || null,
+        dwellingId: validatedData.dwellingId || null,
+        unitNumber: validatedData.unitNumber || null,
       });
 
       // 2. Insert account for Better Auth credentials
@@ -166,6 +172,37 @@ export async function POST(request: Request) {
         userId: userId,
         password: hashedPassword,
       });
+
+      // 3. Auto-create family records if role is Warga and status is active
+      if (validatedData.roleId === 6 && (validatedData.status || "active") === "active") {
+        if (validatedData.dwellingId && validatedData.familyNumber && validatedData.nik) {
+          const [insertFamily] = await tx.insert(schema.families).values({
+            dwellingId: validatedData.dwellingId,
+            familyNumber: validatedData.familyNumber,
+            headUserId: userId,
+            headName: validatedData.name,
+            unitNumber: validatedData.unitNumber || null,
+            verificationStatus: "verified", // Directly verified since RT/Admin created it
+            hasVerified: true,
+            lastVerifiedAt: new Date(),
+            checkInDate: new Date(),
+            isActive: true,
+          });
+
+          const familyId = insertFamily.insertId;
+
+          // Add Head of Family to familyMembers table
+          await tx.insert(schema.familyMembers).values({
+            familyId,
+            name: validatedData.name,
+            nik: validatedData.nik,
+            relationship: "Kepala_Keluarga",
+            gender: validatedData.gender || "L",
+            phone: validatedData.phone || null,
+            isActive: true,
+          });
+        }
+      }
 
       return {
         id: userId,

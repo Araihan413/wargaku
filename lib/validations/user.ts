@@ -30,6 +30,11 @@ export const createUserSchema = z.object({
   }).int().positive(),
   
   status: z.enum(["pending", "active", "suspended"]),
+
+  familyNumber: z.string().optional().nullable().or(z.literal("")),
+  dwellingId: z.number().optional().nullable(),
+  unitNumber: z.string().optional().nullable().or(z.literal("")),
+  gender: z.enum(["L", "P"]).optional().nullable(),
 }).superRefine((data, ctx) => {
   // Jika perannya bukan Super Admin (roleId != 1), maka NIK wajib diisi dan harus tepat 16 digit angka
   if (data.roleId !== 1) {
@@ -53,6 +58,39 @@ export const createUserSchema = z.object({
         code: z.ZodIssueCode.custom,
         path: ["nik"],
         message: "NIK harus terdiri dari 16 digit angka jika diisi",
+      });
+    }
+  }
+
+  // Jika peran adalah Warga (6), maka Nomor KK, Alamat Hunian, dan Jenis Kelamin wajib diisi
+  if (data.roleId === 6) {
+    if (!data.familyNumber || data.familyNumber.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["familyNumber"],
+        message: "Nomor KK wajib diisi untuk peran Warga",
+      });
+    } else if (!/^[0-9]{16}$/.test(data.familyNumber)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["familyNumber"],
+        message: "Nomor KK harus terdiri dari 16 digit angka",
+      });
+    }
+
+    if (!data.dwellingId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["dwellingId"],
+        message: "Alamat Hunian wajib dipilih untuk peran Warga",
+      });
+    }
+
+    if (!data.gender) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["gender"],
+        message: "Jenis Kelamin wajib dipilih untuk peran Warga",
       });
     }
   }

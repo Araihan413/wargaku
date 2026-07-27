@@ -91,7 +91,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   Nomor Induk Kependudukan (NIK)
                 </span>
                 <span className="text-sm font-semibold font-mono text-gray-heading-main">
-                  {user.nik || "Tidak Terdaftar (-)"}
+                  {user.nik || "-"}
                 </span>
               </div>
             </div>
@@ -106,7 +106,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   Nomor Telepon
                 </span>
                 <span className="text-sm font-semibold text-gray-heading-main">
-                  {user.phone || "Tidak Ada (-)"}
+                  {user.phone || "-"}
                 </span>
               </div>
             </div>
