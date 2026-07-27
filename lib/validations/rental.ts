@@ -24,22 +24,24 @@ export const createRentalPropertySchema = z.object({
   coordinatorPhone: z.preprocess(
     (val) => (typeof val === 'string' ? val.replace(/[-\s]/g, '') : val),
     z.string()
-      .regex(indonesianPhoneRegex, 'Nomor HP/WhatsApp koordinator tidak valid. Gunakan format Indonesia (misal: 081234567890)')
       .optional()
       .nullable()
-      .or(z.literal(''))
-      .or(z.literal(null))
+      .refine(
+        (val) => !val || indonesianPhoneRegex.test(val),
+        { message: 'Nomor HP/WhatsApp koordinator tidak valid. Gunakan format Indonesia (misal: 081234567890)' }
+      )
   ),
   contactPerson: z.string().max(100, 'Nama kontak maksimal 100 karakter').optional().nullable(),
   
   phone: z.preprocess(
     (val) => (typeof val === 'string' ? val.replace(/[-\s]/g, '') : val),
     z.string()
-      .regex(indonesianPhoneRegex, 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)')
       .optional()
       .nullable()
-      .or(z.literal(''))
-      .or(z.literal(null))
+      .refine(
+        (val) => !val || indonesianPhoneRegex.test(val),
+        { message: 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)' }
+      )
   ),
   
   totalRooms: z.number({
@@ -48,6 +50,9 @@ export const createRentalPropertySchema = z.object({
         ? 'Total kamar wajib diisi'
         : 'Total kamar harus berupa angka',
   }).int().nonnegative('Total kamar tidak boleh negatif').default(0),
+  notes: z.string().optional().nullable(),
+  roomPattern: z.string().optional().nullable(),
+  roomList: z.array(z.string()).optional(),
 });
 
 export const updateRentalPropertySchema = createRentalPropertySchema.partial().extend({
@@ -79,12 +84,16 @@ export const createRentalResidentSchema = z.object({
         : 'NIK harus berupa teks',
   }).regex(nikRegex, 'NIK harus terdiri dari 16 digit angka'),
   
-  phone: z.string()
-    .regex(indonesianPhoneRegex, 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)')
-    .optional()
-    .nullable()
-    .or(z.literal(''))
-    .or(z.literal(null)),
+  phone: z.preprocess(
+    (val) => (typeof val === 'string' ? val.replace(/[-\s]/g, '') : val),
+    z.string()
+      .optional()
+      .nullable()
+      .refine(
+        (val) => !val || indonesianPhoneRegex.test(val),
+        { message: 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)' }
+      )
+  ),
     
   originAddress: z.string().optional().nullable(),
   occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable(),
@@ -108,6 +117,7 @@ export const createRentalResidentSchema = z.object({
         ? 'Scan KTP wajib diunggah untuk anak kos'
         : 'Scan KTP harus berupa teks',
   }).min(1, 'Scan KTP wajib diunggah untuk anak kos').max(255),
+  notes: z.string().optional().nullable(),
 });
 
 export const updateRentalResidentSchema = createRentalResidentSchema.partial().extend({
@@ -139,4 +149,5 @@ export const checkOutResidentSchema = z.object({
         ? 'Alasan tidak aktif wajib diisi'
         : 'Alasan tidak aktif tidak valid',
   }),
+  notes: z.string().optional().nullable(),
 });
