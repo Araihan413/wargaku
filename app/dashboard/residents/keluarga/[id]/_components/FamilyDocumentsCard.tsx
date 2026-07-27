@@ -1,12 +1,22 @@
-import React from "react";
-import { FileText, Download, Eye, AlertTriangle, UserCheck, ShieldAlert } from "lucide-react";
+import React, { useState } from "react";
+import { FileText, Download, Eye, AlertTriangle, UserCheck, ShieldAlert, Upload } from "lucide-react";
 import { FamilyDetail } from "../../../types";
+import { toast } from "sonner";
+import { uploadFileToCloudinary } from "@/lib/upload-helper";
+import { FileUploadModal } from "@/components/FileUploadModal";
 
 interface FamilyDocumentsCardProps {
   familyDetail: FamilyDetail;
+  onRefresh?: () => void;
 }
 
-export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ familyDetail }) => {
+export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ familyDetail, onRefresh }) => {
+  const [showKkUploadForm, setShowKkUploadForm] = useState(false);
+  const [isUploadingKK, setIsUploadingKK] = useState(false);
+  const [showKtpUploadForm, setShowKtpUploadForm] = useState(false);
+  const [isUploadingKtp, setIsUploadingKtp] = useState(false);
+  const [selectedMemberForKtp, setSelectedMemberForKtp] = useState<any>(null);
+
   const downloadFile = async (url: string, filename: string) => {
     try {
       const response = await fetch(url);
@@ -22,6 +32,90 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
     } catch {
       window.open(url, "_blank");
     }
+  };
+
+  const saveKKFileToDB = async (url: string) => {
+    setIsUploadingKK(true);
+    try {
+      const res = await fetch(`/api/families/${familyDetail.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kkFile: url }),
+      });
+
+      if (res.ok) {
+        toast.success("Berkas Scan KK berhasil disimpan!");
+        setShowKkUploadForm(false);
+        onRefresh?.();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal menyimpan berkas Scan KK");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsUploadingKK(false);
+    }
+  };
+
+  const handleSelectLocalKK = async (file: File) => {
+    setIsUploadingKK(true);
+    try {
+      const res = await uploadFileToCloudinary(file, "kk");
+      await saveKKFileToDB(res.url);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploadingKK(false);
+    }
+  };
+
+  const handleSelectDriveKK = async (url: string) => {
+    await saveKKFileToDB(url);
+  };
+
+  const saveKtpFileToDB = async (memberId: number, url: string) => {
+    setIsUploadingKtp(true);
+    try {
+      const res = await fetch(`/api/warga/${memberId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ktpFile: url }),
+      });
+
+      if (res.ok) {
+        toast.success("Berkas Scan KTP berhasil disimpan!");
+        setShowKtpUploadForm(false);
+        onRefresh?.();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal menyimpan berkas Scan KTP");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsUploadingKtp(false);
+    }
+  };
+
+  const handleSelectLocalKtp = async (file: File) => {
+    if (!selectedMemberForKtp) return;
+    setIsUploadingKtp(true);
+    try {
+      const res = await uploadFileToCloudinary(file, "ktp");
+      await saveKtpFileToDB(selectedMemberForKtp.id, res.url);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploadingKtp(false);
+    }
+  };
+
+  const handleSelectDriveKtp = async (url: string) => {
+    if (!selectedMemberForKtp) return;
+    await saveKtpFileToDB(selectedMemberForKtp.id, url);
   };
 
   const getRelationshipLabel = (rel: string) => {
@@ -83,27 +177,48 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
             )}
           </div>
 
-          {familyDetail.kkFile && (
-            <div className="flex flex-col sm:flex-row gap-2 pt-2">
-              <a
-                href={familyDetail.kkFile}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-bold text-gray-heading-main transition-all cursor-pointer bg-white"
-              >
-                <Eye className="h-4 w-4 text-gray-secondary-text" />
-                Buka
-              </a>
+          <div className="flex flex-col gap-2 pt-2">
+            {familyDetail.kkFile ? (
+              <>
+                <div className="flex gap-2">
+                  <a
+                    href={familyDetail.kkFile}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-bold text-gray-heading-main transition-all cursor-pointer bg-white"
+                  >
+                    <Eye className="h-4 w-4 text-gray-secondary-text" />
+                    Buka
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => downloadFile(familyDetail.kkFile!, `KK_${familyDetail.familyNumber}.jpg`)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <Download className="h-4 w-4" />
+                    Unduh KK
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowKkUploadForm(true)}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  <Upload className="h-4 w-4" />
+                  Ganti Berkas KK
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
-                onClick={() => downloadFile(familyDetail.kkFile!, `KK_${familyDetail.familyNumber}.jpg`)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                onClick={() => setShowKkUploadForm(true)}
+                className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
-                <Download className="h-4 w-4" />
-                Unduh KK
+                <Upload className="h-4 w-4" />
+                Unggah Scan KK
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* KOLOM KANAN: DOKUMEN KTP ANGGOTA KELUARGA */}
@@ -152,12 +267,38 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
                           <Download className="h-3.5 w-3.5" />
                           Unduh
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMemberForKtp(m);
+                            setShowKtpUploadForm(true);
+                          }}
+                          className="inline-flex items-center justify-center gap-1 px-3 py-1.5 border border-gray-border rounded-lg hover:bg-gray-sidebar-hover text-[10px] font-bold text-gray-heading-main transition-all cursor-pointer bg-white"
+                          title="Ganti Berkas KTP"
+                        >
+                          <Upload className="h-3.5 w-3.5 text-gray-secondary-text" />
+                          Ganti
+                        </button>
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-1 border border-amber-100 rounded-lg">
-                        <ShieldAlert className="h-3.5 w-3.5" />
-                        KTP Belum Diunggah
-                      </span>
+                      <>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-1 border border-amber-100 rounded-lg">
+                          <ShieldAlert className="h-3.5 w-3.5" />
+                          KTP Belum Diunggah
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMemberForKtp(m);
+                            setShowKtpUploadForm(true);
+                          }}
+                          className="inline-flex items-center justify-center gap-1 px-3 py-1.5 border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-[10px] font-bold text-primary rounded-lg transition-all cursor-pointer"
+                          title="Unggah Berkas KTP"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          Unggah KTP
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -170,6 +311,31 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
           </div>
         </div>
       </div>
+
+      {/* File Upload Modal untuk KK */}
+      <FileUploadModal
+        isOpen={showKkUploadForm}
+        onClose={() => setShowKkUploadForm(false)}
+        title="Unggah Berkas Scan KK"
+        description="Pilih metode pengunggahan berkas scan Kartu Keluarga (KK) dari perangkat lokal atau masukkan tautan Google Drive."
+        onSelectLocalFile={handleSelectLocalKK}
+        onSelectDriveUrl={handleSelectDriveKK}
+        isLoading={isUploadingKK}
+      />
+
+      {/* File Upload Modal untuk KTP Anggota */}
+      <FileUploadModal
+        isOpen={showKtpUploadForm}
+        onClose={() => {
+          setShowKtpUploadForm(false);
+          setSelectedMemberForKtp(null);
+        }}
+        title={`Unggah Scan KTP - ${selectedMemberForKtp?.name || ""}`}
+        description="Pilih metode pengunggahan berkas scan KTP dari perangkat lokal atau masukkan tautan Google Drive."
+        onSelectLocalFile={handleSelectLocalKtp}
+        onSelectDriveUrl={handleSelectDriveKtp}
+        isLoading={isUploadingKtp}
+      />
     </div>
   );
 };

@@ -9,36 +9,7 @@ import { createRentalResidentSchema } from "@/lib/validations/rental";
 import { FileUploadModal } from "@/components/FileUploadModal";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
-
-const commonOccupations = [
-  "Belum/Tidak Bekerja",
-  "Mengurus Rumah Tangga",
-  "Pelajar/Mahasiswa",
-  "Pensiunan",
-  "Pegawai Negeri Sipil (PNS)",
-  "Tentara Nasional Indonesia (TNI)",
-  "Kepolisian RI (POLRI)",
-  "Karyawan Swasta",
-  "Karyawan BUMN",
-  "Karyawan BUMD",
-  "Buruh Harian Lepas",
-  "Petani/Pekebun",
-  "Nelayan",
-  "Pedagang",
-  "Wiraswasta",
-];
-
-const commonEducations = [
-  "Tidak/Belum Sekolah",
-  "SD / Sederajat",
-  "SMP / Sederajat",
-  "SMA / SMK / Sederajat",
-  "Diploma I / II",
-  "Akademi / Diploma III (D3)",
-  "Diploma IV / Sarjana (S1)",
-  "Magister (S2)",
-  "Doktor (S3)",
-];
+import { commonOccupations, commonEducations } from "@/lib/constants";
 
 interface CheckInTenantModalProps {
   isOpen: boolean;
@@ -94,6 +65,7 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     control,
     setValue,
     reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(createRentalResidentSchema),
@@ -222,6 +194,18 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 400 && result.issues && Array.isArray(result.issues)) {
+          result.issues.forEach((issue: any) => {
+            const path = issue.path[0];
+            if (path) {
+              setError(path, {
+                type: "server",
+                message: issue.message,
+              });
+            }
+          });
+          throw new Error("Validasi gagal. Silakan periksa kembali isian form.");
+        }
         throw new Error(result.error || "Gagal melakukan check-in penyewa");
       }
 
@@ -303,6 +287,11 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
                     />
                   )}
                 />
+                {errors.tenantType && (
+                  <p className="text-xs text-error font-semibold mt-1">
+                    {errors.tenantType.message as string}
+                  </p>
+                )}
               </div>
 
               {/* Room/Kamar Number */}
@@ -448,6 +437,11 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
                     />
                   )}
                 />
+                {errors.religion && (
+                  <p className="text-xs text-error font-semibold mt-1">
+                    {errors.religion.message as string}
+                  </p>
+                )}
               </div>
             </div>
 

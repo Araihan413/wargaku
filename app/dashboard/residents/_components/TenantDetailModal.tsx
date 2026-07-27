@@ -202,15 +202,15 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                 </div>
               </div>
 
-              {resident.checkOutDate && (
-                <div className="flex gap-3 items-start">
-                  <Calendar className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Tanggal Keluar</span>
-                    <span className="text-xs font-semibold text-red-600">{formatDate(resident.checkOutDate)}</span>
-                  </div>
+              <div className="flex gap-3 items-start">
+                <Calendar className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Tanggal Keluar</span>
+                  <span className={`text-xs font-semibold ${resident.checkOutDate ? "text-red-600" : "text-gray-heading-main"}`}>
+                    {resident.checkOutDate ? formatDate(resident.checkOutDate) : "-"}
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
@@ -220,7 +220,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
           <div className="space-y-2">
             <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Alamat Asal</span>
             <div className="text-xs text-gray-heading-main bg-gray-sidebar-hover/10 p-3 rounded-xl border border-gray-border leading-relaxed">
-              {resident.originAddress || "Tidak diisi"}
+              {resident.originAddress || "-"}
             </div>
           </div>
 

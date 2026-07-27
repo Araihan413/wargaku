@@ -114,6 +114,7 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
   }));
 
   const verificationOptions: SelectOption[] = [
+    { value: "draft", label: "Draft" },
     { value: "pending", label: "Pending" },
     { value: "verified", label: "Terverifikasi" },
     { value: "rejected", label: "Ditolak" },

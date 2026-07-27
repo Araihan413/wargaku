@@ -42,10 +42,10 @@ export const KKTable: React.FC<KKTableProps> = ({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
-              <th className="py-4 px-5">No. Kartu Keluarga</th>
+              <th className="py-4 px-5">Nomor KK</th>
               <th className="py-4 px-5">Kepala Keluarga</th>
               <th className="py-4 px-5">Alamat Alokasi</th>
-              <th className="py-4 px-5 text-center">Anggota</th>
+              <th className="py-4 px-5 text-center">Jumlah Anggota</th>
               <th className="py-4 px-5">Status Verifikasi</th>
               <th className="py-4 px-5">Status Keaktifan</th>
               <th className="py-4 px-5 text-right">Aksi</th>
@@ -86,7 +86,7 @@ export const KKTable: React.FC<KKTableProps> = ({
                       <div >
                         <span className="text-gray-heading-main font-medium">{addressStr}</span>
                         {f.unitNumber && (
-                          <span className="ml-1.5 text-[10px] bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-gray-secondary-text">
+                          <span className="ml-1.5 text-[10px] font-semibold bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-gray-secondary-text">
                             {f.unitNumber}
                           </span>
                         )}

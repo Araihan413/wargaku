@@ -261,6 +261,7 @@ export default function StandaloneWargaFamilyPage() {
           if (familyId) fetchFamilyDetails(familyId);
         }}
         member={selectedMemberForEdit}
+        isLocked={isLocked}
       />
 
       {/* Delete Member Modal */}

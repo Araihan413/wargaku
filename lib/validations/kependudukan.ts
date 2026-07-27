@@ -81,7 +81,7 @@ export const updateFamilySchema = createFamilySchema.partial().extend({
         : 'Format tanggal masuk tidak valid',
   }).optional()),
   isActive: z.boolean().optional(),
-  verificationStatus: z.enum(['pending', 'verified', 'rejected']).optional(),
+  verificationStatus: z.enum(['draft', 'pending', 'verified', 'rejected']).optional(),
   verificationNote: z.string().optional().nullable(),
   hasVerified: z.boolean().optional(),
   lastVerifiedAt: z.preprocess((arg) => {

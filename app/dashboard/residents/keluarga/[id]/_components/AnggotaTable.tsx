@@ -1,9 +1,10 @@
 import React from "react";
-import { Pencil, Trash2, ShieldAlert, RotateCcw, ArrowRightLeft } from "lucide-react";
+import { Pencil, Trash2, ShieldAlert, RotateCcw, ArrowRightLeft, Eye } from "lucide-react";
 import { FamilyMemberItem } from "../../../types";
 
 interface AnggotaTableProps {
   members: FamilyMemberItem[];
+  onViewDetail: (member: FamilyMemberItem) => void;
   onEdit: (member: FamilyMemberItem) => void;
   onDisable: (member: FamilyMemberItem) => void;
   onReactivate: (member: FamilyMemberItem) => void;
@@ -12,6 +13,7 @@ interface AnggotaTableProps {
 
 export const AnggotaTable: React.FC<AnggotaTableProps> = ({
   members,
+  onViewDetail,
   onEdit,
   onDisable,
   onReactivate,
@@ -153,6 +155,15 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
                     </td>
                     <td className="py-4 px-5 text-right">
                       <div className="flex justify-end items-center gap-1.5">
+                        {/* Detail Anggota */}
+                        <button
+                          onClick={() => onViewDetail(m)}
+                          title="Lihat Detail"
+                          className="p-1.5 text-gray-secondary-text hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer transition-colors"
+                        >
+                          <Eye className="h-4.5 w-4.5" />
+                        </button>
+
                         {/* Edit Anggota */}
                         {m.isActive && (
                           <button

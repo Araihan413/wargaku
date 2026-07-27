@@ -72,8 +72,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
               <th className="py-4 px-5">Properti & Kamar</th>
               <th className="py-4 px-5">Tipe</th>
               <th className="py-4 px-5">Check-In</th>
-              <th className="py-4 px-5">Verifikasi</th>
-              <th className="py-4 px-5">Keaktifan</th>
+              <th className="py-4 px-5">Status Verifikasi</th>
+              <th className="py-4 px-5">Status Keaktifan</th>
               <th className="py-4 px-5 text-right">Aksi</th>
             </tr>
           </thead>

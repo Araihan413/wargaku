@@ -6,7 +6,7 @@ export interface FamilyItem {
   dwellingId: number;
   unitNumber?: string | null;
   kkFile?: string | null;
-  verificationStatus: "pending" | "verified" | "rejected";
+  verificationStatus: "draft" | "pending" | "verified" | "rejected";
   verificationNote?: string | null;
   checkInDate: string;
   checkOutDate?: string | null;
@@ -49,7 +49,7 @@ export interface FamilyDetail {
   headName: string;
   unitNumber?: string | null;
   kkFile?: string | null;
-  verificationStatus: "pending" | "verified" | "rejected";
+  verificationStatus: "draft" | "pending" | "verified" | "rejected";
   verificationNote?: string | null;
   checkInDate: string;
   checkOutDate?: string | null;

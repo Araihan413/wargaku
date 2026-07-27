@@ -41,7 +41,7 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
       <div className="overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover/10 text-[10px] font-bold text-gray-placeholder uppercase tracking-wider">
+            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
               <th className="py-4 px-5">Nama & NIK</th>
               <th className="py-4 px-5">Kontak</th>
               <th className="py-4 px-5 text-center">Kelola Properti</th>
@@ -49,7 +49,7 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
               <th className="py-4 px-5 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-border text-xs text-gray-body-text-btn">
+          <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
             {isLoading ? (
               <tr>
                 <td colSpan={5} className="py-16 text-center">

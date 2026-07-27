@@ -12,6 +12,7 @@ import { NonaktifkanAnggotaModal } from "./_components/NonaktifkanAnggotaModal";
 import { PindahKKModal } from "./_components/PindahKKModal";
 import { GantiKepalaKeluargaModal } from "./_components/GantiKepalaKeluargaModal";
 import { FamilyDocumentsCard } from "./_components/FamilyDocumentsCard";
+import { DetailAnggotaModal } from "./_components/DetailAnggotaModal";
 import { FamilyDetail, FamilyMemberItem } from "../../types";
 
 interface PageProps {
@@ -29,6 +30,8 @@ export default function FamilyDetailPage({ params }: PageProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedMemberForEdit, setSelectedMemberForEdit] = useState<FamilyMemberItem | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedMemberForDetail, setSelectedMemberForDetail] = useState<FamilyMemberItem | null>(null);
   const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
   const [selectedMemberForDisable, setSelectedMemberForDisable] = useState<FamilyMemberItem | null>(null);
   const [isPindahModalOpen, setIsPindahModalOpen] = useState(false);
@@ -150,11 +153,15 @@ export default function FamilyDetailPage({ params }: PageProps) {
       />
 
       {/* Family Documents Download & View Section */}
-      <FamilyDocumentsCard familyDetail={familyDetail} />
+      <FamilyDocumentsCard familyDetail={familyDetail} onRefresh={fetchFamilyDetails} />
 
       {/* Family Members Table */}
       <AnggotaTable
         members={familyDetail.members || []}
+        onViewDetail={(member) => {
+          setSelectedMemberForDetail(member);
+          setIsDetailModalOpen(true);
+        }}
         onEdit={(member) => {
           setSelectedMemberForEdit(member);
           setIsEditModalOpen(true);
@@ -193,6 +200,7 @@ export default function FamilyDetailPage({ params }: PageProps) {
           fetchFamilyDetails();
         }}
         member={selectedMemberForEdit}
+        familyVerificationStatus={familyDetail.verificationStatus}
       />
 
       <NonaktifkanAnggotaModal
@@ -240,6 +248,16 @@ export default function FamilyDetailPage({ params }: PageProps) {
         familyId={familyId}
         members={familyDetail.members || []}
         currentHeadName={familyDetail.headName}
+      />
+
+      {/* Detail Anggota Modal */}
+      <DetailAnggotaModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedMemberForDetail(null);
+        }}
+        member={selectedMemberForDetail}
       />
     </div>
   );

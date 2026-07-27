@@ -93,7 +93,7 @@ export const CoordinatorDetailModal: React.FC<CoordinatorDetailModalProps> = ({
                 <CreditCard className="h-4 w-4 text-gray-placeholder mt-0.5" />
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-gray-placeholder font-medium block">NIK (Nomor Induk Kependudukan)</span>
-                  <span className="text-xs font-semibold text-gray-heading-main font-mono">{coordinator.nik || "Tidak diisi"}</span>
+                  <span className="text-xs font-semibold text-gray-heading-main font-mono">{coordinator.nik || "-"}</span>
                 </div>
               </div>
 
@@ -111,7 +111,7 @@ export const CoordinatorDetailModal: React.FC<CoordinatorDetailModalProps> = ({
                 <Phone className="h-4 w-4 text-gray-placeholder mt-0.5" />
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-gray-placeholder font-medium block">Nomor HP / WhatsApp</span>
-                  <span className="text-xs font-semibold text-gray-heading-main">{coordinator.phone || "Tidak diisi"}</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">{coordinator.phone || "-"}</span>
                 </div>
               </div>
             </div>

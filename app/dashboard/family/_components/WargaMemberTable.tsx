@@ -185,33 +185,33 @@ export const WargaMemberTable: React.FC<WargaMemberTableProps> = ({
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
-                        {isLocked ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-placeholder">
-                            <Lock className="h-3 w-3" /> Terkunci
-                          </span>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onEditMember(member)}
+                            className="rounded-lg p-1.5 text-gray-secondary-text hover:text-primary hover:bg-gray-sidebar-hover cursor-pointer transition-colors"
+                            title={isLocked ? "Ubah Data Kontak & Pekerjaan" : "Edit Data & Upload KTP"}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+
+                          {!isHead && !isLocked && (
                             <button
                               type="button"
-                              onClick={() => onEditMember(member)}
-                              className="rounded-lg p-1.5 text-gray-secondary-text hover:text-primary hover:bg-gray-sidebar-hover cursor-pointer transition-colors"
-                              title="Edit Data & Upload KTP"
+                              onClick={() => onDeleteMember(member)}
+                              className="rounded-lg p-1.5 text-gray-secondary-text hover:text-error hover:bg-error/10 cursor-pointer transition-colors"
+                              title="Hapus Anggota"
                             >
-                              <Edit2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
+                          )}
 
-                            {!isHead && (
-                              <button
-                                type="button"
-                                onClick={() => onDeleteMember(member)}
-                                className="rounded-lg p-1.5 text-gray-secondary-text hover:text-error hover:bg-error/10 cursor-pointer transition-colors"
-                                title="Hapus Anggota"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        )}
+                          {isLocked && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-gray-placeholder cursor-help" title="Data identitas dikunci oleh RT. Hubungi RT atau ajukan perubahan data KK untuk membuka kunci penuh.">
+                              <Lock className="h-3 w-3" /> Terkunci
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

@@ -8,36 +8,7 @@ import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { FileUploadModal } from "@/components/FileUploadModal";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
-
-const commonOccupations = [
-  "Belum/Tidak Bekerja",
-  "Mengurus Rumah Tangga",
-  "Pelajar/Mahasiswa",
-  "Pensiunan",
-  "Pegawai Negeri Sipil (PNS)",
-  "Tentara Nasional Indonesia (TNI)",
-  "Kepolisian RI (POLRI)",
-  "Karyawan Swasta",
-  "Karyawan BUMN",
-  "Karyawan BUMD",
-  "Buruh Harian Lepas",
-  "Petani/Pekebun",
-  "Nelayan",
-  "Pedagang",
-  "Wiraswasta",
-];
-
-const commonEducations = [
-  "Tidak/Belum Sekolah",
-  "SD / Sederajat",
-  "SMP / Sederajat",
-  "SMA / SMK / Sederajat",
-  "Diploma I / II",
-  "Akademi / Diploma III (D3)",
-  "Diploma IV / Sarjana (S1)",
-  "Magister (S2)",
-  "Doktor (S3)",
-];
+import { commonOccupations, commonEducations } from "@/lib/constants";
 
 const relationshipOptions: SelectOption[] = [
   { value: "Istri", label: "Istri" },
@@ -198,23 +169,23 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Nama */}
             <div className="space-y-1 sm:col-span-2">
-              <label className="block text-xs font-bold text-gray-heading-main">
-                Nama Lengkap <span className="text-error">*</span>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Nama Lengkap <span className="text-red-500 ml-0.5">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Contoh: Siti Rahmawati"
-                className="w-full rounded-xl border border-gray-border bg-gray-page-bg px-3.5 py-2 text-xs text-gray-heading-main focus:border-primary focus:outline-none"
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 required
               />
             </div>
 
             {/* NIK */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">
-                NIK (16 Digit) <span className="text-error">*</span>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                NIK (16 Digit) <span className="text-red-500 ml-0.5">*</span>
               </label>
               <input
                 type="text"
@@ -222,78 +193,74 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
                 value={nik}
                 onChange={(e) => setNik(e.target.value.replace(/\D/g, ""))}
                 placeholder="327301..."
-                className="w-full rounded-xl border border-gray-border bg-gray-page-bg px-3.5 py-2 text-xs font-mono text-gray-heading-main focus:border-primary focus:outline-none"
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm font-mono text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 required
               />
             </div>
 
             {/* Hubungan */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">
-                Hubungan Keluarga <span className="text-error">*</span>
-              </label>
               <CustomSelect
+                label="Hubungan Keluarga"
+                required={true}
                 value={relationship}
                 onChange={(val) => setRelationship(val as any)}
                 options={relationshipOptions}
                 placeholder="-- Pilih Hubungan --"
-                size="sm"
               />
             </div>
 
             {/* Gender */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">
-                Jenis Kelamin <span className="text-error">*</span>
-              </label>
               <CustomSelect
+                label="Jenis Kelamin"
+                required={true}
                 value={gender}
                 onChange={(val) => setGender(val as any)}
                 options={genderOptions}
                 placeholder="-- Pilih Jenis Kelamin --"
-                size="sm"
               />
             </div>
 
             {/* No HP */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">No. HP / WA</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">No. HP / WA</label>
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="081234..."
-                className="w-full rounded-xl border border-gray-border bg-gray-page-bg px-3.5 py-2 text-xs text-gray-heading-main focus:border-primary focus:outline-none"
+                c bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
             {/* Tempat Lahir */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Tempat Lahir</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tempat Lahir</label>
               <input
                 type="text"
                 value={birthPlace}
                 onChange={(e) => setBirthPlace(e.target.value)}
                 placeholder="Contoh: Bandung"
-                className="w-full rounded-xl border border-gray-border bg-gray-page-bg px-3.5 py-2 text-xs text-gray-heading-main focus:border-primary focus:outline-none"
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
             {/* Tanggal Lahir */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Tanggal Lahir</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tanggal Lahir</label>
               <input
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full rounded-xl border border-gray-border bg-gray-page-bg px-3.5 py-2 text-xs text-gray-heading-main focus:border-primary focus:outline-none"
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
             {/* Pekerjaan */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Pekerjaan</label>
               <AutocompleteInput
+                label="Pekerjaan"
                 value={occupation}
                 onChange={setOccupation}
                 suggestions={commonOccupations}
@@ -303,8 +270,8 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
 
             {/* Pendidikan */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Pendidikan</label>
               <AutocompleteInput
+                label="Pendidikan"
                 value={educationLevel}
                 onChange={setEducationLevel}
                 suggestions={commonEducations}
@@ -314,13 +281,12 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
 
             {/* Agama */}
             <div className="space-y-1 sm:col-span-2">
-              <label className="block text-xs font-bold text-gray-heading-main">Agama</label>
               <CustomSelect
+                label="Agama"
                 value={religion}
                 onChange={(val) => setReligion(val)}
                 options={religionOptions}
                 placeholder="-- Pilih Agama --"
-                size="sm"
               />
             </div>
 

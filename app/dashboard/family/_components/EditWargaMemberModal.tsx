@@ -9,36 +9,7 @@ import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { FileUploadModal } from "@/components/FileUploadModal";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
-
-const commonOccupations = [
-  "Belum/Tidak Bekerja",
-  "Mengurus Rumah Tangga",
-  "Pelajar/Mahasiswa",
-  "Pensiunan",
-  "Pegawai Negeri Sipil (PNS)",
-  "Tentara Nasional Indonesia (TNI)",
-  "Kepolisian RI (POLRI)",
-  "Karyawan Swasta",
-  "Karyawan BUMN",
-  "Karyawan BUMD",
-  "Buruh Harian Lepas",
-  "Petani/Pekebun",
-  "Nelayan",
-  "Pedagang",
-  "Wiraswasta",
-];
-
-const commonEducations = [
-  "Tidak/Belum Sekolah",
-  "SD / Sederajat",
-  "SMP / Sederajat",
-  "SMA / SMK / Sederajat",
-  "Diploma I / II",
-  "Akademi / Diploma III (D3)",
-  "Diploma IV / Sarjana (S1)",
-  "Magister (S2)",
-  "Doktor (S3)",
-];
+import { commonOccupations, commonEducations } from "@/lib/constants";
 
 const relationshipOptions: SelectOption[] = [
   { value: "Kepala_Keluarga", label: "Kepala Keluarga" },
@@ -69,6 +40,7 @@ interface EditWargaMemberModalProps {
   onClose: () => void;
   onSuccess: () => void;
   member: WargaFamilyMember | null;
+  isLocked?: boolean;
 }
 
 export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
@@ -76,6 +48,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
   onClose,
   onSuccess,
   member,
+  isLocked = false,
 }) => {
   const [prevMember, setPrevMember] = useState<WargaFamilyMember | null>(null);
 
@@ -246,19 +219,29 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
         {/* Body Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-thin">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Locked Info Banner */}
+            {isLocked && (
+              <div className="p-4 bg-emerald-50/70 border border-emerald-100 rounded-2xl mb-2 space-y-1 text-left sm:col-span-2">
+                <span className="text-xs font-bold text-emerald-700 block">Data Keluarga Terverifikasi/Pending RT:</span>
+                <p className="text-xs text-emerald-600 leading-relaxed">
+                  Data identitas utama dikunci. Gunakan menu &quot;Ajukan Perubahan Data&quot; di halaman KK jika ingin membukanya.
+                </p>
+              </div>
+            )}
+
             {/* Nama */}
             <div className="space-y-1 sm:col-span-2">
-              <label className="text-xs font-bold text-gray-heading-main flex items-center justify-between">
-                <span>Nama Lengkap <span className="text-error">*</span></span>
-                {isHead && <span className="text-[10px] text-gray-placeholder flex items-center gap-1"><Lock className="h-3 w-3" /> Akun Utama</span>}
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Nama Lengkap <span className="text-red-500 ml-0.5">*</span>
+                {isHead && <span className="float-right text-[10px] font-normal text-gray-placeholder flex items-center gap-1"><Lock className="h-3 w-3" /> Akun Utama</span>}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                disabled={isHead}
-                className={`w-full rounded-xl border border-gray-border px-3.5 py-2 text-xs text-gray-heading-main focus:outline-none ${
-                  isHead ? "bg-gray-sidebar-hover opacity-70 cursor-not-allowed" : "bg-gray-page-bg focus:border-primary"
+                disabled={isHead || isLocked}
+                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
+                  (isHead || isLocked) ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
                 }`}
                 required
               />
@@ -266,18 +249,18 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
 
             {/* NIK */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-heading-main flex items-center justify-between">
-                <span>NIK (16 Digit) <span className="text-error">*</span></span>
-                {isHead && <span className="text-[10px] text-gray-placeholder flex items-center gap-1"><Lock className="h-3 w-3" /> Akun Utama</span>}
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                NIK (16 Digit) <span className="text-red-500 ml-0.5">*</span>
+                {isHead && <span className="float-right text-[10px] font-normal text-gray-placeholder flex items-center gap-1"><Lock className="h-3 w-3" /> Akun Utama</span>}
               </label>
               <input
                 type="text"
                 maxLength={16}
                 value={nik}
                 onChange={(e) => setNik(e.target.value.replace(/\D/g, ""))}
-                disabled={isHead}
-                className={`w-full rounded-xl border border-gray-border px-3.5 py-2 text-xs font-mono text-gray-heading-main focus:outline-none ${
-                  isHead ? "bg-gray-sidebar-hover opacity-70 cursor-not-allowed" : "bg-gray-page-bg focus:border-primary"
+                disabled={isHead || isLocked}
+                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm font-mono text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
+                  (isHead || isLocked) ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
                 }`}
                 required
               />
@@ -285,68 +268,75 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
 
             {/* Hubungan */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Hubungan Keluarga</label>
               <CustomSelect
+                label="Hubungan Keluarga"
+                required={true}
                 value={relationship}
                 onChange={(val) => setRelationship(val as any)}
                 options={relationshipOptions}
                 placeholder="-- Pilih Hubungan --"
-                disabled={isHead}
-                size="sm"
+                disabled={isHead || isLocked}
               />
             </div>
 
             {/* Gender */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Jenis Kelamin</label>
               <CustomSelect
+                label="Jenis Kelamin"
+                required={true}
                 value={gender}
                 onChange={(val) => setGender(val as any)}
                 options={genderOptions}
                 placeholder="-- Pilih Jenis Kelamin --"
-                size="sm"
+                disabled={isLocked}
               />
             </div>
 
             {/* No HP */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">No. HP / WA</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">No. HP / WA</label>
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="081234..."
-                className="w-full rounded-xl border border-gray-border bg-gray-page-bg px-3.5 py-2 text-xs text-gray-heading-main focus:border-primary focus:outline-none"
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
             {/* Tempat Lahir */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Tempat Lahir</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tempat Lahir</label>
               <input
                 type="text"
                 value={birthPlace}
                 onChange={(e) => setBirthPlace(e.target.value)}
                 placeholder="Contoh: Bandung"
-                className="w-full rounded-xl border border-gray-border bg-gray-page-bg px-3.5 py-2 text-xs text-gray-heading-main focus:border-primary focus:outline-none"
+                disabled={isLocked}
+                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
+                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
             {/* Tanggal Lahir */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Tanggal Lahir</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tanggal Lahir</label>
               <input
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full rounded-xl border border-gray-border bg-gray-page-bg px-3.5 py-2 text-xs text-gray-heading-main focus:border-primary focus:outline-none"
+                disabled={isLocked}
+                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
+                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
             {/* Pekerjaan */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Pekerjaan</label>
               <AutocompleteInput
+                label="Pekerjaan"
                 value={occupation}
                 onChange={setOccupation}
                 suggestions={commonOccupations}
@@ -356,8 +346,8 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
 
             {/* Pendidikan */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-heading-main">Pendidikan</label>
               <AutocompleteInput
+                label="Pendidikan"
                 value={educationLevel}
                 onChange={setEducationLevel}
                 suggestions={commonEducations}
@@ -367,13 +357,12 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
 
             {/* Agama */}
             <div className="space-y-1 sm:col-span-2">
-              <label className="block text-xs font-bold text-gray-heading-main">Agama</label>
               <CustomSelect
+                label="Agama"
                 value={religion}
                 onChange={(val) => setReligion(val)}
                 options={religionOptions}
                 placeholder="-- Pilih Agama --"
-                size="sm"
               />
             </div>
 
@@ -387,12 +376,13 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowKtpModal(true)}
-                  className="rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-xs font-bold text-primary flex items-center justify-center gap-2 cursor-pointer transition-colors max-w-full truncate"
+                  onClick={() => !isLocked && setShowKtpModal(true)}
+                  className={`rounded-xl border px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 transition-colors max-w-full truncate ${isLocked ? 'border-gray-border bg-gray-sidebar-hover/10 text-gray-placeholder cursor-not-allowed' : 'border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary cursor-pointer'}`}
+                  disabled={isLocked}
                 >
                   <Upload className="h-4 w-4 shrink-0" />
                   <span className="truncate">
-                    {ktpFile
+                    {isLocked ? "Berkas KTP Terkunci" : ktpFile
                       ? (ktpFile instanceof File ? ktpFile.name : "KTP Terunggah (Pilih Ulang)")
                       : "Pilih Berkas KTP"}
                   </span>

@@ -1,11 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, User, CreditCard, Calendar, Phone, Briefcase, GraduationCap, Loader2 } from "lucide-react";
+import { X, User, CreditCard, Calendar, Phone, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { createWargaSchema } from "@/lib/validations/kependudukan";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { uploadFileToCloudinary } from "@/lib/upload-helper";
+import { FileUploadModal } from "@/components/FileUploadModal";
+import { AutocompleteInput } from "@/components/AutocompleteInput";
+import { commonOccupations, commonEducations } from "@/lib/constants";
 
 interface AddAnggotaModalProps {
   isOpen: boolean;
@@ -20,6 +24,10 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
   onSuccess,
   familyId,
 }) => {
+  const [ktpFile, setKtpFile] = useState<File | string | null>(null);
+  const [showKtpModal, setShowKtpModal] = useState(false);
+  const [isUploadingKtp, setIsUploadingKtp] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -44,13 +52,39 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
     },
   });
 
+  const handleSelectLocalKtp = (file: File) => {
+    setKtpFile(file);
+    toast.success("Berkas KTP lokal berhasil dipilih!");
+  };
+
+  const handleSelectDriveKtp = (url: string) => {
+    setKtpFile(url);
+    toast.success("Tautan Google Drive KTP berhasil dipilih!");
+  };
+
   const handleClose = () => {
     reset();
+    setKtpFile(null);
     onClose();
   };
 
   const onSubmit = async (data: any) => {
+    setIsUploadingKtp(true);
     try {
+      let finalKtpUrl = null;
+      if (ktpFile instanceof File) {
+        try {
+          const uploadRes = await uploadFileToCloudinary(ktpFile, "ktp");
+          finalKtpUrl = uploadRes.url;
+        } catch (err) {
+          toast.error("Gagal mengunggah berkas KTP.");
+          setIsUploadingKtp(false);
+          return;
+        }
+      } else if (typeof ktpFile === "string") {
+        finalKtpUrl = ktpFile;
+      }
+
       const payload = {
         ...data,
         familyId: Number(familyId),
@@ -60,7 +94,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
         educationLevel: data.educationLevel || null,
         religion: data.religion || null,
         phone: data.phone || null,
-        ktpFile: data.ktpFile || null,
+        ktpFile: finalKtpUrl,
       };
 
       const res = await fetch("/api/warga", {
@@ -72,6 +106,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
       if (res.ok) {
         toast.success("Anggota keluarga baru berhasil ditambahkan");
         reset();
+        setKtpFile(null);
         onSuccess();
       } else {
         const err = await res.json();
@@ -80,6 +115,8 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
     } catch (error) {
       console.error(error);
       toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsUploadingKtp(false);
     }
   };
 
@@ -255,45 +292,125 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               {/* Occupation */}
-              <FormField
-                id="occupation"
-                label="Pekerjaan"
-                type="text"
-                placeholder="Contoh: Karyawan Swasta"
-                registerProps={register("occupation")}
-                icon={Briefcase}
-                error={errors.occupation?.message}
-              />
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                  Pekerjaan
+                </label>
+                <Controller
+                  name="occupation"
+                  control={control}
+                  render={({ field }) => (
+                    <AutocompleteInput
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      suggestions={commonOccupations}
+                      placeholder="Contoh: Karyawan Swasta"
+                    />
+                  )}
+                />
+                {errors.occupation && (
+                  <p className="text-xs font-semibold text-error mt-0.5">
+                    {errors.occupation.message}
+                  </p>
+                )}
+              </div>
 
               {/* Education Level */}
-              <FormField
-                id="educationLevel"
-                label="Pendidikan Terakhir"
-                type="text"
-                placeholder="Contoh: S1 Teknik Informatika"
-                registerProps={register("educationLevel")}
-                icon={GraduationCap}
-                error={errors.educationLevel?.message}
-              />
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                  Pendidikan Terakhir
+                </label>
+                <Controller
+                  name="educationLevel"
+                  control={control}
+                  render={({ field }) => (
+                    <AutocompleteInput
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      suggestions={commonEducations}
+                      placeholder="Contoh: S1 / SMA"
+                    />
+                  )}
+                />
+                {errors.educationLevel && (
+                  <p className="text-xs font-semibold text-error mt-0.5">
+                    {errors.educationLevel.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Scan KTP File Upload */}
+            <div className="space-y-2 border-t border-gray-border pt-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <Upload className="h-4 w-4 text-primary" />
+                  <span>Berkas Scan KTP Anggota</span>
+                </label>
+                {isUploadingKtp && (
+                  <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Mengunggah...
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowKtpModal(true)}
+                  className="rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 px-4 py-2.5 text-xs font-bold text-primary flex items-center justify-center gap-2 cursor-pointer transition-colors max-w-full truncate"
+                >
+                  <Upload className="h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {ktpFile
+                      ? (ktpFile instanceof File ? ktpFile.name : "Google Drive Terpilih")
+                      : "Pilih Berkas KTP"}
+                  </span>
+                </button>
+
+                {ktpFile ? (
+                  <span className="text-[11px] font-medium text-emerald-600 truncate flex items-center gap-1">
+                    ✓ Berkas KTP Terpasang (Unggah Saat Simpan)
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-gray-secondary-text">
+                    Belum ada berkas KTP dipilih
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[11px] text-gray-secondary-text">
+                Format: JPG, PNG, WebP, atau PDF (Maksimal 5MB).
+              </p>
             </div>
           </div>
+
+          <FileUploadModal
+            isOpen={showKtpModal}
+            onClose={() => setShowKtpModal(false)}
+            title="Unggah Scan KTP Anggota"
+            description="Pilih metode pengunggahan berkas KTP dari perangkat lokal Anda atau gunakan tautan Google Drive."
+            onSelectLocalFile={handleSelectLocalKtp}
+            onSelectDriveUrl={handleSelectDriveKtp}
+            isLoading={false}
+          />
 
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-gray-border pt-4 mt-4 shrink-0">
             <button
               type="button"
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploadingKtp}
               className="px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-sm font-semibold text-gray-secondary-text cursor-pointer transition-colors"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploadingKtp}
               className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-900 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all"
             >
-              {isSubmitting ? (
+              {isSubmitting || isUploadingKtp ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Menambahkan...

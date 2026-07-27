@@ -213,10 +213,34 @@ export async function PUT(
     if (!hasManagePerm) {
       // Perilaku Warga: cek aturan lock status verified/pending
       if (family.verificationStatus === 'verified' || family.verificationStatus === 'pending') {
-        return NextResponse.json(
-          { error: 'Data keluarga sedang dalam proses verifikasi atau telah disetujui RT. Silakan ajukan perubahan data terlebih dahulu.' },
-          { status: 403 }
-        );
+        const isNameChanged = body.name !== undefined && body.name !== member.name;
+        const isNikChanged = body.nik !== undefined && body.nik !== member.nik;
+        const isBirthPlaceChanged = body.birthPlace !== undefined && body.birthPlace !== member.birthPlace;
+        const isGenderChanged = body.gender !== undefined && body.gender !== member.gender;
+        const isRelationshipChanged = body.relationship !== undefined && body.relationship !== member.relationship;
+        const isKtpChanged = body.ktpFile !== undefined && body.ktpFile !== member.ktpFile;
+
+        let isBirthDateChanged = false;
+        if (body.birthDate !== undefined) {
+          const incomingTime = body.birthDate ? new Date(body.birthDate).getTime() : 0;
+          const existingTime = member.birthDate ? new Date(member.birthDate).getTime() : 0;
+          isBirthDateChanged = incomingTime !== existingTime;
+        }
+
+        if (
+          isNameChanged ||
+          isNikChanged ||
+          isBirthPlaceChanged ||
+          isBirthDateChanged ||
+          isGenderChanged ||
+          isRelationshipChanged ||
+          isKtpChanged
+        ) {
+          return NextResponse.json(
+            { error: 'Data identitas utama (Nama, NIK, Tempat/Tgl Lahir, Gender, Hubungan, KTP) sedang dalam proses verifikasi atau telah disetujui RT. Silakan ajukan perubahan data terlebih dahulu.' },
+            { status: 403 }
+          );
+        }
       }
       // Warga dilarang mengubah status keaktifan warga secara langsung di sini
       const safeBody = { ...body };

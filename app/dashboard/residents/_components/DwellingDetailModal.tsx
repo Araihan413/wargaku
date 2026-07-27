@@ -191,16 +191,14 @@ export const DwellingDetailModal: React.FC<DwellingDetailModalProps> = ({
               </div>
 
               {/* Catatan Hunian */}
-              {data.notes && (
-                <div className="space-y-1 text-xs">
-                  <span className="text-gray-secondary-text font-semibold flex items-center gap-1">
-                    <ClipboardList className="h-3.5 w-3.5 text-gray-placeholder" /> Catatan Hunian
-                  </span>
-                  <p className="text-gray-heading-main bg-gray-sidebar-hover/20 p-3 rounded-xl border border-gray-border/30 leading-relaxed">
-                    {data.notes}
-                  </p>
-                </div>
-              )}
+              <div className="space-y-1 text-xs">
+                <span className="text-gray-secondary-text font-semibold flex items-center gap-1">
+                  <ClipboardList className="h-3.5 w-3.5 text-gray-placeholder" /> Catatan Hunian
+                </span>
+                <p className="text-gray-heading-main bg-gray-sidebar-hover/20 p-3 rounded-xl border border-gray-border/30 leading-relaxed">
+                  {data.notes || "-"}
+                </p>
+              </div>
 
               {/* Conditional Section: KOS / HOMESTAY */}
               {(data.type === 'kos' || data.type === 'homestay') && (
@@ -325,12 +323,10 @@ export const DwellingDetailModal: React.FC<DwellingDetailModalProps> = ({
                               <span className="font-semibold text-gray-heading-main block mt-0.5">{fam.memberCount} Orang</span>
                             </div>
                           </div>
-                          {fam.unitNumber && (
                             <div className="text-xs border-t border-gray-border/30 pt-2 flex items-center justify-between">
                               <span className="text-gray-secondary-text">No. Unit/Pintu:</span>
-                              <span className="font-semibold text-gray-heading-main">{fam.unitNumber}</span>
+                              <span className="font-semibold text-gray-heading-main">{fam.unitNumber || "-"}</span>
                             </div>
-                          )}
                         </div>
                       ))}
                     </div>

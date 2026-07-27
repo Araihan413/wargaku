@@ -1,18 +1,23 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, User, CreditCard, Calendar, Phone, Briefcase, GraduationCap, Loader2 } from "lucide-react";
+import { X, User, CreditCard, Calendar, Phone, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { updateWargaSchema } from "@/lib/validations/kependudukan";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { FamilyMemberItem } from "../../../types";
+import { uploadFileToCloudinary } from "@/lib/upload-helper";
+import { FileUploadModal } from "@/components/FileUploadModal";
+import { AutocompleteInput } from "@/components/AutocompleteInput";
+import { commonOccupations, commonEducations } from "@/lib/constants";
 
 interface EditAnggotaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   member: FamilyMemberItem | null;
+  familyVerificationStatus?: string;
 }
 
 export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
@@ -20,48 +25,67 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
   onClose,
   onSuccess,
   member,
+  familyVerificationStatus,
 }) => {
+  const [ktpFile, setKtpFile] = useState<File | string | null>(null);
+  const [showKtpModal, setShowKtpModal] = useState(false);
+  const [isUploadingKtp, setIsUploadingKtp] = useState(false);
+
+  const [prevMember, setPrevMember] = useState<FamilyMemberItem | null>(null);
+
+  // Sync ktpFile state when the member prop changes
+  if (member !== prevMember) {
+    setPrevMember(member);
+    setKtpFile(member ? member.ktpFile || null : null);
+  }
+
+  const isLocked = familyVerificationStatus === "verified" || familyVerificationStatus === "pending";
+
   const {
     register,
     handleSubmit,
     control,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(updateWargaSchema),
-    defaultValues: {
-      name: "",
-      nik: "",
-      birthPlace: "",
-      birthDate: "",
-      gender: "L" as any,
-      relationship: "Anak" as any,
-      occupation: "",
-      educationLevel: "",
-      religion: "Islam" as any,
-      phone: "",
-      ktpFile: "",
-    },
+    values: member
+      ? {
+          name: member.name,
+          nik: member.nik,
+          birthPlace: member.birthPlace || "",
+          birthDate: member.birthDate ? member.birthDate.split("T")[0] : "",
+          gender: member.gender,
+          relationship: member.relationship,
+          occupation: member.occupation || "",
+          educationLevel: member.educationLevel || "",
+          religion: member.religion || ("Islam" as any),
+          phone: member.phone || "",
+          ktpFile: member.ktpFile || "",
+        }
+      : {
+          name: "",
+          nik: "",
+          birthPlace: "",
+          birthDate: "",
+          gender: "L" as any,
+          relationship: "Anak" as any,
+          occupation: "",
+          educationLevel: "",
+          religion: "Islam" as any,
+          phone: "",
+          ktpFile: "",
+        },
   });
 
-  // Populate data when modal opens
-  useEffect(() => {
-    if (!isOpen || !member) return;
+  const handleSelectLocalKtp = (file: File) => {
+    setKtpFile(file);
+    toast.success("Berkas KTP lokal berhasil dipilih!");
+  };
 
-    reset({
-      name: member.name,
-      nik: member.nik,
-      birthPlace: member.birthPlace || "",
-      birthDate: member.birthDate ? member.birthDate.split("T")[0] : "",
-      gender: member.gender,
-      relationship: member.relationship,
-      occupation: member.occupation || "",
-      educationLevel: member.educationLevel || "",
-      religion: member.religion || ("Islam" as any),
-      phone: member.phone || "",
-      ktpFile: member.ktpFile || "",
-    });
-  }, [isOpen, member, reset]);
+  const handleSelectDriveKtp = (url: string) => {
+    setKtpFile(url);
+    toast.success("Tautan Google Drive KTP berhasil dipilih!");
+  };
 
   const handleClose = () => {
     onClose();
@@ -70,7 +94,22 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
   const onSubmit = async (data: any) => {
     if (!member) return;
 
+    setIsUploadingKtp(true);
     try {
+      let finalKtpUrl = member.ktpFile || null;
+      if (ktpFile instanceof File) {
+        try {
+          const uploadRes = await uploadFileToCloudinary(ktpFile, "ktp");
+          finalKtpUrl = uploadRes.url;
+        } catch {
+          toast.error("Gagal mengunggah berkas KTP.");
+          setIsUploadingKtp(false);
+          return;
+        }
+      } else if (typeof ktpFile === "string" || ktpFile === null) {
+        finalKtpUrl = ktpFile;
+      }
+
       const payload = {
         ...data,
         birthPlace: data.birthPlace || null,
@@ -79,7 +118,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
         educationLevel: data.educationLevel || null,
         religion: data.religion || null,
         phone: data.phone || null,
-        ktpFile: data.ktpFile || null,
+        ktpFile: finalKtpUrl,
       };
 
       const res = await fetch(`/api/warga/${member.id}`, {
@@ -98,6 +137,8 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
     } catch (error) {
       console.error(error);
       toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsUploadingKtp(false);
     }
   };
 
@@ -146,6 +187,16 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
         {/* Content */}
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto pr-1.5 pb-2 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {/* Locked Info Banner */}
+            {isLocked && (
+              <div className="p-4 bg-emerald-50/70 border border-emerald-100 rounded-2xl mb-2 space-y-1 text-left">
+                <span className="text-xs font-bold text-emerald-700 block">Data Keluarga Terverifikasi/Pending RT:</span>
+                <p className="text-xs text-emerald-600 leading-relaxed">
+                  Data identitas utama dikunci. Hubungi RT atau gunakan menu &quot;Ajukan Perubahan Data&quot; di halaman KK untuk membukanya.
+                </p>
+              </div>
+            )}
+
             {/* Name */}
             <FormField
               id="name"
@@ -156,6 +207,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               registerProps={register("name")}
               icon={User}
               error={errors.name?.message}
+              readOnly={isLocked}
             />
 
             {/* NIK */}
@@ -168,6 +220,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               registerProps={register("nik")}
               icon={CreditCard}
               error={errors.nik?.message}
+              readOnly={isLocked}
             />
 
             <div className="grid grid-cols-2 gap-4">
@@ -184,6 +237,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                       onChange={(val) => field.onChange(val)}
                       options={genderOptions}
                       placeholder="Pilih..."
+                      disabled={isLocked}
                     />
                   )}
                 />
@@ -207,6 +261,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                       onChange={(val) => field.onChange(val)}
                       options={relationshipOptions}
                       placeholder="Pilih..."
+                      disabled={isLocked}
                     />
                   )}
                 />
@@ -228,6 +283,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                 registerProps={register("birthPlace")}
                 icon={User}
                 error={errors.birthPlace?.message}
+                readOnly={isLocked}
               />
 
               {/* Birth Date */}
@@ -239,6 +295,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                 registerProps={register("birthDate")}
                 icon={Calendar}
                 error={errors.birthDate?.message}
+                readOnly={isLocked}
               />
             </div>
 
@@ -274,45 +331,122 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               {/* Occupation */}
-              <FormField
-                id="occupation"
-                label="Pekerjaan"
-                type="text"
-                placeholder="Contoh: Karyawan Swasta"
-                registerProps={register("occupation")}
-                icon={Briefcase}
-                error={errors.occupation?.message}
-              />
+              <div className="space-y-1">
+                <Controller
+                  name="occupation"
+                  control={control}
+                  render={({ field }) => (
+                    <AutocompleteInput
+                      label="Pekerjaan"
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      suggestions={commonOccupations}
+                      placeholder="Contoh: Karyawan Swasta"
+                    />
+                  )}
+                />
+                {errors.occupation && (
+                  <p className="text-xs font-semibold text-error mt-0.5">
+                    {errors.occupation.message}
+                  </p>
+                )}
+              </div>
 
               {/* Education Level */}
-              <FormField
-                id="educationLevel"
-                label="Pendidikan Terakhir"
-                type="text"
-                placeholder="Contoh: S1 Teknik Informatika"
-                registerProps={register("educationLevel")}
-                icon={GraduationCap}
-                error={errors.educationLevel?.message}
-              />
+              <div className="space-y-1">
+                <Controller
+                  name="educationLevel"
+                  control={control}
+                  render={({ field }) => (
+                    <AutocompleteInput
+                      label="Pendidikan Terakhir"
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      suggestions={commonEducations}
+                      placeholder="Contoh: S1 / SMA"
+                    />
+                  )}
+                />
+                {errors.educationLevel && (
+                  <p className="text-xs font-semibold text-error mt-0.5">
+                    {errors.educationLevel.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Scan KTP File Upload */}
+            <div className="space-y-2 border-t border-gray-border pt-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <Upload className="h-4 w-4 text-primary" />
+                  <span>Berkas Scan KTP Anggota</span>
+                </label>
+                {isUploadingKtp && (
+                  <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Mengunggah...
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => !isLocked && setShowKtpModal(true)}
+                  className={`rounded-xl border px-4 py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-colors max-w-full truncate ${isLocked ? 'border-gray-border bg-gray-sidebar-hover/10 text-gray-placeholder cursor-not-allowed' : 'border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary cursor-pointer'}`}
+                  disabled={isLocked}
+                >
+                  <Upload className="h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {isLocked ? "Berkas KTP Terkunci" : ktpFile
+                      ? (ktpFile instanceof File ? ktpFile.name : "Google Drive Terpilih")
+                      : "Pilih Berkas KTP"}
+                  </span>
+                </button>
+
+                {ktpFile ? (
+                  <span className="text-[11px] font-medium text-emerald-600 truncate flex items-center gap-1">
+                    ✓ Berkas KTP Terpasang (Unggah Saat Simpan)
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-gray-secondary-text">
+                    Belum ada berkas KTP dipilih
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[11px] text-gray-secondary-text">
+                Format: JPG, PNG, WebP, atau PDF (Maksimal 5MB).
+              </p>
             </div>
           </div>
+
+          <FileUploadModal
+            isOpen={showKtpModal}
+            onClose={() => setShowKtpModal(false)}
+            title="Unggah Scan KTP Anggota"
+            description="Pilih metode pengunggahan berkas KTP dari perangkat lokal Anda atau gunakan tautan Google Drive."
+            onSelectLocalFile={handleSelectLocalKtp}
+            onSelectDriveUrl={handleSelectDriveKtp}
+            isLoading={false}
+          />
 
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-gray-border pt-4 mt-4 shrink-0">
             <button
               type="button"
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploadingKtp}
               className="px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-sm font-semibold text-gray-secondary-text cursor-pointer transition-colors"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploadingKtp}
               className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-900 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all"
             >
-              {isSubmitting ? (
+              {isSubmitting || isUploadingKtp ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Menyimpan...
