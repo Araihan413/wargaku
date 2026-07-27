@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { dwellings } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { dwellings, rentalProperties } from '@/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
@@ -104,8 +104,16 @@ export async function GET(request: Request) {
         houseNumber: dwellings.houseNumber,
         type: dwellings.type,
         ownerUserId: dwellings.ownerUserId,
+        hasActiveRental: sql<boolean>`CASE WHEN ${rentalProperties.id} IS NOT NULL THEN true ELSE false END`,
       })
       .from(dwellings)
+      .leftJoin(
+        rentalProperties,
+        and(
+          eq(dwellings.id, rentalProperties.dwellingId),
+          eq(rentalProperties.isActive, true)
+        )
+      )
       .where(eq(dwellings.isActive, true));
 
     // Format label dropdown
@@ -118,6 +126,7 @@ export async function GET(request: Request) {
         houseNumber: d.houseNumber,
         type: d.type,
         ownerUserId: d.ownerUserId,
+        hasActiveRental: d.hasActiveRental,
       };
     });
 
