@@ -3,10 +3,11 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, or } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { listRentalProperties, createRentalProperty } from '@/db/queries/rental';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
 
 export async function GET(request: Request) {
   try {
@@ -68,6 +69,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tempat tinggal/dwelling tidak ditemukan' }, { status: 404 });
     }
 
+    // Check if there is already an active rental property for this dwellingId
+    const [existingRental] = await db
+      .select({ id: schema.rentalProperties.id })
+      .from(schema.rentalProperties)
+      .where(
+        and(
+          eq(schema.rentalProperties.dwellingId, validated.dwellingId),
+          eq(schema.rentalProperties.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (existingRental) {
+      return NextResponse.json({ error: 'Properti sewa aktif sudah terdaftar untuk hunian ini' }, { status: 400 });
+    }
+
     if (!dwelling.ownerUserId) {
       // Auto-claim the dwelling
       await db
@@ -114,10 +131,26 @@ export async function POST(request: Request) {
       }
     }
 
+    // Process and validate roomPattern / roomList
+    let finalRoomList: string[] = [];
+    if (validated.roomPattern) {
+      const parsed = validateAndParseRoomPattern(validated.roomPattern);
+      if (!parsed.isValid) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
+      finalRoomList = parsed.rooms;
+      // Auto-update totalRooms if a pattern is used
+      validated.totalRooms = finalRoomList.length;
+    } else {
+      // Default fallback: numbers padded with zero
+      finalRoomList = generateDefaultRooms(validated.totalRooms);
+    }
+
     // 3. Create the rental property
     const propertyId = await createRentalProperty({
       ...validated,
       coordinatorUserId: coordinatorId,
+      roomList: finalRoomList,
     });
 
     return NextResponse.json({

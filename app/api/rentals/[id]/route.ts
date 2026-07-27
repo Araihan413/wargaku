@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
 import { getRentalPropertyById, updateRentalProperty, deleteRentalProperty } from '@/db/queries/rental';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
+import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
 import { ZodError } from 'zod';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
@@ -196,6 +197,26 @@ export async function PUT(
     }
 
     const validatedData = updateRentalPropertySchema.parse(body);
+
+    // If roomPattern or totalRooms is updated, rebuild roomList
+    if ('roomPattern' in body || 'totalRooms' in body) {
+      let finalRoomList: string[] = [];
+      const pattern = 'roomPattern' in body ? validatedData.roomPattern : property.roomPattern;
+      
+      if (pattern) {
+        const parsed = validateAndParseRoomPattern(pattern);
+        if (!parsed.isValid) {
+          return NextResponse.json({ error: parsed.error }, { status: 400 });
+        }
+        finalRoomList = parsed.rooms;
+        validatedData.totalRooms = finalRoomList.length;
+      } else {
+        const total = 'totalRooms' in body ? (validatedData.totalRooms ?? 0) : (property.totalRooms ?? 0);
+        finalRoomList = generateDefaultRooms(total);
+      }
+      validatedData.roomList = finalRoomList;
+    }
+
     await updateRentalProperty(propertyId, validatedData);
 
     // Jika coordinatorUserId berubah, lakukan pembersihan status koordinator lama

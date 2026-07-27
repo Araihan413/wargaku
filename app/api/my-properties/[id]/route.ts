@@ -12,6 +12,7 @@ import {
 } from '@/db/queries/rental';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
 
 export async function GET(
   request: Request,
@@ -98,8 +99,32 @@ export async function PUT(
       return NextResponse.json({ error: 'Anda tidak memiliki hak akses untuk properti ini' }, { status: 403 });
     }
 
+    const property = await getRentalPropertyById(propertyId);
+    if (!property) {
+      return NextResponse.json({ error: 'Properti tidak ditemukan' }, { status: 404 });
+    }
+
     const body = await request.json();
     const validated = updateRentalPropertySchema.parse(body);
+
+    // If roomPattern or totalRooms is updated, rebuild roomList
+    if ('roomPattern' in body || 'totalRooms' in body) {
+      let finalRoomList: string[] = [];
+      const pattern = 'roomPattern' in body ? validated.roomPattern : property.roomPattern;
+      
+      if (pattern) {
+        const parsed = validateAndParseRoomPattern(pattern);
+        if (!parsed.isValid) {
+          return NextResponse.json({ error: parsed.error }, { status: 400 });
+        }
+        finalRoomList = parsed.rooms;
+        validated.totalRooms = finalRoomList.length;
+      } else {
+        const total = 'totalRooms' in body ? (validated.totalRooms ?? 0) : (property.totalRooms ?? 0);
+        finalRoomList = generateDefaultRooms(total);
+      }
+      validated.roomList = finalRoomList;
+    }
 
     // Handle coordinator penunjukan
     let coordinatorId = validated.coordinatorUserId;

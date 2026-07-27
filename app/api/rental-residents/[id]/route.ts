@@ -211,15 +211,27 @@ export async function PUT(
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 
-    // If a coordinator attempts to edit verified data (lock it unless user has verify-documents permission)
+    const body = await request.json();
+
+    // If a coordinator attempts to edit verified data: check if they are changing sensitive fields
     if (isCoordinator && !hasVerifyPerm && resident.verificationStatus === 'verified') {
-      return NextResponse.json(
-        { error: 'Data penyewa yang terverifikasi dikunci. Silakan hubungi pengurus RT untuk melakukan perubahan.' },
-        { status: 403 }
-      );
+      const isNameChanged = body.name !== undefined && body.name !== resident.name;
+      const isNikChanged = body.nik !== undefined && body.nik !== resident.nik;
+      
+      const incomingCheckIn = body.checkInDate ? new Date(body.checkInDate).getTime() : null;
+      const existingCheckIn = resident.checkInDate ? new Date(resident.checkInDate).getTime() : null;
+      const isCheckInChanged = incomingCheckIn !== null && incomingCheckIn !== existingCheckIn;
+      
+      const isKtpChanged = body.ktpFile !== undefined && body.ktpFile !== resident.ktpFile;
+
+      if (isNameChanged || isNikChanged || isCheckInChanged || isKtpChanged) {
+        return NextResponse.json(
+          { error: 'Data identitas utama (Nama, NIK, Tanggal Check-In, KTP) sudah terverifikasi oleh RT dan tidak dapat diubah.' },
+          { status: 403 }
+        );
+      }
     }
 
-    const body = await request.json();
     let updateData: any;
 
     if (hasVerifyPerm) {
@@ -228,8 +240,20 @@ export async function PUT(
     } else {
       // Coordinator: Strip out verification columns to prevent self-approval
       const safeBody = { ...body };
-      delete safeBody.verificationStatus;
-      delete safeBody.verificationNote;
+      
+      // Allow manual resubmit to RT: coordinator passes verificationStatus = 'pending'
+      // and current resident status is rejected or pending
+      if (
+        body.verificationStatus === 'pending' &&
+        (resident.verificationStatus === 'rejected' || resident.verificationStatus === 'pending')
+      ) {
+        safeBody.verificationStatus = 'pending';
+        safeBody.verificationNote = null; // Clear verification note upon resubmission
+      } else {
+        delete safeBody.verificationStatus;
+        delete safeBody.verificationNote;
+      }
+      
       updateData = safeBody;
     }
 
@@ -287,10 +311,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni ini' }, { status: 403 });
     }
 
-    // Only pending status can be hard-deleted by coordinators
-    if (isCoordinator && !isGlobalAllowed && resident.verificationStatus !== 'pending') {
+    // Only pending or rejected status can be hard-deleted by coordinators
+    if (
+      isCoordinator &&
+      !isGlobalAllowed &&
+      resident.verificationStatus !== 'pending' &&
+      resident.verificationStatus !== 'rejected'
+    ) {
       return NextResponse.json(
-        { error: 'Hanya data berstatus pending yang dapat dihapus oleh pengelola.' },
+        { error: 'Hanya data berstatus pending atau ditolak yang dapat dihapus oleh pengelola.' },
         { status: 403 }
       );
     }

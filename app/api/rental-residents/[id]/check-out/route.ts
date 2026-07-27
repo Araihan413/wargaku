@@ -101,6 +101,7 @@ export async function POST(
       isActive: false,
       checkOutDate: validatedData.checkOutDate,
       inactiveReason: validatedData.inactiveReason,
+      notes: validatedData.notes,
       updatedBy: session.user.id,
     });
 

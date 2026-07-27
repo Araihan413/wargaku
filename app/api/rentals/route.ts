@@ -5,6 +5,10 @@ import { hasPermission } from '@/lib/rbac';
 import { listRentalProperties, createRentalProperty } from '@/db/queries/rental';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
+import { db } from '@/db';
+import * as schema from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * @openapi
@@ -161,7 +165,42 @@ export async function POST(request: Request) {
     }
 
     const validatedData = createRentalPropertySchema.parse(body);
-    const propertyId = await createRentalProperty(validatedData);
+
+    // Check if there is already an active rental property for this dwellingId
+    const [existingRental] = await db
+      .select({ id: schema.rentalProperties.id })
+      .from(schema.rentalProperties)
+      .where(
+        and(
+          eq(schema.rentalProperties.dwellingId, validatedData.dwellingId),
+          eq(schema.rentalProperties.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (existingRental) {
+      return NextResponse.json({ error: 'Properti sewa aktif sudah terdaftar untuk hunian ini' }, { status: 400 });
+    }
+
+    // Process and validate roomPattern / roomList
+    let finalRoomList: string[] = [];
+    if (validatedData.roomPattern) {
+      const parsed = validateAndParseRoomPattern(validatedData.roomPattern);
+      if (!parsed.isValid) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
+      finalRoomList = parsed.rooms;
+      // Auto-update totalRooms if a pattern is used
+      validatedData.totalRooms = finalRoomList.length;
+    } else {
+      // Default fallback: numbers padded with zero
+      finalRoomList = generateDefaultRooms(validatedData.totalRooms);
+    }
+
+    const propertyId = await createRentalProperty({
+      ...validatedData,
+      roomList: finalRoomList,
+    });
 
     return NextResponse.json(
       { id: propertyId, message: 'Properti sewa berhasil didaftarkan' },
