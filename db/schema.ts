@@ -133,6 +133,9 @@ export const rentalProperties = mysqlTable('rental_properties', {
   phone: varchar('phone', { length: 15 }),
   totalRooms: int('total_rooms').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
+  notes: text('notes'),
+  roomPattern: text('room_pattern'),
+  roomList: json('room_list'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -160,6 +163,7 @@ export const rentalResidents = mysqlTable('rental_residents', {
   updatedBy: varchar('updated_by', { length: 255 }).references(() => users.id),
   isActive: boolean('is_active').notNull().default(true),
   inactiveReason: mysqlEnum('inactive_reason', ['pindah', 'meninggal']),
+  notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

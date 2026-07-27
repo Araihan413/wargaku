@@ -57,6 +57,9 @@ export async function listRentalProperties(options: {
         phone: schema.rentalProperties.phone,
         totalRooms: schema.rentalProperties.totalRooms,
         isActive: schema.rentalProperties.isActive,
+        notes: schema.rentalProperties.notes,
+        roomPattern: schema.rentalProperties.roomPattern,
+        roomList: schema.rentalProperties.roomList,
         createdAt: schema.rentalProperties.createdAt,
         updatedAt: schema.rentalProperties.updatedAt,
         blockNumber: schema.dwellings.blockNumber,
@@ -140,6 +143,22 @@ export async function getRentalPropertyById(id: number) {
 export async function createRentalProperty(data: CreateRentalPropertyInput) {
   const validated = createRentalPropertySchema.parse(data);
   try {
+    // Safety check: verify no active rental property exists for the dwellingId
+    const [existingRental] = await db
+      .select({ id: schema.rentalProperties.id })
+      .from(schema.rentalProperties)
+      .where(
+        and(
+          eq(schema.rentalProperties.dwellingId, validated.dwellingId),
+          eq(schema.rentalProperties.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (existingRental) {
+      throw new Error('Properti sewa aktif sudah terdaftar untuk hunian ini');
+    }
+
     const [insertResult] = await db.insert(schema.rentalProperties).values({
       dwellingId: validated.dwellingId,
       name: validated.name,
@@ -148,11 +167,14 @@ export async function createRentalProperty(data: CreateRentalPropertyInput) {
       phone: validated.phone,
       totalRooms: validated.totalRooms,
       isActive: true,
+      notes: validated.notes,
+      roomPattern: validated.roomPattern,
+      roomList: validated.roomList,
     });
     return insertResult.insertId;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in createRentalProperty:', error);
-    throw new Error('Gagal membuat properti sewa baru');
+    throw new Error(error.message || 'Gagal membuat properti sewa baru');
   }
 }
 
@@ -300,6 +322,7 @@ export async function createRentalResident(data: CreateRentalResidentInput & { r
       verificationStatus: 'pending',
       createdBy: data.createdBy,
       isActive: true,
+      notes: validated.notes,
     });
     return insertResult.insertId;
   } catch (error: any) {
@@ -384,6 +407,7 @@ export async function listAllRentalResidents(options: {
         verificationStatus: schema.rentalResidents.verificationStatus,
         verificationNote: schema.rentalResidents.verificationNote,
         isActive: schema.rentalResidents.isActive,
+        notes: schema.rentalResidents.notes,
         ktpFile: schema.rentalResidents.ktpFile,
         originAddress: schema.rentalResidents.originAddress,
         occupation: schema.rentalResidents.occupation,
