@@ -193,11 +193,11 @@ const sidebarItems: SidebarItem[] = [
     roles: [5],
   },
 
-  // Warga Menus (Role 6)
+  // Warga & Koordinator Warga Menus (Role 5, 6)
   {
     title: "Administrasi Keluarga",
     icon: Users,
-    roles: [6],
+    roles: [5, 6],
     subItems: [
       { title: "Kelola Anggota Keluarga", href: "/dashboard/family" },
       { title: "Riwayat & Pengajuan Surat", href: "/dashboard/family/surat", requiresVerification: true },
@@ -207,14 +207,14 @@ const sidebarItems: SidebarItem[] = [
     title: "Peta Hunian & Tetangga",
     icon: Search,
     href: "/dashboard/neighborhood",
-    roles: [1, 2, 3, 4, 6],
+    roles: [1, 2, 3, 4, 5, 6],
     requiresVerification: true,
   },
   {
     title: "Kelola Properti Pribadi",
     icon: Building2,
     href: "/dashboard/my-properties",
-    roles: [6],
+    roles: [5, 6],
     requiresVerification: true,
   },
 ];
@@ -242,7 +242,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { activeRoleId } = useRoleStore();
   const baseRoleId = user?.roleId;
   const currentRoleId = baseRoleId === 6 ? 6 : (activeRoleId ?? baseRoleId);
-  const { isVerified, isLoading: isVerificationLoading } = useFamilyVerification(baseRoleId);
+  const { isVerified, hasFamily, isLoading: isVerificationLoading } = useFamilyVerification(baseRoleId);
 
   const [pendingRegCount, setPendingRegCount] = useState<number>(0);
   const [pendingDocCount, setPendingDocCount] = useState<number>(0);
@@ -252,19 +252,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     const fetchCounts = async () => {
       try {
-        const [regRes, docRes] = await Promise.all([
+        const [regRes, familyDocRes, rentalDocRes] = await Promise.all([
           fetch("/api/approvals/registration"),
-          fetch("/api/approvals/documents?type=family&status=pending")
+          fetch("/api/approvals/documents?type=family&status=pending"),
+          fetch("/api/approvals/documents?type=rental_resident&status=pending")
         ]);
 
         if (regRes.ok) {
           const regData = await regRes.json();
           setPendingRegCount(regData.data?.length || 0);
         }
-        if (docRes.ok) {
-          const docData = await docRes.json();
-          setPendingDocCount(docData.data?.length || 0);
+        
+        let familyCount = 0;
+        let rentalCount = 0;
+
+        if (familyDocRes.ok) {
+          const famData = await familyDocRes.json();
+          familyCount = famData.data?.length || 0;
         }
+        if (rentalDocRes.ok) {
+          const rentData = await rentalDocRes.json();
+          rentalCount = rentData.data?.length || 0;
+        }
+
+        setPendingDocCount(familyCount + rentalCount);
       } catch (err) {
         console.error("Error fetching approvals count:", err);
       }
@@ -288,10 +299,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Filter items matching the current active role
   const filteredItems = useMemo(() => {
-    return sidebarItems.filter((item) =>
-      item.roles.includes(currentRoleId)
-    );
-  }, [currentRoleId]);
+    return sidebarItems.filter((item) => {
+      if (!item.roles.includes(currentRoleId)) return false;
+
+      // Special rule for Koordinator (Role 5):
+      // If item is Warga family/resident menu (Administrasi Keluarga / Kelola Properti Pribadi / Peta Hunian),
+      // only show if user is a Warga Tetap with a registered family KK (hasFamily is true)
+      if (
+        currentRoleId === 5 &&
+        (
+          item.title === "Administrasi Keluarga" ||
+          item.href === "/dashboard/my-properties" ||
+          item.href === "/dashboard/neighborhood"
+        )
+      ) {
+        return Boolean(hasFamily);
+      }
+
+      return true;
+    });
+  }, [currentRoleId, hasFamily]);
 
   const isActive = useCallback(
     (href?: string) => {

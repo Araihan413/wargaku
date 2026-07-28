@@ -6,6 +6,9 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
+  // Tipe Akun
+  accountType: z.enum(["warga", "coordinator"]),
+
   // Step 1: Akun & Kontak
   email: z.string().min(1, "Email wajib diisi").email("Format email tidak valid"),
   phone: z
@@ -23,9 +26,8 @@ export const registerSchema = z.object({
     .regex(/^\d{16}$/, "NIK harus terdiri dari 16 digit angka"),
   familyNumber: z
     .string()
-    .min(1, "Nomor Kartu Keluarga wajib diisi")
-    .regex(/^\d{16}$/, "Nomor Kartu Keluarga (KK) harus terdiri dari 16 digit angka"),
-  dwellingId: z.string().min(1, "Alamat rumah wajib dipilih"),
+    .optional(),
+  dwellingId: z.string().optional(),
   unitNumber: z
     .string()
     .max(10, "Nomor unit/blok tambahan maksimal 10 karakter")
@@ -38,6 +40,24 @@ export const registerSchema = z.object({
       message: "Konfirmasi password tidak cocok",
       path: ["confirmPassword"],
     });
+  }
+
+  // Pengecekan data kependudukan jika tipe akun Warga
+  if (data.accountType === "warga") {
+    if (!data.familyNumber || !/^\d{16}$/.test(data.familyNumber)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Nomor Kartu Keluarga (KK) harus terdiri dari 16 digit angka",
+        path: ["familyNumber"],
+      });
+    }
+    if (!data.dwellingId || data.dwellingId.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Alamat rumah wajib dipilih",
+        path: ["dwellingId"],
+      });
+    }
   }
 });
 

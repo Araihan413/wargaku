@@ -73,13 +73,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Switched Role Allowed Options
+  // Switched Role Allowed Options (Only Pengurus RT: Ketua RT [2], Sekretaris [3], Bendahara [4])
   const userBaseRoleId = user?.roleId || 6;
-  const isOfficer = userBaseRoleId >= 2 && userBaseRoleId <= 5;
+  const isOfficer = userBaseRoleId >= 2 && userBaseRoleId <= 4;
   
   const allowedRoles = React.useMemo(() => {
     if (userBaseRoleId === 1) return [1];
-    return isOfficer ? [userBaseRoleId, 6] : [6];
+    return isOfficer ? [userBaseRoleId, 6] : [userBaseRoleId];
   }, [isOfficer, userBaseRoleId]);
 
   // Initialize Switched Role Store

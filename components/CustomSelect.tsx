@@ -41,7 +41,11 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
 
-  const selectedOption = options.find((opt) => opt.value === value);
+  const selectedOption = options.find(
+    (opt) =>
+      opt.value === value ||
+      (value && typeof value === "string" && opt.value.replace(/_/g, " ") === value.replace(/_/g, " "))
+  );
 
   // Measure space below to determine opening direction (upward/downward)
   useIsomorphicLayoutEffect(() => {

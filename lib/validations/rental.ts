@@ -59,7 +59,7 @@ export const updateRentalPropertySchema = createRentalPropertySchema.partial().e
   isActive: z.boolean().optional(),
 });
 
-export const createRentalResidentSchema = z.object({
+export const createRentalResidentBaseSchema = z.object({
   tenantType: z.enum(['perorangan', 'keluarga'], {
     error: (issue) =>
       issue.input === undefined
@@ -85,7 +85,7 @@ export const createRentalResidentSchema = z.object({
   }).regex(nikRegex, 'NIK harus terdiri dari 16 digit angka'),
   
   phone: z.preprocess(
-    (val) => (typeof val === 'string' ? val.replace(/[-\s]/g, '') : val),
+    (val) => (typeof val === 'string' ? (val.trim() === '' ? null : val.replace(/[-\s]/g, '')) : val),
     z.string()
       .optional()
       .nullable()
@@ -94,12 +94,17 @@ export const createRentalResidentSchema = z.object({
         { message: 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)' }
       )
   ),
+
+  email: z.preprocess(
+    (val) => (val === '' ? null : val),
+    z.string().email('Format email tidak valid').optional().nullable()
+  ),
     
-  originAddress: z.string().optional().nullable(),
-  occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable(),
-  educationLevel: z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable(),
-  religion: z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']).optional().nullable(),
-  roomNumber: z.string().max(10, 'Nomor kamar maksimal 10 karakter').optional().nullable(),
+  originAddress: z.preprocess((val) => (val === '' ? null : val), z.string().optional().nullable()),
+  occupation: z.preprocess((val) => (val === '' ? null : val), z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable()),
+  educationLevel: z.preprocess((val) => (val === '' ? null : val), z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable()),
+  religion: z.preprocess((val) => (val === '' ? null : val), z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']).optional().nullable()),
+  roomNumber: z.preprocess((val) => (val === '' ? null : val), z.string().max(10, 'Nomor kamar maksimal 10 karakter').optional().nullable()),
   
   checkInDate: z.preprocess((arg) => {
     if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
@@ -111,16 +116,31 @@ export const createRentalResidentSchema = z.object({
         : 'Format tanggal check-in tidak valid',
   })),
   
-  ktpFile: z.string({
-    error: (issue) =>
-      issue.input === undefined
-        ? 'Scan KTP wajib diunggah untuk anak kos'
-        : 'Scan KTP harus berupa teks',
-  }).min(1, 'Scan KTP wajib diunggah untuk anak kos').max(255),
-  notes: z.string().optional().nullable(),
+  ktpFile: z.preprocess((val) => (val === '' ? null : val), z.string().max(255).optional().nullable()),
+  notes: z.preprocess((val) => (val === '' ? null : val), z.string().optional().nullable()),
 });
 
-export const updateRentalResidentSchema = createRentalResidentSchema.partial().extend({
+export const createRentalResidentSchema = createRentalResidentBaseSchema
+  .refine((data) => {
+    if (data.tenantType === 'perorangan' && (!data.ktpFile || data.ktpFile.trim() === '')) {
+      return false;
+    }
+    return true;
+  }, {
+    message: 'Scan KTP wajib diunggah untuk tipe sewa perorangan',
+    path: ['ktpFile'],
+  })
+  .refine((data) => {
+    if (data.tenantType === 'keluarga' && (!data.email || data.email.trim() === '')) {
+      return false;
+    }
+    return true;
+  }, {
+    message: 'Email Kepala Keluarga wajib diisi untuk tipe sewa keluarga',
+    path: ['email'],
+  });
+
+export const updateRentalResidentSchema = createRentalResidentBaseSchema.partial().extend({
   verificationStatus: z.enum(['pending', 'verified', 'rejected']).optional(),
   verificationNote: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
