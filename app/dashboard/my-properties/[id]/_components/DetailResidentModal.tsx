@@ -63,7 +63,7 @@ export const DetailResidentModal: React.FC<DetailResidentModalProps> = ({
                   ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
                   : resident.verificationStatus === "rejected"
                   ? "bg-rose-50 text-rose-700 border border-rose-100"
-                  : "bg-amber-50 text-amber-700 border border-amber-100 animate-pulse"
+                  : "bg-amber-50 text-amber-700 border border-amber-100"
               }`}>
                 {resident.verificationStatus === "verified" ? "Terverifikasi" : resident.verificationStatus === "rejected" ? "Ditolak RT" : "Menunggu Review"}
               </span>
@@ -160,41 +160,59 @@ export const DetailResidentModal: React.FC<DetailResidentModalProps> = ({
               Berkas Identitas (KTP)
             </h4>
             
-            {resident.ktpFile ? (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-gray-sidebar-hover/20 border border-gray-border rounded-xl">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-emerald-600 shrink-0" />
-                  <div className="truncate max-w-[240px]">
-                    <span className="text-xs font-bold text-gray-heading-main block truncate">Scan_KTP_{resident.nik}.jpg</span>
-                    <span className="text-[10px] text-gray-placeholder">Berkas KTP Penyewa Terunggah</span>
+            {resident.ktpFile ? (() => {
+              const getFilenameFromUrl = (url: string) => {
+                try {
+                  const decodedUrl = decodeURIComponent(url);
+                  const parts = decodedUrl.split("/");
+                  const lastPart = parts[parts.length - 1];
+                  if (lastPart) {
+                    return lastPart.split("?")[0];
+                  }
+                  return `Scan_KTP_${resident.nik}.pdf`;
+                } catch {
+                  return `Scan_KTP_${resident.nik}.pdf`;
+                }
+              };
+
+              return (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-gray-sidebar-hover/20 border border-gray-border rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-emerald-600 shrink-0" />
+                    <div className="truncate max-w-60">
+                      <span className="text-xs font-bold text-gray-heading-main block truncate">
+                        {getFilenameFromUrl(resident.ktpFile)}
+                      </span>
+                      <span className="text-[10px] text-gray-placeholder">Berkas KTP Penyewa Terunggah</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <a
+                      href={resident.ktpFile}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 sm:flex-initial text-center px-3 py-1.5 border border-gray-border bg-white hover:bg-gray-sidebar-hover text-gray-heading-main rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Lihat KTP
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        downloadFileAsPdf(
+                          resident.ktpFile || "",
+                          `Scan_KTP_${resident.nik}`,
+                          `SCAN KTP PENYEWA - ${resident.name.toUpperCase()}`
+                        )
+                      }
+                      className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>PDF</span>
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <a
-                    href={resident.ktpFile}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 sm:flex-initial text-center px-3 py-1.5 border border-gray-border bg-white hover:bg-gray-sidebar-hover text-gray-heading-main rounded-xl text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Lihat KTP
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      downloadFileAsPdf(
-                        resident.ktpFile || "",
-                        `Scan_KTP_${resident.nik}`,
-                        `SCAN KTP PENYEWA - ${resident.name.toUpperCase()}`
-                      )
-                    }
-                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>PDF</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
+              );
+            })() : (
               <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl text-center">
                 <span className="text-xs text-amber-700 font-semibold block">Berkas KTP belum diunggah</span>
                 <p className="text-[10px] text-amber-600 mt-0.5">

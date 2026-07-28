@@ -21,7 +21,7 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Ambil seluruh user dengan status 'pending' dan roleId 6 (Warga)
+    // Ambil seluruh user dengan status 'pending' dan roleId 5 (Koordinator Kos) & 6 (Warga)
     const pendingUsers = await db
       .select({
         id: schema.users.id,
@@ -29,6 +29,7 @@ export async function GET() {
         email: schema.users.email,
         nik: schema.users.nik,
         phone: schema.users.phone,
+        roleId: schema.users.roleId,
         familyNumber: schema.users.familyNumber,
         unitNumber: schema.users.unitNumber,
         createdAt: schema.users.createdAt,

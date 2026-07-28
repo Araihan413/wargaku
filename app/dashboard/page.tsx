@@ -6,6 +6,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { KetuaRTDashboard } from "./_components/KetuaRTDashboard";
 import { WargaDashboard } from "./_components/WargaDashboard";
+import { KoordinatorKosDashboard } from "./_components/KoordinatorKosDashboard";
 
 export default function Dashboard() {
   const { data: session, isPending } = authClient.useSession();
@@ -79,7 +80,9 @@ export default function Dashboard() {
           </p>
         </div>
       );
-    default: // Warga / Koordinator Kost
+    case 5: // Koordinator Kost
+      return <KoordinatorKosDashboard />;
+    default: // Warga
       return <WargaDashboard />;
   }
 }

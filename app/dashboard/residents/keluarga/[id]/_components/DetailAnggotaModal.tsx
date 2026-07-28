@@ -1,5 +1,5 @@
 import React from "react";
-import { X, User, CreditCard, Calendar, Phone, Briefcase, GraduationCap, Landmark, FileText, Eye } from "lucide-react";
+import { X, User, CreditCard, Calendar, Phone, Briefcase, GraduationCap, Landmark, FileText, Eye, AlertTriangle } from "lucide-react";
 import { FamilyMemberItem } from "../../../types";
 
 interface DetailAnggotaModalProps {
@@ -208,35 +208,65 @@ export const DetailAnggotaModal: React.FC<DetailAnggotaModalProps> = ({
           </div>
 
           {/* Dokumen Scan KTP */}
-          <div className="border border-gray-border rounded-xl p-4 space-y-3 bg-gray-sidebar-hover/10">
+          <div className="space-y-2.5">
             <span className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider block">
-              Dokumen Scan KTP Anggota
+              Berkas Scan KTP
             </span>
-            {member.ktpFile ? (
-              <div className="flex items-center justify-between border border-gray-border bg-gray-card rounded-xl p-3.5">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <FileText className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-xs font-semibold text-gray-heading-main truncate">
-                    ktp_{member.name.toLowerCase().replace(/\s+/g, "_")}.jpg
+            {member.ktpFile ? (() => {
+              const getFilenameFromUrl = (url: string) => {
+                if (url.includes("drive.google.com") || url.includes("google.com/file")) {
+                  return "Dokumen Google Drive";
+                }
+                try {
+                  const decodedUrl = decodeURIComponent(url);
+                  const parts = decodedUrl.split("/");
+                  const lastPart = parts[parts.length - 1];
+                  if (lastPart) {
+                    return lastPart.split("?")[0];
+                  }
+                  return "Berkas KTP";
+                } catch {
+                  return "Berkas KTP";
+                }
+              };
+
+              return (
+                <div className="border border-gray-border rounded-2xl overflow-hidden bg-gray-card/50 p-4 space-y-3 shadow-sm">
+                  <div className="flex items-center gap-3 p-3 bg-gray-sidebar-hover/10 rounded-xl border border-gray-border">
+                    <div className="p-2.5 bg-primary/10 rounded-xl text-primary shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs font-bold text-gray-heading-main block truncate">
+                        Dokumen Scan KTP
+                      </span>
+                      <span className="text-[10px] text-gray-secondary-text block truncate mt-0.5">
+                        {getFilenameFromUrl(member.ktpFile)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2.5">
+                    <a
+                      href={member.ktpFile}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-bold text-gray-heading-main transition-all cursor-pointer shadow-sm"
+                    >
+                      <Eye className="h-4 w-4 text-gray-secondary-text" />
+                      Lihat KTP
+                    </a>
+                  </div>
+                </div>
+              );
+            })() : (
+              <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 text-xs font-semibold leading-relaxed shadow-sm">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
+                <div>
+                  <span className="block font-bold">Berkas KTP Belum Diunggah</span>
+                  <span className="block font-normal text-[10px] text-amber-600/90 mt-0.5">
+                    Anggota keluarga ini belum memiliki berkas scan KTP terunggah di dalam sistem.
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={member.ktpFile}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 border border-gray-border rounded-lg text-gray-secondary-text hover:bg-gray-sidebar-hover hover:text-gray-heading-main cursor-pointer transition-colors"
-                    title="Lihat Berkas"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-4 border border-dashed border-gray-border rounded-xl">
-                <span className="text-xs text-gray-placeholder font-medium">
-                  Berkas scan KTP belum diunggah.
-                </span>
               </div>
             )}
           </div>

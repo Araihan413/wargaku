@@ -38,7 +38,7 @@ export function PendingVerificationCard({
       {/* Header Icon & Status Badge */}
       <div className="flex flex-col items-center text-center space-y-3">
         <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-2xl shadow-xs">
-          <Clock className="h-8 w-8 animate-pulse" />
+          <Clock className="h-8 w-8" />
         </div>
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 text-xs font-bold uppercase tracking-wider">

@@ -93,14 +93,18 @@ export async function PATCH(
 
               const familyId = insertFamily.insertId;
 
-              // Masukkan sebagai Kepala Keluarga pertama di familyMembers
-              await tx.insert(schema.familyMembers).values({
+              // Masukkan sebagai Kepala Keluarga pertama di residents
+              await tx.insert(schema.residents).values({
                 familyId,
+                dwellingId: targetDwellingId,
+                userId: id,
+                residentType: "warga_tetap",
                 name: user.name,
                 nik: user.nik,
                 relationship: "Kepala_Keluarga",
                 gender: "L", // default L
                 phone: user.phone || null,
+                verificationStatus: "verified",
                 isActive: true,
               });
             }

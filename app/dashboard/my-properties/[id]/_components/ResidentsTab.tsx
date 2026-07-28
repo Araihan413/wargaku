@@ -97,7 +97,7 @@ export function ResidentsTab({
             onClick={() => setFilterStatus("pending")}
             className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
               filterStatus === "pending"
-                ? "bg-amber-600 border-amber-600 text-white animate-pulse"
+                ? "bg-amber-600 border-amber-600 text-white"
                 : "bg-gray-sidebar-hover/10 border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover/30"
             }`}
           >
@@ -143,7 +143,7 @@ export function ResidentsTab({
                     gridStyle = "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100";
                     roomStatusText = "Terisi";
                   } else if (res.verificationStatus === "pending") {
-                    gridStyle = "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 animate-pulse";
+                    gridStyle = "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100";
                     roomStatusText = "Pending RT";
                   } else if (res.verificationStatus === "rejected") {
                     gridStyle = "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100";
@@ -267,9 +267,11 @@ export function ResidentsTab({
                     ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                     : res.verificationStatus === "rejected"
                     ? "bg-rose-50 text-rose-600 border border-rose-100"
-                    : "bg-amber-50 text-amber-600 border border-amber-100 animate-pulse"
+                    : res.verificationStatus === "draft"
+                    ? "bg-gray-100 text-gray-600 border border-gray-200"
+                    : "bg-amber-50 text-amber-600 border border-amber-100 lse"
                 }`}>
-                  {res.verificationStatus}
+                  {res.verificationStatus === "draft" ? "Draf (KK)" : res.verificationStatus}
                 </span>
 
                 {isCoordinator ? (

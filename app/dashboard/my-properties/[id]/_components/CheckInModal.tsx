@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Loader2, UserPlus, Upload} from "lucide-react";
+import { X, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { uploadFileToCloudinary } from "@/lib/upload-helper";
+import { executeWithFileUpload } from "@/lib/upload-helper";
 import { CustomSelect } from "@/components/CustomSelect";
+import { commonEducations, commonOccupations } from "@/lib/constants";
+import { KtpUploadInput } from "@/components/KtpUploadInput";
 
 interface CheckInModalProps {
   isOpen: boolean;
@@ -12,37 +14,8 @@ interface CheckInModalProps {
   onSuccess: () => void;
   propertyId: number;
   roomList?: string[];
+  initialRoom?: string;
 }
-
-const educationOptions = [
-  "Tidak/Belum Sekolah",
-  "SD / Sederajat",
-  "SMP / Sederajat",
-  "SMA / SMK / Sederajat",
-  "Diploma I / II",
-  "Akademi / Diploma III (D3)",
-  "Diploma IV / Sarjana (S1)",
-  "Magister (S2)",
-  "Doktor (S3)",
-];
-
-const occupationOptions = [
-  "Belum/Tidak Bekerja",
-  "Mengurus Rumah Tangga",
-  "Pelajar/Mahasiswa",
-  "Pensiunan",
-  "Pegawai Negeri Sipil (PNS)",
-  "Tentara Nasional Indonesia (TNI)",
-  "Kepolisian RI (POLRI)",
-  "Karyawan Swasta",
-  "Karyawan BUMN",
-  "Karyawan BUMD",
-  "Buruh Harian Lepas",
-  "Petani/Pekebun",
-  "Nelayan",
-  "Pedagang",
-  "Wiraswasta",
-];
 
 export const CheckInModal: React.FC<CheckInModalProps> = ({
   isOpen,
@@ -50,6 +23,7 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
   onSuccess,
   propertyId,
   roomList = [],
+  initialRoom = "",
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,63 +32,79 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
   const [name, setName] = useState("");
   const [nik, setNik] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [originAddress, setOriginAddress] = useState("");
   const [occupation, setOccupation] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
-  const [roomNumber, setRoomNumber] = useState("");
+  const [roomNumber, setRoomNumber] = useState(initialRoom);
   const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split("T")[0]);
-  const [ktpFile, setKtpFile] = useState<File | null>(null);
+  const [ktpFile, setKtpFile] = useState<File | string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (nik.length !== 16) {
+    if (!name.trim()) {
+      toast.error("Nama penyewa wajib diisi");
+      return;
+    }
+
+    if (nik.length !== 16 || !/^[0-9]{16}$/.test(nik)) {
       toast.error("NIK harus terdiri dari 16 digit angka");
       return;
     }
 
-    if (!ktpFile) {
+    if (phone && phone.trim() !== "") {
+      const cleanPhone = phone.replace(/[-\s]/g, "");
+      const indonesianPhoneRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
+      if (!indonesianPhoneRegex.test(cleanPhone)) {
+        toast.error("Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)");
+        return;
+      }
+    }
+
+    if (tenantType === "perorangan" && !ktpFile) {
       toast.error("File KTP wajib diunggah untuk Sensitas Warga");
       return;
     }
 
+    if (tenantType === "keluarga" && !email.trim()) {
+      toast.error("Email Kepala Keluarga wajib diisi");
+      return;
+    }
+
     setIsSubmitting(true);
-    let ktpUrl = "";
-
     try {
-      // 1. Upload KTP to Cloudinary
-      const uploadRes = await uploadFileToCloudinary(ktpFile, "ktp");
-      ktpUrl = uploadRes.url;
-
-      // 2. Submit Check-In
-      const res = await fetch(`/api/rentals/${propertyId}/residents`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tenantType,
-          name,
-          nik,
-          phone,
-          originAddress,
-          occupation,
-          educationLevel,
-          roomNumber,
-          checkInDate: new Date(checkInDate),
-          ktpFile: ktpUrl,
-        }),
+      const result = await executeWithFileUpload({
+        file: tenantType === "perorangan" ? ktpFile : null,
+        folder: "ktp",
+        submitFn: (ktpUrl) =>
+          fetch(`/api/rentals/${propertyId}/residents`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tenantType,
+              name,
+              nik,
+              phone: phone ? phone.trim() : undefined,
+              email: tenantType === "keluarga" ? email.trim() : undefined,
+              originAddress: tenantType === "perorangan" ? originAddress : undefined,
+              occupation: tenantType === "perorangan" ? occupation : undefined,
+              educationLevel: tenantType === "perorangan" ? educationLevel : undefined,
+              roomNumber: roomNumber ? roomNumber.trim() : undefined,
+              checkInDate: new Date(checkInDate),
+              ktpFile: tenantType === "perorangan" ? ktpUrl : null,
+            }),
+          }),
+        successMessage:
+          tenantType === "keluarga"
+            ? "Penyewa Keluarga berhasil didaftarkan! Kredensial login dikirim ke email Kepala Keluarga."
+            : "Penyewa berhasil check-in! Menunggu verifikasi dokumen oleh RT.",
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        toast.success("Penyewa berhasil check-in! Menunggu verifikasi dokumen oleh RT.");
+      if (result.success) {
         onSuccess();
         handleClose();
-      } else {
-        toast.error(data.error || "Gagal melakukan check-in penyewa");
       }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Terjadi kesalahan koneksi");
     } finally {
       setIsSubmitting(false);
     }
@@ -124,6 +114,7 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
     setName("");
     setNik("");
     setPhone("");
+    setEmail("");
     setOriginAddress("");
     setOccupation("");
     setEducationLevel("");
@@ -250,39 +241,58 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
             )}
           </div>
 
-          {/* Origin Address */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Alamat Asal KTP <span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <textarea
-              placeholder="Alamat asal luar daerah"
-              value={originAddress}
-              onChange={(e) => setOriginAddress(e.target.value)}
-              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all min-h-15 resize-none"
-              required
-            />
-          </div>
+          {/* Email (Sewa Keluarga saja) */}
+          {tenantType === "keluarga" && (
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Email Kepala Keluarga <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <input
+                type="email"
+                placeholder="Contoh: kepala.keluarga@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                required
+              />
+            </div>
+          )}
 
-          {/* Occupation & Education */}
-          <div className="grid grid-cols-2 gap-4">
-            <CustomSelect
-              value={occupation}
-              onChange={setOccupation}
-              options={occupationOptions.map((o) => ({ value: o, label: o }))}
-              placeholder="-- Pilih Pekerjaan --"
-              label="Pekerjaan"
-              required
-            />
-            <CustomSelect
-              value={educationLevel}
-              onChange={setEducationLevel}
-              options={educationOptions.map((e) => ({ value: e, label: e }))}
-              placeholder="-- Pilih Pendidikan --"
-              label="Pendidikan Terakhir"
-              required
-            />
-          </div>
+          {/* Origin Address (Perorangan saja) */}
+          {tenantType === "perorangan" && (
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Alamat Asal KTP <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <textarea
+                placeholder="Alamat asal luar daerah"
+                value={originAddress}
+                onChange={(e) => setOriginAddress(e.target.value)}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all min-h-15 resize-none"
+                required
+              />
+            </div>
+          )}
+
+          {/* Occupation & Education (Perorangan saja) */}
+          {tenantType === "perorangan" && (
+            <div className="grid grid-cols-2 gap-4">
+              <CustomSelect
+                value={occupation}
+                onChange={setOccupation}
+                options={commonOccupations.map((o) => ({ value: o, label: o }))}
+                placeholder="-- Pilih Pekerjaan --"
+                label="Pekerjaan"
+              />
+              <CustomSelect
+                value={educationLevel}
+                onChange={setEducationLevel}
+                options={commonEducations.map((e) => ({ value: e, label: e }))}
+                placeholder="-- Pilih Pendidikan --"
+                label="Pendidikan Terakhir"
+              />
+            </div>
+          )}
 
           {/* Check-In Date */}
           <div className="space-y-1.5">
@@ -298,28 +308,17 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
             />
           </div>
 
-          {/* KTP File Upload */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Unggah Foto/Scan KTP Penyewa <span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <div className="relative border border-dashed border-gray-border rounded-xl p-4 text-center hover:bg-gray-sidebar-hover/20 transition-all">
-              <input
-                type="file"
-                accept="image/*,.pdf"
-                onChange={(e) => setKtpFile(e.target.files?.[0] || null)}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                required={!ktpFile}
+          {/* KTP File Upload (Perorangan saja) */}
+          {tenantType === "perorangan" && (
+            <div className="space-y-1.5">
+              <KtpUploadInput
+                value={ktpFile}
+                onChange={setKtpFile}
+                label="Unggah Foto/Scan KTP Penyewa"
+                required
               />
-              <div className="space-y-1 text-xs text-gray-secondary-text">
-                <Upload className="h-6 w-6 text-gray-placeholder mx-auto" />
-                <p className="font-bold text-gray-heading-main">
-                  {ktpFile ? ktpFile.name : "Pilih Berkas Scan KTP"}
-                </p>
-                <p className="text-[10px] text-gray-placeholder">Maksimal ukuran 2MB (JPG/PNG/PDF)</p>
-              </div>
             </div>
-          </div>
+          )}
 
           </div>
 

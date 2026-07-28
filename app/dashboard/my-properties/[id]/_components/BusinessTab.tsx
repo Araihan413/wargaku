@@ -7,6 +7,7 @@ import { Loader2, Trash2, QrCode, Download } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { validateAndParseRoomPattern } from "@/lib/room-helper";
+import { CoordinatorSearchSelect, UserOption } from "../../_components/CoordinatorSearchSelect";
 import { PropertyDetails } from "../types";
 
 interface BusinessTabProps {
@@ -32,11 +33,21 @@ export function BusinessTab({
   const [coordinatorOption, setCoordinatorOption] = useState<"self" | "other">(
     property?.coordinatorUserId === sessionUserId || !property?.coordinatorUserId ? "self" : "other"
   );
+  const [coordSubOption, setCoordSubOption] = useState<"search" | "invite">("search");
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [selectedCoordUserId, setSelectedCoordUserId] = useState<string | null>(
+    property?.coordinatorUserId && property?.coordinatorUserId !== sessionUserId ? property.coordinatorUserId : null
+  );
+  const [selectedCoordUserName, setSelectedCoordUserName] = useState<string>(
+    property?.coordinator?.name || ""
+  );
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
-  // Coordinator Account States
+  // Coordinator Account States (for invite option)
   const [coordEmail, setCoordEmail] = useState(property?.coordinator?.email || "");
   const [coordNik, setCoordNik] = useState("");
   const [coordName, setCoordName] = useState(property?.coordinator?.name || "");
@@ -62,6 +73,11 @@ export function BusinessTab({
     const isSelf = property.coordinatorUserId === sessionUserId || !property.coordinatorUserId;
     setCoordinatorOption(isSelf ? "self" : "other");
 
+    if (property.coordinatorUserId && property.coordinatorUserId !== sessionUserId) {
+      setSelectedCoordUserId(property.coordinatorUserId);
+      setSelectedCoordUserName(property.coordinator?.name || "");
+    }
+
     if (property.coordinator) {
       setCoordEmail(property.coordinator.email || "");
       setCoordName(property.coordinator.name || "");
@@ -72,6 +88,19 @@ export function BusinessTab({
       setCoordPhone("");
     }
   }
+
+  useEffect(() => {
+    if (coordinatorOption === "other") {
+      setIsLoadingUsers(true);
+      fetch("/api/users?limit=100&status=active")
+        .then((res) => res.json())
+        .then((data) => {
+          setUsers(data.users || []);
+        })
+        .catch(console.error)
+        .finally(() => setIsLoadingUsers(false));
+    }
+  }, [coordinatorOption]);
 
   useEffect(() => {
     if (property?.dwelling?.qrToken) {
@@ -117,16 +146,12 @@ export function BusinessTab({
     if (coordinatorOption === "self") {
       payload.coordinatorUserId = sessionUserId;
     } else {
-      if (!coordEmail.trim() || !coordNik.trim() || !coordName.trim()) {
-        toast.error("Data Koordinator wajib diisi lengkap");
+      if (!selectedCoordUserId) {
+        toast.error("Pilih koordinator terdaftar dari daftar pengguna");
         setIsUpdating(false);
         return;
       }
-      payload.coordinatorEmail = coordEmail;
-      payload.coordinatorNik = coordNik;
-      payload.coordinatorName = coordName;
-      payload.coordinatorPhone = coordPhone || null;
-      payload.coordinatorUserId = null;
+      payload.coordinatorUserId = selectedCoordUserId;
     }
 
     try {
@@ -338,53 +363,22 @@ export function BusinessTab({
                   )}
                   <div className="space-y-1.5">
                     <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                      Email Koordinator <span className="text-red-500 ml-0.5">*</span>
+                      Cari Koordinator Terdaftar <span className="text-red-500 ml-0.5">*</span>
                     </label>
-                    <input
-                      type="email"
-                      placeholder="email@example.com"
-                      value={coordEmail}
-                      onChange={(e) => setCoordEmail(e.target.value)}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                      NIK Koordinator <span className="text-red-500 ml-0.5">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="16 digit NIK"
-                      value={coordNik}
-                      onChange={(e) => setCoordNik(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                      Nama Koordinator <span className="text-red-500 ml-0.5">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Nama Lengkap"
-                      value={coordName}
-                      onChange={(e) => setCoordName(e.target.value)}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                      Nomor HP/WA
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="081..."
-                      value={coordPhone}
-                      onChange={(e) => setCoordPhone(e.target.value)}
-                      className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    <CoordinatorSearchSelect
+                      users={users}
+                      isLoading={isLoadingUsers}
+                      selectedUserId={selectedCoordUserId}
+                      selectedUserName={selectedCoordUserName}
+                      onSelect={(u) => {
+                        setSelectedCoordUserId(u?.id || null);
+                        setSelectedCoordUserName(u?.name || "");
+                        if (u) {
+                          setContactPerson(u.name);
+                          setBusinessPhone(u.phone || "");
+                        }
+                      }}
+                      placeholder="-- Cari nama warga/koordinator terdaftar --"
                     />
                   </div>
                 </div>

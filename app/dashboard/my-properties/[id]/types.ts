@@ -3,10 +3,11 @@ export interface RentalResidentItem {
   name: string;
   nik: string;
   phone?: string | null;
+  tenantType?: "perorangan" | "keluarga";
   roomNumber?: string | null;
   checkInDate: string;
   checkOutDate?: string | null;
-  verificationStatus: "pending" | "verified" | "rejected";
+  verificationStatus: "draft" | "pending" | "verified" | "rejected";
   verificationNote?: string | null;
   isActive: boolean;
   notes?: string | null;

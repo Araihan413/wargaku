@@ -20,6 +20,16 @@ interface CoordinatorSearchSelectProps {
   disabled?: boolean;
 }
 
+function maskPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
+  const cleaned = phone.trim();
+  if (cleaned.length <= 6) return cleaned;
+  const prefix = cleaned.slice(0, 3);
+  const suffix = cleaned.slice(-3);
+  const maskedLength = Math.max(cleaned.length - 6, 3);
+  return `${prefix}${"*".repeat(maskedLength)}${suffix}`;
+}
+
 export const CoordinatorSearchSelect: React.FC<CoordinatorSearchSelectProps> = ({
   users,
   isLoading,
@@ -60,14 +70,14 @@ export const CoordinatorSearchSelect: React.FC<CoordinatorSearchSelectProps> = (
     return users.find((u) => u.id === selectedUserId);
   }, [users, selectedUserId]);
 
-  // Filter users based on search query
+  // Filter users based on search query (name or phone)
   const filteredUsers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return users;
     return users.filter(
       (u) =>
         u.name.toLowerCase().includes(query) ||
-        (u.nik && u.nik.toLowerCase().includes(query))
+        (u.phone && u.phone.toLowerCase().includes(query))
     );
   }, [searchQuery, users]);
 
@@ -171,9 +181,11 @@ export const CoordinatorSearchSelect: React.FC<CoordinatorSearchSelectProps> = (
                   }`}
                 >
                   <span className="font-medium text-gray-heading-main">{u.name}</span>
-                  <span className="text-[10px] text-gray-placeholder">
-                    NIK: {u.nik || "Tidak ada NIK"} {u.phone ? `| WA/Telp: ${u.phone}` : ""}
-                  </span>
+                  {u.phone && (
+                    <span className="text-[10px] text-gray-placeholder">
+                      WA/Telp: {maskPhone(u.phone)}
+                    </span>
+                  )}
                 </div>
               );
             })

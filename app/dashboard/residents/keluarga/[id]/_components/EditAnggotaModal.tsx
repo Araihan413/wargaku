@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, User, CreditCard, Calendar, Phone, Loader2, Upload } from "lucide-react";
+import { X, User, CreditCard, Calendar, Phone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateWargaSchema } from "@/lib/validations/kependudukan";
 import { FormField } from "@/components/FormField";
-import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { CustomSelect } from "@/components/CustomSelect";
 import { FamilyMemberItem } from "../../../types";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
-import { FileUploadModal } from "@/components/FileUploadModal";
+import { KtpUploadInput } from "@/components/KtpUploadInput";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
-import { commonOccupations, commonEducations } from "@/lib/constants";
+import { commonOccupations, commonEducations, genderOptions, relationshipOptions, religionOptions } from "@/lib/constants";
 
 interface EditAnggotaModalProps {
   isOpen: boolean;
@@ -28,7 +28,6 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
   familyVerificationStatus,
 }) => {
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
-  const [showKtpModal, setShowKtpModal] = useState(false);
   const [isUploadingKtp, setIsUploadingKtp] = useState(false);
 
   const [prevMember, setPrevMember] = useState<FamilyMemberItem | null>(null);
@@ -76,16 +75,6 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
           ktpFile: "",
         },
   });
-
-  const handleSelectLocalKtp = (file: File) => {
-    setKtpFile(file);
-    toast.success("Berkas KTP lokal berhasil dipilih!");
-  };
-
-  const handleSelectDriveKtp = (url: string) => {
-    setKtpFile(url);
-    toast.success("Tautan Google Drive KTP berhasil dipilih!");
-  };
 
   const handleClose = () => {
     onClose();
@@ -143,30 +132,6 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
   };
 
   if (!isOpen || !member) return null;
-
-  const genderOptions: SelectOption[] = [
-    { value: "L", label: "Laki-laki" },
-    { value: "P", label: "Perempuan" },
-  ];
-
-  const relationshipOptions: SelectOption[] = [
-    { value: "Kepala_Keluarga", label: "Kepala Keluarga" },
-    { value: "Suami", label: "Suami" },
-    { value: "Istri", label: "Istri" },
-    { value: "Anak", label: "Anak" },
-    { value: "Orang_Tua", label: "Orang Tua" },
-    { value: "Lainnya", label: "Lainnya" },
-  ];
-
-  const religionOptions: SelectOption[] = [
-    { value: "Islam", label: "Islam" },
-    { value: "Kristen", label: "Kristen" },
-    { value: "Katolik", label: "Katolik" },
-    { value: "Hindu", label: "Hindu" },
-    { value: "Buddha", label: "Buddha" },
-    { value: "Khonghucu", label: "Khonghucu" },
-    { value: "Lainnya", label: "Lainnya" },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -376,60 +341,15 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
             </div>
 
             {/* Scan KTP File Upload */}
-            <div className="space-y-2 border-t border-gray-border pt-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
-                  <Upload className="h-4 w-4 text-primary" />
-                  <span>Berkas Scan KTP Anggota</span>
-                </label>
-                {isUploadingKtp && (
-                  <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin" /> Mengunggah...
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => !isLocked && setShowKtpModal(true)}
-                  className={`rounded-xl border px-4 py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-colors max-w-full truncate ${isLocked ? 'border-gray-border bg-gray-sidebar-hover/10 text-gray-placeholder cursor-not-allowed' : 'border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary cursor-pointer'}`}
-                  disabled={isLocked}
-                >
-                  <Upload className="h-4 w-4 shrink-0" />
-                  <span className="truncate">
-                    {isLocked ? "Berkas KTP Terkunci" : ktpFile
-                      ? (ktpFile instanceof File ? ktpFile.name : "Google Drive Terpilih")
-                      : "Pilih Berkas KTP"}
-                  </span>
-                </button>
-
-                {ktpFile ? (
-                  <span className="text-[11px] font-medium text-emerald-600 truncate flex items-center gap-1">
-                    ✓ Berkas KTP Terpasang (Unggah Saat Simpan)
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-gray-secondary-text">
-                    Belum ada berkas KTP dipilih
-                  </span>
-                )}
-              </div>
-
-              <p className="text-[11px] text-gray-secondary-text">
-                Format: JPG, PNG, WebP, atau PDF (Maksimal 5MB).
-              </p>
+            <div className="border-t border-gray-border pt-3">
+              <KtpUploadInput
+                value={ktpFile}
+                onChange={setKtpFile}
+                label="Berkas Scan KTP Anggota"
+                disabled={isLocked}
+              />
             </div>
           </div>
-
-          <FileUploadModal
-            isOpen={showKtpModal}
-            onClose={() => setShowKtpModal(false)}
-            title="Unggah Scan KTP Anggota"
-            description="Pilih metode pengunggahan berkas KTP dari perangkat lokal Anda atau gunakan tautan Google Drive."
-            onSelectLocalFile={handleSelectLocalKtp}
-            onSelectDriveUrl={handleSelectDriveKtp}
-            isLoading={false}
-          />
 
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-gray-border pt-4 mt-4 shrink-0">

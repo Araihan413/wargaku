@@ -51,6 +51,7 @@ export default function RegisterPage() {
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      accountType: "warga",
       email: "",
       phone: "",
       password: "",
@@ -64,6 +65,11 @@ export default function RegisterPage() {
     mode: "onTouched",
   });
 
+  const accountType = useWatch({
+    control,
+    name: "accountType",
+  }) || "warga";
+
   const dwellingId = useWatch({
     control,
     name: "dwellingId",
@@ -75,7 +81,7 @@ export default function RegisterPage() {
       id: "email",
       label: "Email",
       type: "email",
-      placeholder: "nama@email.com",
+      placeholder: "contoh@email.com",
       icon: Mail,
       registerProps: register("email"),
       error: errors.email?.message,
@@ -83,12 +89,12 @@ export default function RegisterPage() {
     {
       id: "phone",
       label: "Nomor WhatsApp / HP",
-      type: "tel",
+      type: "text",
       placeholder: "081234567890",
       icon: Phone,
       note: "Digunakan untuk di hubungi oleh RT/RW.",
       registerProps: register("phone", {
-        onChange: (e) => {
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
           setValue("phone", e.target.value.replace(/\D/g, ""));
         },
       }),
@@ -118,7 +124,7 @@ export default function RegisterPage() {
   const step2Fields = [
     {
       id: "name",
-      label: "Nama Lengkap Kepala Keluarga",
+      label: accountType === "coordinator" ? "Nama Lengkap Koordinator / Pengelola" : "Nama Lengkap Kepala Keluarga",
       type: "text",
       placeholder: "Nama lengkap sesuai KTP",
       icon: User,
@@ -127,32 +133,36 @@ export default function RegisterPage() {
     },
     {
       id: "nik",
-      label: "NIK Kepala Keluarga",
+      label: accountType === "coordinator" ? "NIK Koordinator / Pengelola" : "NIK Kepala Keluarga",
       type: "text",
       placeholder: "16 digit NIK",
       icon: FileText,
       maxLength: 16,
       registerProps: register("nik", {
-        onChange: (e) => {
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
           setValue("nik", e.target.value.replace(/\D/g, ""));
         },
       }),
       error: errors.nik?.message,
     },
-    {
-      id: "familyNumber",
-      label: "Nomor Kartu Keluarga (KK)",
-      type: "text",
-      placeholder: "16 digit Nomor KK",
-      icon: FileText,
-      maxLength: 16,
-      registerProps: register("familyNumber", {
-        onChange: (e) => {
-          setValue("familyNumber", e.target.value.replace(/\D/g, ""));
-        },
-      }),
-      error: errors.familyNumber?.message,
-    },
+    ...(accountType === "warga"
+      ? [
+          {
+            id: "familyNumber",
+            label: "Nomor Kartu Keluarga (KK)",
+            type: "text",
+            placeholder: "16 digit Nomor KK",
+            icon: FileText,
+            maxLength: 16,
+            registerProps: register("familyNumber", {
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                setValue("familyNumber", e.target.value.replace(/\D/g, ""));
+              },
+            }),
+            error: errors.familyNumber?.message,
+          },
+        ]
+      : []),
   ];
 
   // Fetch Dwellings List for Dropdown
@@ -188,6 +198,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      const roleId = data.accountType === "coordinator" ? 5 : 6;
       await authClient.signUp.email(
         {
           email: data.email,
@@ -195,11 +206,11 @@ export default function RegisterPage() {
           name: data.name,
           phone: data.phone,
           nik: data.nik,
-          roleId: 6, // Role 'Warga'
+          roleId: roleId, // 5 = Koordinator Kost, 6 = Warga
           status: "pending", // Status default pending menunggu persetujuan RT
-          familyNumber: data.familyNumber,
-          dwellingId: Number(data.dwellingId),
-          unitNumber: data.unitNumber || undefined,
+          familyNumber: data.accountType === "warga" ? data.familyNumber : undefined,
+          dwellingId: data.accountType === "warga" && data.dwellingId ? Number(data.dwellingId) : undefined,
+          unitNumber: data.accountType === "warga" ? (data.unitNumber || undefined) : undefined,
         },
         {
           onRequest: () => {
@@ -209,7 +220,9 @@ export default function RegisterPage() {
             await authClient.signOut();
             setIsLoading(false);
             toast.success(
-              "Registrasi mandiri berhasil! Akun Anda berstatus PENDING menunggu verifikasi RT."
+              data.accountType === "coordinator"
+                ? "Registrasi Koordinator Kos berhasil! Akun Anda berstatus PENDING menunggu verifikasi Ketua RT."
+                : "Registrasi mandiri berhasil! Akun Anda berstatus PENDING menunggu verifikasi RT."
             );
             router.push("/login");
           },
@@ -244,7 +257,7 @@ export default function RegisterPage() {
           </div>
           
           <p className="text-xs text-gray-secondary-text mt-1">
-            Registrasi Mandiri Kepala Keluarga Baru
+            {accountType === "coordinator" ? "Pendaftaran Mandiri Koordinator Kos" : "Registrasi Mandiri Kepala Keluarga Baru"}
           </p>
 
           {/* Step Indicator Badge */}
@@ -282,6 +295,37 @@ export default function RegisterPage() {
         {/* STEP 1 FORM */}
         {step === 1 && (
           <div className="space-y-4">
+            {/* Account Type Selector (Warga vs Koordinator Kos) */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Pilih Jenis Akun <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2 bg-gray-sidebar-hover/30 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setValue("accountType", "warga")}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    accountType === "warga"
+                      ? "bg-primary text-white shadow-xs"
+                      : "text-gray-secondary-text hover:text-gray-heading-main"
+                  }`}
+                >
+                  👤 Warga (KK)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setValue("accountType", "coordinator")}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    accountType === "coordinator"
+                      ? "bg-primary text-white shadow-xs"
+                      : "text-gray-secondary-text hover:text-gray-heading-main"
+                  }`}
+                >
+                  🏢 Koordinator Kos
+                </button>
+              </div>
+            </div>
+
             {step1Fields.map((field) => (
               <FormField
                 key={field.id}
@@ -311,25 +355,29 @@ export default function RegisterPage() {
               <FormField key={field.id} {...field} />
             ))}
 
-            <DwellingDropdown
-              dwellingsList={dwellingsList}
-              dwellingId={dwellingId!}
-              onSelect={(id) => {
-                setValue("dwellingId", id);
-              }}
-              error={errors.dwellingId?.message}
-            />
+            {accountType === "warga" && (
+              <>
+                <DwellingDropdown
+                  dwellingsList={dwellingsList}
+                  dwellingId={dwellingId!}
+                  onSelect={(id) => {
+                    setValue("dwellingId", id);
+                  }}
+                  error={errors.dwellingId?.message}
+                />
 
-            {/* Nomor Pintu/Unit (Kontrakan) */}
-            <FormField
-              id="unitNumber"
-              label="Nomor Pintu / Unit"
-              type="text"
-              placeholder="Contoh: Kamar 03 (Diisi jika menyewa/sekat)"
-              icon={Home}
-              registerProps={register("unitNumber")}
-              error={errors.unitNumber?.message}
-            />
+                {/* Nomor Pintu/Unit (Kontrakan) */}
+                <FormField
+                  id="unitNumber"
+                  label="Nomor Pintu / Unit"
+                  type="text"
+                  placeholder="Contoh: Kamar 03 (Diisi jika menyewa/sekat)"
+                  icon={Home}
+                  registerProps={register("unitNumber")}
+                  error={errors.unitNumber?.message}
+                />
+              </>
+            )}
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4">

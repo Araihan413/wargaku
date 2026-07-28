@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useForm, Controller, useWatch } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, UserPlus, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, Upload, GraduationCap } from "lucide-react";
+import { X, Loader2, UserPlus, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, GraduationCap, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { createRentalResidentSchema } from "@/lib/validations/rental";
-import { FileUploadModal } from "@/components/FileUploadModal";
-import { uploadFileToCloudinary } from "@/lib/upload-helper";
+import { KtpUploadInput } from "@/components/KtpUploadInput";
+import { executeWithFileUpload } from "@/lib/upload-helper";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
-import { commonOccupations, commonEducations } from "@/lib/constants";
+import { commonOccupations, commonEducations, religionOptions, tenantTypeOptions } from "@/lib/constants";
 
 interface CheckInTenantModalProps {
   isOpen: boolean;
@@ -24,21 +24,6 @@ interface RentalPropertyOption {
   houseNumber: string;
 }
 
-const religionOptions: SelectOption[] = [
-  { value: "Islam", label: "Islam" },
-  { value: "Kristen", label: "Kristen" },
-  { value: "Katolik", label: "Katolik" },
-  { value: "Hindu", label: "Hindu" },
-  { value: "Buddha", label: "Buddha" },
-  { value: "Khonghucu", label: "Khonghucu" },
-  { value: "Lainnya", label: "Lainnya" },
-];
-
-const tenantTypeOptions: SelectOption[] = [
-  { value: "perorangan", label: "Perorangan (Individu)" },
-  { value: "keluarga", label: "Keluarga (Satu KK)" },
-];
-
 export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
   isOpen,
   onClose,
@@ -47,25 +32,13 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
   const [properties, setProperties] = useState<RentalPropertyOption[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
-  const [showKtpModal, setShowKtpModal] = useState(false);
-
-  const handleSelectLocalKtp = (file: File) => {
-    setValue("ktpFile", file as any);
-    toast.success("Berkas KTP lokal berhasil dipilih!");
-  };
-
-  const handleSelectDriveKtp = (url: string) => {
-    setValue("ktpFile", url);
-    toast.success("Tautan Google Drive KTP berhasil dipilih!");
-  };
 
   const {
     register,
     handleSubmit,
     control,
-    setValue,
     reset,
-    setError,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(createRentalResidentSchema),
@@ -74,6 +47,7 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
       name: "",
       nik: "",
       phone: "",
+      email: "",
       originAddress: "",
       occupation: "",
       educationLevel: "",
@@ -84,10 +58,7 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     },
   });
 
-  const ktpFile = useWatch({
-    control,
-    name: "ktpFile",
-  });
+  const tenantType = watch("tenantType");
 
   // Fetch active rental properties
   useEffect(() => {
@@ -99,23 +70,8 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
         const res = await fetch("/api/rentals?isActive=true");
         if (res.ok) {
           const data = await res.json();
-          // The response has `data` which is an array of rentalProperties. Let's see if we need to fetch their dwellings.
-          // In the database query `listRentalProperties`, it returns rentalProperties data.
-          // Let's fetch details or map them.
-          // Wait! In `listRentalProperties`, does it return blockNumber & houseNumber?
-          // Let's check `listRentalProperties` in `db/queries/rental.ts` again. It returns `data` which is an array of rentalProperties.
-          // In db, `rentalProperties` table has no blockNumber/houseNumber, but they references `dwellings.id`.
-          // Wait! In `/api/rentals` endpoint, the GET handler returns `listRentalProperties` which is not joined with dwellings!
-          // Ah! Let's check if the API returns dwelling details.
-          // If it doesn't, we can fetch active dwellings or active rentals list.
-          // Wait, let's look at `/api/rentals` results. It has `dwellingId`.
-          // We can fetch active dwellings or we can look up from `/api/dwellings` which contains the label!
-          // Actually, let's fetch `/api/rentals?isActive=true` and load the dwellings to show name and block/house.
-          // Wait! Let's write a simple helper fetch in this modal or make the dropdown list names.
-          // Let's first map the properties.
           const propertiesData = data.data || [];
           
-          // Let's fetch all dwellings to map ID to label.
           const dwellingsRes = await fetch("/api/dwellings");
           if (dwellingsRes.ok) {
             const dwellingsData = await dwellingsRes.json();
@@ -167,53 +123,40 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
       return;
     }
 
-    try {
-      let finalKtpUrl = "";
+    const result = await executeWithFileUpload({
+      file: data.tenantType === "perorangan" ? data.ktpFile : null,
+      folder: "ktp",
+      submitFn: (ktpUrl) => {
+        const payload = {
+          tenantType: data.tenantType,
+          name: data.name,
+          nik: data.nik,
+          phone: data.phone,
+          roomNumber: data.roomNumber,
+          checkInDate: data.checkInDate,
+          email: data.tenantType === "keluarga" ? data.email : undefined,
+          originAddress: data.tenantType === "perorangan" ? data.originAddress : undefined,
+          occupation: data.tenantType === "perorangan" ? data.occupation : undefined,
+          educationLevel: data.tenantType === "perorangan" ? data.educationLevel : undefined,
+          religion: data.tenantType === "perorangan" ? data.religion : undefined,
+          ktpFile: data.tenantType === "perorangan" ? ktpUrl : null,
+        };
 
-      if (data.ktpFile instanceof File) {
-        try {
-          const uploadRes = await uploadFileToCloudinary(data.ktpFile, "ktp");
-          finalKtpUrl = uploadRes.url;
-        } catch (err) {
-          toast.error("Gagal mengunggah berkas KTP.");
-          return;
-        }
-      } else if (typeof data.ktpFile === "string") {
-        finalKtpUrl = data.ktpFile;
-      }
+        return fetch(`/api/rentals/${selectedPropertyId}/residents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      },
+      successMessage:
+        data.tenantType === "keluarga"
+          ? "Penyewa Keluarga berhasil didaftarkan! Kredensial login dikirim ke email Kepala Keluarga."
+          : "Penyewa berhasil check-in. Menunggu verifikasi dokumen oleh RT.",
+    });
 
-      const response = await fetch(`/api/rentals/${selectedPropertyId}/residents`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          ktpFile: finalKtpUrl,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 400 && result.issues && Array.isArray(result.issues)) {
-          result.issues.forEach((issue: any) => {
-            const path = issue.path[0];
-            if (path) {
-              setError(path, {
-                type: "server",
-                message: issue.message,
-              });
-            }
-          });
-          throw new Error("Validasi gagal. Silakan periksa kembali isian form.");
-        }
-        throw new Error(result.error || "Gagal melakukan check-in penyewa");
-      }
-
-      toast.success("Penyewa berhasil check-in. Menunggu verifikasi dokumen.");
+    if (result.success) {
       handleClose();
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || "Terjadi kesalahan koneksi");
     }
   };
 
@@ -375,131 +318,131 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
               </div>
             </div>
 
-            <hr className="border-gray-border" />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Occupation */}
+            {tenantType === "keluarga" && (
               <div className="space-y-1.5">
-                <Controller
-                  name="occupation"
-                  control={control}
-                  render={({ field }) => (
-                    <AutocompleteInput
-                      label="Pekerjaan"
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      suggestions={commonOccupations}
-                      placeholder="Pekerjaan utama"
-                      icon={Briefcase}
+                <FormField
+                  id="email"
+                  label="Email Kepala Keluarga"
+                  type="email"
+                  required={true}
+                  placeholder="Contoh: kepala.keluarga@email.com"
+                  registerProps={register("email")}
+                  icon={Mail}
+                  error={errors.email?.message}
+                />
+              </div>
+            )}
+
+            {tenantType === "perorangan" && (
+              <>
+                <hr className="border-gray-border" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Occupation */}
+                  <div className="space-y-1.5">
+                    <Controller
+                      name="occupation"
+                      control={control}
+                      render={({ field }) => (
+                        <AutocompleteInput
+                          label="Pekerjaan"
+                          value={(field.value as string) || ""}
+                          onChange={field.onChange}
+                          suggestions={commonOccupations}
+                          placeholder="Pekerjaan utama"
+                          icon={Briefcase}
+                        />
+                      )}
                     />
-                  )}
-                />
-                {errors.occupation && (
-                  <p className="text-xs text-error font-semibold mt-1">{errors.occupation.message}</p>
-                )}
-              </div>
+                    {errors.occupation && (
+                      <p className="text-xs text-error font-semibold mt-1">{errors.occupation.message}</p>
+                    )}
+                  </div>
 
-              {/* Education Level */}
-              <div className="space-y-1.5">
-                <Controller
-                  name="educationLevel"
-                  control={control}
-                  render={({ field }) => (
-                    <AutocompleteInput
-                      label="Pendidikan Terakhir"
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      suggestions={commonEducations}
-                      placeholder="Contoh: S1 / SMA"
-                      icon={GraduationCap}
+                  {/* Education Level */}
+                  <div className="space-y-1.5">
+                    <Controller
+                      name="educationLevel"
+                      control={control}
+                      render={({ field }) => (
+                        <AutocompleteInput
+                          label="Pendidikan Terakhir"
+                          value={(field.value as string) || ""}
+                          onChange={field.onChange}
+                          suggestions={commonEducations}
+                          placeholder="Contoh: S1 / SMA"
+                          icon={GraduationCap}
+                        />
+                      )}
                     />
-                  )}
-                />
-                {errors.educationLevel && (
-                  <p className="text-xs text-error font-semibold mt-1">{errors.educationLevel.message}</p>
-                )}
-              </div>
-            </div>
+                    {errors.educationLevel && (
+                      <p className="text-xs text-error font-semibold mt-1">{errors.educationLevel.message}</p>
+                    )}
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Religion */}
-              <div className="space-y-1.5">
-                <Controller
-                  name="religion"
-                  control={control}
-                  render={({ field }) => (
-                    <CustomSelect
-                      label="Agama"
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      options={religionOptions}
-                      placeholder="-- Pilih Agama --"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Religion */}
+                  <div className="space-y-1.5">
+                    <Controller
+                      name="religion"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomSelect
+                          label="Agama"
+                          value={(field.value as string) || ""}
+                          onChange={field.onChange}
+                          options={religionOptions}
+                          placeholder="-- Pilih Agama --"
+                        />
+                      )}
                     />
+                    {errors.religion && (
+                      <p className="text-xs text-error font-semibold mt-1">
+                        {errors.religion.message as string}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Origin Address */}
+                <div className="space-y-1.5">
+                  <label htmlFor="originAddress" className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Alamat Asal / KTP
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      id="originAddress"
+                      placeholder="Alamat asal sesuai KTP"
+                      rows={2}
+                      {...register("originAddress")}
+                      className="w-full rounded-xl border border-gray-border bg-gray-card py-2.5 pl-10 pr-3.5 text-gray-heading-main placeholder-gray-placeholder text-sm outline-none transition-all resize-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                    <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-gray-placeholder" />
+                  </div>
+                  {errors.originAddress && (
+                    <p className="text-xs text-error font-semibold mt-1">{errors.originAddress.message}</p>
                   )}
-                />
-                {errors.religion && (
-                  <p className="text-xs text-error font-semibold mt-1">
-                    {errors.religion.message as string}
-                  </p>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Origin Address */}
-            <div className="space-y-1.5">
-              <label htmlFor="originAddress" className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                Alamat Asal / KTP
-              </label>
-              <div className="relative">
-                <textarea
-                  id="originAddress"
-                  placeholder="Alamat asal sesuai KTP"
-                  rows={2}
-                  {...register("originAddress")}
-                  className="w-full rounded-xl border border-gray-border bg-gray-card py-2.5 pl-10 pr-3.5 text-gray-heading-main placeholder-gray-placeholder text-sm outline-none transition-all resize-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-                <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-gray-placeholder" />
-              </div>
-              {errors.originAddress && (
-                <p className="text-xs text-error font-semibold mt-1">{errors.originAddress.message}</p>
-              )}
-            </div>
-
-            {/* Scan KTP File Upload */}
-            <div className="space-y-2.5 border-t border-gray-border pt-3">
-              <label className="text-xs font-bold text-gray-heading-main flex items-center gap-1.5">
-                <Upload className="h-3.5 w-3.5 text-primary" />
-                <span>Berkas Scan KTP Penyewa <span className="text-error">*</span></span>
-              </label>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowKtpModal(true)}
-                  className="rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-xs font-bold text-primary flex items-center justify-center gap-2 cursor-pointer transition-colors max-w-full truncate"
-                >
-                  <Upload className="h-4 w-4 shrink-0" />
-                  <span className="truncate font-sans font-bold">
-                    {ktpFile
-                      ? ((ktpFile as any) instanceof File ? (ktpFile as any).name : "Google Drive Terpilih")
-                      : "Pilih Berkas KTP"}
-                  </span>
-                </button>
-
-                {ktpFile ? (
-                  <span className="text-[11px] font-medium text-emerald-600 truncate flex items-center gap-1">
-                    ✓ Berkas KTP Terpasang (Unggah Saat Simpan)
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-medium text-amber-600 flex items-center gap-1">
-                    ⚠️ Wajib Unggah Berkas KTP
-                  </span>
-                )}
-              </div>
-              {errors.ktpFile && (
-                <p className="text-xs text-error font-medium mt-1">{errors.ktpFile.message}</p>
-              )}
-            </div>
+                {/* Scan KTP File Upload */}
+                <div className="border-t border-gray-border pt-3">
+                  <Controller
+                    name="ktpFile"
+                    control={control}
+                    render={({ field }) => (
+                      <KtpUploadInput
+                        value={field.value as string | File | null | undefined}
+                        onChange={field.onChange}
+                        label="Berkas Scan KTP Penyewa"
+                        required
+                        error={errors.ktpFile?.message as string}
+                      />
+                    )}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Footer */}
@@ -529,16 +472,6 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
           </div>
         </form>
       </div>
-
-      <FileUploadModal
-        isOpen={showKtpModal}
-        onClose={() => setShowKtpModal(false)}
-        title="Pilih Berkas KTP Penyewa"
-        description="Pilih sumber dokumen Scan KTP untuk check-in penyewa kos/kontrakan baru."
-        onSelectLocalFile={handleSelectLocalKtp}
-        onSelectDriveUrl={handleSelectDriveKtp}
-        isLoading={false}
-      />
     </div>
   );
 };

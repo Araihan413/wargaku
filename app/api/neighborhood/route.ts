@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
@@ -44,11 +44,11 @@ export async function GET() {
       .from(schema.families)
       .where(eq(schema.families.isActive, true));
 
-    // 5. Fetch all active family members
+    // 5. Fetch all active family members from residents table
     const allMembers = await db
       .select()
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.isActive, true));
+      .from(schema.residents)
+      .where(and(eq(schema.residents.isActive, true), eq(schema.residents.residentType, 'warga_tetap')));
 
     // 6. Fetch all active rental properties
     const allRentalProperties = await db
@@ -56,14 +56,15 @@ export async function GET() {
       .from(schema.rentalProperties)
       .where(eq(schema.rentalProperties.isActive, true));
 
-    // 7. Fetch all active rental residents
+    // 7. Fetch all active rental residents from residents table
     const allRentalResidents = await db
       .select()
-      .from(schema.rentalResidents)
+      .from(schema.residents)
       .where(
         and(
-          eq(schema.rentalResidents.isActive, true),
-          eq(schema.rentalResidents.verificationStatus, 'verified')
+          eq(schema.residents.isActive, true),
+          eq(schema.residents.verificationStatus, 'verified'),
+          or(eq(schema.residents.residentType, 'sewa_perorangan'), eq(schema.residents.residentType, 'sewa_keluarga'))
         )
       );
 
@@ -113,7 +114,7 @@ export async function GET() {
               occupation: resident.occupation,
               educationLevel: resident.educationLevel,
               roomNumber: resident.roomNumber,
-              tenantType: resident.tenantType,
+              tenantType: resident.residentType === 'sewa_keluarga' ? 'keluarga' : 'perorangan',
               checkInDate: resident.checkInDate,
             }));
 

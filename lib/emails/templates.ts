@@ -196,6 +196,50 @@ export function getCoordWelcomeWithPasswordEmail(name: string, email: string, pa
       Berikut adalah kredensial akun Anda untuk login pertama kali:
     </p>
 
+  <div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; margin-bottom: 28px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #4b5563;">
+      <tr>
+        <td style="padding: 6px 0; font-weight: 700; width: 100px;">Email:</td>
+        <td style="padding: 6px 0; font-family: monospace; color: #111827;">${email}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0; font-weight: 700;">Password:</td>
+        <td style="padding: 6px 0; font-family: monospace; color: #111827;">${password}</td>
+      </tr>
+    </table>
+  </div>
+
+    <div style="text-align: center; margin-bottom: 32px;">
+      <a href="${loginLink}" style="background-color: #10b981; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);">
+        Login ke Wargaku
+      </a>
+    </div>
+
+    <p style="font-size: 15px; line-height: 1.6; color: #4b5563; margin-top: 24px; margin-bottom: 0;">
+      Salam hangat,<br/>
+      <strong>Pengurus RT - Wargaku</strong>
+    </p>
+  `;
+
+  return getBaseEmailLayout({
+    title: "WARGAKU",
+    subtitle: "Sistem Informasi & Manajemen RT",
+    theme: "success",
+    contentHtml: content,
+  });
+}
+
+export function getTenantFamilyWelcomeEmail(name: string, email: string, password: string, loginLink: string): string {
+  const content = `
+    <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin-top: 0; margin-bottom: 16px;">Akun Keluarga Penyewa Baru Berhasil Dibuat!</h2>
+    <p style="font-size: 15px; line-height: 1.6; color: #4b5563; margin-bottom: 20px;">
+      Halo <strong>${name}</strong>, Anda telah didaftarkan sebagai Kepala Keluarga penyewa sewaan oleh Koordinator Properti di sistem Wargaku.
+    </p>
+    
+    <p style="font-size: 15px; line-height: 1.6; color: #4b5563; margin-bottom: 20px;">
+      Silakan gunakan kredensial berikut untuk masuk pertama kali:
+    </p>
+
     <div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; margin-bottom: 28px;">
       <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #4b5563;">
         <tr>
@@ -210,12 +254,12 @@ export function getCoordWelcomeWithPasswordEmail(name: string, email: string, pa
     </div>
     
     <p style="font-size: 14px; color: #ef4444; font-weight: 600; margin-bottom: 28px;">
-      *PENTING: Demi alasan keamanan, segera ubah kata sandi default Anda setelah berhasil masuk untuk pertama kalinya.
+      *PENTING: Setelah masuk, Anda wajib mengunggah berkas scan KK dan melengkapi data anggota keluarga Anda agar dapat diverifikasi oleh pengurus RT.
     </p>
 
     <div style="text-align: center; margin-bottom: 32px;">
       <a href="${loginLink}" style="background-color: #3b82f6; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);">
-        Masuk ke Dashboard Wargaku
+        Masuk ke Wargaku
       </a>
     </div>
     
@@ -232,3 +276,5 @@ export function getCoordWelcomeWithPasswordEmail(name: string, email: string, pa
     contentHtml: content,
   });
 }
+
+// End of templates

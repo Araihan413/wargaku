@@ -72,6 +72,9 @@ export default function ResidentsPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEditRenterOpen, setIsEditRenterOpen] = useState(false);
   const [selectedRenter, setSelectedRenter] = useState<RentalResidentItem | null>(null);
+  const [isReactivateRenterModalOpen, setIsReactivateRenterModalOpen] = useState(false);
+  const [selectedRenterForReactivate, setSelectedRenterForReactivate] = useState<RentalResidentItem | null>(null);
+  const [isReactivatingRenter, setIsReactivatingRenter] = useState(false);
 
   // Coordinator states
   const [coordinatorsList, setCoordinatorsList] = useState<CoordinatorItem[]>([]);
@@ -212,7 +215,7 @@ export default function ResidentsPage() {
     setIsRentersLoading(true);
     try {
       const offset = (rentersCurrentPage - 1) * itemsPerPage;
-      let url = `/api/rental-residents?limit=${itemsPerPage}&offset=${offset}`;
+      let url = `/api/rental-residents?limit=${itemsPerPage}&offset=${offset}&tenantType=perorangan`;
 
       if (debouncedSearchQuery) {
         url += `&query=${encodeURIComponent(debouncedSearchQuery)}`;
@@ -344,6 +347,31 @@ export default function ResidentsPage() {
     } catch (error) {
       console.error(error);
       toast.error("Terjadi kesalahan sistem saat mengaktifkan kembali KK");
+    }
+  };
+
+  const executeReactivateRenter = async () => {
+    if (!selectedRenterForReactivate) return;
+    setIsReactivatingRenter(true);
+    try {
+      const res = await fetch(`/api/rental-residents/${selectedRenterForReactivate.id}/reactivate`, {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        toast.success("Penyewa berhasil diaktifkan kembali");
+        fetchRenters();
+        setIsReactivateRenterModalOpen(false);
+        setSelectedRenterForReactivate(null);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal mengaktifkan kembali penyewa");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem saat mengaktifkan kembali penyewa");
+    } finally {
+      setIsReactivatingRenter(false);
     }
   };
 
@@ -535,6 +563,10 @@ export default function ResidentsPage() {
             onCheckOut={(renter) => {
               setSelectedRenter(renter);
               setIsCheckOutOpen(true);
+            }}
+            onReactivate={(renter) => {
+              setSelectedRenterForReactivate(renter);
+              setIsReactivateRenterModalOpen(true);
             }}
             onEdit={(renter) => {
               setSelectedRenter(renter);
@@ -812,6 +844,27 @@ export default function ResidentsPage() {
           fetchRenters();
         }}
         resident={selectedRenter}
+      />
+
+      {/* Modal Dialog: Konfirmasi Aktifkan Kembali Penyewa */}
+      <ConfirmModal
+        isOpen={isReactivateRenterModalOpen}
+        onClose={() => {
+          setIsReactivateRenterModalOpen(false);
+          setSelectedRenterForReactivate(null);
+        }}
+        onConfirm={executeReactivateRenter}
+        title="Aktifkan Kembali Penyewa (Check-In)?"
+        description={
+          <p>
+            Apakah Anda yakin ingin mengaktifkan kembali penyewa <strong>{selectedRenterForReactivate?.name}</strong>?
+            Tindakan ini akan memulihkan status keaktifan penyewa dan akun terkait (jika ada).
+          </p>
+        }
+        confirmText="Ya, Aktifkan Kembali"
+        cancelText="Batal"
+        variant="primary"
+        isLoading={isReactivatingRenter}
       />
 
       <DwellingDetailModal

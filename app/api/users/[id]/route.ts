@@ -364,14 +364,18 @@ export async function PATCH(
 
                 const familyId = insertFamily.insertId;
 
-                // Add Head of Family to familyMembers table
-                await tx.insert(schema.familyMembers).values({
+                // Add Head of Family to residents table
+                await tx.insert(schema.residents).values({
                   familyId,
+                  dwellingId: targetDwellingId,
+                  userId: id,
+                  residentType: "warga_tetap",
                   name: user.name,
                   nik: user.nik,
                   relationship: "Kepala_Keluarga",
                   gender: "L", // default value, required in schema
                   phone: user.phone || null,
+                  verificationStatus: "verified",
                   isActive: true,
                 });
               }

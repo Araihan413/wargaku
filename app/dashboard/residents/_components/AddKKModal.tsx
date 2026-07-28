@@ -7,7 +7,7 @@ import { createFamilySchema } from "@/lib/validations/kependudukan";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { DwellingOption, UserOption } from "../types";
-import { uploadFileToCloudinary } from "@/lib/upload-helper";
+import { executeWithFileUpload } from "@/lib/upload-helper";
 
 interface AddKKModalProps {
   isOpen: boolean;
@@ -23,20 +23,11 @@ export const AddKKModal: React.FC<AddKKModalProps> = ({
   const [dwellings, setDwellings] = useState<DwellingOption[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
-  const [isUploadingKK, setIsUploadingKK] = useState(false);
 
-  const handleKKFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleKKFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingKK(true);
-    try {
-      const res = await uploadFileToCloudinary(file, "kk");
-      setValue("kkFile", res.url);
-    } catch (err) {
-      console.error("Upload error:", err);
-    } finally {
-      setIsUploadingKK(false);
+    if (file) {
+      setValue("kkFile", file as any);
     }
   };
 
@@ -95,32 +86,29 @@ export const AddKKModal: React.FC<AddKKModalProps> = ({
   };
 
   const onSubmit = async (data: any) => {
-    try {
-      // Ensure dwellingId is a number
-      const payload = {
-        ...data,
-        dwellingId: Number(data.dwellingId),
-        unitNumber: data.unitNumber || null,
-        kkFile: data.kkFile || null,
-      };
+    const result = await executeWithFileUpload({
+      file: data.kkFile,
+      folder: "kk",
+      submitFn: (kkFileUrl) => {
+        const payload = {
+          ...data,
+          dwellingId: Number(data.dwellingId),
+          unitNumber: data.unitNumber || null,
+          kkFile: kkFileUrl || null,
+        };
 
-      const res = await fetch("/api/families", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        return fetch("/api/families", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      },
+      successMessage: "Kartu Keluarga baru berhasil didaftarkan",
+    });
 
-      if (res.ok) {
-        toast.success("Kartu Keluarga baru berhasil didaftarkan");
-        reset();
-        onSuccess();
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Gagal mendaftarkan Kartu Keluarga");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Terjadi kesalahan sistem");
+    if (result.success) {
+      reset();
+      onSuccess();
     }
   };
 
@@ -260,11 +248,11 @@ export const AddKKModal: React.FC<AddKKModalProps> = ({
             {/* Scan KK File Upload */}
             <div className="space-y-2 border-t border-gray-border pt-3">
               <div className="flex items-center justify-between">
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
+                <label className="text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
                   <Upload className="h-4 w-4 text-primary" />
                   <span>Unggah Berkas Scan KK</span>
                 </label>
-                {isUploadingKK && (
+                {isSubmitting && (
                   <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
                     <Loader2 className="h-3 w-3 animate-spin" /> Mengunggah...
                   </span>
@@ -274,7 +262,7 @@ export const AddKKModal: React.FC<AddKKModalProps> = ({
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,application/pdf"
-                disabled={isUploadingKK}
+                disabled={isSubmitting}
                 onChange={handleKKFileUpload}
                 className="block w-full text-xs text-gray-secondary-text file:mr-3 file:rounded-xl file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-primary hover:file:bg-primary/20 cursor-pointer disabled:opacity-60"
               />

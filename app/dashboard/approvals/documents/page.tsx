@@ -55,6 +55,29 @@ export default function DocumentApprovalsPage() {
   const [rentalList, setRentalList] = useState<RentalResidentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Tab pending indicator counts
+  const [familyPendingCount, setFamilyPendingCount] = useState<number>(0);
+  const [rentalPendingCount, setRentalPendingCount] = useState<number>(0);
+
+  const fetchPendingCounts = useCallback(async () => {
+    try {
+      const [famRes, rentRes] = await Promise.all([
+        fetch("/api/approvals/documents?type=family&status=pending"),
+        fetch("/api/approvals/documents?type=rental_resident&status=pending")
+      ]);
+      if (famRes.ok) {
+        const famData = await famRes.json();
+        setFamilyPendingCount(famData.data?.length || 0);
+      }
+      if (rentRes.ok) {
+        const rentData = await rentRes.json();
+        setRentalPendingCount(rentData.data?.length || 0);
+      }
+    } catch (err) {
+      console.error("Error fetching pending tab counts:", err);
+    }
+  }, []);
+
   // Modal states
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
@@ -94,12 +117,13 @@ export default function DocumentApprovalsPage() {
     Promise.resolve().then(() => {
       if (active) {
         fetchDocuments();
+        fetchPendingCounts();
       }
     });
     return () => {
       active = false;
     };
-  }, [fetchDocuments]);
+  }, [fetchDocuments, fetchPendingCounts]);
 
   const handleActionConfirm = async (rejectReason?: string) => {
     if (!selectedId || !confirmAction) return;
@@ -120,6 +144,7 @@ export default function DocumentApprovalsPage() {
       if (res.ok) {
         toast.success(result.message || "Tindakan berhasil disimpan");
         fetchDocuments();
+        fetchPendingCounts();
       } else {
         throw new Error(result.error || "Gagal memperbarui status dokumen");
       }
@@ -180,26 +205,38 @@ export default function DocumentApprovalsPage() {
                 setActiveTab("family");
                 setFamiliesList([]);
               }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`relative px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "family"
                   ? "bg-gray-card text-gray-heading-main shadow-xs"
                   : "text-gray-secondary-text hover:text-gray-heading-main"
               }`}
             >
-              Kartu Keluarga (Warga Tetap)
+              <span>Kartu Keluarga Warga</span>
+              {familyPendingCount > 0 && (
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+              )}
             </button>
             <button
               onClick={() => {
                 setActiveTab("rental_resident");
                 setRentalList([]);
               }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`relative px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "rental_resident"
                   ? "bg-gray-card text-gray-heading-main shadow-xs"
                   : "text-gray-secondary-text hover:text-gray-heading-main"
               }`}
             >
-              KTP Penghuni (Sewa/Kos)
+              <span>KTP Penghuni (Sewa/Kos)</span>
+              {rentalPendingCount > 0 && (
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+              )}
             </button>
           </div>
 

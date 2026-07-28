@@ -16,6 +16,7 @@ interface PendingUser {
   name: string;
   email: string;
   nik: string;
+  roleId?: number;
   phone?: string | null;
   familyNumber?: string | null;
   unitNumber?: string | null;
@@ -190,6 +191,7 @@ export default function RegistrationApprovalsPage() {
               <thead>
                 <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
                   <th className="py-4 px-5">Nama & Kontak</th>
+                  <th className="py-4 px-5">Tipe Akun</th>
                   <th className="py-4 px-5">NIK</th>
                   <th className="py-4 px-5">Nomor KK</th>
                   <th className="py-4 px-5">Rencana Alamat</th>
@@ -219,6 +221,17 @@ export default function RegistrationApprovalsPage() {
                             </span>
                           )}
                         </div>
+                      </td>
+                      <td className="py-4 px-5">
+                        {user.roleId === 5 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold whitespace-nowrap">
+                            Koordinator Kos
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold whitespace-nowrap">
+                            Warga (KK)
+                          </span>
+                        )}
                       </td>
                       <td className="py-4 px-5 font-mono text-gray-secondary-text">{user.nik}</td>
                       <td className="py-4 px-5 font-mono text-gray-secondary-text">{user.familyNumber || "-"}</td>
@@ -280,12 +293,21 @@ export default function RegistrationApprovalsPage() {
 
             <div className="space-y-3 mb-6 text-xs text-gray-secondary-text leading-relaxed">
               <p>
-                Apakah Anda yakin ingin menyetujui pendaftaran mandiri warga atas nama{" "}
-                <strong className="text-gray-heading-main font-semibold">{selectedUser.name}</strong>?
+                Apakah Anda yakin ingin menyetujui pendaftaran mandiri{" "}
+                <strong className="text-gray-heading-main font-semibold">
+                  {selectedUser.roleId === 5 ? "Koordinator Kos" : "Warga (KK)"}
+                </strong>{" "}
+                atas nama <strong className="text-gray-heading-main font-semibold">{selectedUser.name}</strong>?
               </p>
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-medium">
-                Setelah disetujui, akun warga akan aktif, dan sistem secara otomatis membuat Kartu Keluarga baru dengan Nomor KK <strong>{selectedUser.familyNumber}</strong> dengan <strong>{selectedUser.name}</strong> sebagai Kepala Keluarga.
-              </div>
+              {selectedUser.roleId === 5 ? (
+                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 font-medium">
+                  Setelah disetujui, akun Koordinator Kos akan aktif dan dapat langsung ditunjuk oleh pemilik properti sewa di wilayah RT ini.
+                </div>
+              ) : (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-medium">
+                  Setelah disetujui, akun warga akan aktif, dan sistem secara otomatis membuat Kartu Keluarga baru dengan Nomor KK <strong>{selectedUser.familyNumber}</strong> dengan <strong>{selectedUser.name}</strong> sebagai Kepala Keluarga.
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-3 shrink-0">

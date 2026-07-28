@@ -145,6 +145,10 @@ export default function PropertyDetailsPage() {
       if (activeRes.ok) {
         const json = await activeRes.json();
         setActiveResidents(json.data || []);
+      } else {
+        const errJson = await activeRes.json().catch(() => ({}));
+        console.error("Gagal memuat penghuni aktif:", errJson);
+        toast.error(errJson.error || "Gagal memuat data penghuni aktif");
       }
       
       // Inactive residents history

@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, sql, gte } from "drizzle-orm";
+import { eq, and, or, sql, gte } from "drizzle-orm";
 import { startOfMonth, subMonths, format } from "date-fns";
 
 export async function GET() {
@@ -25,31 +25,22 @@ export async function GET() {
 
     const today = new Date();
 
-    // 1. Fetch active residents (Warga Tetap & Pendatang)
-    const activeWargaTetap = await db
+    // 1. Fetch active residents from unified residents table
+    const activeResidents = await db
       .select({
-        gender: schema.familyMembers.gender,
-        birthDate: schema.familyMembers.birthDate,
-        occupation: schema.familyMembers.occupation,
-        educationLevel: schema.familyMembers.educationLevel,
-        religion: schema.familyMembers.religion,
+        residentType: schema.residents.residentType,
+        gender: schema.residents.gender,
+        birthDate: schema.residents.birthDate,
+        occupation: schema.residents.occupation,
+        educationLevel: schema.residents.educationLevel,
+        religion: schema.residents.religion,
       })
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.isActive, true));
+      .from(schema.residents)
+      .where(eq(schema.residents.isActive, true));
 
-    const activeWargaSewa = await db
-      .select({
-        occupation: schema.rentalResidents.occupation,
-        educationLevel: schema.rentalResidents.educationLevel,
-        religion: schema.rentalResidents.religion,
-      })
-      .from(schema.rentalResidents)
-      .where(eq(schema.rentalResidents.isActive, true));
-
-    const allResidents = [
-      ...activeWargaTetap.map((w) => ({ ...w, type: "tetap" })),
-      ...activeWargaSewa.map((w) => ({ ...w, type: "sewa", gender: null, birthDate: null })),
-    ];
+    const activeWargaTetap = activeResidents.filter((r) => r.residentType === "warga_tetap");
+    const activeWargaSewa = activeResidents.filter((r) => r.residentType !== "warga_tetap");
+    const allResidents = activeResidents;
 
     // Summary calculations
     const totalWargaTetap = activeWargaTetap.length;
@@ -179,9 +170,14 @@ export async function GET() {
       .where(eq(schema.rentalProperties.isActive, true));
 
     const activeTenants = await db
-      .select({ rentalPropertyId: schema.rentalResidents.rentalPropertyId })
-      .from(schema.rentalResidents)
-      .where(eq(schema.rentalResidents.isActive, true));
+      .select({ rentalPropertyId: schema.residents.rentalPropertyId })
+      .from(schema.residents)
+      .where(
+        and(
+          eq(schema.residents.isActive, true),
+          sql`${schema.residents.rentalPropertyId} IS NOT NULL`
+        )
+      );
 
     const occupiedRentalPropertyIds = new Set(activeTenants.map((t) => t.rentalPropertyId));
     activeRentals.forEach((r) => {
@@ -325,10 +321,11 @@ export async function GET() {
     // 12. Population Mutations (Check-In vs Check-Out over the last 6 months)
     const activeRentalsHistory = await db
       .select({
-        checkInDate: schema.rentalResidents.checkInDate,
-        checkOutDate: schema.rentalResidents.checkOutDate,
+        checkInDate: schema.residents.checkInDate,
+        checkOutDate: schema.residents.checkOutDate,
       })
-      .from(schema.rentalResidents);
+      .from(schema.residents)
+      .where(or(eq(schema.residents.residentType, 'sewa_perorangan'), eq(schema.residents.residentType, 'sewa_keluarga')));
 
     // Query permanent families check-in/check-out dates
     const permanentFamiliesHistory = await db
@@ -342,14 +339,16 @@ export async function GET() {
     // Query family member counts to estimate exact population count
     const familyMembersCount = await db
       .select({
-        familyId: schema.familyMembers.familyId,
+        familyId: schema.residents.familyId,
       })
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.isActive, true));
+      .from(schema.residents)
+      .where(and(eq(schema.residents.isActive, true), eq(schema.residents.residentType, 'warga_tetap')));
 
     const familySizeMap: Record<number, number> = {};
     familyMembersCount.forEach((fm) => {
-      familySizeMap[fm.familyId] = (familySizeMap[fm.familyId] || 0) + 1;
+      if (fm.familyId) {
+        familySizeMap[fm.familyId] = (familySizeMap[fm.familyId] || 0) + 1;
+      }
     });
 
     const monthlyMutations: Record<string, { checkIn: number; checkOut: number }> = {};

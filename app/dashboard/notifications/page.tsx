@@ -387,7 +387,7 @@ export default function NotificationsPage() {
                       {notif.title}
                     </h3>
                     {!notif.isRead && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                     )}
                     <span className="text-[10px] text-gray-placeholder">
                       • {formatRelativeTime(notif.createdAt)}

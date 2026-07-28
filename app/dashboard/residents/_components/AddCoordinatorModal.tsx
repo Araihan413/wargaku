@@ -70,7 +70,7 @@ export const AddCoordinatorModal: React.FC<AddCoordinatorModalProps> = ({
     const fetchUsers = async () => {
       setIsLoadingUsers(true);
       try {
-        const res = await fetch("/api/users");
+        const res = await fetch("/api/users?status=active");
         if (res.ok) {
           const data = await res.json();
           // Filter to only include warga biasa (roleId !== 5 && roleId !== 1)

@@ -65,3 +65,34 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
+    }
+
+    const { url, publicId } = await request.json();
+    let success = false;
+
+    if (publicId) {
+      const { deleteFromCloudinary } = await import("@/lib/cloudinary");
+      success = await deleteFromCloudinary(publicId);
+    } else if (url) {
+      const { deleteCloudinaryFileByUrl } = await import("@/lib/cloudinary");
+      success = await deleteCloudinaryFileByUrl(url);
+    }
+
+    return NextResponse.json({ success });
+  } catch (error: any) {
+    console.error("Error in DELETE /api/upload:", error);
+    return NextResponse.json(
+      { error: error?.message || "Gagal menghapus berkas." },
+      { status: 500 }
+    );
+  }
+}

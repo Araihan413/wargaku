@@ -74,11 +74,6 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
     }
   };
 
-  // Save Google Drive URL
-  const handleSelectDriveUrl = async (url: string) => {
-    await saveKKFileToDB(url);
-  };
-
   // Request change handler
   const handleRequestChange = async () => {
     setIsRequestingChange(true);
@@ -269,9 +264,8 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
         isOpen={showKkUploadForm && !isLocked}
         onClose={() => setShowKkUploadForm(false)}
         title="Unggah Berkas Scan KK"
-        description="Pilih apakah Anda ingin mengunggah berkas scan KK dari perangkat Anda atau menggunakan tautan dari Google Drive."
+        description="Pilih apakah Anda ingin mengunggah berkas scan KK dari perangkat Anda atau menggunakan Google Drive."
         onSelectLocalFile={handleSelectLocalFile}
-        onSelectDriveUrl={handleSelectDriveUrl}
         isLoading={isUploadingKK}
       />
 

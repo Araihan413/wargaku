@@ -77,8 +77,8 @@ export async function GET() {
     if (headFamily) {
       const [membersCount] = await db
         .select({ count: sql<number>`count(*)` })
-        .from(schema.familyMembers)
-        .where(and(eq(schema.familyMembers.familyId, headFamily.id), eq(schema.familyMembers.isActive, true)));
+        .from(schema.residents)
+        .where(and(eq(schema.residents.familyId, headFamily.id), eq(schema.residents.residentType, 'warga_tetap'), eq(schema.residents.isActive, true)));
 
       familyData = {
         ...headFamily,
@@ -88,12 +88,12 @@ export async function GET() {
       // Check if member of a family by NIK
       const [member] = await db
         .select({
-          familyId: schema.familyMembers.familyId,
+          familyId: schema.residents.familyId,
         })
-        .from(schema.familyMembers)
-        .where(and(eq(schema.familyMembers.nik, user.nik), eq(schema.familyMembers.isActive, true)));
+        .from(schema.residents)
+        .where(and(eq(schema.residents.nik, user.nik), eq(schema.residents.residentType, 'warga_tetap'), eq(schema.residents.isActive, true)));
 
-      if (member) {
+      if (member && member.familyId) {
         const [foundFamily] = await db
           .select({
             id: schema.families.id,
@@ -109,8 +109,8 @@ export async function GET() {
         if (foundFamily) {
           const [membersCount] = await db
             .select({ count: sql<number>`count(*)` })
-            .from(schema.familyMembers)
-            .where(and(eq(schema.familyMembers.familyId, foundFamily.id), eq(schema.familyMembers.isActive, true)));
+            .from(schema.residents)
+            .where(and(eq(schema.residents.familyId, foundFamily.id), eq(schema.residents.residentType, 'warga_tetap'), eq(schema.residents.isActive, true)));
 
           familyData = {
             ...foundFamily,
@@ -197,8 +197,8 @@ export async function GET() {
     // 6. Aggregate Stats (Total Warga & Total KK)
     const [wargaCount] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.isActive, true));
+      .from(schema.residents)
+      .where(eq(schema.residents.isActive, true));
 
     const [kkCount] = await db
       .select({ count: sql<number>`count(*)` })

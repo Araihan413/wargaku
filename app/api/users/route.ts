@@ -21,7 +21,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Allow RT managers or any authenticated user (for selecting candidate coordinators/residents)
     const allowed = 
+      Boolean(session.user) ||
       await hasPermission(session.user.roleId, "manage-users") ||
       await hasPermission(session.user.roleId, "manage-residents") ||
       await hasPermission(session.user.roleId, "view-residents");
@@ -191,14 +193,18 @@ export async function POST(request: Request) {
 
           const familyId = insertFamily.insertId;
 
-          // Add Head of Family to familyMembers table
-          await tx.insert(schema.familyMembers).values({
+          // Add Head of Family to residents table
+          await tx.insert(schema.residents).values({
             familyId,
+            dwellingId: validatedData.dwellingId,
+            userId: userId,
+            residentType: "warga_tetap",
             name: validatedData.name,
             nik: validatedData.nik,
             relationship: "Kepala_Keluarga",
             gender: validatedData.gender || "L",
             phone: validatedData.phone || null,
+            verificationStatus: "verified",
             isActive: true,
           });
         }

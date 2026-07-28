@@ -80,11 +80,11 @@ export async function PUT(
         // Cek apakah masih ada penyewa aktif
         const activeTenants = await db
           .select({ count: sql<number>`count(*)` })
-          .from(schema.rentalResidents)
-          .innerJoin(schema.rentalProperties, eq(schema.rentalResidents.rentalPropertyId, schema.rentalProperties.id))
+          .from(schema.residents)
+          .innerJoin(schema.rentalProperties, eq(schema.residents.rentalPropertyId, schema.rentalProperties.id))
           .where(and(
             eq(schema.rentalProperties.dwellingId, dwellingId),
-            eq(schema.rentalResidents.isActive, true)
+            eq(schema.residents.isActive, true)
           ))
           .then(res => Number(res[0]?.count || 0));
 

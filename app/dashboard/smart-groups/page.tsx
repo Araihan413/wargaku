@@ -471,8 +471,6 @@ export default function SmartGroupsPage() {
         <div className="space-y-4">
           {activeGroupRules.map((rule, idx) => {
             const isNumericField = ["age", "kkMembersCount"].includes(rule.field);
-            const isSelectField = ["gender", "relationship", "feeStatus", "religion"].includes(rule.field);
-
             return (
               <div
                 key={idx}
@@ -668,7 +666,7 @@ export default function SmartGroupsPage() {
                           ? "bg-primary/10 text-primary border border-primary/20"
                           : "bg-gray-sidebar-hover text-gray-secondary-text"
                       }`}>
-                        {citizen.relationship.replace("_", " ")}
+                        {(citizen.relationship || "-").replace("_", " ")}
                       </span>
                     </td>
                     <td className="py-4 px-5">

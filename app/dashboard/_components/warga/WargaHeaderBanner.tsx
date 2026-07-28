@@ -19,7 +19,7 @@ export function WargaHeaderBanner({ userName, family }: WargaHeaderBannerProps) 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-primary p-6 sm:p-8 text-white shadow-md">
 
-      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <div className="relative z-10 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
         {/* Greeting & Subtitle */}
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1 text-xs font-semibold backdrop-blur-md">

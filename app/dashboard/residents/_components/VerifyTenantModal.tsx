@@ -126,23 +126,43 @@ export const VerifyTenantModal: React.FC<VerifyTenantModalProps> = ({
             <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
               Dokumen KTP yang Diunggah
             </label>
-            <div className="border border-gray-border rounded-xl p-4 bg-gray-sidebar-hover/10 flex flex-col items-center justify-center gap-3 min-h-36">
-              <FileText className="h-10 w-10 text-gray-placeholder" />
-              <div className="text-center">
-                <span className="text-xs text-gray-heading-main font-semibold block">{resident.ktpFile || "ktp_scan.jpg"}</span>
-                <span className="text-[10px] text-gray-placeholder mt-0.5 block">Simulasi Dokumen KTP Utama</span>
-              </div>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toast.info("Fitur preview gambar KTP terenkripsi sedang memuat berkas...");
-                }}
-                className="text-xs font-bold text-primary hover:underline cursor-pointer"
-              >
-                Lihat Berkas KTP
-              </a>
-            </div>
+            {(() => {
+              const getFilenameFromUrl = (url: string) => {
+                try {
+                  const decodedUrl = decodeURIComponent(url);
+                  const parts = decodedUrl.split("/");
+                  const lastPart = parts[parts.length - 1];
+                  if (lastPart) {
+                    return lastPart.split("?")[0];
+                  }
+                  return "Scan_KTP.pdf";
+                } catch {
+                  return "Scan_KTP.pdf";
+                }
+              };
+
+              return (
+                <div className="border border-gray-border rounded-xl p-4 bg-gray-sidebar-hover/10 flex flex-col items-center justify-center gap-3 min-h-36">
+                  <FileText className="h-10 w-10 text-gray-placeholder" />
+                  <div className="text-center">
+                    <span className="text-xs text-gray-heading-main font-semibold block">
+                      {resident.ktpFile ? getFilenameFromUrl(resident.ktpFile) : "Belum diunggah"}
+                    </span>
+                    <span className="text-[10px] text-gray-placeholder mt-0.5 block">Dokumen KTP Utama</span>
+                  </div>
+                  {resident.ktpFile && (
+                    <a
+                      href={resident.ktpFile}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
+                    >
+                      Lihat Berkas KTP
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Conditional Reject Form */}

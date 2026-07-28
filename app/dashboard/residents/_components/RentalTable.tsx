@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, ChevronLeft, ChevronRight, Eye, CheckCircle, LogOut, Pencil } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Eye, CheckCircle, LogOut, LogIn, Pencil } from "lucide-react";
 
 export interface RentalResidentItem {
   id: number;
@@ -10,7 +10,7 @@ export interface RentalResidentItem {
   roomNumber?: string | null;
   checkInDate: string;
   checkOutDate?: string | null;
-  verificationStatus: "pending" | "verified" | "rejected";
+  verificationStatus: "draft" | "pending" | "verified" | "rejected";
   isActive: boolean;
   verificationNote?: string | null;
   ktpFile?: string | null;
@@ -34,6 +34,7 @@ interface RentalTableProps {
   onDetail: (resident: RentalResidentItem) => void;
   onVerify: (resident: RentalResidentItem) => void;
   onCheckOut: (resident: RentalResidentItem) => void;
+  onReactivate?: (resident: RentalResidentItem) => void;
   onEdit: (resident: RentalResidentItem) => void;
 }
 
@@ -47,6 +48,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   onDetail,
   onVerify,
   onCheckOut,
+  onReactivate,
   onEdit,
 }) => {
   const formatDate = (dateString: string) => {
@@ -166,11 +168,11 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
-                        {r.verificationStatus === 'pending' && (
+                        {r.verificationStatus === 'pending' && r.tenantType === 'perorangan' && (
                           <button
                             onClick={() => onVerify(r)}
                             className="p-1.5 hover:bg-emerald-50 rounded-lg text-gray-secondary-text hover:text-emerald-700 transition-colors cursor-pointer"
-                            title="Verifikasi Dokumen"
+                            title="Verifikasi Dokumen KTP"
                           >
                             <CheckCircle className="h-4 w-4" />
                           </button>
@@ -182,6 +184,15 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                             title="Check-Out Penyewa"
                           >
                             <LogOut className="h-4 w-4" />
+                          </button>
+                        )}
+                        {!r.isActive && onReactivate && (
+                          <button
+                            onClick={() => onReactivate(r)}
+                            className="p-1.5 hover:bg-emerald-50 rounded-lg text-gray-secondary-text hover:text-emerald-700 transition-colors cursor-pointer"
+                            title="Aktifkan Kembali Penyewa (Check-In)"
+                          >
+                            <LogIn className="h-4 w-4" />
                           </button>
                         )}
                       </div>

@@ -36,6 +36,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: result.data || [] });
     } else if (type === "rental_resident") {
       const result = await listAllRentalResidents({
+        tenantType: "perorangan",
         verificationStatus: status,
         query,
         isActive: true,

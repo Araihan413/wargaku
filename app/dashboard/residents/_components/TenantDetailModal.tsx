@@ -1,7 +1,6 @@
 import React from "react";
 import { X, User, Phone, MapPin, Calendar, Briefcase, FileText, AlertTriangle, GraduationCap, Download, Eye } from "lucide-react";
 import { RentalResidentItem } from "./RentalTable";
-import Image from "next/image";
 
 interface TenantDetailModalProps {
   isOpen: boolean;
@@ -43,6 +42,23 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
       });
     } catch {
       return dateString;
+    }
+  };
+
+  const getFilenameFromUrl = (url: string) => {
+    if (url.includes("drive.google.com") || url.includes("google.com/file")) {
+      return "Dokumen Google Drive";
+    }
+    try {
+      const decodedUrl = decodeURIComponent(url);
+      const parts = decodedUrl.split("/");
+      const lastPart = parts[parts.length - 1];
+      if (lastPart) {
+        return lastPart.split("?")[0];
+      }
+      return "Berkas KTP";
+    } catch {
+      return "Berkas KTP";
     }
   };
 
@@ -218,7 +234,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
 
           {/* Origin Address */}
           <div className="space-y-2">
-            <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Alamat Asal</span>
+            <span className="text-xs text-gray-placeholder block font-bold uppercase tracking-wider">Alamat Asal</span>
             <div className="text-xs text-gray-heading-main bg-gray-sidebar-hover/10 p-3 rounded-xl border border-gray-border leading-relaxed">
               {resident.originAddress || "-"}
             </div>
@@ -226,16 +242,21 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
 
           {/* KTP Document Link */}
           <div className="space-y-2.5">
-            <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Berkas Scan KTP</span>
+            <span className="text-xs text-gray-placeholder block font-bold uppercase tracking-wider">Berkas Scan KTP</span>
             {resident.ktpFile ? (
               <div className="border border-gray-border rounded-2xl overflow-hidden bg-gray-card/50 p-4 space-y-3 shadow-sm">
-                <div className="relative aspect-video max-h-56 w-full rounded-xl border border-gray-border bg-gray-950/5 overflow-hidden flex items-center justify-center">
-                  <Image
-                    src={resident.ktpFile}
-                    alt={`KTP ${resident.name}`}
-                    fill
-                    className="object-contain"
-                  />
+                <div className="flex items-center gap-3 p-3 bg-gray-sidebar-hover/10 rounded-xl border border-gray-border">
+                  <div className="p-2.5 bg-primary/10 rounded-xl text-primary shrink-0">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-bold text-gray-heading-main block truncate">
+                      Dokumen Scan KTP
+                    </span>
+                    <span className="text-[10px] text-gray-secondary-text block truncate mt-0.5">
+                      {getFilenameFromUrl(resident.ktpFile)}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-2.5">
                   <a
@@ -245,12 +266,12 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-bold text-gray-heading-main transition-all cursor-pointer shadow-sm"
                   >
                     <Eye className="h-4 w-4 text-gray-secondary-text" />
-                    Buka Layar Penuh
+                    Lihat KTP
                   </a>
                   <button
                     type="button"
-                    onClick={() => downloadFile(resident.ktpFile!, `KTP_${resident.name.replace(/\s+/g, "_")}.jpg`)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    onClick={() => downloadFile(resident.ktpFile!, `KTP_${resident.name.replace(/\s+/g, "_")}.pdf`)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
                   >
                     <Download className="h-4 w-4" />
                     Unduh KTP

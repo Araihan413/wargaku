@@ -1,29 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Loader2, Edit3, Upload } from "lucide-react";
+import { X, Loader2, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { CustomSelect } from "@/components/CustomSelect";
+import { KtpUploadInput } from "@/components/KtpUploadInput";
 
-interface RentalResidentItem {
-  id: number;
-  name: string;
-  nik: string;
-  phone?: string | null;
-  roomNumber?: string | null;
-  checkInDate: string;
-  checkOutDate?: string | null;
-  verificationStatus: "pending" | "verified" | "rejected";
-  verificationNote?: string | null;
-  isActive: boolean;
-  notes?: string | null;
-  inactiveReason?: "pindah" | "meninggal" | null;
-  originAddress?: string | null;
-  occupation?: string | null;
-  educationLevel?: string | null;
-  ktpFile?: string | null;
-}
+import { RentalResidentItem } from "../types";
 
 interface EditResidentModalProps {
   isOpen: boolean;
@@ -83,7 +67,7 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
   const [checkInDate, setCheckInDate] = useState(
     resident?.checkInDate ? resident.checkInDate.split("T")[0] : ""
   );
-  const [ktpFile, setKtpFile] = useState<File | null>(null);
+  const [ktpFile, setKtpFile] = useState<File | string | null>(null);
   const existingKtpUrl = resident?.ktpFile || "";
 
   if (!isOpen || !resident) return null;
@@ -102,10 +86,12 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
     let ktpUrl = existingKtpUrl;
 
     try {
-      // 1. Upload new KTP to Cloudinary if selected
-      if (ktpFile) {
+      // 1. Upload new KTP to Cloudinary if a local file is selected, or use direct URL
+      if (ktpFile instanceof File) {
         const uploadRes = await uploadFileToCloudinary(ktpFile, "ktp");
         ktpUrl = uploadRes.url;
+      } else if (typeof ktpFile === "string") {
+        ktpUrl = ktpFile;
       }
 
       // 2. Submit Update
@@ -291,7 +277,6 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
               options={occupationOptions.map((o) => ({ value: o, label: o }))}
               placeholder="-- Pilih Pekerjaan --"
               label="Pekerjaan"
-              required
             />
             <CustomSelect
               value={educationLevel}
@@ -299,7 +284,6 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
               options={educationOptions.map((e) => ({ value: e, label: e }))}
               placeholder="-- Pilih Pendidikan --"
               label="Pendidikan Terakhir"
-              required
             />
           </div>
 
@@ -320,35 +304,17 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
 
           {/* KTP File Upload */}
           <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Unggah Foto/Scan KTP Baru (Opsional)
-            </label>
-            <div className={`relative border border-dashed border-gray-border rounded-xl p-4 text-center transition-all ${isVerified ? 'opacity-60 bg-gray-border/10 cursor-not-allowed' : 'hover:bg-gray-sidebar-hover/20'}`}>
-              {!isVerified && (
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => setKtpFile(e.target.files?.[0] || null)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-              )}
-              <div className="space-y-1 text-xs text-gray-secondary-text">
-                <Upload className="h-6 w-6 text-gray-placeholder mx-auto" />
-                <p className="font-bold text-gray-heading-main">
-                  {ktpFile ? ktpFile.name : isVerified ? "Berkas KTP Terkunci" : "Pilih berkas baru jika ingin mengganti KTP"}
-                </p>
-                <p className="text-[10px] text-gray-placeholder">Maksimal ukuran 2MB (JPG/PNG/PDF)</p>
-              </div>
-            </div>
-            {existingKtpUrl && !ktpFile && (
-              <p className="text-[10px] text-primary font-semibold">
-                * Sudah ada scan KTP tersimpan.
-              </p>
-            )}
+            <KtpUploadInput
+              value={ktpFile}
+              onChange={setKtpFile}
+              label="Unggah Foto/Scan KTP)"
+              disabled={isVerified}
+              existingUrl={existingKtpUrl}
+            />
           </div>
-
+ 
           </div>
-
+ 
           {/* Submit */}
           <div className="flex items-center gap-3 pt-4 border-t border-gray-border/50 shrink-0 mt-4">
             <button

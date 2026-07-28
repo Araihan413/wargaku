@@ -2,38 +2,14 @@
 
 import React, { useState } from "react";
 import { WargaFamilyMember } from "../types";
-import { X, Loader2, Edit2, Upload, Lock } from "lucide-react";
+import { X, Loader2, Edit2, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
-import { FileUploadModal } from "@/components/FileUploadModal";
+import { KtpUploadInput } from "@/components/KtpUploadInput";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
-import { CustomSelect, SelectOption } from "@/components/CustomSelect";
-import { commonOccupations, commonEducations } from "@/lib/constants";
-
-const relationshipOptions: SelectOption[] = [
-  { value: "Kepala_Keluarga", label: "Kepala Keluarga" },
-  { value: "Istri", label: "Istri" },
-  { value: "Suami", label: "Suami" },
-  { value: "Anak", label: "Anak" },
-  { value: "Orang_Tua", label: "Orang Tua" },
-  { value: "Lainnya", label: "Lainnya" },
-];
-
-const genderOptions: SelectOption[] = [
-  { value: "P", label: "Perempuan" },
-  { value: "L", label: "Laki-laki" },
-];
-
-const religionOptions: SelectOption[] = [
-  { value: "Islam", label: "Islam" },
-  { value: "Kristen", label: "Kristen" },
-  { value: "Katolik", label: "Katolik" },
-  { value: "Hindu", label: "Hindu" },
-  { value: "Buddha", label: "Buddha" },
-  { value: "Khonghucu", label: "Khonghucu" },
-  { value: "Lainnya", label: "Lainnya" },
-];
+import { CustomSelect } from "@/components/CustomSelect";
+import { commonOccupations, commonEducations, relationshipOptions, religionOptions, genderOptions } from "@/lib/constants";
 
 interface EditWargaMemberModalProps {
   isOpen: boolean;
@@ -65,17 +41,6 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [showKtpModal, setShowKtpModal] = useState(false);
-
-  const handleSelectLocalKtp = (file: File) => {
-    setKtpFile(file);
-    toast.success("Berkas KTP lokal berhasil dipilih!");
-  };
-
-  const handleSelectDriveKtp = (url: string) => {
-    setKtpFile(url);
-    toast.success("Tautan Google Drive KTP berhasil dipilih!");
-  };
 
   // Synchronize form state with props during render without useEffect to prevent cascading renders
   if (member !== prevMember) {
@@ -367,53 +332,15 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
             </div>
 
             {/* Scan KTP File Upload */}
-            <div className="space-y-2.5 sm:col-span-2 border-t border-gray-border pt-3">
-              <label className="text-xs font-bold text-gray-heading-main flex items-center gap-1.5">
-                <Upload className="h-3.5 w-3.5 text-primary" />
-                <span>Berkas Scan KTP Anggota</span>
-              </label>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => !isLocked && setShowKtpModal(true)}
-                  className={`rounded-xl border px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 transition-colors max-w-full truncate ${isLocked ? 'border-gray-border bg-gray-sidebar-hover/10 text-gray-placeholder cursor-not-allowed' : 'border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary cursor-pointer'}`}
-                  disabled={isLocked}
-                >
-                  <Upload className="h-4 w-4 shrink-0" />
-                  <span className="truncate">
-                    {isLocked ? "Berkas KTP Terkunci" : ktpFile
-                      ? (ktpFile instanceof File ? ktpFile.name : "KTP Terunggah (Pilih Ulang)")
-                      : "Pilih Berkas KTP"}
-                  </span>
-                </button>
-
-                {ktpFile ? (
-                  <span className="text-[11px] font-medium text-emerald-600 truncate flex items-center gap-1">
-                    ✓ Berkas KTP Terpasang {ktpFile instanceof File && "(Unggah Saat Simpan)"}
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-gray-secondary-text">
-                    Belum ada berkas KTP dipilih
-                  </span>
-                )}
-              </div>
-
-              <p className="text-[11px] text-gray-secondary-text">
-                Format: JPG, PNG, WebP, atau PDF (Maksimal 5MB).
-              </p>
+            <div className="sm:col-span-2 border-t border-gray-border pt-3">
+              <KtpUploadInput
+                value={ktpFile}
+                onChange={setKtpFile}
+                label="Berkas Scan KTP Anggota"
+                disabled={isLocked}
+              />
             </div>
           </div>
-
-          <FileUploadModal
-            isOpen={showKtpModal}
-            onClose={() => setShowKtpModal(false)}
-            title="Unggah Scan KTP Anggota"
-            description="Pilih metode pengunggahan berkas KTP dari perangkat lokal Anda atau gunakan tautan Google Drive."
-            onSelectLocalFile={handleSelectLocalKtp}
-            onSelectDriveUrl={handleSelectDriveKtp}
-            isLoading={false}
-          />
 
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-gray-border pt-4 mt-4">

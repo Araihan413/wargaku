@@ -71,10 +71,6 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
     }
   };
 
-  const handleSelectDriveKK = async (url: string) => {
-    await saveKKFileToDB(url);
-  };
-
   const saveKtpFileToDB = async (memberId: number, url: string) => {
     setIsUploadingKtp(true);
     try {
@@ -111,11 +107,6 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
     } finally {
       setIsUploadingKtp(false);
     }
-  };
-
-  const handleSelectDriveKtp = async (url: string) => {
-    if (!selectedMemberForKtp) return;
-    await saveKtpFileToDB(selectedMemberForKtp.id, url);
   };
 
   const getRelationshipLabel = (rel: string) => {
@@ -317,12 +308,11 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
         isOpen={showKkUploadForm}
         onClose={() => setShowKkUploadForm(false)}
         title="Unggah Berkas Scan KK"
-        description="Pilih metode pengunggahan berkas scan Kartu Keluarga (KK) dari perangkat lokal atau masukkan tautan Google Drive."
+        description="Pilih berkas scan Kartu Keluarga (KK) dari perangkat lokal atau gunakan Google Drive."
         onSelectLocalFile={handleSelectLocalKK}
-        onSelectDriveUrl={handleSelectDriveKK}
         isLoading={isUploadingKK}
       />
-
+ 
       {/* File Upload Modal untuk KTP Anggota */}
       <FileUploadModal
         isOpen={showKtpUploadForm}
@@ -331,9 +321,8 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
           setSelectedMemberForKtp(null);
         }}
         title={`Unggah Scan KTP - ${selectedMemberForKtp?.name || ""}`}
-        description="Pilih metode pengunggahan berkas scan KTP dari perangkat lokal atau masukkan tautan Google Drive."
+        description="Pilih berkas scan KTP dari perangkat lokal atau gunakan Google Drive."
         onSelectLocalFile={handleSelectLocalKtp}
-        onSelectDriveUrl={handleSelectDriveKtp}
         isLoading={isUploadingKtp}
       />
     </div>

@@ -190,24 +190,12 @@ export default function MyPropertiesPage() {
     if (coordinatorOption === "self") {
       payload.coordinatorUserId = sessionUserId;
     } else {
-      if (coordSubOption === "search") {
-        if (!selectedCoordUserId) {
-          toast.error("Pilih koordinator warga terdaftar terlebih dahulu");
-          setIsSubmitting(false);
-          return;
-        }
-        payload.coordinatorUserId = selectedCoordUserId;
-      } else {
-        // Invite new coordinator
-        if (!coordName.trim() || !coordPhone.trim()) {
-          toast.error("Nama dan nomor HP/WA penjaga wajib diisi");
-          setIsSubmitting(false);
-          return;
-        }
-        payload.coordinatorName = coordName;
-        payload.coordinatorPhone = coordPhone;
-        payload.coordinatorUserId = null;
+      if (!selectedCoordUserId) {
+        toast.error("Pilih koordinator terdaftar dari daftar pengguna");
+        setIsSubmitting(false);
+        return;
       }
+      payload.coordinatorUserId = selectedCoordUserId;
     }
 
     try {
@@ -222,17 +210,6 @@ export default function MyPropertiesPage() {
         toast.success("Properti pribadi berhasil didaftarkan");
         setIsModalOpen(false);
 
-        // If it was an invitation, open the WhatsApp Invite Modal!
-        if (coordinatorOption === "other" && coordSubOption === "invite" && data.coordinatorId) {
-          const inviteUrl = `${window.location.origin}/register/coordinator?id=${data.coordinatorId}`;
-          setInviteModalData({
-            propertyName: propertyName,
-            coordinatorName: coordName,
-            inviteLink: inviteUrl,
-            phone: coordPhone,
-          });
-        }
-
         // Reset Form
         setSelectedDwellingId("");
         setPropertyName("");
@@ -244,7 +221,6 @@ export default function MyPropertiesPage() {
         setCoordName("");
         setCoordPhone("");
         setCoordinatorOption("self");
-        setCoordSubOption("search");
         setSelectedCoordUserId(null);
         setSelectedCoordUserName("");
         fetchProperties();
@@ -626,91 +602,30 @@ export default function MyPropertiesPage() {
 
                 {/* Sub-options for Coordinator (Search vs. Invite) */}
                 {!isHomestaySelected && coordinatorOption === "other" && (
-                  <div className="space-y-3 animate-in fade-in duration-200">
-                    <div className="flex gap-2 p-1 bg-gray-sidebar-hover/30 rounded-xl border border-gray-border/50">
-                      <button
-                        type="button"
-                        onClick={() => setCoordSubOption("search")}
-                        className={`flex-1 py-1.5 px-3 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                          coordSubOption === "search"
-                            ? "bg-gray-card text-gray-heading-main shadow-sm"
-                            : "text-gray-secondary-text hover:text-gray-heading-main"
-                        }`}
-                      >
-                        Pilih dari Warga Terdaftar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCoordSubOption("invite")}
-                        className={`flex-1 py-1.5 px-3 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                          coordSubOption === "invite"
-                            ? "bg-gray-card text-gray-heading-main shadow-sm"
-                            : "text-gray-secondary-text hover:text-gray-heading-main"
-                        }`}
-                      >
-                        Undang Penjaga Baru
-                      </button>
+                    <div className="space-y-1.5 bg-gray-sidebar-hover/20 p-4 rounded-2xl border border-gray-border/60 animate-in slide-in-from-top-2 duration-200">
+                      <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                        Cari Koordinator Terdaftar <span className="text-red-500 ml-0.5">*</span>
+                      </label>
+                      <CoordinatorSearchSelect
+                        users={users}
+                        isLoading={isLoadingUsers}
+                        selectedUserId={selectedCoordUserId}
+                        selectedUserName={selectedCoordUserName}
+                        onSelect={(u) => {
+                          setSelectedCoordUserId(u?.id || null);
+                          setSelectedCoordUserName(u?.name || "");
+                          if (u) {
+                            setContactPerson(u.name);
+                            setBusinessPhone(u.phone || "");
+                          } else {
+                            setContactPerson("");
+                            setBusinessPhone("");
+                          }
+                        }}
+                        placeholder="-- Cari nama warga/koordinator terdaftar --"
+                      />
                     </div>
-
-                    {coordSubOption === "search" ? (
-                      <div className="space-y-1.5">
-                        <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                          Cari Nama Warga <span className="text-red-500 ml-0.5">*</span>
-                        </label>
-                        <CoordinatorSearchSelect
-                          users={users}
-                          isLoading={isLoadingUsers}
-                          selectedUserId={selectedCoordUserId}
-                          selectedUserName={selectedCoordUserName}
-                          onSelect={(u) => {
-                            setSelectedCoordUserId(u?.id || null);
-                            setSelectedCoordUserName(u?.name || "");
-                            if (u) {
-                              setContactPerson(u.name);
-                              setBusinessPhone(u.phone || "");
-                            } else {
-                              setContactPerson("");
-                              setBusinessPhone("");
-                            }
-                          }}
-                          placeholder="-- Cari nama warga di RT ini --"
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-3 bg-gray-sidebar-hover/20 p-4 rounded-2xl border border-gray-border/60 animate-in slide-in-from-top-2 duration-200">
-                        <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-100 p-2.5 rounded-lg">
-                          Silakan isi nama dan nomor WA penjaga kos. Tautan pendaftaran akan dibuat setelah properti disimpan.
-                        </p>
-                        <div className="space-y-1.5">
-                          <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                            Nama Calon Penjaga <span className="text-red-500 ml-0.5">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Nama Lengkap Penjaga"
-                            value={coordName}
-                            onChange={(e) => setCoordName(e.target.value)}
-                            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                            Nomor HP/WA Penjaga <span className="text-red-500 ml-0.5">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Contoh: 081234567890"
-                            value={coordPhone}
-                            onChange={(e) => setCoordPhone(e.target.value)}
-                            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                            required
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
               </div>
 
               {/* Footer */}

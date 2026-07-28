@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, Upload, GraduationCap } from "lucide-react";
-import { toast } from "sonner";
+import { X, Loader2, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, GraduationCap } from "lucide-react";
 import { FormField } from "@/components/FormField";
-import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { CustomSelect } from "@/components/CustomSelect";
 import { updateRentalResidentSchema } from "@/lib/validations/rental";
-import { FileUploadModal } from "@/components/FileUploadModal";
-import { uploadFileToCloudinary } from "@/lib/upload-helper";
+import { executeWithFileUpload } from "@/lib/upload-helper";
+import { KtpUploadInput } from "@/components/KtpUploadInput";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { RentalResidentItem } from "./RentalTable";
-import { commonOccupations, commonEducations } from "@/lib/constants";
+import { commonOccupations, commonEducations, religionOptions, tenantTypeOptions } from "@/lib/constants";
 
 interface EditTenantModalProps {
   isOpen: boolean;
@@ -19,43 +18,23 @@ interface EditTenantModalProps {
   resident: RentalResidentItem | null;
 }
 
-const religionOptions: SelectOption[] = [
-  { value: "Islam", label: "Islam" },
-  { value: "Kristen", label: "Kristen" },
-  { value: "Katolik", label: "Katolik" },
-  { value: "Hindu", label: "Hindu" },
-  { value: "Buddha", label: "Buddha" },
-  { value: "Khonghucu", label: "Khonghucu" },
-  { value: "Lainnya", label: "Lainnya" },
-];
-
-const tenantTypeOptions: SelectOption[] = [
-  { value: "perorangan", label: "Perorangan (Individu)" },
-  { value: "keluarga", label: "Keluarga (Satu KK)" },
-];
-
 export const EditTenantModal: React.FC<EditTenantModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
   resident,
 }) => {
-  const [showKtpModal, setShowKtpModal] = useState(false);
 
   const {
     register,
     handleSubmit,
     control,
-    setValue,
     reset,
-    watch,
     setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(updateRentalResidentSchema),
   });
-
-  const ktpFile = watch("ktpFile");
 
   // Populate data when resident changes
   useEffect(() => {
@@ -76,16 +55,6 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
     }
   }, [resident, reset]);
 
-  const handleSelectLocalKtp = (file: File) => {
-    setValue("ktpFile", file as any);
-    toast.success("Berkas KTP lokal berhasil dipilih!");
-  };
-
-  const handleSelectDriveKtp = (url: string) => {
-    setValue("ktpFile", url);
-    toast.success("Tautan Google Drive KTP berhasil dipilih!");
-  };
-
   const handleClose = () => {
     reset();
     onClose();
@@ -94,62 +63,33 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
   const onSubmit = async (data: any) => {
     if (!resident) return;
 
-    try {
-      let finalKtpUrl = resident.ktpFile || "";
+    // Convert Date object to YYYY-MM-DD string
+    let checkInDateStr = resident.checkInDate;
+    if (data.checkInDate instanceof Date) {
+      checkInDateStr = data.checkInDate.toISOString().split("T")[0];
+    } else if (typeof data.checkInDate === "string") {
+      checkInDateStr = data.checkInDate.split("T")[0];
+    }
 
-      if (data.ktpFile instanceof File) {
-        try {
-          const uploadRes = await uploadFileToCloudinary(data.ktpFile, "ktp");
-          finalKtpUrl = uploadRes.url;
-        } catch {
-          toast.error("Gagal mengunggah berkas KTP.");
-          return;
-        }
-      } else if (typeof data.ktpFile === "string") {
-        finalKtpUrl = data.ktpFile;
-      }
-
-      // Convert Date object to YYYY-MM-DD string
-      let checkInDateStr = resident.checkInDate;
-      if (data.checkInDate instanceof Date) {
-        checkInDateStr = data.checkInDate.toISOString().split("T")[0];
-      } else if (typeof data.checkInDate === "string") {
-        checkInDateStr = data.checkInDate.split("T")[0];
-      }
-
-      const response = await fetch(`/api/rental-residents/${resident.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          checkInDate: checkInDateStr,
-          ktpFile: finalKtpUrl,
+    const result = await executeWithFileUpload({
+      file: data.ktpFile,
+      folder: "ktp",
+      submitFn: (finalKtpUrl) =>
+        fetch(`/api/rental-residents/${resident.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...data,
+            checkInDate: checkInDateStr,
+            ktpFile: finalKtpUrl,
+          }),
         }),
-      });
+      successMessage: "Data penyewa berhasil diperbarui.",
+    });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 400 && result.issues && Array.isArray(result.issues)) {
-          result.issues.forEach((issue: any) => {
-            const path = issue.path[0];
-            if (path) {
-              setError(path, {
-                type: "server",
-                message: issue.message,
-              });
-            }
-          });
-          throw new Error("Validasi gagal. Silakan periksa kembali isian form.");
-        }
-        throw new Error(result.error || "Gagal memperbarui data penyewa");
-      }
-
-      toast.success("Data penyewa berhasil diperbarui.");
+    if (result.success) {
       handleClose();
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || "Terjadi kesalahan koneksi");
     }
   };
 
@@ -313,7 +253,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
                   render={({ field }) => (
                     <AutocompleteInput
                       label="Pekerjaan"
-                      value={field.value || ""}
+                      value={(field.value as string) || ""}
                       onChange={field.onChange}
                       suggestions={commonOccupations}
                       placeholder="Pekerjaan utama"
@@ -334,7 +274,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
                   render={({ field }) => (
                     <AutocompleteInput
                       label="Pendidikan Terakhir"
-                      value={field.value || ""}
+                      value={(field.value as string) || ""}
                       onChange={field.onChange}
                       suggestions={commonEducations}
                       placeholder="Contoh: S1 / SMA"
@@ -357,7 +297,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
                   render={({ field }) => (
                     <CustomSelect
                       label="Agama"
-                      value={field.value || ""}
+                      value={(field.value as string) || ""}
                       onChange={field.onChange}
                       options={religionOptions}
                       placeholder="-- Pilih Agama --"
@@ -393,39 +333,20 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
             </div>
 
             {/* Scan KTP File Upload */}
-            <div className="space-y-2.5 border-t border-gray-border pt-3">
-              <label className="text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
-                <Upload className="h-4 w-4 text-primary" />
-                <span>Berkas Scan KTP Penyewa <span className="text-error">*</span></span>
-              </label>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowKtpModal(true)}
-                  className="rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-xs font-bold text-primary flex items-center justify-center gap-2 cursor-pointer transition-colors max-w-full truncate"
-                >
-                  <Upload className="h-4 w-4 shrink-0" />
-                  <span className="truncate font-sans font-bold">
-                    {ktpFile
-                      ? (((ktpFile as any) instanceof File) ? (ktpFile as any).name : "KTP Terpasang (Ganti Berkas)")
-                      : "Pilih Berkas KTP"}
-                  </span>
-                </button>
-
-                {ktpFile ? (
-                  <span className="text-[11px] font-medium text-emerald-600 truncate flex items-center gap-1">
-                    ✓ Berkas KTP Terpasang (Unggah Saat Simpan)
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-medium text-amber-600 flex items-center gap-1">
-                    ⚠️ Wajib Unggah Berkas KTP
-                  </span>
+            <div className="border-t border-gray-border pt-3">
+              <Controller
+                name="ktpFile"
+                control={control}
+                render={({ field }) => (
+                  <KtpUploadInput
+                    value={field.value as string | File | null | undefined}
+                    onChange={field.onChange}
+                    label="Berkas Scan KTP Penyewa"
+                    required
+                    error={errors.ktpFile?.message as string}
+                  />
                 )}
-              </div>
-              {errors.ktpFile && (
-                <p className="text-xs text-error font-semibold mt-1">{errors.ktpFile.message}</p>
-              )}
+              />
             </div>
           </div>
 
@@ -456,16 +377,6 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
           </div>
         </form>
       </div>
-
-      <FileUploadModal
-        isOpen={showKtpModal}
-        onClose={() => setShowKtpModal(false)}
-        title="Pilih Berkas KTP Penyewa"
-        description="Pilih sumber dokumen Scan KTP untuk memperbarui data penyewa."
-        onSelectLocalFile={handleSelectLocalKtp}
-        onSelectDriveUrl={handleSelectDriveKtp}
-        isLoading={false}
-      />
     </div>
   );
 };

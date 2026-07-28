@@ -155,7 +155,7 @@ export async function GET(
       return NextResponse.json(member);
     }
 
-    if (hasOwnFamilyPerm) {
+    if (hasOwnFamilyPerm && member.familyId) {
       const family = await getFamilyById(member.familyId);
       if (family && family.headUserId === session.user.id) {
         return NextResponse.json(member);
@@ -192,6 +192,10 @@ export async function PUT(
     const member = await getFamilyMemberById(memberId);
     if (!member) {
       return NextResponse.json({ error: 'Warga tidak ditemukan' }, { status: 404 });
+    }
+
+    if (!member.familyId) {
+      return NextResponse.json({ error: 'Kartu Keluarga tidak ditemukan untuk warga ini' }, { status: 404 });
     }
 
     const family = await getFamilyById(member.familyId);
@@ -293,6 +297,10 @@ export async function DELETE(
     const member = await getFamilyMemberById(memberId);
     if (!member) {
       return NextResponse.json({ error: 'Warga tidak ditemukan' }, { status: 404 });
+    }
+
+    if (!member.familyId) {
+      return NextResponse.json({ error: 'Kartu Keluarga tidak ditemukan untuk warga ini' }, { status: 404 });
     }
 
     const family = await getFamilyById(member.familyId);
