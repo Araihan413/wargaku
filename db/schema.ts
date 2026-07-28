@@ -102,26 +102,7 @@ export const families = mysqlTable('families', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 7. family_members
-export const familyMembers = mysqlTable('family_members', {
-  id: int('id').autoincrement().primaryKey(),
-  familyId: int('family_id').notNull().references(() => families.id),
-  name: varchar('name', { length: 100 }).notNull(),
-  nik: varchar('nik', { length: 16 }).notNull().unique(),
-  birthPlace: varchar('birth_place', { length: 50 }),
-  birthDate: date('birth_date'),
-  gender: mysqlEnum('gender', ['L', 'P']).notNull(),
-  relationship: mysqlEnum('relationship', ['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Lainnya']).notNull(),
-  occupation: varchar('occupation', { length: 50 }),
-  educationLevel: varchar('education_level', { length: 50 }),
-  religion: mysqlEnum('religion', ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']),
-  phone: varchar('phone', { length: 15 }),
-  ktpFile: varchar('ktp_file', { length: 255 }),
-  isActive: boolean('is_active').notNull().default(true),
-  inactiveReason: mysqlEnum('inactive_reason', ['pindah', 'meninggal']),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+// 7. family_members (Deprecated - replaced by residents table)
 
 // 8. rental_properties
 export const rentalProperties = mysqlTable('rental_properties', {
@@ -140,33 +121,7 @@ export const rentalProperties = mysqlTable('rental_properties', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 9. rental_residents
-export const rentalResidents = mysqlTable('rental_residents', {
-  id: int('id').autoincrement().primaryKey(),
-  rentalPropertyId: int('rental_property_id').notNull().references(() => rentalProperties.id),
-  tenantType: mysqlEnum('tenant_type', ['perorangan', 'keluarga']).notNull(),
-  familyId: int('family_id').references(() => families.id),
-  name: varchar('name', { length: 100 }).notNull(),
-  nik: varchar('nik', { length: 16 }).notNull().unique(),
-  phone: varchar('phone', { length: 15 }),
-  originAddress: text('origin_address'),
-  occupation: varchar('occupation', { length: 50 }),
-  educationLevel: varchar('education_level', { length: 50 }),
-  religion: mysqlEnum('religion', ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']),
-  roomNumber: varchar('room_number', { length: 10 }),
-  checkInDate: date('check_in_date').notNull(),
-  checkOutDate: date('check_out_date'),
-  ktpFile: varchar('ktp_file', { length: 255 }),
-  verificationStatus: mysqlEnum('verification_status', ['pending', 'verified', 'rejected']).notNull().default('pending'),
-  verificationNote: text('verification_note'),
-  createdBy: varchar('created_by', { length: 255 }).notNull().references(() => users.id),
-  updatedBy: varchar('updated_by', { length: 255 }).references(() => users.id),
-  isActive: boolean('is_active').notNull().default(true),
-  inactiveReason: mysqlEnum('inactive_reason', ['pindah', 'meninggal']),
-  notes: text('notes'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+// 9. rental_residents (Deprecated - replaced by residents table)
 
 // 10. cash_transactions
 export const cashTransactions = mysqlTable('cash_transactions', {
@@ -214,7 +169,8 @@ export const activities = mysqlTable('activities', {
 // 13. letters
 export const letters = mysqlTable('letters', {
   id: int('id').autoincrement().primaryKey(),
-  familyMemberId: int('family_member_id').notNull().references(() => familyMembers.id),
+  familyMemberId: int('family_member_id'),
+  residentId: int('resident_id').references(() => residents.id),
   letterType: varchar('letter_type', { length: 100 }).notNull(),
   numberManual: varchar('number_manual', { length: 50 }),
   purpose: text('purpose').notNull(),
@@ -223,6 +179,45 @@ export const letters = mysqlTable('letters', {
   status: mysqlEnum('status', ['menunggu_review', 'sedang_diproses', 'siap_diambil', 'selesai', 'ditolak']).notNull().default('menunggu_review'),
   createdBy: varchar('created_by', { length: 255 }).references(() => users.id),
   approvedBy: varchar('approved_by', { length: 255 }).references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// 17. residents (Unified residents schema for KK members, individual tenants, and family tenants)
+export const residents = mysqlTable('residents', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
+  familyId: int('family_id').references(() => families.id),
+  dwellingId: int('dwelling_id').references(() => dwellings.id),
+  rentalPropertyId: int('rental_property_id').references(() => rentalProperties.id),
+  roomNumber: varchar('room_number', { length: 10 }),
+  
+  residentType: mysqlEnum('resident_type', ['warga_tetap', 'sewa_perorangan', 'sewa_keluarga']).notNull(),
+  relationship: mysqlEnum('relationship', ['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Mertua', 'Sepupu', 'Lainnya']),
+  
+  name: varchar('name', { length: 100 }).notNull(),
+  nik: varchar('nik', { length: 16 }).notNull().unique(),
+  gender: mysqlEnum('gender', ['L', 'P']).notNull(),
+  birthPlace: varchar('birth_place', { length: 50 }),
+  birthDate: date('birth_date'),
+  phone: varchar('phone', { length: 15 }),
+  occupation: varchar('occupation', { length: 50 }),
+  educationLevel: varchar('education_level', { length: 50 }),
+  religion: mysqlEnum('religion', ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']),
+  originAddress: text('origin_address'),
+  
+  ktpFile: varchar('ktp_file', { length: 255 }),
+  verificationStatus: mysqlEnum('verification_status', ['pending', 'verified', 'rejected']).notNull().default('pending'),
+  verificationNote: text('verification_note'),
+  
+  checkInDate: date('check_in_date'),
+  checkOutDate: date('check_out_date'),
+  isActive: boolean('is_active').notNull().default(true),
+  inactiveReason: mysqlEnum('inactive_reason', ['pindah', 'meninggal', 'check_out']),
+  notes: text('notes'),
+  
+  createdBy: varchar('created_by', { length: 255 }).references(() => users.id),
+  updatedBy: varchar('updated_by', { length: 255 }).references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

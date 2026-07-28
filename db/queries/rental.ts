@@ -119,11 +119,11 @@ export async function getRentalPropertyById(id: number) {
     // Ambil jumlah resident yang aktif di properti sewa ini
     const activeResidentsCountResult = await db
       .select({ count: sql`count(*)` })
-      .from(schema.rentalResidents)
+      .from(schema.residents)
       .where(
         and(
-          eq(schema.rentalResidents.rentalPropertyId, id),
-          eq(schema.rentalResidents.isActive, true)
+          eq(schema.residents.rentalPropertyId, id),
+          eq(schema.residents.isActive, true)
         )
       );
 
@@ -227,33 +227,51 @@ export async function listRentalResidents(options: {
     const limit = options.limit ?? 10;
     const offset = options.offset ?? 0;
 
-    const conditions: (SQL | undefined)[] = [eq(schema.rentalResidents.rentalPropertyId, options.rentalPropertyId)];
+    const conditions: (SQL | undefined)[] = [
+      eq(schema.residents.rentalPropertyId, options.rentalPropertyId)
+    ];
 
     if (options.isActive !== undefined) {
-      conditions.push(eq(schema.rentalResidents.isActive, options.isActive));
+      conditions.push(eq(schema.residents.isActive, options.isActive));
     }
     if (options.query) {
       conditions.push(
         or(
-          like(schema.rentalResidents.name, `%${options.query}%`),
-          like(schema.rentalResidents.nik, `%${options.query}%`)
+          like(schema.residents.name, `%${options.query}%`),
+          like(schema.residents.nik, `%${options.query}%`)
         )
       );
     }
 
     const whereClause = and(...conditions);
 
-    const data = await db
-      .select()
-      .from(schema.rentalResidents)
+    const rows = await db
+      .select({
+        resident: schema.residents,
+        familyVerificationStatus: schema.families.verificationStatus,
+      })
+      .from(schema.residents)
+      .leftJoin(
+        schema.families,
+        eq(schema.residents.familyId, schema.families.id)
+      )
       .where(whereClause)
       .limit(limit)
       .offset(offset)
-      .orderBy(desc(schema.rentalResidents.createdAt));
+      .orderBy(desc(schema.residents.createdAt));
+
+    const data = rows.map(({ resident, familyVerificationStatus }) => ({
+      ...resident,
+      tenantType: resident.residentType === 'sewa_keluarga' ? 'keluarga' : 'perorangan',
+      verificationStatus:
+        resident.residentType === 'sewa_keluarga' && familyVerificationStatus
+          ? (familyVerificationStatus as any)
+          : resident.verificationStatus,
+    }));
 
     const totalResult = await db
       .select({ count: sql`count(*)` })
-      .from(schema.rentalResidents)
+      .from(schema.residents)
       .where(whereClause);
 
     const total = Number(totalResult[0]?.count ?? 0);
@@ -276,11 +294,16 @@ export async function getRentalResidentById(id: number) {
   try {
     const [resident] = await db
       .select()
-      .from(schema.rentalResidents)
-      .where(eq(schema.rentalResidents.id, id))
+      .from(schema.residents)
+      .where(eq(schema.residents.id, id))
       .limit(1);
 
-    return resident || null;
+    if (!resident) return null;
+
+    return {
+      ...resident,
+      tenantType: resident.residentType === 'sewa_keluarga' ? 'keluarga' : 'perorangan',
+    };
   } catch (error) {
     console.error('Error in getRentalResidentById:', error);
     throw new Error('Gagal mengambil detail data penghuni');
@@ -291,11 +314,16 @@ export async function getRentalResidentByNik(nik: string) {
   try {
     const [resident] = await db
       .select()
-      .from(schema.rentalResidents)
-      .where(eq(schema.rentalResidents.nik, nik))
+      .from(schema.residents)
+      .where(eq(schema.residents.nik, nik))
       .limit(1);
 
-    return resident || null;
+    if (!resident) return null;
+
+    return {
+      ...resident,
+      tenantType: resident.residentType === 'sewa_keluarga' ? 'keluarga' : 'perorangan',
+    };
   } catch (error) {
     console.error('Error in getRentalResidentByNik:', error);
     throw new Error('Gagal mengambil data penghuni berdasarkan NIK');
@@ -303,21 +331,35 @@ export async function getRentalResidentByNik(nik: string) {
 }
 
 export async function createRentalResident(data: CreateRentalResidentInput & { rentalPropertyId: number; createdBy: string }) {
-  // Parsing menggunakan validation schema
   const validated = createRentalResidentSchema.parse(data);
+
+  // Check NIK uniqueness before insert
+  const existingResident = await getRentalResidentByNik(validated.nik);
+  if (existingResident) {
+    throw new Error(`NIK ${validated.nik} sudah terdaftar di sistem kependudukan.`);
+  }
+
+  const checkInDate = validated.checkInDate instanceof Date
+    ? validated.checkInDate
+    : new Date(String(validated.checkInDate));
+
+  const residentType = validated.tenantType === 'keluarga' ? 'sewa_keluarga' : 'sewa_perorangan';
+
   try {
-    const [insertResult] = await db.insert(schema.rentalResidents).values({
-      rentalPropertyId: data.rentalPropertyId, // Wajib disertakan, divalidasi manual di endpoint/controller
-      tenantType: validated.tenantType,
+    const [insertResult] = await db.insert(schema.residents).values({
+      rentalPropertyId: data.rentalPropertyId,
+      residentType: residentType,
+      relationship: validated.tenantType === 'keluarga' ? 'Kepala_Keluarga' : null,
       familyId: validated.familyId,
       name: validated.name,
       nik: validated.nik,
+      gender: 'L',
       phone: validated.phone,
       originAddress: validated.originAddress,
       occupation: validated.occupation,
       educationLevel: validated.educationLevel,
       roomNumber: validated.roomNumber,
-      checkInDate: validated.checkInDate,
+      checkInDate: checkInDate,
       ktpFile: validated.ktpFile,
       verificationStatus: 'pending',
       createdBy: data.createdBy,
@@ -334,18 +376,24 @@ export async function createRentalResident(data: CreateRentalResidentInput & { r
 export async function updateRentalResident(id: number, data: UpdateRentalResidentInput & { updatedBy?: string }) {
   const validated = updateRentalResidentSchema.parse(data);
   try {
+    const { tenantType, ...restValidated } = validated as any;
     const updateData: any = {
-      ...validated,
+      ...restValidated,
       updatedAt: new Date(),
     };
+
+    if (tenantType) {
+      updateData.residentType = tenantType === 'keluarga' ? 'sewa_keluarga' : 'sewa_perorangan';
+    }
+
     if (data.updatedBy) {
       updateData.updatedBy = data.updatedBy;
     }
     
     await db
-      .update(schema.rentalResidents)
+      .update(schema.residents)
       .set(updateData)
-      .where(eq(schema.rentalResidents.id, id));
+      .where(eq(schema.residents.id, id));
     return true;
   } catch (error) {
     console.error('Error in updateRentalResident:', error);
@@ -355,7 +403,7 @@ export async function updateRentalResident(id: number, data: UpdateRentalResiden
 
 export async function deleteRentalResident(id: number) {
   try {
-    await db.delete(schema.rentalResidents).where(eq(schema.rentalResidents.id, id));
+    await db.delete(schema.residents).where(eq(schema.residents.id, id));
     return true;
   } catch (error) {
     console.error('Error in deleteRentalResident:', error);
@@ -367,6 +415,7 @@ export async function listAllRentalResidents(options: {
   limit?: number;
   offset?: number;
   isActive?: boolean;
+  tenantType?: 'perorangan' | 'keluarga';
   verificationStatus?: 'pending' | 'verified' | 'rejected';
   query?: string;
 }) {
@@ -374,70 +423,93 @@ export async function listAllRentalResidents(options: {
     const limit = options.limit ?? 10;
     const offset = options.offset ?? 0;
 
-    const conditions: (SQL | undefined)[] = [];
+    const conditions: (SQL | undefined)[] = [
+      or(
+        eq(schema.residents.residentType, 'sewa_perorangan'),
+        eq(schema.residents.residentType, 'sewa_keluarga')
+      )
+    ];
 
     if (options.isActive !== undefined) {
-      conditions.push(eq(schema.rentalResidents.isActive, options.isActive));
+      conditions.push(eq(schema.residents.isActive, options.isActive));
+    }
+    if (options.tenantType !== undefined) {
+      const mappedType = options.tenantType === 'keluarga' ? 'sewa_keluarga' : 'sewa_perorangan';
+      conditions.push(eq(schema.residents.residentType, mappedType));
     }
     if (options.verificationStatus !== undefined) {
-      conditions.push(eq(schema.rentalResidents.verificationStatus, options.verificationStatus));
+      conditions.push(eq(schema.residents.verificationStatus, options.verificationStatus));
     }
     if (options.query) {
       conditions.push(
         or(
-          like(schema.rentalResidents.name, `%${options.query}%`),
-          like(schema.rentalResidents.nik, `%${options.query}%`),
+          like(schema.residents.name, `%${options.query}%`),
+          like(schema.residents.nik, `%${options.query}%`),
           like(schema.rentalProperties.name, `%${options.query}%`)
         )
       );
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const whereClause = and(...conditions);
 
-    const data = await db
+    const rows = await db
       .select({
-        id: schema.rentalResidents.id,
-        name: schema.rentalResidents.name,
-        nik: schema.rentalResidents.nik,
-        phone: schema.rentalResidents.phone,
-        tenantType: schema.rentalResidents.tenantType,
-        roomNumber: schema.rentalResidents.roomNumber,
-        checkInDate: schema.rentalResidents.checkInDate,
-        checkOutDate: schema.rentalResidents.checkOutDate,
-        verificationStatus: schema.rentalResidents.verificationStatus,
-        verificationNote: schema.rentalResidents.verificationNote,
-        isActive: schema.rentalResidents.isActive,
-        notes: schema.rentalResidents.notes,
-        ktpFile: schema.rentalResidents.ktpFile,
-        originAddress: schema.rentalResidents.originAddress,
-        occupation: schema.rentalResidents.occupation,
-        educationLevel: schema.rentalResidents.educationLevel,
-        religion: schema.rentalResidents.religion,
+        id: schema.residents.id,
+        name: schema.residents.name,
+        nik: schema.residents.nik,
+        phone: schema.residents.phone,
+        residentType: schema.residents.residentType,
+        roomNumber: schema.residents.roomNumber,
+        checkInDate: schema.residents.checkInDate,
+        checkOutDate: schema.residents.checkOutDate,
+        verificationStatus: schema.residents.verificationStatus,
+        verificationNote: schema.residents.verificationNote,
+        isActive: schema.residents.isActive,
+        notes: schema.residents.notes,
+        ktpFile: schema.residents.ktpFile,
+        originAddress: schema.residents.originAddress,
+        occupation: schema.residents.occupation,
+        educationLevel: schema.residents.educationLevel,
+        religion: schema.residents.religion,
         propertyName: schema.rentalProperties.name,
         rentalPropertyId: schema.rentalProperties.id,
         blockNumber: schema.dwellings.blockNumber,
         houseNumber: schema.dwellings.houseNumber,
+        familyVerificationStatus: schema.families.verificationStatus,
       })
-      .from(schema.rentalResidents)
+      .from(schema.residents)
       .innerJoin(
         schema.rentalProperties,
-        eq(schema.rentalResidents.rentalPropertyId, schema.rentalProperties.id)
+        eq(schema.residents.rentalPropertyId, schema.rentalProperties.id)
       )
       .innerJoin(
         schema.dwellings,
         eq(schema.rentalProperties.dwellingId, schema.dwellings.id)
       )
+      .leftJoin(
+        schema.families,
+        eq(schema.residents.familyId, schema.families.id)
+      )
       .where(whereClause)
       .limit(limit)
       .offset(offset)
-      .orderBy(desc(schema.rentalResidents.createdAt));
+      .orderBy(desc(schema.residents.createdAt));
+
+    const data = rows.map(({ familyVerificationStatus, residentType, ...item }) => ({
+      ...item,
+      tenantType: residentType === 'sewa_keluarga' ? 'keluarga' : 'perorangan',
+      verificationStatus:
+        residentType === 'sewa_keluarga' && familyVerificationStatus
+          ? (familyVerificationStatus as any)
+          : item.verificationStatus,
+    }));
 
     const countResult = await db
       .select({ count: sql`count(*)` })
-      .from(schema.rentalResidents)
+      .from(schema.residents)
       .innerJoin(
         schema.rentalProperties,
-        eq(schema.rentalResidents.rentalPropertyId, schema.rentalProperties.id)
+        eq(schema.residents.rentalPropertyId, schema.rentalProperties.id)
       )
       .innerJoin(
         schema.dwellings,

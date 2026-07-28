@@ -15,7 +15,7 @@ export interface EnrichedCitizen {
   nik: string;
   age: number;
   gender: "L" | "P";
-  relationship: string;
+  relationship: string | null;
   occupation: string | null;
   educationLevel: string | null;
   religion: string | null;
@@ -142,23 +142,23 @@ export async function evaluateSmartGroupRules(
   rules: QueryRule[],
   globalOperator: "AND" | "OR"
 ): Promise<EnrichedCitizen[]> {
-  // Fetch active family members in the system
+  // Fetch active residents in the system
   const members = await db
     .select({
-      id: schema.familyMembers.id,
-      name: schema.familyMembers.name,
-      nik: schema.familyMembers.nik,
-      birthPlace: schema.familyMembers.birthPlace,
-      birthDate: schema.familyMembers.birthDate,
-      gender: schema.familyMembers.gender,
-      relationship: schema.familyMembers.relationship,
-      occupation: schema.familyMembers.occupation,
-      educationLevel: schema.familyMembers.educationLevel,
-      religion: schema.familyMembers.religion,
-      phone: schema.familyMembers.phone,
-      ktpFile: schema.familyMembers.ktpFile,
-      isActive: schema.familyMembers.isActive,
-      familyId: schema.familyMembers.familyId,
+      id: schema.residents.id,
+      name: schema.residents.name,
+      nik: schema.residents.nik,
+      birthPlace: schema.residents.birthPlace,
+      birthDate: schema.residents.birthDate,
+      gender: schema.residents.gender,
+      relationship: schema.residents.relationship,
+      occupation: schema.residents.occupation,
+      educationLevel: schema.residents.educationLevel,
+      religion: schema.residents.religion,
+      phone: schema.residents.phone,
+      ktpFile: schema.residents.ktpFile,
+      isActive: schema.residents.isActive,
+      familyId: schema.residents.familyId,
       familyNumber: schema.families.familyNumber,
       headName: schema.families.headName,
       headUserId: schema.families.headUserId,
@@ -166,28 +166,28 @@ export async function evaluateSmartGroupRules(
       houseNumber: schema.dwellings.houseNumber,
       dwellingType: schema.dwellings.type,
     })
-    .from(schema.familyMembers)
-    .innerJoin(schema.families, eq(schema.familyMembers.familyId, schema.families.id))
+    .from(schema.residents)
+    .innerJoin(schema.families, eq(schema.residents.familyId, schema.families.id))
     .innerJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
-    .where(eq(schema.familyMembers.isActive, true));
+    .where(eq(schema.residents.isActive, true));
 
   // Get family heads' occupations
   const familyHeads = await db
     .select({
-      familyId: schema.familyMembers.familyId,
-      occupation: schema.familyMembers.occupation,
+      familyId: schema.residents.familyId,
+      occupation: schema.residents.occupation,
     })
-    .from(schema.familyMembers)
+    .from(schema.residents)
     .where(
       and(
-        eq(schema.familyMembers.relationship, "Kepala_Keluarga"),
-        eq(schema.familyMembers.isActive, true)
+        eq(schema.residents.relationship, "Kepala_Keluarga"),
+        eq(schema.residents.isActive, true)
       )
     );
 
   const headOccupationMap = new Map<number, string>();
   familyHeads.forEach((h) => {
-    if (h.occupation) {
+    if (h.familyId && h.occupation) {
       headOccupationMap.set(h.familyId, h.occupation);
     }
   });
@@ -195,8 +195,10 @@ export async function evaluateSmartGroupRules(
   // Calculate member count per family
   const memberCounts = new Map<number, number>();
   members.forEach((m) => {
-    const count = memberCounts.get(m.familyId) ?? 0;
-    memberCounts.set(m.familyId, count + 1);
+    if (m.familyId) {
+      const count = memberCounts.get(m.familyId) ?? 0;
+      memberCounts.set(m.familyId, count + 1);
+    }
   });
 
   // Retrieve unpaid or partially paid billing per family to determine fee delinquent status
@@ -216,9 +218,9 @@ export async function evaluateSmartGroupRules(
   // Enrich each family member
   const enrichedCitizens: EnrichedCitizen[] = members.map((m) => {
     const age = calculateAge(m.birthDate);
-    const headOccupation = headOccupationMap.get(m.familyId) || null;
-    const feeStatus = delinquentFamilies.has(m.familyId) ? "menunggak" : "lancar";
-    const kkMembersCount = memberCounts.get(m.familyId) ?? 0;
+    const headOccupation = m.familyId ? (headOccupationMap.get(m.familyId) || null) : null;
+    const feeStatus = m.familyId && delinquentFamilies.has(m.familyId) ? "menunggak" : "lancar";
+    const kkMembersCount = m.familyId ? (memberCounts.get(m.familyId) ?? 0) : 0;
 
     return {
       id: m.id,

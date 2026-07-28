@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, or, like, desc, sql } from 'drizzle-orm';
+import { eq, and, or, like, desc, sql, type SQL } from 'drizzle-orm';
 import { createFamilySchema, updateFamilySchema, createWargaSchema, updateWargaSchema } from '@/lib/validations/kependudukan';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
@@ -58,13 +58,16 @@ export async function createFamily(data: CreateFamilyInput) {
     const familyId = insertResult.insertId;
 
     // 3. Masukkan Kepala Keluarga secara otomatis sebagai anggota keluarga pertama
-    await tx.insert(schema.familyMembers).values({
+    await tx.insert(schema.residents).values({
       familyId,
+      dwellingId: validated.dwellingId,
+      residentType: 'warga_tetap',
       name: user.name,
       nik: user.nik,
       relationship: 'Kepala_Keluarga',
       gender: 'L', // Nilai default, wajib diisi NOT NULL. Warga harus melengkapinya via edit profil.
       phone: user.phone || null,
+      verificationStatus: 'verified',
       isActive: true,
     });
 
@@ -85,8 +88,8 @@ export async function getFamilyById(id: number) {
     // Ambil anggota keluarga secara manual untuk memastikan
     const members = await db
       .select()
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.familyId, id));
+      .from(schema.residents)
+      .where(and(eq(schema.residents.familyId, id), eq(schema.residents.residentType, 'warga_tetap')));
 
     const [dwelling] = await db
       .select()
@@ -178,12 +181,12 @@ export async function listFamilies(options: {
     // Subquery untuk menghitung jumlah anggota keluarga aktif per KK
     const memberCountSubquery = db
       .select({
-        familyId: schema.familyMembers.familyId,
+        familyId: schema.residents.familyId,
         count: sql<number>`count(*)`.as('count')
       })
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.isActive, true))
-      .groupBy(schema.familyMembers.familyId)
+      .from(schema.residents)
+      .where(and(eq(schema.residents.isActive, true), eq(schema.residents.residentType, 'warga_tetap')))
+      .groupBy(schema.residents.familyId)
       .as('mc');
 
     // Ambil data families dengan detail alamat hunian dan jumlah anggota
@@ -279,13 +282,13 @@ export async function deleteFamily(id: number) {
 
       // 2. Otomatis nonaktifkan semua anggota keluarga di dalamnya
       await tx
-        .update(schema.familyMembers)
+        .update(schema.residents)
         .set({
           isActive: false,
           inactiveReason: 'pindah',
           updatedAt: new Date(),
         })
-        .where(eq(schema.familyMembers.familyId, id));
+        .where(and(eq(schema.residents.familyId, id), eq(schema.residents.residentType, 'warga_tetap')));
     });
 
     return true;
@@ -317,18 +320,20 @@ export async function createFamilyMember(data: CreateWargaInput) {
   }
 
   try {
-    const [insertResult] = await db.insert(schema.familyMembers).values({
+    const [insertResult] = await db.insert(schema.residents).values({
       familyId: validated.familyId,
+      residentType: 'warga_tetap',
       name: validated.name,
       nik: validated.nik,
       birthPlace: validated.birthPlace,
       birthDate: validated.birthDate,
       gender: validated.gender,
-      relationship: validated.relationship,
+      relationship: validated.relationship as any,
       occupation: validated.occupation,
       educationLevel: validated.educationLevel,
       phone: validated.phone,
       ktpFile: validated.ktpFile,
+      verificationStatus: 'verified',
       isActive: true,
     });
 
@@ -346,8 +351,8 @@ export async function getFamilyMemberById(id: number) {
   try {
     const [member] = await db
       .select()
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.id, id))
+      .from(schema.residents)
+      .where(eq(schema.residents.id, id))
       .limit(1);
 
     return member || null;
@@ -364,8 +369,8 @@ export async function getFamilyMemberByNik(nik: string) {
   try {
     const [member] = await db
       .select()
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.nik, nik))
+      .from(schema.residents)
+      .where(eq(schema.residents.nik, nik))
       .limit(1);
 
     return member || null;
@@ -382,8 +387,8 @@ export async function getFamilyMembersByFamilyId(familyId: number) {
   try {
     return await db
       .select()
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.familyId, familyId));
+      .from(schema.residents)
+      .where(and(eq(schema.residents.familyId, familyId), eq(schema.residents.residentType, 'warga_tetap')));
   } catch (error) {
     console.error('Error in getFamilyMembersByFamilyId:', error);
     throw new Error('Gagal mengambil daftar anggota keluarga');
@@ -405,39 +410,39 @@ export async function listFamilyMembers(options: {
     const limit = options.limit ?? 10;
     const offset = options.offset ?? 0;
 
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [eq(schema.residents.residentType, 'warga_tetap')];
 
     if (options.isActive !== undefined) {
-      conditions.push(eq(schema.familyMembers.isActive, options.isActive));
+      conditions.push(eq(schema.residents.isActive, options.isActive));
     }
     if (options.gender !== undefined) {
-      conditions.push(eq(schema.familyMembers.gender, options.gender));
+      conditions.push(eq(schema.residents.gender, options.gender));
     }
     if (options.relationship !== undefined) {
-      conditions.push(eq(schema.familyMembers.relationship, options.relationship));
+      conditions.push(eq(schema.residents.relationship, options.relationship));
     }
     if (options.query) {
       conditions.push(
         or(
-          like(schema.familyMembers.name, `%${options.query}%`),
-          like(schema.familyMembers.nik, `%${options.query}%`)
+          like(schema.residents.name, `%${options.query}%`),
+          like(schema.residents.nik, `%${options.query}%`)
         )
       );
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const whereClause = and(...conditions);
 
     const data = await db
       .select()
-      .from(schema.familyMembers)
+      .from(schema.residents)
       .where(whereClause)
       .limit(limit)
       .offset(offset)
-      .orderBy(desc(schema.familyMembers.createdAt));
+      .orderBy(desc(schema.residents.createdAt));
 
     const totalResult = await db
       .select({ count: sql`count(*)` })
-      .from(schema.familyMembers)
+      .from(schema.residents)
       .where(whereClause);
 
     const total = Number(totalResult[0]?.count ?? 0);
@@ -464,12 +469,12 @@ export async function updateFamilyMember(id: number, data: UpdateWargaInput) {
 
   try {
     await db
-      .update(schema.familyMembers)
+      .update(schema.residents)
       .set({
         ...validated,
         updatedAt: new Date(),
       })
-      .where(eq(schema.familyMembers.id, id));
+      .where(eq(schema.residents.id, id));
 
     return true;
   } catch (error) {
@@ -484,13 +489,13 @@ export async function updateFamilyMember(id: number, data: UpdateWargaInput) {
 export async function deleteFamilyMember(id: number, inactiveReason: 'pindah' | 'meninggal') {
   try {
     await db
-      .update(schema.familyMembers)
+      .update(schema.residents)
       .set({
         isActive: false,
         inactiveReason,
         updatedAt: new Date(),
       })
-      .where(eq(schema.familyMembers.id, id));
+      .where(eq(schema.residents.id, id));
 
     return true;
   } catch (error) {
@@ -513,8 +518,8 @@ export async function transferFamilyMember(data: {
     // 1. Dapatkan data member yang mau dipindahkan
     const [member] = await tx
       .select()
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.id, data.memberId))
+      .from(schema.residents)
+      .where(eq(schema.residents.id, data.memberId))
       .limit(1);
 
     if (!member) {
@@ -593,15 +598,15 @@ export async function transferFamilyMember(data: {
       throw new Error('ID Kartu Keluarga tujuan tidak valid.');
     }
 
-    // 2. Jika dipindahkan, update familyId dan relationship di familyMembers
+    // 2. Jika dipindahkan, update familyId dan relationship di residents
     await tx
-      .update(schema.familyMembers)
+      .update(schema.residents)
       .set({
         familyId: finalFamilyId,
         relationship: data.relationship,
         updatedAt: new Date(),
       })
-      .where(eq(schema.familyMembers.id, data.memberId));
+      .where(eq(schema.residents.id, data.memberId));
 
     // Jika member dipindahkan menjadi Kepala Keluarga pada KK tujuan, pastikan tabel families juga terupdate
     if (data.relationship === 'Kepala_Keluarga') {
@@ -668,8 +673,8 @@ export async function changeFamilyHead(data: {
     // 2. Ambil anggota keluarga terpilih (calon kepala keluarga baru)
     const [newHeadMember] = await tx
       .select()
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.id, data.newHeadMemberId))
+      .from(schema.residents)
+      .where(eq(schema.residents.id, data.newHeadMemberId))
       .limit(1);
 
     if (!newHeadMember) {
@@ -729,11 +734,11 @@ export async function changeFamilyHead(data: {
     // Cari member record Kepala Keluarga Lama di KK ini
     const [oldHeadMember] = await tx
       .select()
-      .from(schema.familyMembers)
+      .from(schema.residents)
       .where(
         and(
-          eq(schema.familyMembers.familyId, data.familyId),
-          eq(schema.familyMembers.relationship, 'Kepala_Keluarga')
+          eq(schema.residents.familyId, data.familyId),
+          eq(schema.residents.relationship, 'Kepala_Keluarga')
         )
       )
       .limit(1);
@@ -751,47 +756,47 @@ export async function changeFamilyHead(data: {
 
       if (oldHeadMember) {
         await tx
-          .update(schema.familyMembers)
+          .update(schema.residents)
           .set({
             isActive: false,
             inactiveReason: 'meninggal',
             updatedAt: new Date(),
           })
-          .where(eq(schema.familyMembers.id, oldHeadMember.id));
+          .where(eq(schema.residents.id, oldHeadMember.id));
       }
     } else if (data.oldHeadAction === 'pindah') {
       // Tandai tidak aktif (pindah) di KK ini, tapi jangan suspend akun users-nya agar dia bisa login di KK barunya nanti
       if (oldHeadMember) {
         await tx
-          .update(schema.familyMembers)
+          .update(schema.residents)
           .set({
             isActive: false,
             inactiveReason: 'pindah',
             updatedAt: new Date(),
           })
-          .where(eq(schema.familyMembers.id, oldHeadMember.id));
+          .where(eq(schema.residents.id, oldHeadMember.id));
       }
     } else if (data.oldHeadAction === 'none') {
       // Hanya ganti hubungannya menjadi 'Lainnya' di KK ini (dia tetap tinggal di KK ini tapi bukan kepala lagi)
       if (oldHeadMember) {
         await tx
-          .update(schema.familyMembers)
+          .update(schema.residents)
           .set({
             relationship: 'Lainnya',
             updatedAt: new Date(),
           })
-          .where(eq(schema.familyMembers.id, oldHeadMember.id));
+          .where(eq(schema.residents.id, oldHeadMember.id));
       }
     }
 
     // 5. Update data Kepala Keluarga Baru di KK (families) & familyMembers
     await tx
-      .update(schema.familyMembers)
+      .update(schema.residents)
       .set({
         relationship: 'Kepala_Keluarga',
         updatedAt: new Date(),
       })
-      .where(eq(schema.familyMembers.id, data.newHeadMemberId));
+      .where(eq(schema.residents.id, data.newHeadMemberId));
 
     await tx
       .update(schema.families)
@@ -969,9 +974,9 @@ export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
       totalRooms: schema.rentalProperties.totalRooms,
       occupiedRooms: sql<number>`(
         SELECT COUNT(*)
-        FROM ${schema.rentalResidents} rr
-        WHERE rr.rental_property_id = ${schema.rentalProperties.id}
-          AND rr.is_active = true
+        FROM residents r
+        WHERE r.rental_property_id = ${schema.rentalProperties.id}
+          AND r.is_active = true
       )`.mapWith(Number),
     })
     .from(schema.dwellings)
@@ -1032,11 +1037,12 @@ export async function getDwellingDetailById(id: number) {
       activeFamilies.map(async (fam) => {
         const [memberCountRes] = await db
           .select({ count: sql`count(*)` })
-          .from(schema.familyMembers)
+          .from(schema.residents)
           .where(
             and(
-              eq(schema.familyMembers.familyId, fam.id),
-              eq(schema.familyMembers.isActive, true)
+              eq(schema.residents.familyId, fam.id),
+              eq(schema.residents.residentType, 'warga_tetap'),
+              eq(schema.residents.isActive, true)
             )
           );
         return {
@@ -1082,11 +1088,11 @@ export async function getDwellingDetailById(id: number) {
 
       const [activeResidentsCountRes] = await db
         .select({ count: sql`count(*)` })
-        .from(schema.rentalResidents)
+        .from(schema.residents)
         .where(
           and(
-            eq(schema.rentalResidents.rentalPropertyId, property.id),
-            eq(schema.rentalResidents.isActive, true)
+            eq(schema.residents.rentalPropertyId, property.id),
+            eq(schema.residents.isActive, true)
           )
         );
 
