@@ -10,6 +10,12 @@ import {
 } from '@/db/queries/rental';
 import { createRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+import { db } from '@/db';
+import * as schema from '@/db/schema';
+import { hashPassword } from 'better-auth/crypto';
+import { eq } from 'drizzle-orm';
+import { sendEmail } from '@/lib/mail';
+import { getTenantFamilyWelcomeEmail } from '@/lib/emails/templates';
 
 /**
  * @openapi
@@ -226,6 +232,11 @@ export async function POST(
     const body = await request.json();
     const validatedData = createRentalResidentSchema.parse(body);
 
+    // Drizzle date() columns accept a Date object directly — no manual string conversion needed
+    const checkInDate = validatedData.checkInDate instanceof Date
+      ? validatedData.checkInDate
+      : new Date(String(validatedData.checkInDate));
+
     // 1. Validasi NIK Unik
     const existingResident = await getRentalResidentByNik(validatedData.nik);
     if (existingResident) {
@@ -243,19 +254,134 @@ export async function POST(
       );
     }
 
-    const residentId = await createRentalResident({
-      ...validatedData,
-      rentalPropertyId: propertyId,
-      createdBy: session.user.id,
-    });
+    let residentId: number;
+
+    if (validatedData.tenantType === 'keluarga') {
+      if (!validatedData.email) {
+        return NextResponse.json({ error: 'Email Kepala Keluarga wajib diisi untuk tipe sewa keluarga' }, { status: 400 });
+      }
+
+      // a. Check if NIK or Email already exists in users table
+      const existingUserByEmail = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, validatedData.email))
+        .limit(1);
+      if (existingUserByEmail.length > 0) {
+        return NextResponse.json({ error: `Email ${validatedData.email} sudah terdaftar di sistem.` }, { status: 400 });
+      }
+
+      const existingUserByNik = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.nik, validatedData.nik))
+        .limit(1);
+      if (existingUserByNik.length > 0) {
+        return NextResponse.json({ error: `NIK ${validatedData.nik} sudah terdaftar di sistem.` }, { status: 400 });
+      }
+
+      // b. Generate random temporary password
+      const randomPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await hashPassword(randomPassword);
+
+      // c. Transactional insertion
+      await db.transaction(async (tx) => {
+        const userId = crypto.randomUUID();
+
+        // 1. Create user
+        await tx.insert(schema.users).values({
+          id: userId,
+          name: validatedData.name,
+          email: validatedData.email!,
+          password: hashedPassword,
+          nik: validatedData.nik,
+          phone: validatedData.phone || null,
+          roleId: 6, // Warga
+          status: 'active', // Active so they can log in
+          dwellingId: property.dwellingId,
+          unitNumber: validatedData.roomNumber || null,
+        });
+
+        // 2. Create account (Better Auth credential provider)
+        await tx.insert(schema.accounts).values({
+          id: crypto.randomUUID(),
+          accountId: validatedData.email!,
+          providerId: 'credential',
+          userId: userId,
+          password: hashedPassword,
+        });
+
+        // 3. Create family
+        const [insertFamily] = await tx.insert(schema.families).values({
+          dwellingId: property.dwellingId,
+          familyNumber: validatedData.nik,
+          headUserId: userId,
+          headName: validatedData.name,
+          unitNumber: validatedData.roomNumber || null,
+          verificationStatus: 'draft',
+          checkInDate: checkInDate,
+          isActive: true,
+        });
+        const familyId = insertFamily.insertId;
+
+        // 4. Create single resident entry for family tenant in residents table
+        const [insertResident] = await tx.insert(schema.residents).values({
+          rentalPropertyId: propertyId,
+          dwellingId: property.dwellingId,
+          familyId: familyId,
+          userId: userId,
+          residentType: 'sewa_keluarga',
+          relationship: 'Kepala_Keluarga',
+          name: validatedData.name,
+          nik: validatedData.nik,
+          gender: 'L',
+          phone: validatedData.phone || null,
+          roomNumber: validatedData.roomNumber || null,
+          checkInDate: checkInDate,
+          ktpFile: null, // No KTP file initially
+          verificationStatus: 'pending',
+          createdBy: session.user.id,
+          isActive: true,
+          notes: validatedData.notes || null,
+        });
+        residentId = insertResident.insertId;
+      });
+
+      // d. Send welcome email with login credentials
+      const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const loginLink = `${origin}/login`;
+      try {
+        await sendEmail({
+          to: { email: validatedData.email, name: validatedData.name },
+          subject: "Akun Keluarga Penyewa Wargaku Berhasil Dibuat",
+          htmlContent: getTenantFamilyWelcomeEmail(validatedData.name, validatedData.email, randomPassword, loginLink),
+        });
+      } catch (mailErr) {
+        console.error("Gagal mengirim email kredensial penyewa:", mailErr);
+      }
+    } else {
+      // Tipe perorangan
+      residentId = await createRentalResident({
+        ...validatedData,
+        checkInDate: checkInDate,
+        rentalPropertyId: propertyId,
+        createdBy: session.user.id,
+      });
+    }
 
     return NextResponse.json(
-      { id: residentId, message: 'Penyewa berhasil melakukan check-in' },
+      { id: residentId!, message: 'Penyewa berhasil melakukan check-in' },
       { status: 201 }
     );
   } catch (error: any) {
     if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Validasi input gagal', issues: error.issues }, { status: 400 });
+    }
+    if (error.code === 'ER_DUP_ENTRY' || (error.message && error.message.includes('Duplicate entry'))) {
+      return NextResponse.json(
+        { error: 'NIK atau Email sudah terdaftar di sistem kependudukan. Silakan periksa kembali data Anda.' },
+        { status: 400 }
+      );
     }
     console.error('Error in POST /api/rentals/[id]/residents:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });

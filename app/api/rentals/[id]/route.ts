@@ -232,38 +232,48 @@ export async function PUT(
         .then(res => Number(res[0]?.count || 0));
 
       if (activePropertiesCount === 0) {
-        // Cek apakah user koordinator lama terdaftar sebagai warga tetap (mempunyai NIK di family_members)
         const [oldCoordinatorUser] = await db
           .select()
           .from(schema.users)
           .where(eq(schema.users.id, oldCoordinatorId))
           .limit(1);
 
-        if (oldCoordinatorUser) {
-          let isResident = false;
-          if (oldCoordinatorUser.nik) {
-            const [residentCheck] = await db
-              .select()
-              .from(schema.familyMembers)
-              .where(eq(schema.familyMembers.nik, oldCoordinatorUser.nik))
-              .limit(1);
-            if (residentCheck) {
-              isResident = true;
-            }
-          }
+        // HANYA PROSES jika koordinator lama memiliki role khusus 'Koordinator Kost' (roleId = 5).
+        // Pengurus RT (Super Admin=1, Ketua RT=2, Sekretaris=3, Bendahara=4) TIDAK BOLEH diubah status/role-nya!
+        if (oldCoordinatorUser && oldCoordinatorUser.roleId === 5) {
+          // Cek apakah koordinator lama adalah pemilik hunian (dwelling owner)
+          const [isOwner] = await db
+            .select({ id: schema.dwellings.id })
+            .from(schema.dwellings)
+            .where(eq(schema.dwellings.ownerUserId, oldCoordinatorId))
+            .limit(1);
 
-          if (isResident) {
-            // Jika warga setempat -> Turunkan role menjadi Warga biasa (4)
-            await db
-              .update(schema.users)
-              .set({ roleId: 4 })
-              .where(eq(schema.users.id, oldCoordinatorId));
-          } else {
-            // Jika orang luar -> Suspend akun login-nya
-            await db
-              .update(schema.users)
-              .set({ status: 'suspended' })
-              .where(eq(schema.users.id, oldCoordinatorId));
+          if (!isOwner) {
+            let isResident = false;
+            if (oldCoordinatorUser.nik) {
+              const [residentCheck] = await db
+                .select()
+                .from(schema.residents)
+                .where(eq(schema.residents.nik, oldCoordinatorUser.nik))
+                .limit(1);
+              if (residentCheck) {
+                isResident = true;
+              }
+            }
+
+            if (isResident) {
+              // Jika warga setempat -> Turunkan role menjadi Warga biasa (roleId: 6)
+              await db
+                .update(schema.users)
+                .set({ roleId: 6 })
+                .where(eq(schema.users.id, oldCoordinatorId));
+            } else {
+              // Jika orang luar -> Suspend akun login-nya
+              await db
+                .update(schema.users)
+                .set({ status: 'suspended' })
+                .where(eq(schema.users.id, oldCoordinatorId));
+            }
           }
         }
       }

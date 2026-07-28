@@ -129,31 +129,30 @@ export async function PUT(
     // Handle coordinator penunjukan
     let coordinatorId = validated.coordinatorUserId;
     
-    // If setting coordinator but they don't have account yet
-    if (!coordinatorId && body.coordinatorEmail && body.coordinatorNik && body.coordinatorName) {
+    // If setting coordinator but they don't have account yet (bukan warga - nama & phone)
+    if (!coordinatorId && body.coordinatorName && body.coordinatorPhone) {
+      const cleanPhone = body.coordinatorPhone.replace(/[-\s]/g, '');
+
       const [existingUser] = await db
         .select({ id: schema.users.id })
         .from(schema.users)
-        .where(
-          or(
-            eq(schema.users.email, body.coordinatorEmail),
-            eq(schema.users.nik, body.coordinatorNik)
-          )
-        )
+        .where(eq(schema.users.phone, cleanPhone))
         .limit(1);
 
       if (existingUser) {
         coordinatorId = existingUser.id;
       } else {
         const newUserId = crypto.randomUUID();
+        const tempEmail = `pending-${cleanPhone}-${Math.random().toString(36).substring(2, 7)}@wargaku.temp`;
+
         await db.insert(schema.users).values({
           id: newUserId,
           name: body.coordinatorName,
-          email: body.coordinatorEmail,
-          nik: body.coordinatorNik,
-          phone: body.coordinatorPhone || null,
+          email: tempEmail,
+          phone: cleanPhone,
           roleId: 5, // Koordinator Kost
           status: 'pending',
+          emailVerified: false,
         });
         coordinatorId = newUserId;
       }

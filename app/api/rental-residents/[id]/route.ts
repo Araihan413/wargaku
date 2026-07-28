@@ -5,11 +5,12 @@ import { hasPermission } from '@/lib/rbac';
 import {
   getRentalResidentById,
   getRentalPropertyById,
-  updateRentalResident,
-  deleteRentalResident,
 } from '@/db/queries/rental';
 import { updateRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+import { db } from '@/db';
+import * as schema from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * @openapi
@@ -151,6 +152,10 @@ export async function GET(
       return NextResponse.json({ error: 'Penghuni tidak ditemukan' }, { status: 404 });
     }
 
+    if (!resident.rentalPropertyId) {
+      return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
+    }
+
     const property = await getRentalPropertyById(resident.rentalPropertyId);
     if (!property) {
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
@@ -195,6 +200,10 @@ export async function PUT(
     const resident = await getRentalResidentById(residentId);
     if (!resident) {
       return NextResponse.json({ error: 'Penghuni tidak ditemukan' }, { status: 404 });
+    }
+
+    if (!resident.rentalPropertyId) {
+      return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
     const property = await getRentalPropertyById(resident.rentalPropertyId);
@@ -258,9 +267,68 @@ export async function PUT(
     }
 
     const validatedData = updateRentalResidentSchema.parse(updateData);
-    await updateRentalResident(residentId, {
-      ...validatedData,
-      updatedBy: session.user.id,
+
+    await db.transaction(async (tx) => {
+      // 1. Update residents table entry
+      await tx
+        .update(schema.residents)
+        .set({
+          ...validatedData,
+          updatedBy: session.user.id,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.residents.id, residentId));
+
+      // 2. If family tenant, sync changes to families, familyMembers (residents), and users
+      if (resident.tenantType === 'keluarga' && resident.familyId) {
+        const [family] = await tx
+          .select()
+          .from(schema.families)
+          .where(eq(schema.families.id, resident.familyId));
+
+        if (family) {
+          // Sync families
+          const familyUpdates: any = { updatedAt: new Date() };
+          if (validatedData.name) familyUpdates.headName = validatedData.name;
+          if (validatedData.nik) familyUpdates.familyNumber = validatedData.nik;
+          if (validatedData.roomNumber !== undefined) familyUpdates.unitNumber = validatedData.roomNumber || null;
+
+          await tx
+            .update(schema.families)
+            .set(familyUpdates)
+            .where(eq(schema.families.id, resident.familyId));
+
+          // Sync head of family member in residents
+          const memberUpdates: any = { updatedAt: new Date() };
+          if (validatedData.name) memberUpdates.name = validatedData.name;
+          if (validatedData.nik) memberUpdates.nik = validatedData.nik;
+          if (validatedData.phone !== undefined) memberUpdates.phone = validatedData.phone || null;
+
+          await tx
+            .update(schema.residents)
+            .set(memberUpdates)
+            .where(
+              and(
+                eq(schema.residents.familyId, resident.familyId),
+                eq(schema.residents.relationship, 'Kepala_Keluarga')
+              )
+            );
+
+          // Sync users
+          if (family.headUserId) {
+            const userUpdates: any = { updatedAt: new Date() };
+            if (validatedData.name) userUpdates.name = validatedData.name;
+            if (validatedData.nik) userUpdates.nik = validatedData.nik;
+            if (validatedData.phone !== undefined) userUpdates.phone = validatedData.phone || null;
+            if (validatedData.roomNumber !== undefined) userUpdates.unitNumber = validatedData.roomNumber || null;
+
+            await tx
+              .update(schema.users)
+              .set(userUpdates)
+              .where(eq(schema.users.id, family.headUserId));
+          }
+        }
+      }
     });
 
     return NextResponse.json({ message: 'Data penghuni berhasil diperbarui' });
@@ -298,6 +366,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Penghuni tidak ditemukan' }, { status: 404 });
     }
 
+    if (!resident.rentalPropertyId) {
+      return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
+    }
+
     const property = await getRentalPropertyById(resident.rentalPropertyId);
     if (!property) {
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
@@ -324,7 +396,42 @@ export async function DELETE(
       );
     }
 
-    await deleteRentalResident(residentId);
+    await db.transaction(async (tx) => {
+      // Delete rental resident record
+      await tx
+        .delete(schema.residents)
+        .where(eq(schema.residents.id, residentId));
+
+      // If family tenant, cascade delete family, familyMembers (residents), accounts, and user account
+      if (resident.tenantType === 'keluarga' && resident.familyId) {
+        const [family] = await tx
+          .select()
+          .from(schema.families)
+          .where(eq(schema.families.id, resident.familyId));
+
+        // Delete family members from residents table
+        await tx
+          .delete(schema.residents)
+          .where(and(eq(schema.residents.familyId, resident.familyId), eq(schema.residents.residentType, 'warga_tetap')));
+
+        // Delete family
+        await tx
+          .delete(schema.families)
+          .where(eq(schema.families.id, resident.familyId));
+
+        if (family && family.headUserId) {
+          // Delete account credentials
+          await tx
+            .delete(schema.accounts)
+            .where(eq(schema.accounts.userId, family.headUserId));
+
+          // Delete user account
+          await tx
+            .delete(schema.users)
+            .where(eq(schema.users.id, family.headUserId));
+        }
+      }
+    });
 
     return NextResponse.json({ message: 'Data penghuni berhasil dihapus' });
   } catch (error: any) {

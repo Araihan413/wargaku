@@ -2,18 +2,16 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
-import { getRentalResidentById, getRentalPropertyById} from '@/db/queries/rental';
-import { checkOutResidentSchema } from '@/lib/validations/rental';
-import { ZodError } from 'zod';
+import { getRentalResidentById, getRentalPropertyById } from '@/db/queries/rental';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 /**
  * @openapi
- * /api/rental-residents/{id}/check-out:
+ * /api/rental-residents/{id}/reactivate:
  *   post:
- *     summary: Melakukan check-out (penonaktifan) penghuni sewa (Pengurus & Koordinator Kost Pemilik)
+ *     summary: Mengaktifkan kembali (reactivate) penyewa sewa yang nonaktif (Pengurus & Koordinator Kost Pemilik)
  *     tags: [Penghuni Sewa]
  *     security:
  *       - cookieAuth: []
@@ -24,28 +22,11 @@ import { eq, and } from 'drizzle-orm';
  *         schema:
  *           type: integer
  *         description: ID Penghuni Sewa
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - checkOutDate
- *               - inactiveReason
- *             properties:
- *               checkOutDate:
- *                 type: string
- *                 format: date
- *                 description: Tanggal check-out
- *               inactiveReason:
- *                 type: string
- *                 description: Alasan check-out / penonaktifan
  *     responses:
  *       200:
- *         description: Penyewa berhasil check-out
+ *         description: Penyewa berhasil diaktifkan kembali
  *       400:
- *         description: Validasi input gagal atau ID tidak valid
+ *         description: ID tidak valid atau penyewa sudah aktif
  *       401:
  *         description: Belum terautentikasi
  *       403:
@@ -80,22 +61,8 @@ export async function POST(
       return NextResponse.json({ error: 'Penghuni tidak ditemukan' }, { status: 404 });
     }
 
-    if (resident.tenantType === 'keluarga' && resident.familyId) {
-      const [family] = await db
-        .select()
-        .from(schema.families)
-        .where(eq(schema.families.id, resident.familyId));
-      if (!family || family.verificationStatus !== 'verified') {
-        return NextResponse.json(
-          { error: 'Penyewa keluarga yang belum terverifikasi oleh RT tidak dapat melakukan check-out' },
-          { status: 400 }
-        );
-      }
-    } else if (resident.verificationStatus !== 'verified') {
-      return NextResponse.json(
-        { error: 'Penyewa dengan status pending/ditolak tidak dapat melakukan check-out' },
-        { status: 400 }
-      );
+    if (resident.isActive) {
+      return NextResponse.json({ error: 'Penyewa sudah dalam status aktif' }, { status: 400 });
     }
 
     if (!resident.rentalPropertyId) {
@@ -112,26 +79,26 @@ export async function POST(
     const isCoordinator = property.coordinatorUserId === session.user.id;
 
     if (!isGlobalAllowed && !isCoordinator) {
-      return NextResponse.json({ error: 'Hanya pengelola (koordinator) atau pengurus RT yang dapat memproses check-out' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Hanya pengelola (koordinator) atau pengurus RT yang dapat mengaktifkan kembali penyewa' },
+        { status: 403 }
+      );
     }
 
-    const body = await request.json();
-    const validatedData = checkOutResidentSchema.parse(body);
-
     await db.transaction(async (tx) => {
-      // 1. Deactivate rental resident in residents table
+      // 1. Reactivate rental resident record in residents table
       await tx
         .update(schema.residents)
         .set({
-          isActive: false,
-          checkOutDate: validatedData.checkOutDate,
-          inactiveReason: validatedData.inactiveReason,
-          notes: validatedData.notes,
+          isActive: true,
+          checkOutDate: null,
+          inactiveReason: null,
           updatedBy: session.user.id,
+          updatedAt: new Date(),
         })
         .where(eq(schema.residents.id, residentId));
 
-      // 2. Cascade deactivate family, family members, and suspend head user if family tenant
+      // 2. Cascade reactivate family, family members, and head user if family tenant
       if (resident.tenantType === 'keluarga' && resident.familyId) {
         const [family] = await tx
           .select()
@@ -142,8 +109,8 @@ export async function POST(
           await tx
             .update(schema.families)
             .set({
-              isActive: false,
-              checkOutDate: validatedData.checkOutDate,
+              isActive: true,
+              checkOutDate: null,
               updatedAt: new Date(),
             })
             .where(eq(schema.families.id, resident.familyId));
@@ -151,19 +118,24 @@ export async function POST(
           await tx
             .update(schema.residents)
             .set({
-              isActive: false,
-              inactiveReason: 'pindah',
+              isActive: true,
+              inactiveReason: null,
               updatedAt: new Date(),
             })
-            .where(and(eq(schema.residents.familyId, resident.familyId), eq(schema.residents.residentType, 'warga_tetap')));
+            .where(
+              and(
+                eq(schema.residents.familyId, resident.familyId),
+                eq(schema.residents.residentType, 'warga_tetap')
+              )
+            );
 
           if (family.headUserId) {
             await tx
               .update(schema.users)
               .set({
-                status: 'suspended',
-                dwellingId: null,
-                unitNumber: null,
+                status: 'active',
+                dwellingId: resident.dwellingId,
+                unitNumber: resident.roomNumber || null,
                 updatedAt: new Date(),
               })
               .where(eq(schema.users.id, family.headUserId));
@@ -172,12 +144,12 @@ export async function POST(
       }
     });
 
-    return NextResponse.json({ message: 'Penyewa berhasil check-out' });
+    return NextResponse.json({ message: 'Penyewa berhasil diaktifkan kembali' });
   } catch (error: any) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Validasi input gagal', issues: error.issues }, { status: 400 });
-    }
-    console.error('Error in POST /api/rental-residents/[id]/check-out:', error);
-    return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
+    console.error('Error in POST /api/rental-residents/[id]/reactivate:', error);
+    return NextResponse.json(
+      { error: error.message || 'Kesalahan server internal' },
+      { status: 500 }
+    );
   }
 }
