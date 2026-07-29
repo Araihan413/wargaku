@@ -19,7 +19,7 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   size = "md",
 }) => {
   const sizeClasses =
-    size === "sm" ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-xs";
+    size === "sm" ? "px-3 py-1.5 text-[11px]" : "px-5 py-2.5 text-xs";
 
   return (
     <button

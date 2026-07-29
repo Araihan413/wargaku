@@ -215,7 +215,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
             return (
               <div
-                key={opt.value}
+                key={`${opt.value}-${idx}`}
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => handleSelectOption(opt)}

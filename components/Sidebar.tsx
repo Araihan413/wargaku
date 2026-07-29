@@ -73,7 +73,7 @@ const sidebarItems: SidebarItem[] = [
     roles: [1],
     subItems: [
       { title: "Data Kependudukan", href: "/dashboard/residents" },
-      { title: "Laporan Keuangan Kas", href: "/dashboard/kas-report" },
+      { title: "Laporan Keuangan Kas", href: "/dashboard/kas/reports" },
       { title: "Postingan & Pengaduan", href: "/dashboard/complaints-report" },
     ],
   },
@@ -88,7 +88,7 @@ const sidebarItems: SidebarItem[] = [
   {
     title: "Kelola Kependudukan",
     icon: Users,
-    roles: [2],
+    roles: [1, 2, 3],
     subItems: [
       { title: "Data Warga & Hunian", href: "/dashboard/residents" },
       { title: "Kelompok Warga", href: "/dashboard/smart-groups" },
@@ -108,11 +108,8 @@ const sidebarItems: SidebarItem[] = [
   {
     title: "Laporan Keuangan RT",
     icon: Wallet,
-    roles: [2],
-    subItems: [
-      { title: "Laporan Transaksi Kas", href: "/dashboard/kas/transactions" },
-      { title: "Laporan Pembayaran Iuran", href: "/dashboard/kas/iuran" },
-    ],
+    href: "/dashboard/kas/reports",
+    roles: [2, 4],
   },
   {
     title: "Portal Informasi",

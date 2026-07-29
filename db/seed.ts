@@ -66,87 +66,72 @@ async function main() {
 
   // 2. Seed Permissions
   console.log('Seeding permissions...');
+  await db.delete(schema.rolePermissions);
+  await db.delete(schema.permissions);
+
   const permissionsData = [
-    { id: 1, slug: 'view-residents', name: 'Lihat Data Warga', module: 'kependudukan', description: 'Melihat seluruh data warga kependudukan' },
-    { id: 2, slug: 'manage-residents', name: 'Kelola Data Warga', module: 'kependudukan', description: 'Membuat, memperbarui, dan menghapus data warga tetap' },
+    { id: 1, slug: 'view-residents', name: 'Lihat Data Warga', module: 'kependudukan', description: 'Melihat seluruh data kependudukan warga tetap & penyewa' },
+    { id: 2, slug: 'manage-residents', name: 'Kelola Data Warga', module: 'kependudukan', description: 'Membuat, mengedit, dan menghapus data warga tetap & KK' },
     { id: 3, slug: 'manage-boarding', name: 'Kelola Kos & Penghuni', module: 'kependudukan', description: 'Mengelola properti sewa dan data penghuni sewa/kos' },
-    { id: 4, slug: 'view-finance', name: 'Lihat Keuangan', module: 'keuangan', description: 'Melihat laporan dan riwayat kas keuangan' },
-    { id: 5, slug: 'manage-income', name: 'Kelola Pemasukan', module: 'keuangan', description: 'Mencatat pemasukan kas' },
-    { id: 6, slug: 'manage-expense', name: 'Kelola Pengeluaran', module: 'keuangan', description: 'Mencatat rencana pengeluaran kas' },
-    { id: 7, slug: 'approve-expense', name: 'Setujui Pengeluaran', module: 'keuangan', description: 'Menyetujui atau menolak catatan pengeluaran Bendahara' },
-    { id: 8, slug: 'manage-announcements', name: 'Kelola Pengumuman', module: 'pengumuman', description: 'Membuat, mengedit, dan menghapus pengumuman' },
-    { id: 9, slug: 'manage-activities', name: 'Kelola Kegiatan', module: 'kegiatan', description: 'Mengelola jadwal kegiatan warga' },
-    { id: 10, slug: 'manage-complaints', name: 'Kelola Laporan/Aduan', module: 'laporan', description: 'Mengelola dan merespon pengaduan warga' },
-    { id: 11, slug: 'manage-users', name: 'Kelola User', module: 'pengguna', description: 'Mengelola akun pengguna sistem' },
-    { id: 12, slug: 'manage-roles', name: 'Kelola Role & Izin', module: 'pengguna', description: 'Mengatur hak akses dan permission role' },
-    { id: 13, slug: 'verify-registrations', name: 'Verifikasi Pendaftaran', module: 'verifikasi', description: 'Menyetujui registrasi mandiri akun warga' },
-    { id: 14, slug: 'verify-documents', name: 'Verifikasi KK/KTP', module: 'verifikasi', description: 'Verifikasi unggahan berkas KK dan KTP warga' },
-    { id: 15, slug: 'manage-own-family', name: 'Kelola Data Keluarga Sendiri', module: 'keluarga', description: 'Mengubah biodata keluarga sendiri sebagai warga' },
-    { id: 16, slug: 'view-dwelling-details', name: 'Lihat Detail Hunian', module: 'hunian', description: 'Melihat info detail hunian via scan QR' },
-    { id: 17, slug: 'manage-dwellings', name: 'Kelola Hunian', module: 'hunian', description: 'Membuat dan mengelola data alamat & koordinat hunian' },
+    { id: 4, slug: 'view-finance', name: 'Lihat Keuangan Kas', module: 'keuangan', description: 'Melihat laporan transaksi kas dan iuran kas RT' },
+    { id: 5, slug: 'manage-income', name: 'Kelola Pemasukan Kas', module: 'keuangan', description: 'Mencatat transaksi pemasukan kas RT' },
+    { id: 6, slug: 'manage-expense', name: 'Kelola Pengeluaran Kas', module: 'keuangan', description: 'Mencatat draf rencana pengeluaran kas RT' },
+    { id: 7, slug: 'approve-expense', name: 'Setujui Pengeluaran Kas', module: 'keuangan', description: 'Menyetujui atau menolak draf pengeluaran kas RT' },
+    { id: 8, slug: 'manage-iuran', name: 'Kelola & Setor Iuran', module: 'keuangan', description: 'Mengatur tarif, menginisialisasi, dan menginput setoran iuran warga' },
+    { id: 9, slug: 'manage-announcements', name: 'Kelola Pengumuman', module: 'pengumuman', description: 'Membuat, mengedit, dan menghapus pengumuman warga' },
+    { id: 10, slug: 'manage-activities', name: 'Kelola Kegiatan', module: 'kegiatan', description: 'Mengelola agenda dan jadwal kegiatan warga RT' },
+    { id: 11, slug: 'manage-complaints', name: 'Kelola Pengaduan Warga', module: 'laporan', description: 'Memproses dan memperbarui status laporan aduan warga' },
+    { id: 12, slug: 'manage-users', name: 'Kelola User & Akun', module: 'pengguna', description: 'CRUD pengguna, reset password, suspend & mutasi peran' },
+    { id: 13, slug: 'manage-roles', name: 'Kelola Role & Permission', module: 'pengguna', description: 'Mengatur matriks otorisasi dan hak akses permission role' },
+    { id: 14, slug: 'view-audit-logs', name: 'Lihat Log Aktivitas Audit', module: 'pengguna', description: 'Melihat log riwayat aktivitas keamanan dan transaksi data' },
+    { id: 15, slug: 'verify-registrations', name: 'Verifikasi Pendaftaran', module: 'verifikasi', description: 'Menyetujui pendaftaran akun warga mandiri' },
+    { id: 16, slug: 'verify-documents', name: 'Verifikasi Berkas KK/KTP', module: 'verifikasi', description: 'Menyetujui unggahan berkas scan KK & KTP warga' },
+    { id: 17, slug: 'manage-dwellings', name: 'Kelola Hunian & Alamat', module: 'hunian', description: 'Mengelola data alamat hunian dan cetak QR Code rumah' },
   ];
 
   for (const perm of permissionsData) {
-    await db.insert(schema.permissions).values(perm).onDuplicateKeyUpdate({
-      set: {
-        name: perm.name,
-        slug: perm.slug,
-        module: perm.module,
-        description: perm.description,
-      },
-    });
+    await db.insert(schema.permissions).values(perm);
   }
 
   // 3. Seed Role Permissions
   console.log('Seeding role permissions...');
-  // Hapus mapping lama untuk mencegah inkonsistensi sebelum seed baru
-  // (Karena ini tabel pivot sederhana, kita bisa kosongkan lalu isi ulang)
-  // Menghindari duplikasi id
   const rolePermissionsData: { id: number; roleId: number; permissionId: number }[] = [];
   let rpId = 1;
 
-  // Super Admin (Semua permission 1 - 17)
+  // Super Admin (1 - 17)
   for (let p = 1; p <= 17; p++) {
     rolePermissionsData.push({ id: rpId++, roleId: 1, permissionId: p });
   }
 
-  // Ketua RT (1, 2, 3, 4, 7, 8, 9, 10, 13, 14, 15, 16, 17)
-  const rtPerms = [1, 2, 3, 4, 7, 8, 9, 10, 13, 14, 15, 16, 17];
+  // Ketua RT (1, 2, 3, 4, 7, 8, 9, 10, 11, 15, 16, 17)
+  const rtPerms = [1, 2, 3, 4, 7, 8, 9, 10, 11, 15, 16, 17];
   for (const p of rtPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 2, permissionId: p });
   }
 
-  // Sekretaris (1, 8, 9, 10, 13, 14, 15, 16)
-  const sekPerms = [1, 8, 9, 10, 13, 14, 15, 16];
+  // Sekretaris (1, 9, 10, 11, 15, 16, 17)
+  const sekPerms = [1, 9, 10, 11, 15, 16, 17];
   for (const p of sekPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 3, permissionId: p });
   }
 
-  // Bendahara (4, 5, 6, 15)
-  const bendPerms = [4, 5, 6, 15];
+  // Bendahara (4, 5, 6, 8)
+  const bendPerms = [4, 5, 6, 8];
   for (const p of bendPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 4, permissionId: p });
   }
 
-  // Koordinator Kost (3, 15)
-  const kostPerms = [3, 15];
+  // Koordinator Kost (3, 17)
+  const kostPerms = [3, 17];
   for (const p of kostPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 5, permissionId: p });
   }
 
-  // Warga (4, 15, 16)
-  const wargaPerms = [4, 15, 16];
-  for (const p of wargaPerms) {
-    rolePermissionsData.push({ id: rpId++, roleId: 6, permissionId: p });
-  }
+  // Warga (bebas akses warga)
+  // (Tanpa permission pengurus khusus)
 
   for (const rp of rolePermissionsData) {
-    await db.insert(schema.rolePermissions).values(rp).onDuplicateKeyUpdate({
-      set: {
-        roleId: rp.roleId,
-        permissionId: rp.permissionId,
-      },
-    });
+    await db.insert(schema.rolePermissions).values(rp);
   }
 
   // 4. Seed Default Super Admin User

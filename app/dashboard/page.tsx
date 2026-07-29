@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { useRoleStore } from "@/lib/store/use-role-store";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { SuperAdminDashboard } from "./_components/SuperAdminDashboard";
 import { KetuaRTDashboard } from "./_components/KetuaRTDashboard";
 import { WargaDashboard } from "./_components/WargaDashboard";
 import { SekretarisDashboard } from "./_components/SekretarisDashboard";
@@ -54,14 +55,7 @@ export default function Dashboard() {
   // Render dashboard based on active role
   switch (currentRoleId) {
     case 1: // Super Admin
-      return (
-        <div className="space-y-4 rounded-2xl border border-gray-border bg-gray-card p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-heading-main">Dashboard Super Admin</h1>
-          <p className="text-gray-secondary-text">
-            Selamat datang di panel utama Super Admin. Silakan gunakan menu sidebar untuk mengelola wewenang, konfigurasi, audit log, dan data wilayah secara terpusat.
-          </p>
-        </div>
-      );
+      return <SuperAdminDashboard />;
     case 2: // Ketua RT
       return <KetuaRTDashboard />;
     case 3: // Sekretaris

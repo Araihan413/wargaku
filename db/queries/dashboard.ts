@@ -986,3 +986,146 @@ export async function getCoordinatorStats(userId: string, roleId: number) {
     pendingQueue,
   };
 }
+
+/**
+ * Super Admin Dashboard Data Query
+ */
+export async function getSuperAdminStats() {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+  // 1. User metrics & role distribution
+  const allUsers = await db
+    .select({
+      id: schema.users.id,
+      roleId: schema.users.roleId,
+      status: schema.users.status,
+    })
+    .from(schema.users);
+
+  const totalUsers = allUsers.length;
+  const roleDistributionMap: Record<number, number> = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+  };
+
+  allUsers.forEach((u) => {
+    if (roleDistributionMap[u.roleId] !== undefined) {
+      roleDistributionMap[u.roleId]++;
+    }
+  });
+
+  // 2. Total residents count
+  const [residentsCountResult] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(schema.residents)
+    .where(eq(schema.residents.isActive, true));
+
+  const totalResidents = residentsCountResult?.count || 0;
+
+  // 3. Verified families count
+  const [familiesCountResult] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(schema.families)
+    .where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, "verified")));
+
+  const verifiedFamilies = familiesCountResult?.count || 0;
+
+  // 4. Pending verifications count
+  const [pendingFamiliesResult] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(schema.families)
+    .where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, "pending")));
+
+  const [pendingResidentsResult] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(schema.residents)
+    .where(and(eq(schema.residents.isActive, true), eq(schema.residents.verificationStatus, "pending")));
+
+  const pendingVerifications = (pendingFamiliesResult?.count || 0) + (pendingResidentsResult?.count || 0);
+
+  // 5. Total cash balance
+  const [totalCashIncomeResult] = await db
+    .select({ total: sql<number>`COALESCE(SUM(${schema.cashTransactions.amount}), 0)`.mapWith(Number) })
+    .from(schema.cashTransactions)
+    .where(eq(schema.cashTransactions.type, "income"));
+
+  const [totalFeePaidResult] = await db
+    .select({ total: sql<number>`COALESCE(SUM(${schema.feePayments.amountPaid}), 0)`.mapWith(Number) })
+    .from(schema.feePayments);
+
+  const [totalExpenseResult] = await db
+    .select({ total: sql<number>`COALESCE(SUM(${schema.cashTransactions.amount}), 0)`.mapWith(Number) })
+    .from(schema.cashTransactions)
+    .where(and(eq(schema.cashTransactions.type, "expense"), eq(schema.cashTransactions.status, "approved")));
+
+  const totalIncome = (totalCashIncomeResult?.total || 0) + (totalFeePaidResult?.total || 0);
+  const totalExpense = totalExpenseResult?.total || 0;
+  const totalCashBalance = totalIncome - totalExpense;
+
+  // 6. Active complaints count
+  const [activeComplaintsResult] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(schema.complaints)
+    .where(or(eq(schema.complaints.status, "menunggu"), eq(schema.complaints.status, "proses"))!);
+
+  const activeComplaints = activeComplaintsResult?.count || 0;
+
+  // 7. Today audit logs count
+  const [todayAuditLogsResult] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(schema.activityLogs)
+    .where(gte(schema.activityLogs.createdAt, startOfToday));
+
+  const todayAuditLogsCount = todayAuditLogsResult?.count || 0;
+
+  // 8. Recent activity logs (top 5)
+  const recentLogs = await db
+    .select({
+      id: schema.activityLogs.id,
+      action: schema.activityLogs.action,
+      module: schema.activityLogs.module,
+      description: schema.activityLogs.description,
+      ipAddress: schema.activityLogs.ipAddress,
+      createdAt: schema.activityLogs.createdAt,
+      actorName: schema.users.name,
+      actorNik: schema.users.nik,
+    })
+    .from(schema.activityLogs)
+    .leftJoin(schema.users, eq(schema.activityLogs.userId, schema.users.id))
+    .orderBy(desc(schema.activityLogs.createdAt))
+    .limit(5);
+
+  // 9. System Settings
+  const [systemSetting] = await db.select().from(schema.systemSettings).limit(1);
+
+  return {
+    summary: {
+      totalUsers,
+      totalResidents,
+      verifiedFamilies,
+      totalCashBalance,
+      pendingVerifications,
+      activeComplaints,
+      todayAuditLogsCount,
+    },
+    roleDistribution: {
+      superAdminCount: roleDistributionMap[1] || 0,
+      ketuaRtCount: roleDistributionMap[2] || 0,
+      sekretarisCount: roleDistributionMap[3] || 0,
+      bendaharaCount: roleDistributionMap[4] || 0,
+      koordinatorKosCount: roleDistributionMap[5] || 0,
+      wargaCount: roleDistributionMap[6] || 0,
+    },
+    systemSettingInfo: systemSetting || null,
+    recentAuditLogs: recentLogs.map((log) => ({
+      ...log,
+      createdAt: log.createdAt.toISOString(),
+    })),
+  };
+}
+

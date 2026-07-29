@@ -410,7 +410,7 @@ export default function ResidentsPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main">
             Data Warga & Hunian
@@ -423,7 +423,7 @@ export default function ResidentsPage() {
         {canManage && activeTab === "hunian" && (
           <button
             onClick={() => setIsAddDwellingOpen(true)}
-            className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
+            className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
           >
             <Plus className="h-4.5 w-4.5" />
             Tambah Hunian

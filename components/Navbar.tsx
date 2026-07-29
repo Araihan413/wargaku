@@ -24,7 +24,7 @@ const getPageTitle = (pathname: string): string => {
   if (pathname.startsWith("/dashboard/complaints-report")) return "Laporan Pengaduan";
   if (pathname.startsWith("/dashboard/system-config")) return "Konfigurasi Sistem";
   if (pathname.startsWith("/dashboard/smart-groups")) return "Kelompok Warga (Smart Group)";
-  if (pathname.startsWith("/dashboard/qr-codes")) return "Cetak QR Code Rumah";
+  if (pathname.startsWith("/dashboard/qr-codes")) return "Cetak QR Code RT & Sekre";
   if (pathname.startsWith("/dashboard/approvals/registration")) return "Persetujuan Registrasi";
   if (pathname.startsWith("/dashboard/approvals/documents")) return "Verifikasi Kependudukan";
   if (pathname.startsWith("/dashboard/approvals/kas")) return "Persetujuan Kas";
@@ -36,6 +36,7 @@ const getPageTitle = (pathname: string): string => {
   if (pathname.startsWith("/dashboard/activities")) return "Kelola Kegiatan";
   if (pathname.startsWith("/dashboard/complaints")) return "Tanggapan Pengaduan";
   if (pathname.startsWith("/dashboard/surat")) return "Kelola Surat Pengantar";
+  if (pathname === "/dashboard/kas" || pathname.startsWith("/dashboard/kas/reports")) return "Laporan Keuangan RT";
   if (pathname.startsWith("/dashboard/kas/income")) return "Catat Pemasukan Kas";
   if (pathname.startsWith("/dashboard/kas/expense")) return "Catat Pengeluaran Kas";
   if (pathname.startsWith("/dashboard/iuran/manage")) return "Kelola & Setor Iuran";
