@@ -25,6 +25,7 @@ interface DwellingTableProps {
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
   totalItems: number;
+  isReadOnly?: boolean;
   onDetail: (dwelling: DwellingItem) => void;
   onEdit: (dwelling: DwellingItem) => void;
   onDisable: (dwelling: DwellingItem) => void;
@@ -37,6 +38,7 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
   setCurrentPage,
   totalPages,
   totalItems,
+  isReadOnly = false,
   onDetail,
   onEdit,
   onDisable,
@@ -131,14 +133,16 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => onEdit(d)}
-                          className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-gray-heading-main transition-colors cursor-pointer"
-                          title="Edit Hunian"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        {d.isActive && (
+                        {!isReadOnly && (
+                          <button
+                            onClick={() => onEdit(d)}
+                            className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-gray-heading-main transition-colors cursor-pointer"
+                            title="Edit Hunian"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        )}
+                        {!isReadOnly && d.isActive && (
                           <button
                             onClick={() => onDisable(d)}
                             className="p-1.5 hover:bg-red-50 rounded-lg text-gray-secondary-text hover:text-error transition-colors cursor-pointer"

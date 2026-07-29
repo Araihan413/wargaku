@@ -113,11 +113,24 @@ export async function GET(request: Request) {
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
     const offset = searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined;
     const query = searchParams.get('query') || undefined;
-    const verificationStatus = searchParams.get('verificationStatus') as 'pending' | 'verified' | 'rejected' || undefined;
+    const verificationStatus = searchParams.get('verificationStatus') as 'draft' | 'pending' | 'verified' | 'rejected' || undefined;
     
     let isActive: boolean | undefined = undefined;
     if (searchParams.get('isActive') !== null) {
       isActive = searchParams.get('isActive') === 'true';
+    }
+
+    let hasVerified: boolean | undefined = undefined;
+    const hasVerifiedParam = searchParams.get('hasVerified');
+    if (hasVerifiedParam === 'true') {
+      hasVerified = true;
+    } else if (hasVerifiedParam === 'false') {
+      hasVerified = false;
+    } else if (hasVerifiedParam === 'all') {
+      hasVerified = undefined;
+    } else {
+      // Default: Hanya tampilkan Kartu Keluarga yang SUDAH TERVERIFIKASI (hasVerified = true)
+      hasVerified = true;
     }
 
     const result = await listFamilies({
@@ -125,6 +138,7 @@ export async function GET(request: Request) {
       offset,
       query,
       verificationStatus,
+      hasVerified,
       isActive,
     });
 

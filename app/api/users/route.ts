@@ -2,14 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
-import { listUsers, listRoles } from "@/db/queries/users";
+import { listUsers, listRoles, createUserWithAccount } from "@/db/queries/users";
 import { createUserSchema } from "@/lib/validations/user";
-import { hashPassword } from "better-auth/crypto";
-import { randomUUID } from "crypto";
 import { ZodError } from "zod";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { eq, and, ne } from "drizzle-orm";
 
 export async function GET(request: Request) {
   try {
@@ -21,7 +16,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Allow RT managers or any authenticated user (for selecting candidate coordinators/residents)
     const allowed = 
       Boolean(session.user) ||
       await hasPermission(session.user.roleId, "manage-users") ||
@@ -75,151 +69,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Check if email already exists
-    const existingUserByEmail = await db
-      .select({ id: schema.users.id })
-      .from(schema.users)
-      .where(eq(schema.users.email, validatedData.email))
-      .limit(1);
-
-    if (existingUserByEmail.length > 0) {
-      return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 400 });
-    }
-
-    // Check if NIK already exists
-    if (validatedData.nik) {
-      const existingUserByNik = await db
-        .select({ id: schema.users.id })
-        .from(schema.users)
-        .where(eq(schema.users.nik, validatedData.nik))
-        .limit(1);
-
-      if (existingUserByNik.length > 0) {
-        return NextResponse.json({ error: "NIK sudah terdaftar" }, { status: 400 });
-      }
-    }
-
-    // Check if role is an RT officer (Ketua RT = 2, Sekretaris = 3, Bendahara = 4) and already exists
-    if ([2, 3, 4].includes(validatedData.roleId)) {
-      const existingOfficer = await db
-        .select({ id: schema.users.id, name: schema.users.name })
-        .from(schema.users)
-        .where(
-          and(
-            eq(schema.users.roleId, validatedData.roleId),
-            ne(schema.users.status, "suspended")
-          )
-        )
-        .limit(1);
-
-      if (existingOfficer.length > 0) {
-        const roleNames: Record<number, string> = {
-          2: "Ketua RT",
-          3: "Sekretaris",
-          4: "Bendahara",
-        };
-        const officerRoleName = roleNames[validatedData.roleId];
-        return NextResponse.json(
-          { error: `Akun untuk posisi ${officerRoleName} yang aktif/pending sudah ada (${existingOfficer[0].name})` },
-          { status: 400 }
-        );
-      }
-    }
-
-    // [S-03] Check Super Admin count limit (max 2 active/pending)
-    if (validatedData.roleId === 1) {
-      const existingSuperAdmins = await db
-        .select({ id: schema.users.id })
-        .from(schema.users)
-        .where(
-          and(
-            eq(schema.users.roleId, 1),
-            ne(schema.users.status, "suspended")
-          )
-        );
-
-      if (existingSuperAdmins.length >= 2) {
-        return NextResponse.json(
-          { error: "Batas maksimum 2 akun Super Admin aktif/pending telah tercapai" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const hashedPassword = await hashPassword(validatedData.password);
-    const userId = randomUUID();
-
-    const newUser = await db.transaction(async (tx) => {
-      // 1. Insert user
-      await tx.insert(schema.users).values({
-        id: userId,
-        name: validatedData.name,
-        email: validatedData.email,
-        password: hashedPassword,
-        nik: validatedData.nik || null,
-        phone: validatedData.phone || null,
-        roleId: validatedData.roleId,
-        status: validatedData.status || "active",
-        emailVerified: false,
-        familyNumber: validatedData.familyNumber || null,
-        dwellingId: validatedData.dwellingId || null,
-        unitNumber: validatedData.unitNumber || null,
-      });
-
-      // 2. Insert account for Better Auth credentials
-      await tx.insert(schema.accounts).values({
-        id: randomUUID(),
-        accountId: validatedData.email,
-        providerId: "credential",
-        userId: userId,
-        password: hashedPassword,
-      });
-
-      // 3. Auto-create family records if role is Warga and status is active
-      if (validatedData.roleId === 6 && (validatedData.status || "active") === "active") {
-        if (validatedData.dwellingId && validatedData.familyNumber && validatedData.nik) {
-          const [insertFamily] = await tx.insert(schema.families).values({
-            dwellingId: validatedData.dwellingId,
-            familyNumber: validatedData.familyNumber,
-            headUserId: userId,
-            headName: validatedData.name,
-            unitNumber: validatedData.unitNumber || null,
-            verificationStatus: "verified", // Directly verified since RT/Admin created it
-            hasVerified: true,
-            lastVerifiedAt: new Date(),
-            checkInDate: new Date(),
-            isActive: true,
-          });
-
-          const familyId = insertFamily.insertId;
-
-          // Add Head of Family to residents table
-          await tx.insert(schema.residents).values({
-            familyId,
-            dwellingId: validatedData.dwellingId,
-            userId: userId,
-            residentType: "warga_tetap",
-            name: validatedData.name,
-            nik: validatedData.nik,
-            relationship: "Kepala_Keluarga",
-            gender: validatedData.gender || "L",
-            phone: validatedData.phone || null,
-            verificationStatus: "verified",
-            isActive: true,
-          });
-        }
-      }
-
-      return {
-        id: userId,
-        name: validatedData.name,
-        email: validatedData.email,
-        nik: validatedData.nik || null,
-        phone: validatedData.phone || null,
-        roleId: validatedData.roleId,
-        status: validatedData.status || "active",
-      };
-    });
+    const newUser = await createUserWithAccount(validatedData);
 
     return NextResponse.json({
       success: true,
@@ -233,9 +83,30 @@ export async function POST(request: Request) {
         status: newUser.status,
       },
     }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Validasi gagal" }, { status: 400 });
+    }
+    if (error instanceof Error) {
+      if (error.message === "EMAIL_EXISTS") {
+        return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 400 });
+      }
+      if (error.message === "NIK_EXISTS") {
+        return NextResponse.json({ error: "NIK sudah terdaftar" }, { status: 400 });
+      }
+      if (error.message.startsWith("OFFICER_EXISTS:")) {
+        const parts = error.message.split(":");
+        return NextResponse.json(
+          { error: `Akun untuk posisi ${parts[1]} yang aktif/pending sudah ada (${parts[2]})` },
+          { status: 400 }
+        );
+      }
+      if (error.message === "SUPERADMIN_LIMIT_REACHED") {
+        return NextResponse.json(
+          { error: "Batas maksimum 2 akun Super Admin aktif/pending telah tercapai" },
+          { status: 400 }
+        );
+      }
     }
     console.error("POST /api/users error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

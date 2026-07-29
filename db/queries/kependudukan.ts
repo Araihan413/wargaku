@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, or, like, desc, sql, type SQL } from 'drizzle-orm';
+import { eq, ne, and, or, like, desc, sql, type SQL } from 'drizzle-orm';
 import { createFamilySchema, updateFamilySchema, createWargaSchema, updateWargaSchema } from '@/lib/validations/kependudukan';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
@@ -51,7 +51,9 @@ export async function createFamily(data: CreateFamilyInput) {
       kkFile: validated.kkFile,
       checkInDate: validated.checkInDate,
       checkOutDate: validated.checkOutDate,
-      verificationStatus: 'pending',
+      verificationStatus: 'verified',
+      hasVerified: true,
+      lastVerifiedAt: new Date(),
       isActive: true,
     });
 
@@ -151,7 +153,8 @@ export async function getFamilyByHeadUserId(headUserId: string) {
 export async function listFamilies(options: {
   limit?: number;
   offset?: number;
-  verificationStatus?: 'pending' | 'verified' | 'rejected';
+  verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected';
+  hasVerified?: boolean;
   isActive?: boolean;
   query?: string;
 } = {}) {
@@ -163,6 +166,9 @@ export async function listFamilies(options: {
 
     if (options.isActive !== undefined) {
       conditions.push(eq(schema.families.isActive, options.isActive));
+    }
+    if (options.hasVerified !== undefined) {
+      conditions.push(eq(schema.families.hasVerified, options.hasVerified));
     }
     if (options.verificationStatus !== undefined) {
       conditions.push(eq(schema.families.verificationStatus, options.verificationStatus));
@@ -1006,6 +1012,8 @@ export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
   };
 }
 
+export const getDwellingById = getDwellingDetailById;
+
 export async function getDwellingDetailById(id: number) {
   const [dwelling] = await db
     .select()
@@ -1118,5 +1126,363 @@ export async function getDwellingDetailById(id: number) {
   return {
     ...dwelling,
   };
+}
+
+// ==========================================
+// FAMILY WORKFLOW QUERIES (KK STATUS TRANSITIONS)
+// ==========================================
+
+/**
+ * Mengambil KK milik session user (dicari via familyNumber atau headUserId).
+ */
+export async function getMyFamily(userId: string, familyNumber?: string | null) {
+  let family = null;
+
+  if (familyNumber) {
+    const [res] = await db
+      .select()
+      .from(schema.families)
+      .where(eq(schema.families.familyNumber, familyNumber))
+      .limit(1);
+    family = res;
+  }
+
+  if (!family) {
+    const [res] = await db
+      .select()
+      .from(schema.families)
+      .where(eq(schema.families.headUserId, userId))
+      .limit(1);
+    family = res;
+  }
+
+  return family ?? null;
+}
+
+/**
+ * Mengubah status KK ke 'pending' untuk dikirim ke RT untuk verifikasi.
+ * Mengirim notifikasi ke semua user dengan roleId 2 (Ketua RT).
+ */
+export async function submitFamily(familyId: number, userId: string) {
+  const family = await getFamilyById(familyId);
+  if (!family) throw new Error('NOT_FOUND');
+  if (family.headUserId !== userId) throw new Error('FORBIDDEN');
+  if (!family.kkFile) throw new Error('NO_KK_FILE');
+  if (family.verificationStatus !== 'draft' && family.verificationStatus !== 'rejected') {
+    throw new Error('INVALID_STATUS');
+  }
+
+  await db
+    .update(schema.families)
+    .set({ verificationStatus: 'pending', verificationNote: null, updatedAt: new Date() })
+    .where(eq(schema.families.id, familyId));
+
+  try {
+    const rts = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.roleId, 2));
+    if (rts.length > 0) {
+      await Promise.all(
+        rts.map((rt) =>
+          db.insert(schema.notifications).values({
+            userId: rt.id,
+            title: 'Verifikasi KK Baru',
+            message: `Warga bernama ${family.headName} mengirimkan pengajuan berkas Kartu Keluarga untuk diverifikasi.`,
+            category: 'dinas',
+            redirectLink: `/dashboard/approvals/documents/${familyId}`,
+          })
+        )
+      );
+    }
+  } catch (notifErr) {
+    console.error('Failed to create notifications for RTs:', notifErr);
+  }
+}
+
+/**
+ * Membatalkan pengajuan verifikasi KK (dari 'pending' kembali ke 'draft').
+ * Juga menghapus notifikasi yang sudah dikirim ke RT.
+ */
+export async function cancelSubmitFamily(familyId: number, userId: string) {
+  const family = await getFamilyById(familyId);
+  if (!family) throw new Error('NOT_FOUND');
+  if (family.headUserId !== userId) throw new Error('FORBIDDEN');
+  if (family.verificationStatus !== 'pending') throw new Error('INVALID_STATUS');
+
+  await db
+    .update(schema.families)
+    .set({ verificationStatus: 'draft', verificationNote: null, updatedAt: new Date() })
+    .where(eq(schema.families.id, familyId));
+
+  try {
+    await db
+      .delete(schema.notifications)
+      .where(
+        and(
+          eq(schema.notifications.redirectLink, `/dashboard/approvals/documents/${familyId}`),
+          eq(schema.notifications.category, 'dinas')
+        )
+      );
+  } catch (notifErr) {
+    console.error('Failed to delete notifications on cancel-submit:', notifErr);
+  }
+}
+
+/**
+ * Mengajukan perubahan data KK (membuka kembali mode draft dari status 'verified').
+ */
+export async function requestFamilyChange(familyId: number, userId: string) {
+  const family = await getFamilyById(familyId);
+  if (!family) throw new Error('NOT_FOUND');
+  if (family.headUserId !== userId) throw new Error('FORBIDDEN');
+
+  await db
+    .update(schema.families)
+    .set({ verificationStatus: 'draft', verificationNote: null, draftOpenedAt: new Date(), updatedAt: new Date() })
+    .where(eq(schema.families.id, familyId));
+}
+
+/**
+ * Membatalkan perubahan yang sudah dibuka (mengembalikan dari 'draft' ke 'verified').
+ */
+export async function cancelFamilyChange(familyId: number, userId: string) {
+  const family = await getFamilyById(familyId);
+  if (!family) throw new Error('NOT_FOUND');
+  if (family.headUserId !== userId) throw new Error('FORBIDDEN');
+  if (family.verificationStatus !== 'draft') throw new Error('INVALID_STATUS');
+  if (!family.hasVerified) throw new Error('NOT_YET_VERIFIED');
+
+  const baseTime = family.draftOpenedAt ? new Date(family.draftOpenedAt).getTime() : new Date(family.updatedAt).getTime();
+
+  const hasMemberChanges = (family.members || []).some((member) => {
+    const memberUpdated = new Date(member.updatedAt).getTime();
+    const memberCreated = new Date(member.createdAt).getTime();
+    return memberUpdated > baseTime + 2000 || memberCreated > baseTime + 2000;
+  });
+
+  const hasFamilyChanges = new Date(family.updatedAt).getTime() > baseTime + 2000;
+
+  if (hasMemberChanges || hasFamilyChanges) {
+    throw new Error('HAS_CHANGES');
+  }
+
+  await db
+    .update(schema.families)
+    .set({ verificationStatus: 'verified', verificationNote: null, updatedAt: new Date() })
+    .where(eq(schema.families.id, familyId));
+}
+
+// ==========================================
+// DWELLING PUBLIC LIST & TYPE-CHANGE QUERIES
+// ==========================================
+
+/**
+ * Mengambil daftar hunian aktif untuk dropdown public (tanpa auth).
+ */
+export async function listActiveDwellingsPublic() {
+  const activeDwellings = await db
+    .select({
+      id: schema.dwellings.id,
+      blockNumber: schema.dwellings.blockNumber,
+      houseNumber: schema.dwellings.houseNumber,
+      type: schema.dwellings.type,
+      ownerUserId: schema.dwellings.ownerUserId,
+      hasActiveRental: sql<boolean>`CASE WHEN ${schema.rentalProperties.id} IS NOT NULL THEN true ELSE false END`,
+    })
+    .from(schema.dwellings)
+    .leftJoin(
+      schema.rentalProperties,
+      and(
+        eq(schema.dwellings.id, schema.rentalProperties.dwellingId),
+        eq(schema.rentalProperties.isActive, true)
+      )
+    )
+    .where(eq(schema.dwellings.isActive, true));
+
+  return activeDwellings.map((d) => ({
+    id: d.id,
+    label: `Blok ${d.blockNumber} No. ${d.houseNumber}`,
+    blockNumber: d.blockNumber,
+    houseNumber: d.houseNumber,
+    type: d.type,
+    ownerUserId: d.ownerUserId,
+    hasActiveRental: d.hasActiveRental,
+  }));
+}
+
+/**
+ * Validasi perubahan tipe hunian dan lakukan efek samping yang diperlukan.
+ * Melempar Error dengan kode string jika validasi gagal.
+ */
+export async function validateAndChangeDwellingType(
+  dwellingId: number,
+  currentType: string,
+  newType: string
+) {
+  if (newType === currentType) return;
+
+  if (currentType === 'permanen') {
+    const activeFamilies = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.families)
+      .where(and(eq(schema.families.dwellingId, dwellingId), eq(schema.families.isActive, true)))
+      .then((res) => Number(res[0]?.count || 0));
+
+    if (activeFamilies > 0) throw new Error('HAS_ACTIVE_FAMILIES');
+  } else if (currentType === 'kos' || currentType === 'homestay') {
+    const activeTenants = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.residents)
+      .innerJoin(schema.rentalProperties, eq(schema.residents.rentalPropertyId, schema.rentalProperties.id))
+      .where(and(eq(schema.rentalProperties.dwellingId, dwellingId), eq(schema.residents.isActive, true)))
+      .then((res) => Number(res[0]?.count || 0));
+
+    if (activeTenants > 0) throw new Error('HAS_ACTIVE_TENANTS');
+
+    if (newType === 'permanen') {
+      await db
+        .update(schema.rentalProperties)
+        .set({ isActive: false })
+        .where(eq(schema.rentalProperties.dwellingId, dwellingId));
+    }
+  }
+}
+
+// ==========================================
+// NEIGHBORHOOD MAP QUERY
+// ==========================================
+
+const _censorNik = (nik: string | null) => {
+  if (!nik) return '-';
+  if (nik.length <= 6) return nik;
+  return `${nik.slice(0, 3)}${'*'.repeat(nik.length - 6)}${nik.slice(-3)}`;
+};
+
+const _censorPhone = (phone: string | null) => {
+  if (!phone) return '-';
+  if (phone.length <= 5) return phone;
+  return `${phone.slice(0, 4)}${'*'.repeat(phone.length - 7)}${phone.slice(-3)}`;
+};
+
+/**
+ * Mengambil seluruh data hunian, KK, anggota, properti sewa, dan penyewa
+ * untuk tampilan peta lingkungan. Data sensitif di-sensor jika bukan officer.
+ */
+export async function getNeighborhoodMap(isOfficer: boolean) {
+  const allDwellings = await db.select().from(schema.dwellings).where(eq(schema.dwellings.isActive, true));
+  const allFamilies = await db.select().from(schema.families).where(eq(schema.families.isActive, true));
+  const allMembers = await db
+    .select()
+    .from(schema.residents)
+    .where(and(eq(schema.residents.isActive, true), eq(schema.residents.residentType, 'warga_tetap')));
+  const allRentalProperties = await db
+    .select()
+    .from(schema.rentalProperties)
+    .where(eq(schema.rentalProperties.isActive, true));
+  const allRentalResidents = await db
+    .select()
+    .from(schema.residents)
+    .where(
+      and(
+        eq(schema.residents.isActive, true),
+        eq(schema.residents.verificationStatus, 'verified'),
+        or(
+          eq(schema.residents.residentType, 'sewa_perorangan'),
+          eq(schema.residents.residentType, 'sewa_keluarga')
+        )
+      )
+    );
+
+  return allDwellings.map((dwelling) => {
+    const dwellingFamilies = allFamilies
+      .filter((f) => f.dwellingId === dwelling.id)
+      .map((family) => ({
+        id: family.id,
+        familyNumber: isOfficer
+          ? family.familyNumber
+          : `${family.familyNumber.slice(0, 4)}${'*'.repeat(family.familyNumber.length - 8)}${family.familyNumber.slice(-4)}`,
+        headName: family.headName,
+        unitNumber: family.unitNumber,
+        verificationStatus: family.verificationStatus,
+        members: allMembers
+          .filter((m) => m.familyId === family.id)
+          .map((member) => ({
+            id: member.id,
+            name: member.name,
+            nik: isOfficer ? member.nik : _censorNik(member.nik),
+            gender: member.gender,
+            relationship: member.relationship,
+            occupation: member.occupation,
+            educationLevel: member.educationLevel,
+            phone: isOfficer ? member.phone : _censorPhone(member.phone),
+          })),
+      }));
+
+    const dwellingRentals = allRentalProperties
+      .filter((rp) => rp.dwellingId === dwelling.id)
+      .map((property) => ({
+        id: property.id,
+        name: property.name,
+        contactPerson: property.contactPerson,
+        phone: isOfficer ? property.phone : _censorPhone(property.phone),
+        totalRooms: property.totalRooms,
+        residents: allRentalResidents
+          .filter((rr) => rr.rentalPropertyId === property.id)
+          .map((resident) => ({
+            id: resident.id,
+            name: resident.name,
+            nik: isOfficer ? resident.nik : _censorNik(resident.nik),
+            phone: isOfficer ? resident.phone : _censorPhone(resident.phone),
+            originAddress: resident.originAddress,
+            occupation: resident.occupation,
+            educationLevel: resident.educationLevel,
+            roomNumber: resident.roomNumber,
+            tenantType: resident.residentType === 'sewa_keluarga' ? 'keluarga' : 'perorangan',
+            checkInDate: resident.checkInDate,
+          })),
+      }));
+
+    return {
+      id: dwelling.id,
+      blockNumber: dwelling.blockNumber,
+      houseNumber: dwelling.houseNumber,
+      type: dwelling.type,
+      notes: dwelling.notes,
+      latitude: dwelling.latitude,
+      longitude: dwelling.longitude,
+      families: dwellingFamilies,
+      rentalProperties: dwellingRentals,
+    };
+  });
+}
+
+/**
+ * Mengambil informasi pemilik dari sebuah dwelling.
+ */
+export async function getDwellingOwner(dwellingId: number) {
+  const [dwelling] = await db
+    .select({ ownerUserId: schema.dwellings.ownerUserId })
+    .from(schema.dwellings)
+    .where(eq(schema.dwellings.id, dwellingId))
+    .limit(1);
+
+  return dwelling ?? null;
+}
+
+/**
+ * Mengklaim kepemilikan sebuah dwelling.
+ */
+export async function claimDwellingOwner(
+  dwellingId: number,
+  ownerUserId: string,
+  ownerName: string,
+  ownerPhone?: string | null
+) {
+  await db
+    .update(schema.dwellings)
+    .set({
+      ownerUserId,
+      ownerName,
+      ownerPhone: ownerPhone || null,
+    })
+    .where(eq(schema.dwellings.id, dwellingId));
 }
 

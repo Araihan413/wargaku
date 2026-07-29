@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/db';
-import { dwellings, rentalProperties } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
-import { createDwelling, createDwellingsBulk, listDwellingsAdmin } from '@/db/queries/kependudukan';
+import { createDwelling, createDwellingsBulk, listDwellingsAdmin, listActiveDwellingsPublic } from '@/db/queries/kependudukan';
 import { z } from 'zod';
 
 const createDwellingSchema = z.object({
@@ -97,39 +94,7 @@ export async function GET(request: Request) {
     }
 
     // 2. Public view: return simple dropdown list
-    const activeDwellings = await db
-      .select({
-        id: dwellings.id,
-        blockNumber: dwellings.blockNumber,
-        houseNumber: dwellings.houseNumber,
-        type: dwellings.type,
-        ownerUserId: dwellings.ownerUserId,
-        hasActiveRental: sql<boolean>`CASE WHEN ${rentalProperties.id} IS NOT NULL THEN true ELSE false END`,
-      })
-      .from(dwellings)
-      .leftJoin(
-        rentalProperties,
-        and(
-          eq(dwellings.id, rentalProperties.dwellingId),
-          eq(rentalProperties.isActive, true)
-        )
-      )
-      .where(eq(dwellings.isActive, true));
-
-    // Format label dropdown
-    const formattedData = activeDwellings.map((d) => {
-      const label = `Blok ${d.blockNumber} No. ${d.houseNumber}`;
-      return {
-        id: d.id,
-        label,
-        blockNumber: d.blockNumber,
-        houseNumber: d.houseNumber,
-        type: d.type,
-        ownerUserId: d.ownerUserId,
-        hasActiveRental: d.hasActiveRental,
-      };
-    });
-
+    const formattedData = await listActiveDwellingsPublic();
     return NextResponse.json(formattedData);
   } catch (error: any) {
     console.error('Error in GET /api/dwellings:', error);

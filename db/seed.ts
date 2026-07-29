@@ -76,16 +76,14 @@ async function main() {
     { id: 7, slug: 'approve-expense', name: 'Setujui Pengeluaran', module: 'keuangan', description: 'Menyetujui atau menolak catatan pengeluaran Bendahara' },
     { id: 8, slug: 'manage-announcements', name: 'Kelola Pengumuman', module: 'pengumuman', description: 'Membuat, mengedit, dan menghapus pengumuman' },
     { id: 9, slug: 'manage-activities', name: 'Kelola Kegiatan', module: 'kegiatan', description: 'Mengelola jadwal kegiatan warga' },
-    { id: 10, slug: 'manage-letters', name: 'Kelola Surat', module: 'surat', description: 'Membuat dan memproses pengajuan surat pengantar' },
-    { id: 11, slug: 'approve-letters', name: 'Setujui Surat', module: 'surat', description: 'Mengesahkan dan menandatangani surat pengantar' },
-    { id: 12, slug: 'manage-complaints', name: 'Kelola Laporan/Aduan', module: 'laporan', description: 'Mengelola dan merespon pengaduan warga' },
-    { id: 13, slug: 'manage-users', name: 'Kelola User', module: 'pengguna', description: 'Mengelola akun pengguna sistem' },
-    { id: 14, slug: 'manage-roles', name: 'Kelola Role & Izin', module: 'pengguna', description: 'Mengatur hak akses dan permission role' },
-    { id: 15, slug: 'verify-registrations', name: 'Verifikasi Pendaftaran', module: 'verifikasi', description: 'Menyetujui registrasi mandiri akun warga' },
-    { id: 16, slug: 'verify-documents', name: 'Verifikasi KK/KTP', module: 'verifikasi', description: 'Verifikasi unggahan berkas KK dan KTP warga' },
-    { id: 17, slug: 'manage-own-family', name: 'Kelola Data Keluarga Sendiri', module: 'keluarga', description: 'Mengubah biodata keluarga sendiri sebagai warga' },
-    { id: 18, slug: 'view-dwelling-details', name: 'Lihat Detail Hunian', module: 'hunian', description: 'Melihat info detail hunian via scan QR' },
-    { id: 19, slug: 'manage-dwellings', name: 'Kelola Hunian', module: 'hunian', description: 'Membuat dan mengelola data alamat & koordinat hunian' },
+    { id: 10, slug: 'manage-complaints', name: 'Kelola Laporan/Aduan', module: 'laporan', description: 'Mengelola dan merespon pengaduan warga' },
+    { id: 11, slug: 'manage-users', name: 'Kelola User', module: 'pengguna', description: 'Mengelola akun pengguna sistem' },
+    { id: 12, slug: 'manage-roles', name: 'Kelola Role & Izin', module: 'pengguna', description: 'Mengatur hak akses dan permission role' },
+    { id: 13, slug: 'verify-registrations', name: 'Verifikasi Pendaftaran', module: 'verifikasi', description: 'Menyetujui registrasi mandiri akun warga' },
+    { id: 14, slug: 'verify-documents', name: 'Verifikasi KK/KTP', module: 'verifikasi', description: 'Verifikasi unggahan berkas KK dan KTP warga' },
+    { id: 15, slug: 'manage-own-family', name: 'Kelola Data Keluarga Sendiri', module: 'keluarga', description: 'Mengubah biodata keluarga sendiri sebagai warga' },
+    { id: 16, slug: 'view-dwelling-details', name: 'Lihat Detail Hunian', module: 'hunian', description: 'Melihat info detail hunian via scan QR' },
+    { id: 17, slug: 'manage-dwellings', name: 'Kelola Hunian', module: 'hunian', description: 'Membuat dan mengelola data alamat & koordinat hunian' },
   ];
 
   for (const perm of permissionsData) {
@@ -107,37 +105,37 @@ async function main() {
   const rolePermissionsData: { id: number; roleId: number; permissionId: number }[] = [];
   let rpId = 1;
 
-  // Super Admin (Semua permission 1 - 19)
-  for (let p = 1; p <= 19; p++) {
+  // Super Admin (Semua permission 1 - 17)
+  for (let p = 1; p <= 17; p++) {
     rolePermissionsData.push({ id: rpId++, roleId: 1, permissionId: p });
   }
 
-  // Ketua RT (1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19)
-  const rtPerms = [1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19];
+  // Ketua RT (1, 2, 3, 4, 7, 8, 9, 10, 13, 14, 15, 16, 17)
+  const rtPerms = [1, 2, 3, 4, 7, 8, 9, 10, 13, 14, 15, 16, 17];
   for (const p of rtPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 2, permissionId: p });
   }
 
-  // Sekretaris (1, 8, 9, 10, 12, 15, 16, 17, 18)
-  const sekPerms = [1, 8, 9, 10, 12, 15, 16, 17, 18];
+  // Sekretaris (1, 8, 9, 10, 13, 14, 15, 16)
+  const sekPerms = [1, 8, 9, 10, 13, 14, 15, 16];
   for (const p of sekPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 3, permissionId: p });
   }
 
-  // Bendahara (4, 5, 6, 17)
-  const bendPerms = [4, 5, 6, 17];
+  // Bendahara (4, 5, 6, 15)
+  const bendPerms = [4, 5, 6, 15];
   for (const p of bendPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 4, permissionId: p });
   }
 
-  // Koordinator Kost (3, 17)
-  const kostPerms = [3, 17];
+  // Koordinator Kost (3, 15)
+  const kostPerms = [3, 15];
   for (const p of kostPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 5, permissionId: p });
   }
 
-  // Warga (4, 17, 18)
-  const wargaPerms = [4, 17, 18];
+  // Warga (4, 15, 16)
+  const wargaPerms = [4, 15, 16];
   for (const p of wargaPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 6, permissionId: p });
   }

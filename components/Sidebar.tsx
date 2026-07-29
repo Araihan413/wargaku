@@ -15,11 +15,9 @@ import {
   Settings,
   Users,
   Clock,
-  FileText,
   Wallet,
   Megaphone,
   LifeBuoy,
-  FileSignature,
   UserCheck,
   Coins,
   CreditCard,
@@ -108,15 +106,6 @@ const sidebarItems: SidebarItem[] = [
     ],
   },
   {
-    title: "Layanan Surat RT",
-    icon: FileText,
-    roles: [2],
-    subItems: [
-      { title: "Persetujuan Surat", href: "/dashboard/surat/approvals" },
-      { title: "Arsip Surat RT", href: "/dashboard/surat/archive" },
-    ],
-  },
-  {
     title: "Laporan Keuangan RT",
     icon: Wallet,
     roles: [2],
@@ -141,13 +130,6 @@ const sidebarItems: SidebarItem[] = [
     roles: [2],
   },
 
-  // Sekretaris Menus (Role 3)
-  {
-    title: "Kelola Surat",
-    icon: FileSignature,
-    href: "/dashboard/surat",
-    roles: [3],
-  },
   {
     title: "Kelola Pengaduan",
     icon: LifeBuoy,
@@ -155,11 +137,11 @@ const sidebarItems: SidebarItem[] = [
     roles: [3],
   },
   {
-    title: "Kependudukan & Approval",
+    title: "Kelola Kependudukan",
     icon: UserCheck,
     roles: [3],
     subItems: [
-      { title: "Data Warga (Read-Only)", href: "/dashboard/residents" },
+      { title: "Data Warga & Hunian", href: "/dashboard/residents" },
       { title: "Persetujuan Registrasi", href: "/dashboard/approvals/registration" },
       { title: "Cetak QR Code", href: "/dashboard/qr-codes" },
     ],
@@ -195,13 +177,10 @@ const sidebarItems: SidebarItem[] = [
 
   // Warga & Koordinator Warga Menus (Role 5, 6)
   {
-    title: "Administrasi Keluarga",
+    title: "Kelola Anggota Keluarga",
     icon: Users,
+    href: "/dashboard/family",
     roles: [5, 6],
-    subItems: [
-      { title: "Kelola Anggota Keluarga", href: "/dashboard/family" },
-      { title: "Riwayat & Pengajuan Surat", href: "/dashboard/family/surat", requiresVerification: true },
-    ],
   },
   {
     title: "Peta Hunian & Tetangga",

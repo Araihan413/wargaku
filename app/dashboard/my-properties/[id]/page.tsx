@@ -76,7 +76,7 @@ export default function PropertyDetailsPage() {
         const data = await res.json();
         toast.error(data.error || "Gagal menghapus pendaftaran");
       }
-    } catch (err) {
+    } catch {
       toast.error("Terjadi kesalahan jaringan");
     }
   };
@@ -100,7 +100,7 @@ export default function PropertyDetailsPage() {
         const data = await res.json();
         toast.error(data.error || "Gagal mengirim data ke RT");
       }
-    } catch (err) {
+    } catch {
       toast.error("Terjadi kesalahan jaringan");
     } finally {
       setIsSendingToRT(false);

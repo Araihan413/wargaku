@@ -26,8 +26,16 @@ import { AddCoordinatorModal } from "./_components/AddCoordinatorModal";
 import { EditCoordinatorModal } from "./_components/EditCoordinatorModal";
 import { CoordinatorDetailModal } from "./_components/CoordinatorDetailModal";
 import { AddUserModal } from "../users/_components/AddUserModal";
+import { authClient } from "@/lib/auth-client";
+import { useRoleStore } from "@/lib/store/use-role-store";
 
 export default function ResidentsPage() {
+  const { data: session } = authClient.useSession();
+  const { activeRoleId } = useRoleStore();
+  const currentRole = activeRoleId || session?.user?.roleId || 6;
+  const canManage = currentRole === 1 || currentRole === 2;
+  const isReadOnly = !canManage;
+
   const [activeTab, setActiveTab] = useState<"kk" | "penyewa" | "hunian" | "koordinator">("kk");
 
   // Kartu Keluarga List states
@@ -412,7 +420,7 @@ export default function ResidentsPage() {
           </p>
         </div>
 
-        {activeTab === "hunian" && (
+        {canManage && activeTab === "hunian" && (
           <button
             onClick={() => setIsAddDwellingOpen(true)}
             className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
@@ -422,7 +430,7 @@ export default function ResidentsPage() {
           </button>
         )}
 
-        {activeTab === "kk" && (
+        {canManage && activeTab === "kk" && (
           <button
             onClick={() => setIsAddWargaOpen(true)}
             className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
@@ -432,7 +440,7 @@ export default function ResidentsPage() {
           </button>
         )}
 
-        {activeTab === "penyewa" && (
+        {canManage && activeTab === "penyewa" && (
           <button
             onClick={() => setIsCheckInOpen(true)}
             className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
@@ -442,7 +450,7 @@ export default function ResidentsPage() {
           </button>
         )}
 
-        {activeTab === "koordinator" && (
+        {canManage && activeTab === "koordinator" && (
           <button
             onClick={() => setIsAddCoordinatorOpen(true)}
             className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
@@ -476,6 +484,7 @@ export default function ResidentsPage() {
             setCurrentPage={setCurrentPage}
             totalPages={totalPages}
             totalItems={totalItems}
+            isReadOnly={isReadOnly}
             onEdit={(family) => {
               setSelectedFamilyForEdit(family);
               setIsEditModalOpen(true);
@@ -552,6 +561,7 @@ export default function ResidentsPage() {
             setCurrentPage={setRentersCurrentPage}
             totalPages={Math.ceil(rentersTotalItems / itemsPerPage) || 1}
             totalItems={rentersTotalItems}
+            isReadOnly={isReadOnly}
             onDetail={(renter) => {
               setSelectedRenter(renter);
               setIsDetailOpen(true);
@@ -618,6 +628,7 @@ export default function ResidentsPage() {
             setCurrentPage={setDwellingsCurrentPage}
             totalPages={Math.ceil(dwellingsTotalItems / itemsPerPage) || 1}
             totalItems={dwellingsTotalItems}
+            isReadOnly={isReadOnly}
             onDetail={(dwelling) => {
               setSelectedDwellingForDetail(dwelling.id);
               setIsDetailDwellingOpen(true);
@@ -674,6 +685,7 @@ export default function ResidentsPage() {
             setCurrentPage={setCoordinatorsCurrentPage}
             totalPages={coordinatorsTotalPages}
             totalItems={filteredCoordinators.length}
+            isReadOnly={isReadOnly}
             onDetail={(coord) => {
               setSelectedCoordinatorForDetail(coord);
               setIsDetailCoordinatorOpen(true);

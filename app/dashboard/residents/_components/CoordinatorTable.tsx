@@ -20,6 +20,7 @@ interface CoordinatorTableProps {
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
   totalItems: number;
+  isReadOnly?: boolean;
   onDetail: (coord: CoordinatorItem) => void;
   onEdit: (coord: CoordinatorItem) => void;
   onDeactivate: (coord: CoordinatorItem) => void;
@@ -32,6 +33,7 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
   setCurrentPage,
   totalPages,
   totalItems,
+  isReadOnly = false,
   onDetail,
   onEdit,
   onDeactivate,
@@ -132,14 +134,16 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => onEdit(c)}
-                        className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-primary transition-colors cursor-pointer"
-                        title="Edit Data Koordinator"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      {c.status !== "suspended" ? (
+                      {!isReadOnly && (
+                        <button
+                          onClick={() => onEdit(c)}
+                          className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-primary transition-colors cursor-pointer"
+                          title="Edit Data Koordinator"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
+                      {!isReadOnly && c.status !== "suspended" && (
                         <button
                           onClick={() => onDeactivate(c)}
                           className="p-1.5 hover:bg-red-50 rounded-lg text-gray-secondary-text hover:text-error transition-colors cursor-pointer"
@@ -147,10 +151,6 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
                         >
                           <UserX className="h-4 w-4" />
                         </button>
-                      ) : (
-                        <span className="text-[10px] text-gray-placeholder font-medium px-1.5 py-1">
-                          Nonaktif
-                        </span>
                       )}
                     </div>
                   </td>

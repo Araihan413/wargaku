@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { listPendingRegistrations } from "@/db/queries/approvals";
 
 export async function GET() {
   try {
@@ -21,31 +19,7 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Ambil seluruh user dengan status 'pending' dan roleId 5 (Koordinator Kos) & 6 (Warga)
-    const pendingUsers = await db
-      .select({
-        id: schema.users.id,
-        name: schema.users.name,
-        email: schema.users.email,
-        nik: schema.users.nik,
-        phone: schema.users.phone,
-        roleId: schema.users.roleId,
-        familyNumber: schema.users.familyNumber,
-        unitNumber: schema.users.unitNumber,
-        createdAt: schema.users.createdAt,
-        dwellingId: schema.users.dwellingId,
-        blockNumber: schema.dwellings.blockNumber,
-        houseNumber: schema.dwellings.houseNumber,
-      })
-      .from(schema.users)
-      .leftJoin(schema.dwellings, eq(schema.users.dwellingId, schema.dwellings.id))
-      .where(
-        and(
-          eq(schema.users.status, "pending"),
-          inArray(schema.users.roleId, [5, 6])
-        )
-      )
-      .orderBy(desc(schema.users.createdAt));
+    const pendingUsers = await listPendingRegistrations();
 
     return NextResponse.json({ data: pendingUsers });
   } catch (error: any) {

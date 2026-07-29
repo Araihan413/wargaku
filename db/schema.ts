@@ -166,23 +166,6 @@ export const activities = mysqlTable('activities', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 13. letters
-export const letters = mysqlTable('letters', {
-  id: int('id').autoincrement().primaryKey(),
-  familyMemberId: int('family_member_id'),
-  residentId: int('resident_id').references(() => residents.id),
-  letterType: varchar('letter_type', { length: 100 }).notNull(),
-  numberManual: varchar('number_manual', { length: 50 }),
-  purpose: text('purpose').notNull(),
-  notes: text('notes'),
-  supportingDocument: varchar('supporting_document', { length: 255 }),
-  status: mysqlEnum('status', ['menunggu_review', 'sedang_diproses', 'siap_diambil', 'selesai', 'ditolak']).notNull().default('menunggu_review'),
-  createdBy: varchar('created_by', { length: 255 }).references(() => users.id),
-  approvedBy: varchar('approved_by', { length: 255 }).references(() => users.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
 // 17. residents (Unified residents schema for KK members, individual tenants, and family tenants)
 export const residents = mysqlTable('residents', {
   id: int('id').autoincrement().primaryKey(),

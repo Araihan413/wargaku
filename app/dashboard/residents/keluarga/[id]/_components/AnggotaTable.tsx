@@ -4,6 +4,7 @@ import { FamilyMemberItem } from "../../../types";
 
 interface AnggotaTableProps {
   members: FamilyMemberItem[];
+  isReadOnly?: boolean;
   onViewDetail: (member: FamilyMemberItem) => void;
   onEdit: (member: FamilyMemberItem) => void;
   onDisable: (member: FamilyMemberItem) => void;
@@ -13,6 +14,7 @@ interface AnggotaTableProps {
 
 export const AnggotaTable: React.FC<AnggotaTableProps> = ({
   members,
+  isReadOnly = false,
   onViewDetail,
   onEdit,
   onDisable,
@@ -165,7 +167,7 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
                         </button>
 
                         {/* Edit Anggota */}
-                        {m.isActive && (
+                        {!isReadOnly && m.isActive && (
                           <button
                             onClick={() => onEdit(m)}
                             title="Edit Anggota"
@@ -176,7 +178,7 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
                         )}
 
                         {/* Pindah KK */}
-                        {m.isActive && (
+                        {!isReadOnly && m.isActive && (
                           <button
                             onClick={() => onTransfer(m)}
                             title="Pindah KK"
@@ -187,7 +189,7 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
                         )}
 
                         {/* Nonaktifkan Anggota */}
-                        {m.isActive && !isHead && (
+                        {!isReadOnly && m.isActive && !isHead && (
                           <button
                             onClick={() => onDisable(m)}
                             title="Nonaktifkan Anggota"
@@ -198,17 +200,17 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
                         )}
                         
                         {/* Head of Family warning */}
-                        {m.isActive && isHead && (
-                          <span
-                            title="Kepala Keluarga tidak dapat dinonaktifkan di sini. Nonaktifkan melalui Kartu Keluarga."
+                        {!isReadOnly && m.isActive && isHead && (
+                          <span 
                             className="p-1.5 text-gray-placeholder cursor-not-allowed"
+                            title="Kepala keluarga tidak dapat dinonaktifkan langsung"
                           >
-                            <ShieldAlert className="h-4.5 w-4.5 text-gray-placeholder/60" />
+                            <ShieldAlert className="h-4.5 w-4.5" />
                           </span>
                         )}
 
                         {/* Aktifkan Kembali Anggota */}
-                        {!m.isActive && (
+                        {!isReadOnly && !m.isActive && (
                           <button
                             onClick={() => onReactivate(m)}
                             title="Aktifkan Kembali Anggota"

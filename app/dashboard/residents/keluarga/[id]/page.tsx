@@ -14,12 +14,20 @@ import { GantiKepalaKeluargaModal } from "./_components/GantiKepalaKeluargaModal
 import { FamilyDocumentsCard } from "./_components/FamilyDocumentsCard";
 import { DetailAnggotaModal } from "./_components/DetailAnggotaModal";
 import { FamilyDetail, FamilyMemberItem } from "../../types";
+import { authClient } from "@/lib/auth-client";
+import { useRoleStore } from "@/lib/store/use-role-store";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 export default function FamilyDetailPage({ params }: PageProps) {
+  const { data: session } = authClient.useSession();
+  const { activeRoleId } = useRoleStore();
+  const currentRole = activeRoleId || session?.user?.roleId || 6;
+  const canManage = currentRole === 1 || currentRole === 2;
+  const isReadOnly = !canManage;
+
   const resolvedParams = use(params);
   const familyId = Number(resolvedParams.id);
 
@@ -135,7 +143,7 @@ export default function FamilyDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {familyDetail.isActive && (
+        {canManage && familyDetail.isActive && (
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
@@ -150,14 +158,20 @@ export default function FamilyDetailPage({ params }: PageProps) {
       <KKDetailCard
         familyDetail={familyDetail}
         onChangeHead={() => setIsGantiKepalaModalOpen(true)}
+        isReadOnly={isReadOnly}
       />
 
       {/* Family Documents Download & View Section */}
-      <FamilyDocumentsCard familyDetail={familyDetail} onRefresh={fetchFamilyDetails} />
+      <FamilyDocumentsCard
+        familyDetail={familyDetail}
+        onRefresh={fetchFamilyDetails}
+        isReadOnly={isReadOnly}
+      />
 
       {/* Family Members Table */}
       <AnggotaTable
         members={familyDetail.members || []}
+        isReadOnly={isReadOnly}
         onViewDetail={(member) => {
           setSelectedMemberForDetail(member);
           setIsDetailModalOpen(true);

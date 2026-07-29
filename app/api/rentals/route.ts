@@ -2,101 +2,11 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
-import { listRentalProperties, createRentalProperty } from '@/db/queries/rental';
+import { listRentalProperties, createRentalProperty, checkExistingActiveRental } from '@/db/queries/rental';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
-import { db } from '@/db';
-import * as schema from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
 
-/**
- * @openapi
- * /api/rentals:
- *   get:
- *     summary: Mendapatkan daftar properti sewa (kos, kontrakan, homestay) terpaginasi (Khusus Pengurus & Koordinator Kost)
- *     tags: [Properti Sewa]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *         description: Jumlah data per halaman
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *         description: Index mulai data
- *       - in: query
- *         name: query
- *         schema:
- *           type: string
- *         description: Pencarian berdasarkan nama properti sewa
- *       - in: query
- *         name: isActive
- *         schema:
- *           type: boolean
- *         description: Filter status aktif/nonaktif
- *     responses:
- *       200:
- *         description: Daftar properti sewa berhasil diambil
- *       401:
- *         description: Belum terautentikasi
- *       403:
- *         description: Tidak memiliki izin akses (manage-boarding)
- *       500:
- *         description: Kesalahan server internal
- *   post:
- *     summary: Mendaftarkan properti sewa baru (Khusus Pengurus & Koordinator Kost)
- *     tags: [Properti Sewa]
- *     security:
- *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - dwellingId
- *               - name
- *               - type
- *               - totalRooms
- *               - monthlyRate
- *             properties:
- *               dwellingId:
- *                 type: integer
- *                 description: ID tempat tinggal
- *               name:
- *                 type: string
- *                 description: Nama properti sewa
- *               type:
- *                 type: string
- *                 enum: [kos, kontrakan, homestay, lainnya]
- *                 description: Tipe properti sewa
- *               totalRooms:
- *                 type: integer
- *                 description: Jumlah kamar total
- *               monthlyRate:
- *                 type: integer
- *                 description: Tarif bulanan dalam rupiah
- *               coordinatorUserId:
- *                 type: integer
- *                 description: ID koordinator sewa (opsional bagi RT/RW, dipaksa ke diri sendiri untuk Koordinator)
- *     responses:
- *       201:
- *         description: Properti sewa berhasil didaftarkan
- *       400:
- *         description: Validasi input gagal
- *       401:
- *         description: Belum terautentikasi
- *       403:
- *         description: Tidak memiliki izin akses (manage-boarding)
- *       500:
- *         description: Kesalahan server internal
- */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -122,7 +32,6 @@ export async function GET(request: Request) {
       isActive = searchParams.get('isActive') === 'true';
     }
 
-    // Jika user adalah Koordinator Kost (roleId = 5), paksa filter coordinatorUserId
     const isKoordinatorKost = session.user.roleId === 5;
     const coordinatorUserId = isKoordinatorKost ? session.user.id : undefined;
 
@@ -158,7 +67,6 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     
-    // Jika user adalah Koordinator Kost (roleId = 5), paksa coordinatorUserId ke ID user sendiri
     const isKoordinatorKost = session.user.roleId === 5;
     if (isKoordinatorKost) {
       body.coordinatorUserId = Number(session.user.id);
@@ -166,23 +74,11 @@ export async function POST(request: Request) {
 
     const validatedData = createRentalPropertySchema.parse(body);
 
-    // Check if there is already an active rental property for this dwellingId
-    const [existingRental] = await db
-      .select({ id: schema.rentalProperties.id })
-      .from(schema.rentalProperties)
-      .where(
-        and(
-          eq(schema.rentalProperties.dwellingId, validatedData.dwellingId),
-          eq(schema.rentalProperties.isActive, true)
-        )
-      )
-      .limit(1);
-
-    if (existingRental) {
+    const hasExistingRental = await checkExistingActiveRental(validatedData.dwellingId);
+    if (hasExistingRental) {
       return NextResponse.json({ error: 'Properti sewa aktif sudah terdaftar untuk hunian ini' }, { status: 400 });
     }
 
-    // Process and validate roomPattern / roomList
     let finalRoomList: string[] = [];
     if (validatedData.roomPattern) {
       const parsed = validateAndParseRoomPattern(validatedData.roomPattern);
@@ -190,10 +86,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: parsed.error }, { status: 400 });
       }
       finalRoomList = parsed.rooms;
-      // Auto-update totalRooms if a pattern is used
       validatedData.totalRooms = finalRoomList.length;
     } else {
-      // Default fallback: numbers padded with zero
       finalRoomList = generateDefaultRooms(validatedData.totalRooms);
     }
 

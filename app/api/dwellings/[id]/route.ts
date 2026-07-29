@@ -2,11 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
-import { updateDwelling, deleteDwelling } from '@/db/queries/kependudukan';
+import { getDwellingById, updateDwelling, deleteDwelling, validateAndChangeDwellingType } from '@/db/queries/kependudukan';
 import { z } from 'zod';
-import { db } from '@/db';
-import * as schema from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
 
 const updateDwellingSchema = z.object({
   blockNumber: z.string().min(1, 'Nomor blok wajib diisi').max(20),
@@ -47,61 +44,28 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateDwellingSchema.parse(body);
 
-    // 3. Fetch current dwelling to validate type change safety
-    const currentDwelling = await db
-      .select()
-      .from(schema.dwellings)
-      .where(eq(schema.dwellings.id, dwellingId))
-      .limit(1)
-      .then(res => res[0]);
+    // 3. Fetch current dwelling
+    const currentDwelling = await getDwellingById(dwellingId);
 
     if (!currentDwelling) {
       return NextResponse.json({ error: 'Hunian tidak ditemukan' }, { status: 404 });
     }
 
-    if (validatedData.type !== currentDwelling.type) {
-      if (currentDwelling.type === 'permanen') {
-        // Cek apakah masih ada keluarga aktif
-        const activeFamilies = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(schema.families)
-          .where(and(
-            eq(schema.families.dwellingId, dwellingId),
-            eq(schema.families.isActive, true)
-          ))
-          .then(res => Number(res[0]?.count || 0));
-
-        if (activeFamilies > 0) {
-          return NextResponse.json({
-            error: 'Tidak dapat mengubah tipe hunian karena masih ada Kartu Keluarga aktif yang terdaftar di hunian ini. Silakan pindahkan atau nonaktifkan KK terlebih dahulu.'
-          }, { status: 400 });
-        }
-      } else if (currentDwelling.type === 'kos' || currentDwelling.type === 'homestay') {
-        // Cek apakah masih ada penyewa aktif
-        const activeTenants = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(schema.residents)
-          .innerJoin(schema.rentalProperties, eq(schema.residents.rentalPropertyId, schema.rentalProperties.id))
-          .where(and(
-            eq(schema.rentalProperties.dwellingId, dwellingId),
-            eq(schema.residents.isActive, true)
-          ))
-          .then(res => Number(res[0]?.count || 0));
-
-        if (activeTenants > 0) {
-          return NextResponse.json({
-            error: 'Tidak dapat mengubah tipe hunian karena masih ada penyewa aktif yang terdaftar di properti ini. Silakan check-out penyewa terlebih dahulu.'
-          }, { status: 400 });
-        }
-
-        // Jika tipe diubah menjadi permanen dan tidak ada penyewa aktif, nonaktifkan properti sewa terkait
-        if (validatedData.type === 'permanen') {
-          await db
-            .update(schema.rentalProperties)
-            .set({ isActive: false })
-            .where(eq(schema.rentalProperties.dwellingId, dwellingId));
-        }
+    // 4. Validate and perform type change if necessary
+    try {
+      await validateAndChangeDwellingType(dwellingId, currentDwelling.type, validatedData.type);
+    } catch (err: any) {
+      if (err.message === 'HAS_ACTIVE_FAMILIES') {
+        return NextResponse.json({
+          error: 'Tidak dapat mengubah tipe hunian karena masih ada Kartu Keluarga aktif yang terdaftar di hunian ini. Silakan pindahkan atau nonaktifkan KK terlebih dahulu.'
+        }, { status: 400 });
       }
+      if (err.message === 'HAS_ACTIVE_TENANTS') {
+        return NextResponse.json({
+          error: 'Tidak dapat mengubah tipe hunian karena masih ada penyewa aktif yang terdaftar di properti ini. Silakan check-out penyewa terlebih dahulu.'
+        }, { status: 400 });
+      }
+      throw err;
     }
 
     await updateDwelling(dwellingId, {

@@ -4,8 +4,7 @@ import { headers } from "next/headers";
 import { hasPermission } from "@/lib/rbac";
 import { updateFamily, getFamilyById } from "@/db/queries/kependudukan";
 import { updateRentalResident, getRentalResidentById } from "@/db/queries/rental";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
+import { createNotification } from "@/db/queries/notifications";
 
 export async function PATCH(
   request: Request,
@@ -63,10 +62,9 @@ export async function PATCH(
         lastVerifiedAt: status === "verified" ? new Date() : undefined,
       });
 
-      // Kirim notifikasi ke Warga (Kepala Keluarga)
       try {
         if (family.headUserId) {
-          await db.insert(schema.notifications).values({
+          await createNotification({
             userId: family.headUserId,
             title: action === "approve" ? "Kartu Keluarga Terverifikasi" : "Kartu Keluarga Ditolak",
             message: action === "approve"
@@ -87,7 +85,6 @@ export async function PATCH(
           : "Berkas Kartu Keluarga ditolak",
       });
     } else {
-      // type === "rental_resident"
       const resident = await getRentalResidentById(documentId);
       if (!resident) {
         return NextResponse.json({ error: "Penghuni sewa tidak ditemukan" }, { status: 404 });
@@ -99,10 +96,9 @@ export async function PATCH(
         updatedBy: session.user.id,
       });
 
-      // Kirim notifikasi ke Warga (Pendaftar Penghuni Sewa)
       try {
         if (resident.createdBy) {
-          await db.insert(schema.notifications).values({
+          await createNotification({
             userId: resident.createdBy,
             title: action === "approve" ? "Berkas KTP Penghuni Disetujui" : "Berkas KTP Penghuni Ditolak",
             message: action === "approve"

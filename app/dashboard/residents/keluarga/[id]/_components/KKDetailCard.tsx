@@ -5,9 +5,14 @@ import { FamilyDetail } from "../../../types";
 interface KKDetailCardProps {
   familyDetail: FamilyDetail;
   onChangeHead?: () => void;
+  isReadOnly?: boolean;
 }
 
-export const KKDetailCard: React.FC<KKDetailCardProps> = ({ familyDetail, onChangeHead }) => {
+export const KKDetailCard: React.FC<KKDetailCardProps> = ({
+  familyDetail,
+  onChangeHead,
+  isReadOnly = false,
+}) => {
   // Format Address
   const d = familyDetail.dwelling;
   const addressParts = [
@@ -92,7 +97,7 @@ export const KKDetailCard: React.FC<KKDetailCardProps> = ({ familyDetail, onChan
             <span className="text-xs text-gray-placeholder block mt-0.5">
               ID User: {familyDetail.headUserId}
             </span>
-            {onChangeHead && familyDetail.isActive && (
+            {!isReadOnly && onChangeHead && familyDetail.isActive && (
               <button
                 type="button"
                 onClick={onChangeHead}

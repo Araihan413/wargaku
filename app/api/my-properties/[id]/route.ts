@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { db } from '@/db';
-import * as schema from '@/db/schema';
-import { eq, or } from 'drizzle-orm';
 import {
   getRentalPropertyById,
   updateRentalProperty,
   deleteRentalProperty,
   isPropertyOwner,
 } from '@/db/queries/rental';
+import { getCoordinatorById, findOrCreatePendingCoordinatorByPhone } from '@/db/queries/coordinators';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
@@ -34,7 +32,6 @@ export async function GET(
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
-    // Verify property ownership
     const isOwner = await isPropertyOwner(propertyId, session.user.id);
     if (!isOwner) {
       return NextResponse.json({ error: 'Anda tidak memiliki hak akses untuk properti ini' }, { status: 403 });
@@ -45,21 +42,9 @@ export async function GET(
       return NextResponse.json({ error: 'Properti tidak ditemukan' }, { status: 404 });
     }
 
-    // Get coordinator details if assigned
     let coordinator = null;
     if (property.coordinatorUserId) {
-      const [user] = await db
-        .select({
-          id: schema.users.id,
-          name: schema.users.name,
-          email: schema.users.email,
-          phone: schema.users.phone,
-          status: schema.users.status,
-        })
-        .from(schema.users)
-        .where(eq(schema.users.id, property.coordinatorUserId))
-        .limit(1);
-      coordinator = user || null;
+      coordinator = await getCoordinatorById(property.coordinatorUserId);
     }
 
     return NextResponse.json({
@@ -93,7 +78,6 @@ export async function PUT(
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
-    // Verify ownership
     const isOwner = await isPropertyOwner(propertyId, session.user.id);
     if (!isOwner) {
       return NextResponse.json({ error: 'Anda tidak memiliki hak akses untuk properti ini' }, { status: 403 });
@@ -107,7 +91,6 @@ export async function PUT(
     const body = await request.json();
     const validated = updateRentalPropertySchema.parse(body);
 
-    // If roomPattern or totalRooms is updated, rebuild roomList
     if ('roomPattern' in body || 'totalRooms' in body) {
       let finalRoomList: string[] = [];
       const pattern = 'roomPattern' in body ? validated.roomPattern : property.roomPattern;
@@ -126,36 +109,10 @@ export async function PUT(
       validated.roomList = finalRoomList;
     }
 
-    // Handle coordinator penunjukan
     let coordinatorId = validated.coordinatorUserId;
     
-    // If setting coordinator but they don't have account yet (bukan warga - nama & phone)
     if (!coordinatorId && body.coordinatorName && body.coordinatorPhone) {
-      const cleanPhone = body.coordinatorPhone.replace(/[-\s]/g, '');
-
-      const [existingUser] = await db
-        .select({ id: schema.users.id })
-        .from(schema.users)
-        .where(eq(schema.users.phone, cleanPhone))
-        .limit(1);
-
-      if (existingUser) {
-        coordinatorId = existingUser.id;
-      } else {
-        const newUserId = crypto.randomUUID();
-        const tempEmail = `pending-${cleanPhone}-${Math.random().toString(36).substring(2, 7)}@wargaku.temp`;
-
-        await db.insert(schema.users).values({
-          id: newUserId,
-          name: body.coordinatorName,
-          email: tempEmail,
-          phone: cleanPhone,
-          roleId: 5, // Koordinator Kost
-          status: 'pending',
-          emailVerified: false,
-        });
-        coordinatorId = newUserId;
-      }
+      coordinatorId = await findOrCreatePendingCoordinatorByPhone(body.coordinatorName, body.coordinatorPhone);
     }
 
     await updateRentalProperty(propertyId, {
@@ -194,7 +151,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
-    // Verify ownership
     const isOwner = await isPropertyOwner(propertyId, session.user.id);
     if (!isOwner) {
       return NextResponse.json({ error: 'Anda tidak memiliki hak akses untuk properti ini' }, { status: 403 });

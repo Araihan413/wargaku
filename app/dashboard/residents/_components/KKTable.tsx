@@ -9,6 +9,7 @@ import {
   AlertCircle,
   XCircle,
   RotateCcw,
+  File
 } from "lucide-react";
 import Link from "next/link";
 import { FamilyItem } from "../types";
@@ -20,6 +21,7 @@ interface KKTableProps {
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
   totalItems: number;
+  isReadOnly?: boolean;
   onEdit: (family: FamilyItem) => void;
   onDisable: (family: FamilyItem) => void;
   onReactivate: (family: FamilyItem) => void;
@@ -32,6 +34,7 @@ export const KKTable: React.FC<KKTableProps> = ({
   setCurrentPage,
   totalPages,
   totalItems,
+  isReadOnly = false,
   onEdit,
   onDisable,
   onReactivate,
@@ -114,6 +117,12 @@ export const KKTable: React.FC<KKTableProps> = ({
                           Ditolak
                         </span>
                       )}
+                      {f.verificationStatus === "draft" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 border border-gray-200 px-2.5 py-0.5 text-xs font-bold text-gray-600">
+                          <File className="h-3 w-3" />
+                          Draft
+                        </span>
+                      )}
                     </td>
                     <td className="py-4 px-5">
                       {f.isActive ? (
@@ -138,7 +147,7 @@ export const KKTable: React.FC<KKTableProps> = ({
                         </Link>
 
                         {/* Edit KK */}
-                        {f.isActive && (
+                        {!isReadOnly && f.isActive && (
                           <button
                             onClick={() => onEdit(f)}
                             title="Edit Kartu Keluarga"
@@ -149,7 +158,7 @@ export const KKTable: React.FC<KKTableProps> = ({
                         )}
 
                         {/* Nonaktifkan KK */}
-                        {f.isActive && (
+                        {!isReadOnly && f.isActive && (
                           <button
                             onClick={() => onDisable(f)}
                             title="Nonaktifkan Kartu Keluarga"
@@ -160,7 +169,7 @@ export const KKTable: React.FC<KKTableProps> = ({
                         )}
 
                         {/* Aktifkan Kembali KK */}
-                        {!f.isActive && (
+                        {!isReadOnly && !f.isActive && (
                           <button
                             onClick={() => onReactivate(f)}
                             title="Aktifkan Kembali Kartu Keluarga"

@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { db } from '@/db';
-import * as schema from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { listRentalProperties, createRentalProperty } from '@/db/queries/rental';
+import { listRentalProperties, createRentalProperty, checkExistingActiveRental } from '@/db/queries/rental';
+import { getDwellingOwner, claimDwellingOwner } from '@/db/queries/kependudukan';
+import { findOrCreatePendingCoordinatorByPhone } from '@/db/queries/coordinators';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
@@ -29,7 +28,6 @@ export async function GET(request: Request) {
       isActive = searchParams.get('isActive') === 'true';
     }
 
-    // Filter by the logged-in user as the owner of the dwelling
     const result = await listRentalProperties({
       limit,
       offset,
@@ -58,80 +56,29 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = createRentalPropertySchema.parse(body);
 
-    // 1. Verify that the logged-in user is the owner of this dwelling, or claim it if unclaimed
-    const [dwelling] = await db
-      .select({ ownerUserId: schema.dwellings.ownerUserId })
-      .from(schema.dwellings)
-      .where(eq(schema.dwellings.id, validated.dwellingId))
-      .limit(1);
+    const dwelling = await getDwellingOwner(validated.dwellingId);
 
     if (!dwelling) {
       return NextResponse.json({ error: 'Tempat tinggal/dwelling tidak ditemukan' }, { status: 404 });
     }
 
-    // Check if there is already an active rental property for this dwellingId
-    const [existingRental] = await db
-      .select({ id: schema.rentalProperties.id })
-      .from(schema.rentalProperties)
-      .where(
-        and(
-          eq(schema.rentalProperties.dwellingId, validated.dwellingId),
-          eq(schema.rentalProperties.isActive, true)
-        )
-      )
-      .limit(1);
-
-    if (existingRental) {
+    const hasActiveRental = await checkExistingActiveRental(validated.dwellingId);
+    if (hasActiveRental) {
       return NextResponse.json({ error: 'Properti sewa aktif sudah terdaftar untuk hunian ini' }, { status: 400 });
     }
 
     if (!dwelling.ownerUserId) {
-      // Auto-claim the dwelling
-      await db
-        .update(schema.dwellings)
-        .set({
-          ownerUserId: session.user.id,
-          ownerName: session.user.name,
-          ownerPhone: session.user.phone || null,
-        })
-        .where(eq(schema.dwellings.id, validated.dwellingId));
+      await claimDwellingOwner(validated.dwellingId, session.user.id, session.user.name, session.user.phone);
     } else if (dwelling.ownerUserId !== session.user.id) {
       return NextResponse.json({ error: 'Tempat tinggal/dwelling ini sudah dimiliki oleh warga lain' }, { status: 403 });
     }
 
-    // 2. Handle Case B: Penunjukan Koordinator Baru (belum terdaftar di users)
     let coordinatorId = validated.coordinatorUserId || null;
 
     if (!coordinatorId && body.coordinatorName && body.coordinatorPhone) {
-      const cleanPhone = body.coordinatorPhone.replace(/[-\s]/g, '');
-
-      // Check if a user with this phone number already exists
-      const [existingUser] = await db
-        .select({ id: schema.users.id })
-        .from(schema.users)
-        .where(eq(schema.users.phone, cleanPhone))
-        .limit(1);
-
-      if (existingUser) {
-        coordinatorId = existingUser.id;
-      } else {
-        const newUserId = crypto.randomUUID();
-        const tempEmail = `pending-${cleanPhone}-${Math.random().toString(36).substring(2, 7)}@wargaku.temp`;
-
-        await db.insert(schema.users).values({
-          id: newUserId,
-          name: body.coordinatorName,
-          email: tempEmail,
-          phone: cleanPhone,
-          roleId: 5, // Koordinator Kost
-          status: 'pending', // RT must approve this coordinator user account
-          emailVerified: false,
-        });
-        coordinatorId = newUserId;
-      }
+      coordinatorId = await findOrCreatePendingCoordinatorByPhone(body.coordinatorName, body.coordinatorPhone);
     }
 
-    // Process and validate roomPattern / roomList
     let finalRoomList: string[] = [];
     if (validated.roomPattern) {
       const parsed = validateAndParseRoomPattern(validated.roomPattern);
@@ -139,14 +86,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: parsed.error }, { status: 400 });
       }
       finalRoomList = parsed.rooms;
-      // Auto-update totalRooms if a pattern is used
       validated.totalRooms = finalRoomList.length;
     } else {
-      // Default fallback: numbers padded with zero
       finalRoomList = generateDefaultRooms(validated.totalRooms);
     }
 
-    // 3. Create the rental property
     const propertyId = await createRentalProperty({
       ...validated,
       coordinatorUserId: coordinatorId,

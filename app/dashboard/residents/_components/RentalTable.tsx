@@ -31,6 +31,7 @@ interface RentalTableProps {
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
   totalItems: number;
+  isReadOnly?: boolean;
   onDetail: (resident: RentalResidentItem) => void;
   onVerify: (resident: RentalResidentItem) => void;
   onCheckOut: (resident: RentalResidentItem) => void;
@@ -45,6 +46,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   setCurrentPage,
   totalPages,
   totalItems,
+  isReadOnly = false,
   onDetail,
   onVerify,
   onCheckOut,
@@ -161,14 +163,16 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => onEdit(r)}
-                          className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-primary transition-colors cursor-pointer"
-                          title="Edit Data Penyewa"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        {r.verificationStatus === 'pending' && r.tenantType === 'perorangan' && (
+                        {!isReadOnly && (
+                          <button
+                            onClick={() => onEdit(r)}
+                            className="p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text hover:text-primary transition-colors cursor-pointer"
+                            title="Edit Data Penyewa"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        )}
+                        {!isReadOnly && r.verificationStatus === 'pending' && r.tenantType === 'perorangan' && (
                           <button
                             onClick={() => onVerify(r)}
                             className="p-1.5 hover:bg-emerald-50 rounded-lg text-gray-secondary-text hover:text-emerald-700 transition-colors cursor-pointer"
@@ -177,7 +181,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                             <CheckCircle className="h-4 w-4" />
                           </button>
                         )}
-                        {r.isActive && r.verificationStatus === 'verified' && (
+                        {!isReadOnly && r.isActive && r.verificationStatus === 'verified' && (
                           <button
                             onClick={() => onCheckOut(r)}
                             className="p-1.5 hover:bg-rose-50 rounded-lg text-gray-secondary-text hover:text-red-600 transition-colors cursor-pointer"
@@ -186,7 +190,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                             <LogOut className="h-4 w-4" />
                           </button>
                         )}
-                        {!r.isActive && onReactivate && (
+                        {!isReadOnly && !r.isActive && onReactivate && (
                           <button
                             onClick={() => onReactivate(r)}
                             className="p-1.5 hover:bg-emerald-50 rounded-lg text-gray-secondary-text hover:text-emerald-700 transition-colors cursor-pointer"

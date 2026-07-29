@@ -8,9 +8,14 @@ import { FileUploadModal } from "@/components/FileUploadModal";
 interface FamilyDocumentsCardProps {
   familyDetail: FamilyDetail;
   onRefresh?: () => void;
+  isReadOnly?: boolean;
 }
 
-export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ familyDetail, onRefresh }) => {
+export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({
+  familyDetail,
+  onRefresh,
+  isReadOnly = false,
+}) => {
   const [showKkUploadForm, setShowKkUploadForm] = useState(false);
   const [isUploadingKK, setIsUploadingKK] = useState(false);
   const [showKtpUploadForm, setShowKtpUploadForm] = useState(false);
@@ -190,24 +195,28 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
                     Unduh KK
                   </button>
                 </div>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setShowKkUploadForm(true)}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Ganti Berkas KK
+                  </button>
+                )}
+              </>
+            ) : (
+              !isReadOnly && (
                 <button
                   type="button"
                   onClick={() => setShowKkUploadForm(true)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   <Upload className="h-4 w-4" />
-                  Ganti Berkas KK
+                  Unggah Scan KK
                 </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowKkUploadForm(true)}
-                className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
-              >
-                <Upload className="h-4 w-4" />
-                Unggah Scan KK
-              </button>
+              )
             )}
           </div>
         </div>
@@ -258,18 +267,20 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
                           <Download className="h-3.5 w-3.5" />
                           Unduh
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedMemberForKtp(m);
-                            setShowKtpUploadForm(true);
-                          }}
-                          className="inline-flex items-center justify-center gap-1 px-3 py-1.5 border border-gray-border rounded-lg hover:bg-gray-sidebar-hover text-[10px] font-bold text-gray-heading-main transition-all cursor-pointer bg-white"
-                          title="Ganti Berkas KTP"
-                        >
-                          <Upload className="h-3.5 w-3.5 text-gray-secondary-text" />
-                          Ganti
-                        </button>
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMemberForKtp(m);
+                              setShowKtpUploadForm(true);
+                            }}
+                            className="inline-flex items-center justify-center gap-1 px-3 py-1.5 border border-gray-border rounded-lg hover:bg-gray-sidebar-hover text-[10px] font-bold text-gray-heading-main transition-all cursor-pointer bg-white"
+                            title="Ganti Berkas KTP"
+                          >
+                            <Upload className="h-3.5 w-3.5 text-gray-secondary-text" />
+                            Ganti
+                          </button>
+                        )}
                       </>
                     ) : (
                       <>
@@ -277,18 +288,20 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({ family
                           <ShieldAlert className="h-3.5 w-3.5" />
                           KTP Belum Diunggah
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedMemberForKtp(m);
-                            setShowKtpUploadForm(true);
-                          }}
-                          className="inline-flex items-center justify-center gap-1 px-3 py-1.5 border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-[10px] font-bold text-primary rounded-lg transition-all cursor-pointer"
-                          title="Unggah Berkas KTP"
-                        >
-                          <Upload className="h-3.5 w-3.5" />
-                          Unggah KTP
-                        </button>
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMemberForKtp(m);
+                              setShowKtpUploadForm(true);
+                            }}
+                            className="inline-flex items-center justify-center gap-1 px-3 py-1.5 border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-[10px] font-bold text-primary rounded-lg transition-all cursor-pointer"
+                            title="Unggah Berkas KTP"
+                          >
+                            <Upload className="h-3.5 w-3.5" />
+                            Unggah KTP
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

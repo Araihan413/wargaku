@@ -86,7 +86,7 @@ export const RoomHistoryTimelineTab: React.FC<RoomHistoryTimelineTabProps> = ({
         {history.map((item) => (
           <div key={item.id} className="relative pl-6">
             {/* Timeline Dot */}
-            <div className="absolute -left-[9px] top-1.5 h-4 w-4 rounded-full bg-gray-card border-2 border-gray-secondary-text flex items-center justify-center">
+            <div className="absolute -left-2.25 top-1.5 h-4 w-4 rounded-full bg-gray-card border-2 border-gray-secondary-text flex items-center justify-center">
               <div className="h-1.5 w-1.5 rounded-full bg-gray-secondary-text" />
             </div>
 

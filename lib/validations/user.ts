@@ -97,6 +97,7 @@ export const createUserSchema = z.object({
 });
 
 export type CreateUserType = z.infer<typeof createUserSchema>;
+export type CreateUserInput = CreateUserType;
 
 export const updateUserSchema = z.object({
   name: z.string({
@@ -148,3 +149,5 @@ export const updateUserSchema = z.object({
 });
 
 export type UpdateUserType = z.infer<typeof updateUserSchema>;
+export type UpdateUserInput = UpdateUserType;
+

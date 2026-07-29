@@ -6,6 +6,8 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { KetuaRTDashboard } from "./_components/KetuaRTDashboard";
 import { WargaDashboard } from "./_components/WargaDashboard";
+import { SekretarisDashboard } from "./_components/SekretarisDashboard";
+import { BendaharaDashboard } from "./_components/BendaharaDashboard";
 import { KoordinatorKosDashboard } from "./_components/KoordinatorKosDashboard";
 
 export default function Dashboard() {
@@ -63,23 +65,9 @@ export default function Dashboard() {
     case 2: // Ketua RT
       return <KetuaRTDashboard />;
     case 3: // Sekretaris
-      return (
-        <div className="space-y-4 rounded-2xl border border-gray-border bg-gray-card p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-heading-main">Dashboard Sekretaris</h1>
-          <p className="text-gray-secondary-text">
-            Selamat datang di panel administrasi Sekretaris. Gunakan menu sidebar untuk mengelola data surat keluar/masuk, verifikasi pendaftaran warga, mengelola pengumuman, dan kegiatan RT.
-          </p>
-        </div>
-      );
+      return <SekretarisDashboard />;
     case 4: // Bendahara
-      return (
-        <div className="space-y-4 rounded-2xl border border-gray-border bg-gray-card p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-heading-main">Dashboard Bendahara</h1>
-          <p className="text-gray-secondary-text">
-            Selamat datang di panel keuangan Bendahara. Gunakan menu sidebar untuk mengelola pencatatan pemasukan, pengajuan pengeluaran kas, serta administrasi iuran warga.
-          </p>
-        </div>
-      );
+      return <BendaharaDashboard />;
     case 5: // Koordinator Kost
       return <KoordinatorKosDashboard />;
     default: // Warga

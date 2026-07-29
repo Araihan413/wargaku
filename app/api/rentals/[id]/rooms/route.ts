@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
-import { getRentalPropertyById } from '@/db/queries/rental';
-import { db } from '@/db';
-import * as schema from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { getRentalPropertyById, getRentalPropertyRooms } from '@/db/queries/rental';
 
 export async function GET(
   request: Request,
@@ -32,7 +29,6 @@ export async function GET(
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    // Check authorization: RT/Admin (manage-boarding), coordinator, or owner
     const isGlobalAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
     const isCoordinator = property.coordinatorUserId === session.user.id;
     const isOwner = property.dwelling?.ownerUserId === session.user.id;
@@ -41,69 +37,7 @@ export async function GET(
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke properti ini' }, { status: 403 });
     }
 
-    // Parse rooms list from property
-    let rooms: string[] = [];
-    if (Array.isArray(property.roomList) && property.roomList.length > 0) {
-      rooms = property.roomList as string[];
-    } else {
-      const total = property.totalRooms || 0;
-      for (let i = 1; i <= total; i++) {
-        rooms.push(i.toString().padStart(2, '0'));
-      }
-    }
-
-    // Fetch active residents for this property
-    const activeResidents = await db
-      .select({
-        id: schema.residents.id,
-        name: schema.residents.name,
-        nik: schema.residents.nik,
-        phone: schema.residents.phone,
-        tenantType: schema.residents.residentType,
-        roomNumber: schema.residents.roomNumber,
-        checkInDate: schema.residents.checkInDate,
-        verificationStatus: schema.residents.verificationStatus,
-        verificationNote: schema.residents.verificationNote,
-        ktpFile: schema.residents.ktpFile,
-        originAddress: schema.residents.originAddress,
-        occupation: schema.residents.occupation,
-        educationLevel: schema.residents.educationLevel,
-        religion: schema.residents.religion,
-        isActive: schema.residents.isActive,
-      })
-      .from(schema.residents)
-      .where(
-        and(
-          eq(schema.residents.rentalPropertyId, propertyId),
-          eq(schema.residents.isActive, true)
-        )
-      );
-
-    // Group residents by room number
-    const roomItems = rooms.map((roomNum) => {
-      const roomResidentsRaw = activeResidents.filter(
-        (r) => r.roomNumber === roomNum || (r.roomNumber === null && rooms.length === 1)
-      );
-
-      const roomResidents = roomResidentsRaw.map((r) => ({
-        ...r,
-        tenantType: r.tenantType === 'sewa_keluarga' ? ('keluarga' as const) : ('perorangan' as const),
-      }));
-
-      let status: 'vacant' | 'occupied' | 'sharing' = 'vacant';
-      if (roomResidents.length === 1) {
-        status = 'occupied';
-      } else if (roomResidents.length > 1) {
-        status = 'sharing';
-      }
-
-      return {
-        roomNumber: roomNum,
-        status,
-        residentsCount: roomResidents.length,
-        residents: roomResidents,
-      };
-    });
+    const roomItems = await getRentalPropertyRooms(propertyId, property);
 
     return NextResponse.json({
       property: {

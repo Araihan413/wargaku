@@ -18,13 +18,13 @@ export async function POST(request: Request) {
       headers: await headers(),
     });
 
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const folder = (formData.get("folder") as string) || "documents";
+
+    if (!session && folder !== "complaints") {
+      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
+    }
 
     if (!file) {
       return NextResponse.json({ error: "Berkas tidak ditemukan dalam data form." }, { status: 400 });
