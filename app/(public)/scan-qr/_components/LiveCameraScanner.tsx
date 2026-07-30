@@ -75,6 +75,29 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
     };
   }, []);
 
+  // Helper untuk menghentikan seluruh MediaStreamTrack (agar lampu/hardware kamera langsung mati)
+  const stopMediaTracks = useCallback(() => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  // Ensure camera tracks are closed when component unmounts
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current.destroy();
+        scannerRef.current = null;
+      }
+      stopMediaTracks();
+    };
+  }, [stopMediaTracks]);
+
   // ── Mulai / Hentikan Kamera ──────────
   useEffect(() => {
     if (!isCameraActive || !videoRef.current) return;
@@ -95,6 +118,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
           scanner.stop();
           scanner.destroy();
           scannerRef.current = null;
+          stopMediaTracks();
           setIsCameraActive(false);
           onScanSuccess(token);
         },
@@ -112,6 +136,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
         setCameraError("Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.");
         setIsCameraActive(false);
         scanner.destroy();
+        stopMediaTracks();
       }
     }
 
@@ -124,8 +149,9 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
         scannerRef.current.destroy();
         scannerRef.current = null;
       }
+      stopMediaTracks();
     };
-  }, [isCameraActive, selectedCamera, onScanSuccess]);
+  }, [isCameraActive, selectedCamera, onScanSuccess, stopMediaTracks]);
 
   const stopCamera = useCallback(() => {
     if (scannerRef.current) {
@@ -133,9 +159,11 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
       scannerRef.current.destroy();
       scannerRef.current = null;
     }
+    stopMediaTracks();
     setIsCameraActive(false);
     setCameraError(null);
-  }, []);
+  }, [stopMediaTracks]);
+
 
   // ── Scan Gambar dari File
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
