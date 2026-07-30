@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { SearchX, HelpCircle, RefreshCw, Home, MessageSquare } from "lucide-react";
+import { SearchX, HelpCircle, RefreshCw, Home } from "lucide-react";
 
 interface DwellingNotFoundStateProps {
   searchedQuery: string;
@@ -64,14 +64,6 @@ export const DwellingNotFoundState: React.FC<DwellingNotFoundStateProps> = ({
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
           <span>Coba Ulangi Pencarian</span>
         </button>
-
-        <Link
-          href="/pengaduan"
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>Bantuan / Pengaduan</span>
-        </Link>
 
         <Link
           href="/"

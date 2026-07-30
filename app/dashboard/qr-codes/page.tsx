@@ -3,27 +3,23 @@
 import React, { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { RefreshButton } from "@/components/RefreshButton";
-import { QrPageData, QrConfigState, QrPresetType } from "./types";
-import { QrPresetSelector } from "./_components/QrPresetSelector";
-import { QrConfigFormBar } from "./_components/QrConfigFormBar";
-import { QrPreviewPrintContainer } from "./_components/QrPreviewPrintContainer";
-
-const DEFAULT_CONFIG: QrConfigState = {
-  preset: "rt_public",
-  selectedDwellingId: null,
-  customUrl: "",
-  title: "PORTAL ADUAN & LAYANAN WARGA",
-  subtitle: "Pindai QR code ini menggunakan kamera HP untuk melaporkan aduan, verifikasi warga, atau mengakses informasi resmi RT.",
-  template: "a4_poster",
-  showContacts: true,
-  showLogo: true,
-};
+import { QrTemplateType } from "@/components/QrCodePrintCanvas";
+import { QrPageData } from "./types";
+import { QrSettingCard } from "./_components/QrSettingCard";
+import { DwellingQrTable } from "./_components/DwellingQrTable";
+import { CustomUrlQrCard } from "./_components/CustomUrlQrCard";
 
 export default function QrCodesPage() {
   const [data, setData] = useState<QrPageData | null>(null);
-  const [config, setConfig] = useState<QrConfigState>(DEFAULT_CONFIG);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Settings State
+  const [template, setTemplate] = useState<QrTemplateType>("mini_sticker");
+  const [title, setTitle] = useState<string>("STIKER PINTU RUMAH WARGA");
+  const [subtitle, setSubtitle] = useState<string>(
+    "Pindai QR code ini menggunakan kamera HP untuk mengakses profil & informasi resmi hunian."
+  );
 
   const loadData = () => {
     setIsLoading(true);
@@ -69,96 +65,6 @@ export default function QrCodesPage() {
     };
   }, []);
 
-  const handlePresetSelect = (preset: QrPresetType) => {
-    if (!data) return;
-    const rtLabel = `RT ${data.systemSettings.rtName} / RW ${data.systemSettings.rwName}`;
-
-    if (preset === "rt_public") {
-      setConfig((prev) => ({
-        ...prev,
-        preset: "rt_public",
-        title: "PORTAL ADUAN & LAYANAN WARGA",
-        subtitle: `Pindai QR code ini untuk mengakses portal layanan publik resmi ${rtLabel}.`,
-        selectedDwellingId: null,
-      }));
-    } else if (preset === "dwelling_sticker") {
-      const firstDwelling = data.dwellings[0];
-      setConfig((prev) => ({
-        ...prev,
-        preset: "dwelling_sticker",
-        title: firstDwelling
-          ? `STIKER PINTU — BLOK ${firstDwelling.blockNumber} NO. ${firstDwelling.houseNumber}`
-          : "STIKER PINTU RUMAH WARGA",
-        subtitle: "Verifikasi identitas rumah warga & laporan cepat pengurus RT.",
-        selectedDwellingId: firstDwelling ? firstDwelling.id : null,
-      }));
-    } else if (preset === "rental_property") {
-      const firstDwelling = data.dwellings.find((d) => d.type === "kos") || data.dwellings[0];
-      setConfig((prev) => ({
-        ...prev,
-        preset: "rental_property",
-        title: firstDwelling
-          ? `PAPAN INFO KOS — BLOK ${firstDwelling.blockNumber} NO. ${firstDwelling.houseNumber}`
-          : "PAPAN INFO KOS & SEWA",
-        subtitle: "Pindai untuk pendaftaran & verifikasi data anak kos / penghuni sewa.",
-        selectedDwellingId: firstDwelling ? firstDwelling.id : null,
-      }));
-    } else if (preset === "custom_url") {
-      setConfig((prev) => ({
-        ...prev,
-        preset: "custom_url",
-        title: "INFORMASI DOKUMEN RESMI RT",
-        subtitle: "Pindai QR code ini untuk membuka tautan acuan dokumen.",
-        customUrl: "https://wargaku.app",
-        selectedDwellingId: null,
-      }));
-    }
-  };
-
-  const handleConfigChange = (newConfig: Partial<QrConfigState>) => {
-    setConfig((prev) => {
-      const updated = { ...prev, ...newConfig };
-
-      // Update title dynamically if dwelling selection changed
-      if (
-        newConfig.selectedDwellingId &&
-        data &&
-        (updated.preset === "dwelling_sticker" || updated.preset === "rental_property")
-      ) {
-        const found = data.dwellings.find((d) => d.id === newConfig.selectedDwellingId);
-        if (found) {
-          const prefix = updated.preset === "dwelling_sticker" ? "STIKER PINTU" : "PAPAN INFO KOS";
-          updated.title = `${prefix} — BLOK ${found.blockNumber} NO. ${found.houseNumber}`;
-        }
-      }
-
-      return updated;
-    });
-  };
-
-  // Compute Target QR URL
-  const getComputedQrUrl = (): string => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://wargaku.app";
-
-    if (config.preset === "custom_url") {
-      return config.customUrl || origin;
-    }
-
-    if (
-      (config.preset === "dwelling_sticker" || config.preset === "rental_property") &&
-      config.selectedDwellingId &&
-      data
-    ) {
-      const dwelling = data.dwellings.find((d) => d.id === config.selectedDwellingId);
-      if (dwelling?.qrToken) {
-        return `${origin}/scan/${dwelling.qrToken}`;
-      }
-    }
-
-    // Default: Public RT portal URL
-    return `${origin}/public`;
-  };
-
   // ─── Loading Skeleton ─────────────────────────────────────────────
   if (isLoading && !data) {
     return (
@@ -167,13 +73,9 @@ export default function QrCodesPage() {
           <div className="h-8 w-80 bg-gray-border/60 rounded-xl" />
           <div className="h-4 w-96 bg-gray-border/40 rounded-lg" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-gray-card border border-gray-border rounded-2xl" />
-          ))}
-        </div>
         <div className="h-44 bg-gray-card border border-gray-border rounded-2xl" />
         <div className="h-96 bg-gray-card border border-gray-border rounded-2xl" />
+        <div className="h-44 bg-gray-card border border-gray-border rounded-2xl" />
       </div>
     );
   }
@@ -194,8 +96,6 @@ export default function QrCodesPage() {
     );
   }
 
-  const computedQrUrl = getComputedQrUrl();
-
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -204,33 +104,40 @@ export default function QrCodesPage() {
           Cetak QR Code Hunian
         </h1>
         <p className="text-sm text-gray-secondary-text mt-0.5">
-          Fasilitas generator & cetak fisik QR Code resmi RT, Sekretariat, stiker pintu rumah warga, dan papan info kos.
+          Kelola pengaturan stiker QR Code, pilih hunian untuk dicetak / diunduh, atau buat QR Code dengan link custom.
         </p>
       </div>
 
-      {/* 1. Preset Data Selector */}
+      {/* BAGIAN 1: SETTING QR CODE */}
       <div className="print:hidden">
-        <QrPresetSelector
-          selectedPreset={config.preset}
-          onSelectPreset={handlePresetSelect}
+        <QrSettingCard
+          template={template}
+          title={title}
+          subtitle={subtitle}
+          onTemplateChange={setTemplate}
+          onTitleChange={setTitle}
+          onSubtitleChange={setSubtitle}
         />
       </div>
 
-      {/* 2. Configuration Form Bar */}
+      {/* BAGIAN 2: CETAK QR HUNIAN (SEMUA TIPE HUNIAN) */}
       <div className="print:hidden">
-        <QrConfigFormBar
-          config={config}
+        <DwellingQrTable
           dwellings={data.dwellings}
-          onChange={handleConfigChange}
+          template={template}
+          title={title}
+          subtitle={subtitle}
         />
       </div>
 
-      {/* 3. Live Preview & Print Container */}
-      <QrPreviewPrintContainer
-        config={config}
-        data={data}
-        computedQrUrl={computedQrUrl}
-      />
+      {/* BAGIAN 3: BUAT QR DENGAN LINK CUSTOM */}
+      <div className="print:hidden">
+        <CustomUrlQrCard
+          template={template}
+          title={title}
+          subtitle={subtitle}
+        />
+      </div>
     </div>
   );
 }

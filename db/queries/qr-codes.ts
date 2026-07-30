@@ -9,13 +9,15 @@ export interface DwellingOption {
   houseNumber: string;
   qrToken: string;
   type: string;
+  ownerName?: string | null;
   familyHeadName?: string | null;
+  propertyName?: string | null;
 }
 
 export async function getQrCodePageData() {
   const systemSettings = await getSystemSettings();
 
-  // Fetch list of dwellings
+  // Fetch list of dwellings joined with families and rentalProperties
   const dwellingsRaw = await db
     .select({
       id: schema.dwellings.id,
@@ -23,12 +25,15 @@ export async function getQrCodePageData() {
       houseNumber: schema.dwellings.houseNumber,
       qrToken: schema.dwellings.qrToken,
       type: schema.dwellings.type,
+      ownerName: schema.dwellings.ownerName,
       familyHeadName: schema.families.headName,
+      propertyName: schema.rentalProperties.name,
     })
     .from(schema.dwellings)
     .leftJoin(schema.families, eq(schema.dwellings.id, schema.families.dwellingId))
+    .leftJoin(schema.rentalProperties, eq(schema.dwellings.id, schema.rentalProperties.dwellingId))
     .orderBy(schema.dwellings.blockNumber, schema.dwellings.houseNumber)
-    .limit(100);
+    .limit(200);
 
   // Deduplicate by dwelling ID
   const map = new Map<number, DwellingOption>();
@@ -40,7 +45,9 @@ export async function getQrCodePageData() {
         houseNumber: d.houseNumber,
         qrToken: d.qrToken,
         type: d.type,
+        ownerName: d.ownerName || null,
         familyHeadName: d.familyHeadName || null,
+        propertyName: d.propertyName || null,
       });
     }
   }
