@@ -2,6 +2,13 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export interface EmergencyContactItem {
+  id?: string;
+  name: string;
+  phone: string;
+  subtitle?: string;
+}
+
 export interface SystemSettingsData {
   id: number;
   rtName: string;
@@ -15,6 +22,9 @@ export interface SystemSettingsData {
   officialRtPhone: string | null;
   officialSecretaryPhone: string | null;
   officialTreasurerPhone: string | null;
+  emergencyContacts?: EmergencyContactItem[] | null;
+  latitude?: string | null;
+  longitude?: string | null;
   updatedAt: string;
 }
 
@@ -30,6 +40,9 @@ export interface UpdateSystemSettingsInput {
   officialRtPhone?: string | null;
   officialSecretaryPhone?: string | null;
   officialTreasurerPhone?: string | null;
+  emergencyContacts?: EmergencyContactItem[] | null;
+  latitude?: string | null;
+  longitude?: string | null;
 }
 
 const DEFAULT_SETTINGS = {
@@ -96,6 +109,9 @@ export async function updateSystemSettings(
       officialRtPhone: input.officialRtPhone?.trim() || null,
       officialSecretaryPhone: input.officialSecretaryPhone?.trim() || null,
       officialTreasurerPhone: input.officialTreasurerPhone?.trim() || null,
+      emergencyContacts: input.emergencyContacts || null,
+      latitude: input.latitude?.trim() || null,
+      longitude: input.longitude?.trim() || null,
       updatedAt: now,
     })
     .where(eq(schema.systemSettings.id, 1));

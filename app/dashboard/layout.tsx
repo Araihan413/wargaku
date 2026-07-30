@@ -126,7 +126,7 @@ export default function DashboardLayout({
       <main className={`flex-1 min-w-0 pt-16 transition-all duration-300 ${
         isCollapsed ? "lg:pl-20" : "lg:pl-70"
       }`}>
-        <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+        <div className="p-6 md:p-8 max-w-[1920px] mx-auto space-y-6">
           <Breadcrumb />
           {children}
         </div>

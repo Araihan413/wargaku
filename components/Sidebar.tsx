@@ -88,7 +88,7 @@ const sidebarItems: SidebarItem[] = [
   {
     title: "Kelola Kependudukan",
     icon: Users,
-    roles: [1, 2, 3],
+    roles: [1, 2],
     subItems: [
       { title: "Data Warga & Hunian", href: "/dashboard/residents" },
       { title: "Kelompok Warga", href: "/dashboard/smart-groups" },
@@ -140,6 +140,7 @@ const sidebarItems: SidebarItem[] = [
     subItems: [
       { title: "Data Warga & Hunian", href: "/dashboard/residents" },
       { title: "Persetujuan Registrasi", href: "/dashboard/approvals/registration" },
+      { title: "Kelompok Warga", href: "/dashboard/smart-groups" },
       { title: "Cetak QR Code", href: "/dashboard/qr-codes" },
     ],
   },
@@ -398,7 +399,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <nav className={`flex-1 px-3 py-4 space-y-1.5 scrollbar-thin ${
           isCollapsed ? "overflow-y-auto lg:overflow-visible lg:overflow-y-visible" : "overflow-y-auto"
         }`}>
-          {filteredItems.map((item) => {
+          {filteredItems.map((item, index) => {
             const Icon = item.icon;
             const hasSub = !!item.subItems;
             const open = activeAccordion === item.title;
@@ -419,7 +420,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`;
 
             return (
-              <div key={item.title} className="relative group">
+              <div key={`${item.title}-${index}`} className="relative group">
                 {/* Accordion / Direct Link Button */}
                 {hasSub ? (
                   <button

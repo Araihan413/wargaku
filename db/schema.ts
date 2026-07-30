@@ -102,9 +102,7 @@ export const families = mysqlTable('families', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 7. family_members (Deprecated - replaced by residents table)
-
-// 8. rental_properties
+// 7. rental_properties
 export const rentalProperties = mysqlTable('rental_properties', {
   id: int('id').autoincrement().primaryKey(),
   dwellingId: int('dwelling_id').notNull().references(() => dwellings.id),
@@ -121,9 +119,7 @@ export const rentalProperties = mysqlTable('rental_properties', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 9. rental_residents (Deprecated - replaced by residents table)
-
-// 10. cash_transactions
+// 8. cash_transactions
 export const cashTransactions = mysqlTable('cash_transactions', {
   id: int('id').autoincrement().primaryKey(),
   type: mysqlEnum('type', ['income', 'expense']).notNull(),
@@ -139,7 +135,7 @@ export const cashTransactions = mysqlTable('cash_transactions', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 11. announcements
+// 9. announcements
 export const announcements = mysqlTable('announcements', {
   id: int('id').autoincrement().primaryKey(),
   title: varchar('title', { length: 200 }).notNull(),
@@ -153,7 +149,7 @@ export const announcements = mysqlTable('announcements', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 12. activities
+// 10. activities
 export const activities = mysqlTable('activities', {
   id: int('id').autoincrement().primaryKey(),
   title: varchar('title', { length: 200 }).notNull(),
@@ -166,7 +162,7 @@ export const activities = mysqlTable('activities', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 17. residents (Unified residents schema for KK members, individual tenants, and family tenants)
+// 11. residents (Unified residents schema for KK members, individual tenants, and family tenants)
 export const residents = mysqlTable('residents', {
   id: int('id').autoincrement().primaryKey(),
   userId: varchar('user_id', { length: 255 }).references(() => users.id),
@@ -205,7 +201,7 @@ export const residents = mysqlTable('residents', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 14. complaints
+// 12. complaints
 export const complaints = mysqlTable('complaints', {
   id: int('id').autoincrement().primaryKey(),
   trackingCode: varchar('tracking_code', { length: 20 }).notNull(),
@@ -222,7 +218,7 @@ export const complaints = mysqlTable('complaints', {
   resolvedAt: timestamp('resolved_at'),
 });
 
-// 15. activity_logs
+// 13. activity_logs
 export const activityLogs = mysqlTable('activity_logs', {
   id: int('id').autoincrement().primaryKey(),
   userId: varchar('user_id', { length: 255 }).notNull().references(() => users.id),
@@ -233,7 +229,7 @@ export const activityLogs = mysqlTable('activity_logs', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-// 16. smart_groups
+// 14. smart_groups
 export const smartGroups = mysqlTable('smart_groups', {
   id: int('id').autoincrement().primaryKey(),
   rtId: varchar('rt_id', { length: 255 }).notNull().references(() => users.id),
@@ -244,7 +240,7 @@ export const smartGroups = mysqlTable('smart_groups', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 17. fee_rules
+// 15. fee_rules
 export const feeRules = mysqlTable('fee_rules', {
   id: int('id').autoincrement().primaryKey(),
   rtId: varchar('rt_id', { length: 255 }).notNull().references(() => users.id),
@@ -256,7 +252,7 @@ export const feeRules = mysqlTable('fee_rules', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 18. fee_payments
+// 16. fee_payments
 export const feePayments = mysqlTable('fee_payments', {
   id: int('id').autoincrement().primaryKey(),
   feeRuleId: int('fee_rule_id').notNull().references(() => feeRules.id),
@@ -273,7 +269,7 @@ export const feePayments = mysqlTable('fee_payments', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// 19. notifications
+// 17. notifications
 export const notifications = mysqlTable('notifications', {
   id: int('id').autoincrement().primaryKey(),
   userId: varchar('user_id', { length: 255 }).notNull().references(() => users.id),
@@ -285,7 +281,7 @@ export const notifications = mysqlTable('notifications', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-// 20. system_settings
+// 18. system_settings
 export const systemSettings = mysqlTable('system_settings', {
   id: int('id').primaryKey(), // selalu bernilai 1 karena konfigurasi global hanya ada satu
   rtName: varchar('rt_name', { length: 50 }).notNull(),
@@ -299,6 +295,9 @@ export const systemSettings = mysqlTable('system_settings', {
   officialRtPhone: varchar('official_rt_phone', { length: 15 }),
   officialSecretaryPhone: varchar('official_secretary_phone', { length: 15 }),
   officialTreasurerPhone: varchar('official_treasurer_phone', { length: 15 }),
+  emergencyContacts: json('emergency_contacts').$type<{ id?: string; name: string; phone: string; subtitle?: string }[]>(),
+  latitude: varchar('latitude', { length: 50 }),
+  longitude: varchar('longitude', { length: 50 }),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 

@@ -5,10 +5,10 @@ export async function GET() {
   try {
     const data = await getPublicPortalData();
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in GET /api/public/portal:", error);
     return NextResponse.json(
-      { error: error.message || "Kesalahan server internal" },
+      { error: "Gagal memuat data portal publik RT" },
       { status: 500 }
     );
   }

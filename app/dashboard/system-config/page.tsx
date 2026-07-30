@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Settings, Save, Loader2, AlertTriangle } from "lucide-react";
+import { Save, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { RefreshButton } from "@/components/RefreshButton";
-import { SystemSettingsData, SystemConfigFormState } from "./types";
+import { SystemSettingsData, SystemConfigFormState, EmergencyContactItem } from "./types";
 import { SystemConfigKpiCards } from "./_components/SystemConfigKpiCards";
 import { IdentityFormSection } from "./_components/IdentityFormSection";
 import { OfficialContactFormSection } from "./_components/OfficialContactFormSection";
 import { BrandingLogoFormSection } from "./_components/BrandingLogoFormSection";
+import { EmergencyContactFormSection } from "./_components/EmergencyContactFormSection";
 
 const EMPTY_FORM: SystemConfigFormState = {
   rtName: "",
@@ -22,6 +23,9 @@ const EMPTY_FORM: SystemConfigFormState = {
   officialRtPhone: "",
   officialSecretaryPhone: "",
   officialTreasurerPhone: "",
+  emergencyContacts: [],
+  latitude: "",
+  longitude: "",
 };
 
 export default function SystemConfigPage() {
@@ -54,6 +58,9 @@ export default function SystemConfigPage() {
           officialRtPhone: s.officialRtPhone || "",
           officialSecretaryPhone: s.officialSecretaryPhone || "",
           officialTreasurerPhone: s.officialTreasurerPhone || "",
+          emergencyContacts: s.emergencyContacts || [],
+          latitude: s.latitude || "",
+          longitude: s.longitude || "",
         });
       } catch (err: any) {
         setError(err.message || "Terjadi kesalahan koneksi");
@@ -86,6 +93,9 @@ export default function SystemConfigPage() {
             officialRtPhone: s.officialRtPhone || "",
             officialSecretaryPhone: s.officialSecretaryPhone || "",
             officialTreasurerPhone: s.officialTreasurerPhone || "",
+            emergencyContacts: s.emergencyContacts || [],
+            latitude: s.latitude || "",
+            longitude: s.longitude || "",
           });
           setError(null);
         }
@@ -106,6 +116,10 @@ export default function SystemConfigPage() {
 
   const handleChange = (field: keyof SystemConfigFormState, value: string | null) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEmergencyContactsChange = (contacts: EmergencyContactItem[]) => {
+    setForm((prev) => ({ ...prev, emergencyContacts: contacts }));
   };
 
   const handleSave = async () => {
@@ -199,7 +213,7 @@ export default function SystemConfigPage() {
             Konfigurasi Sistem
           </h1>
           <p className="text-sm text-gray-secondary-text mt-0.5">
-            Atur identitas wilayah, branding logo kop surat, dan kontak official pengurus RT yang tampil di seluruh sistem.
+            Atur identitas wilayah, branding logo kop surat, kontak official, dan kontak darurat warga yang tampil di seluruh sistem.
           </p>
         </div>
 
@@ -235,6 +249,12 @@ export default function SystemConfigPage() {
 
       {/* 4. Kontak Official Form */}
       <OfficialContactFormSection form={form} onChange={handleChange} />
+
+      {/* 5. Kontak Darurat Warga Form */}
+      <EmergencyContactFormSection
+        contacts={form.emergencyContacts || []}
+        onChange={handleEmergencyContactsChange}
+      />
 
       {/* Footer Simpan Button (sticky bottom for mobile) */}
       <div className="flex justify-end pt-2">

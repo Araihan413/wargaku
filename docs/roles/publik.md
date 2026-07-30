@@ -46,9 +46,9 @@ Pengunjung yang membuka domain utama web RT akan menemui navigasi publik:
     *   Tampilannya hanya berupa form pengajuan laporan and setelah melapor ada opsi copy kode tracking dan kirim code ke WA pelapor serta ada peringatan untuk menyimpan code jika ingin melacak aduan.
 *   **PB-04: Info Dasar QR Code Rumah (Smart QR)**
     Mendukung tampilan informasi kondisional berdasarkan **Tipe Hunian** saat memindai QR Code fisik di dinding rumah warga:
-    *   **Semua Tipe Hunian:** Halaman hasil scan publik akan selalu menampilkan **Nomor Rumah**, **RT/RW**, dan **Tipe Hunian** (pilihan: Rumah Tinggal Pribadi, Kos-kosan, Kontrakan, atau Homestay).
+    *   **Semua Tipe Hunian:** Halaman hasil scan publik akan selalu menampilkan **Nomor Rumah**, **RT/RW**, dan **Tipe Hunian**.
     *   **Aturan Detail Per Tipe Hunian:**
-        *   **Rumah Tinggal Pribadi:** Hanya menampilkan data alamat & tipe hunian saja (TIDAK menampilkan nama pemilik, kontak, maupun status kosong/terisi demi keamanan fisik).
+        *   **Rumah Tinggal Pribadi:** Hanya menampilkan data alamat & tipe hunian dan nama pemilik.
         *   **Kos-kosan / Kontrakan:** Menampilkan tambahan berupa **Nama Properti** (misal: "Kos Melati"), **Sisa Kamar Kosong** (dihitung otomatis: `total_rooms` dikurangi penyewa aktif) dan **Kontak Pengelola** (Nama & tombol WhatsApp) untuk memudahkan promosi sewa.
         *   **Homestay (Sewa Harian):** Menampilkan tambahan berupa **Nama Properti** (misal: "Villa Indah") dan **Kontak Pengelola** (Nama & tombol WhatsApp) saja untuk reservasi harian. **TIDAK menampilkan** sisa kamar kosong karena sirkulasi harian tidak terdata di aplikasi kependudukan.
 

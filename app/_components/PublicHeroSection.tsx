@@ -14,7 +14,7 @@ export const PublicHeroSection: React.FC<PublicHeroSectionProps> = ({ settings }
 
   return (
     <section id="beranda"> 
-      <div className="relative max-w-7xl mx-auto h-max flex items-center">
+      <div className="relative h-max flex items-center">
         <div className="bg-linear-to-l bg-transparent from-40% to-100% to-white/90 w-full h-full absolute z-9"></div>
         <div className="h-130" />
         <Image

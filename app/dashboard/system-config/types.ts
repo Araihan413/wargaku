@@ -1,3 +1,10 @@
+export interface EmergencyContactItem {
+  id?: string;
+  name: string;
+  phone: string;
+  subtitle?: string;
+}
+
 export interface SystemSettingsData {
   id: number;
   rtName: string;
@@ -11,6 +18,9 @@ export interface SystemSettingsData {
   officialRtPhone: string | null;
   officialSecretaryPhone: string | null;
   officialTreasurerPhone: string | null;
+  emergencyContacts?: EmergencyContactItem[] | null;
+  latitude?: string | null;
+  longitude?: string | null;
   updatedAt: string;
 }
 
@@ -26,9 +36,10 @@ export interface UpdateSystemSettingsInput {
   officialRtPhone?: string | null;
   officialSecretaryPhone?: string | null;
   officialTreasurerPhone?: string | null;
+  emergencyContacts?: EmergencyContactItem[] | null;
+  latitude?: string | null;
+  longitude?: string | null;
 }
-
 
 // alias for UI usage
 export type SystemConfigFormState = UpdateSystemSettingsInput;
-

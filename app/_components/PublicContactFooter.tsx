@@ -2,6 +2,8 @@ import React from "react";
 import Link from "next/link";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { SystemSettingsData } from "@/app/dashboard/system-config/types";
+import LogoTextPutih from "@/public/logo/LogoTextPutih.webp"
+import Image from "next/image";
 
 interface PublicContactFooterProps {
   settings: SystemSettingsData;
@@ -11,21 +13,18 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
   settings,
 }) => {
   const addressText = settings?.secretariatAddress ||
-    `RT ${settings?.rtName || "03"} RW ${settings?.rwName || "05"} Jalan Gunung Gamping, ${settings?.villageName || "Ambarketawang"}, ${settings?.subdistrict || "Gamping"}, ${settings?.city || "Sleman DIY 51922"}`;
+    `${settings?.rtName || "RT -"} / ${settings?.rwName || "RW -"} ${settings?.villageName || "-"}, ${settings?.subdistrict || "-"}, ${settings?.city || "-"}`;
 
   return (
     <footer className="bg-slate-900 text-white border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 space-y-10">
+      <div className="max-w-[1920] mx-auto px-4 sm:px-6 py-12 space-y-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
           {/* Col 1: Brand & Tagline (4 cols) */}
-          <div className="lg:col-span-4 space-y-4">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg">
-                W
-              </div>
-              <span className="text-xl font-black text-white tracking-tight">
-                Warga<span className="text-emerald-500">Ku</span>
-              </span>
+          <div className="lg:col-span-4 space-y-2">
+            <Link href="/" className="flex items-center gap-2 ">
+            <div className="w-max">
+              <Image src={LogoTextPutih} alt="Logo Wargaku" className="w-38" />
+            </div>
             </Link>
 
             <p className="text-xs text-slate-400 leading-relaxed font-medium max-w-sm">

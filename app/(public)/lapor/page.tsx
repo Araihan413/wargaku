@@ -2,25 +2,24 @@
 
 import React, { useState } from "react";
 import {
+  ShieldCheck,
   MessageSquare,
-  Send,
   Search,
+  Send,
   CheckCircle2,
   Copy,
   Phone,
   Upload,
   X,
-  AlertCircle,
   ChevronRight,
-  ShieldCheck,
   Check,
   RefreshCw,
-  Home,
 } from "lucide-react";
-import { CustomSelect } from "@/components/CustomSelect";
 import Image from "next/image";
-import Link from "next/link";
 import { toast } from "sonner";
+import { CustomSelect } from "@/components/CustomSelect";
+import { PublicPageHeroBanner } from "@/app/_components/PublicPageHeroBanner";
+import { PublicErrorState } from "@/app/_components/PublicErrorState";
 
 interface TrackedComplaint {
   id: number;
@@ -173,7 +172,9 @@ export default function PublicLaporPage() {
     setTrackedData(null);
 
     try {
-      const res = await fetch(`/api/complaints/track?code=${encodeURIComponent(searchCode.trim().toUpperCase())}`);
+      const res = await fetch(
+        `/api/complaints/track?code=${encodeURIComponent(searchCode.trim().toUpperCase())}`
+      );
       if (res.ok) {
         const json = await res.json();
         setTrackedData(json.data);
@@ -189,7 +190,10 @@ export default function PublicLaporPage() {
     }
   };
 
-  const getStepStatusClass = (status: TrackedComplaint["status"], targetStep: "menunggu" | "proses" | "selesai") => {
+  const getStepStatusClass = (
+    status: TrackedComplaint["status"],
+    targetStep: "menunggu" | "proses" | "selesai"
+  ) => {
     if (status === "ditolak") {
       return "bg-rose-500 text-white border-rose-600";
     }
@@ -199,82 +203,62 @@ export default function PublicLaporPage() {
     const targetIndex = order.indexOf(targetStep);
 
     if (currentIndex >= targetIndex) {
-      return "bg-primary text-white border-primary";
+      return "bg-blue-600 text-white border-blue-600";
     }
-    return "bg-gray-sidebar-hover text-gray-placeholder border-gray-border";
+    return "bg-slate-100 text-slate-400 border-slate-200";
   };
 
   return (
-    <div className="min-h-screen bg-gray-page-bg py-8 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Navigation Bar */}
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-heading-main hover:text-primary transition"
+    <>
+      {/* Hero Header Section */}
+      <PublicPageHeroBanner
+        icon={ShieldCheck}
+        title="Layanan Pengaduan Warga"
+        subtitle="Sampaikan aduan atau aspirasi lingkungan Anda. Pengurus RT akan meninjau dan menindaklanjuti secara cepat."
+      />
+
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 -mt-8 relative z-20 space-y-6 pb-12">
+        {/* Navigation Tabs Bar */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-2 shadow-sm flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("lapor")}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              activeTab === "lapor"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
           >
-            <Home className="h-4 w-4" />
-            <span>Kembali ke Beranda</span>
-          </Link>
-
-          <span className="text-xs font-bold text-gray-secondary-text">
-            Sistem Informasi Wargaku RT
-          </span>
-        </div>
-
-        {/* Banner Header */}
-        <div className="rounded-3xl border border-gray-border bg-linear-to-r from-primary-900 to-primary p-6 sm:p-8 text-white shadow-xl space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-bold backdrop-blur-xs">
-            <ShieldCheck className="h-4 w-4" />
-            <span>Laporan & Pengaduan Warga</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Lapor Layanan & Masalah RT
-          </h1>
-          <p className="text-xs sm:text-sm text-white/80 max-w-xl">
-            Sampaikan laporan aduan lingkungan Anda secara aman. Pengurus RT akan meninjau dan menindaklanjuti secara cepat.
-          </p>
-
-          {/* Navigation Tabs */}
-          <div className="pt-4 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab("lapor")}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
-                activeTab === "lapor"
-                  ? "bg-white text-primary shadow-md"
-                  : "bg-white/10 text-white hover:bg-white/20"
-              }`}
-            >
-              Buat Laporan Baru
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("tracking")}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
-                activeTab === "tracking"
-                  ? "bg-white text-primary shadow-md"
-                  : "bg-white/10 text-white hover:bg-white/20"
-              }`}
-            >
-              Cek Status Laporan
-            </button>
-          </div>
+            <MessageSquare className="w-4 h-4" />
+            <span>Buat Laporan Baru</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("tracking")}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              activeTab === "tracking"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <Search className="w-4 h-4" />
+            <span>Lacak Status Laporan</span>
+          </button>
         </div>
 
         {/* TAB 1: FORM LAPOR BARU */}
         {activeTab === "lapor" && (
-          <div className="rounded-3xl border border-gray-border bg-gray-card p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="flex items-center gap-2.5 border-b border-gray-border pb-4">
-              <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                <MessageSquare className="h-5 w-5" />
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                <MessageSquare className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-extrabold text-gray-heading-main">
+                <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
                   Formulir Pengaduan Publik
                 </h2>
-                <p className="text-xs text-gray-secondary-text">
-                  Isi data laporan dengan jujur dan sertakan foto lokasi jika ada.
+                <p className="text-xs text-slate-500 font-medium">
+                  Isi data laporan secara jelas dan lampirkan foto lokasi jika ada.
                 </p>
               </div>
             </div>
@@ -290,7 +274,7 @@ export default function PublicLaporPage() {
                   value={reporterName}
                   onChange={(e) => setReporterName(e.target.value)}
                   placeholder="Masukkan nama lengkap Anda..."
-                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main placeholder:text-gray-placeholder focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all"
                   required
                 />
               </div>
@@ -301,13 +285,13 @@ export default function PublicLaporPage() {
                   Nomor WhatsApp / Telepon <span className="text-red-500 ml-0.5">*</span>
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-placeholder" />
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="tel"
                     value={reporterPhone}
                     onChange={(e) => setReporterPhone(e.target.value)}
                     placeholder="Contoh: 08123456789"
-                    className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-gray-heading-main placeholder:text-gray-placeholder focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all"
                     required
                   />
                 </div>
@@ -315,10 +299,9 @@ export default function PublicLaporPage() {
 
               {/* Kategori Aduan */}
               <div>
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  Kategori Pengaduan <span className="text-red-500 ml-0.5">*</span>
-                </label>
                 <CustomSelect
+                  label="Kategori Pengaduan"
+                  required
                   value={category}
                   onChange={setCategory}
                   options={categoryOptions}
@@ -335,7 +318,7 @@ export default function PublicLaporPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Jelaskan kronologi, lokasi kejadian, atau permasalahan secara detail..."
-                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main placeholder:text-gray-placeholder focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all resize-none"
                   required
                 />
               </div>
@@ -343,10 +326,10 @@ export default function PublicLaporPage() {
               {/* Unggah Foto Pendukung */}
               <div>
                 <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  Foto Bukti Lampiran (Opsional)
+                  Foto Bukti Lampiran
                 </label>
                 {photoPreview ? (
-                  <div className="relative w-full h-48 rounded-2xl overflow-hidden border border-gray-border bg-gray-page-bg">
+                  <div className="relative w-full h-48 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
                     <Image
                       src={photoPreview}
                       alt="Preview Lampiran"
@@ -362,12 +345,12 @@ export default function PublicLaporPage() {
                     </button>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-gray-border bg-gray-page-bg hover:border-primary/50 transition cursor-pointer text-center">
-                    <Upload className="h-7 w-7 text-gray-placeholder mb-2" />
-                    <span className="text-xs font-bold text-gray-heading-main">
+                  <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/80 hover:border-blue-400 hover:bg-blue-50/30 transition cursor-pointer text-center space-y-1">
+                    <Upload className="h-7 w-7 text-slate-400 mb-1" />
+                    <span className="text-xs font-bold text-slate-800">
                       Klik untuk Unggah Foto Bukti
                     </span>
-                    <span className="text-[11px] text-gray-secondary-text mt-0.5">
+                    <span className="text-[11px] text-slate-400">
                       Format: JPG, PNG, WebP (Maks 5MB)
                     </span>
                     <input
@@ -384,7 +367,7 @@ export default function PublicLaporPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-white font-extrabold text-sm shadow-md hover:bg-primary-900 transition disabled:opacity-50 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white font-extrabold text-sm shadow-sm hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -404,58 +387,71 @@ export default function PublicLaporPage() {
 
         {/* TAB 2: CEK STATUS TRACKING */}
         {activeTab === "tracking" && (
-          <div className="rounded-3xl border border-gray-border bg-gray-card p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="flex items-center gap-2.5 border-b border-gray-border pb-4">
-              <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                <Search className="h-5 w-5" />
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                <Search className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-extrabold text-gray-heading-main">
+                <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
                   Lacak Status Pengaduan Warga
                 </h2>
-                <p className="text-xs text-gray-secondary-text">
+                <p className="text-xs text-slate-500 font-medium">
                   Masukkan Kode Tracking yang Anda dapatkan saat mengirim laporan.
                 </p>
               </div>
             </div>
 
             {/* Search Input */}
-            <form onSubmit={handleTrackSearch} className="flex gap-2">
+            <form onSubmit={handleTrackSearch} className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={searchCode}
                 onChange={(e) => setSearchCode(e.target.value)}
                 placeholder="Masukkan Kode Tracking (contoh: LAP-2026-001)..."
-                className="flex-1 bg-gray-card border border-gray-border rounded-xl px-4 py-2.5 text-sm text-gray-heading-main placeholder:text-gray-placeholder focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono uppercase"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all font-mono uppercase"
               />
               <button
                 type="submit"
                 disabled={isSearching}
-                className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-extrabold shadow-sm hover:bg-primary-900 transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-extrabold shadow-sm hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
               >
-                {isSearching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                <span>Lacak</span>
+                {isSearching ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                <span>Lacak Status</span>
               </button>
             </form>
 
             {/* Search Error */}
             {searchError && (
-              <div className="flex items-center gap-2 p-4 rounded-2xl border border-rose-100 bg-rose-50/50 text-rose-600 text-xs font-semibold">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{searchError}</span>
-              </div>
+              <PublicErrorState
+                title="Laporan Tidak Ditemukan"
+                message={searchError}
+                onRetry={() => {
+                  if (searchCode.trim()) {
+                    const fakeEvent = { preventDefault: () => {} } as any;
+                    handleTrackSearch(fakeEvent);
+                  } else {
+                    setSearchError(null);
+                  }
+                }}
+                isLoading={isSearching}
+              />
             )}
 
             {/* Tracked Result Details */}
             {trackedData && (
               <div className="space-y-6 pt-2">
                 {/* Stepper Status */}
-                <div className="p-6 rounded-2xl border border-gray-border bg-gray-page-bg space-y-4">
+                <div className="p-6 rounded-2xl border border-slate-200 bg-slate-50 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
-                      Status Penanganan
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Status Penanganan Laporan
                     </span>
-                    <span className="font-mono text-xs font-extrabold text-primary">
+                    <span className="font-mono text-xs font-extrabold text-blue-600">
                       #{trackedData.trackingCode}
                     </span>
                   </div>
@@ -463,24 +459,39 @@ export default function PublicLaporPage() {
                   {/* Visual Stepper */}
                   <div className="grid grid-cols-3 gap-2 pt-2">
                     <div className="flex flex-col items-center text-center space-y-1.5">
-                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepStatusClass(trackedData.status, "menunggu")}`}>
+                      <div
+                        className={`h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepStatusClass(
+                          trackedData.status,
+                          "menunggu"
+                        )}`}
+                      >
                         1
                       </div>
-                      <span className="text-[11px] font-bold text-gray-heading-main">Menunggu</span>
+                      <span className="text-[11px] font-bold text-slate-800">Menunggu</span>
                     </div>
 
                     <div className="flex flex-col items-center text-center space-y-1.5">
-                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepStatusClass(trackedData.status, "proses")}`}>
+                      <div
+                        className={`h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepStatusClass(
+                          trackedData.status,
+                          "proses"
+                        )}`}
+                      >
                         2
                       </div>
-                      <span className="text-[11px] font-bold text-gray-heading-main">Diproses</span>
+                      <span className="text-[11px] font-bold text-slate-800">Diproses</span>
                     </div>
 
                     <div className="flex flex-col items-center text-center space-y-1.5">
-                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepStatusClass(trackedData.status, "selesai")}`}>
+                      <div
+                        className={`h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepStatusClass(
+                          trackedData.status,
+                          "selesai"
+                        )}`}
+                      >
                         3
                       </div>
-                      <span className="text-[11px] font-bold text-gray-heading-main">
+                      <span className="text-[11px] font-bold text-slate-800">
                         {trackedData.status === "ditolak" ? "Ditolak" : "Selesai"}
                       </span>
                     </div>
@@ -488,32 +499,32 @@ export default function PublicLaporPage() {
                 </div>
 
                 {/* Details & Response Note */}
-                <div className="space-y-4 p-5 rounded-2xl border border-gray-border bg-gray-card">
+                <div className="space-y-4 p-5 rounded-2xl border border-slate-200 bg-white">
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <span className="text-gray-secondary-text font-medium">Pelapor:</span>
-                      <p className="font-bold text-gray-heading-main">{trackedData.reporterName}</p>
+                      <span className="text-slate-400 font-medium">Pelapor:</span>
+                      <p className="font-bold text-slate-900">{trackedData.reporterName}</p>
                     </div>
                     <div>
-                      <span className="text-gray-secondary-text font-medium">Kategori:</span>
-                      <p className="font-bold text-primary">{trackedData.category}</p>
+                      <span className="text-slate-400 font-medium">Kategori:</span>
+                      <p className="font-bold text-blue-600">{trackedData.category}</p>
                     </div>
                   </div>
 
                   <div>
-                    <span className="text-xs font-medium text-gray-secondary-text">Deskripsi Aduan:</span>
-                    <p className="text-xs text-gray-heading-main bg-gray-page-bg p-3 rounded-xl border border-gray-border/60 mt-1 whitespace-pre-wrap">
+                    <span className="text-xs font-medium text-slate-400">Deskripsi Aduan:</span>
+                    <p className="text-xs text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-200/80 mt-1 whitespace-pre-wrap">
                       {trackedData.description}
                     </p>
                   </div>
 
                   {trackedData.responseNote && (
-                    <div className="p-3.5 rounded-xl border border-emerald-100 bg-emerald-50/60 space-y-1 text-xs">
-                      <span className="font-bold text-emerald-800 flex items-center gap-1">
+                    <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70 space-y-1.5 text-xs">
+                      <span className="font-bold text-emerald-800 flex items-center gap-1.5">
                         <CheckCircle2 className="h-4 w-4" />
-                        <span>Tanggapan Pengurus RT:</span>
+                        <span>Tanggapan Resmi Pengurus RT:</span>
                       </span>
-                      <p className="text-emerald-900 italic pl-5">
+                      <p className="text-emerald-950 italic pl-5 font-medium">
                         &quot;{trackedData.responseNote}&quot;
                       </p>
                     </div>
@@ -523,38 +534,38 @@ export default function PublicLaporPage() {
             )}
           </div>
         )}
-      </div>
+      </section>
 
       {/* SUCCESS MODAL FOR NEW REPORT */}
       {createdTrackingCode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-gray-card border border-gray-border rounded-3xl shadow-2xl p-6 sm:p-8 text-center space-y-5">
-            <div className="h-14 w-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 text-center space-y-5">
+            <div className="h-14 w-14 rounded-full bg-emerald-100 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
               <CheckCircle2 className="h-8 w-8" />
             </div>
 
             <div>
-              <h3 className="text-lg font-extrabold text-gray-heading-main">
+              <h3 className="text-lg font-extrabold text-slate-900">
                 Laporan Berhasil Terkirim!
               </h3>
-              <p className="text-xs text-gray-secondary-text mt-1">
+              <p className="text-xs text-slate-500 mt-1 font-medium">
                 Simpan Kode Tracking ini untuk memantau status tindak lanjut pengaduan Anda.
               </p>
             </div>
 
             {/* Tracking Code Box */}
-            <div className="p-4 rounded-2xl border border-gray-border bg-gray-page-bg space-y-2">
-              <span className="text-[11px] font-bold text-gray-secondary-text uppercase tracking-wider">
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Kode Tracking Pengaduan
               </span>
               <div className="flex items-center justify-center gap-2">
-                <span className="font-mono text-xl font-extrabold text-primary">
+                <span className="font-mono text-xl font-black text-blue-600">
                   {createdTrackingCode}
                 </span>
                 <button
                   type="button"
                   onClick={handleCopyCode}
-                  className="p-1.5 rounded-lg border border-gray-border bg-gray-card text-gray-heading-main hover:bg-gray-sidebar-hover transition cursor-pointer"
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                   title="Salin Kode"
                 >
                   {isCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
@@ -570,7 +581,7 @@ export default function PublicLaporPage() {
                 )}`}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-sm hover:bg-emerald-700 transition"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-700 transition"
               >
                 <span>Simpan ke WhatsApp</span>
                 <ChevronRight className="h-4 w-4" />
@@ -583,7 +594,7 @@ export default function PublicLaporPage() {
                   setActiveTab("tracking");
                   setSearchCode(createdTrackingCode);
                 }}
-                className="w-full py-2.5 rounded-xl border border-gray-border bg-gray-card text-gray-heading-main font-bold text-xs hover:bg-gray-sidebar-hover transition cursor-pointer"
+                className="w-full py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 transition cursor-pointer"
               >
                 Tutup & Lacak Status
               </button>
@@ -591,6 +602,6 @@ export default function PublicLaporPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
