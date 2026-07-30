@@ -21,7 +21,7 @@ import { PublicScanResultData, DetailedScanResultData, ActiveResidentEntry } fro
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
-// ─── Props ──────────────────────────────────────────────────────────────────
+// ─── Props ─────────────
 
 interface ScanResultCardPublicProps {
   mode: "publik";

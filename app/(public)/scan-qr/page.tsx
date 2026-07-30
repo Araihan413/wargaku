@@ -11,10 +11,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PublicPageHeroBanner } from "@/app/_components/PublicPageHeroBanner";
-import { PublicErrorState } from "@/app/_components/PublicErrorState";
 import { PublicScanResultData, DetailedScanResultData } from "@/db/queries/public-portal";
 import { LiveCameraScanner } from "./_components/LiveCameraScanner";
 import { ScanResultCard } from "./_components/ScanResultCard";
+import { DwellingNotFoundState } from "./_components/DwellingNotFoundState";
 import { authClient } from "@/lib/auth-client";
 
 export default function PublicScanQrPage() {
@@ -272,13 +272,14 @@ export default function PublicScanQrPage() {
           </div>
         )}
 
-        {/* Error Message Alert */}
+        {/* Friendly Empty / Not Found State */}
         {errorMessage && (
-          <PublicErrorState
-            title="Hunian Tidak Ditemukan"
-            message={errorMessage}
+          <DwellingNotFoundState
+            searchedQuery={inputToken || initialToken}
+            errorMessage={errorMessage}
             onRetry={() => {
-              if (inputToken.trim()) executeFetch(inputToken.trim());
+              const q = (inputToken || initialToken).trim();
+              if (q) executeFetch(q);
               else setErrorMessage(null);
             }}
             isLoading={isLoadingAny}
