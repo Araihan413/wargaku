@@ -11,6 +11,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+import Image from "next/image";
+
 interface LiveCameraScannerProps {
   onScanSuccess: (token: string) => void;
 }
@@ -24,7 +26,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
   const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>("");
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [_imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageScanStatus, setImageScanStatus] = useState<"idle" | "scanning" | "success" | "error">("idle");
   const [imageScanMessage, setImageScanMessage] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
     };
   }, []);
 
-  // ── Mulai / Hentikan Kamera ─────────────────────────────────────────────────
+  // ── Mulai / Hentikan Kamera ──────────
   useEffect(() => {
     if (!isCameraActive || !videoRef.current) return;
 
@@ -106,7 +108,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
       try {
         await scanner.start();
         scannerRef.current = scanner;
-      } catch (err) {
+      } catch (_err) {
         setCameraError("Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.");
         setIsCameraActive(false);
         scanner.destroy();
@@ -135,7 +137,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
     setCameraError(null);
   }, []);
 
-  // ── Scan Gambar dari File ───────────────────────────────────────────────────
+  // ── Scan Gambar dari File
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -325,10 +327,13 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
             <div className="space-y-4">
               {/* Preview gambar */}
               <div className="relative max-w-md mx-auto rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                <img
-                  src={imagePreview}
+                <Image
+                  src={imagePreview!}
                   alt="Preview QR Code"
-                  className="w-full object-contain max-h-64"
+                  width={400}
+                  height={256}
+                  className="w-full object-contain max-h-64 h-auto"
+                  unoptimized
                 />
                 {imageScanStatus === "scanning" && (
                   <div className="absolute inset-0 bg-white/70 flex items-center justify-center">

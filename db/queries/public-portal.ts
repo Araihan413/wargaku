@@ -670,7 +670,6 @@ export async function getPublicScanDwelling(token: string): Promise<PublicScanRe
   if (!token || !token.trim()) return null;
   const cleanedToken = token.trim();
 
-  // Try parsing block & house number patterns: e.g. "A1-12", "A1 12", "Blok A1 No 12", "Blok A1 No. 12", "A1/12"
   let blockMatch: string | null = null;
   let houseMatch: string | null = null;
 
@@ -681,7 +680,6 @@ export async function getPublicScanDwelling(token: string): Promise<PublicScanRe
     houseMatch = matchResult[2].trim();
   }
 
-  // Build flexible OR conditions
   const conditions: SQL<unknown>[] = [
     eq(schema.dwellings.qrToken, cleanedToken),
     like(schema.dwellings.qrToken, `%${cleanedToken}%`),
@@ -718,9 +716,9 @@ export async function getPublicScanDwelling(token: string): Promise<PublicScanRe
       type: schema.dwellings.type,
       latitude: schema.dwellings.latitude,
       longitude: schema.dwellings.longitude,
+      ownerUserId: schema.dwellings.ownerUserId,
       ownerName: schema.dwellings.ownerName,
       ownerPhone: schema.dwellings.ownerPhone,
-      notes: schema.dwellings.notes,
     })
     .from(schema.dwellings)
     .where(whereClause)
@@ -731,33 +729,73 @@ export async function getPublicScanDwelling(token: string): Promise<PublicScanRe
   // System settings for RT/RW info
   const settings = await getSystemSettings();
 
-  // Count active families / occupied rooms
-  const [activeFamiliesCount] = await db
-    .select({ count: sql<number>`count(*)`.mapWith(Number) })
-    .from(schema.families)
-    .where(and(eq(schema.families.dwellingId, dwelling.id), eq(schema.families.isActive, true)));
-
-  const occupiedRooms = activeFamiliesCount?.count || 0;
-
-  // Extract propertyName & totalRooms from notes or defaults if kos/homestay
   let propertyName: string | null = null;
   let totalRooms: number | null = null;
-
-  if (dwelling.type === "kos" || dwelling.type === "homestay") {
-    if (dwelling.notes && dwelling.notes.trim()) {
-      propertyName = dwelling.notes.trim();
-    } else {
-      propertyName = `${dwelling.type === "kos" ? "Kos" : "Homestay"} Blok ${dwelling.blockNumber} No. ${dwelling.houseNumber}`;
-    }
-  }
+  let occupiedRooms = 0;
+  let ownerName = dwelling.ownerName || null;
+  let ownerPhone = dwelling.ownerPhone || null;
 
   if (dwelling.type === "kos") {
-    totalRooms = 10; // Default total rooms if not specified
-    if (dwelling.notes) {
-      const match = dwelling.notes.match(/(\d+)\s*kamar/i);
-      if (match && match[1]) {
-        totalRooms = parseInt(match[1], 10);
-      }
+    // Ambil rental_property aktif dari dwelling ini (data akurat)
+    const [rentalProp] = await db
+      .select({
+        id: schema.rentalProperties.id,
+        name: schema.rentalProperties.name,
+        totalRooms: schema.rentalProperties.totalRooms,
+        contactPerson: schema.rentalProperties.contactPerson,
+        phone: schema.rentalProperties.phone,
+      })
+      .from(schema.rentalProperties)
+      .where(
+        and(
+          eq(schema.rentalProperties.dwellingId, dwelling.id),
+          eq(schema.rentalProperties.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (rentalProp) {
+      propertyName = rentalProp.name;
+      totalRooms = rentalProp.totalRooms || 0;
+      if (rentalProp.contactPerson) ownerName = rentalProp.contactPerson;
+      if (rentalProp.phone) ownerPhone = rentalProp.phone;
+
+      // Hitung penghuni aktif dari tabel residents (bukan families)
+      const [occupiedCount] = await db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(schema.residents)
+        .where(
+          and(
+            eq(schema.residents.rentalPropertyId, rentalProp.id),
+            eq(schema.residents.isActive, true),
+            sql`${schema.residents.checkOutDate} IS NULL`
+          )
+        );
+      occupiedRooms = occupiedCount?.count || 0;
+    }
+  } else if (dwelling.type === "homestay") {
+    // Ambil nama properti homestay dari rental_properties jika ada
+    const [rentalProp] = await db
+      .select({
+        name: schema.rentalProperties.name,
+        contactPerson: schema.rentalProperties.contactPerson,
+        phone: schema.rentalProperties.phone,
+      })
+      .from(schema.rentalProperties)
+      .where(
+        and(
+          eq(schema.rentalProperties.dwellingId, dwelling.id),
+          eq(schema.rentalProperties.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (rentalProp) {
+      propertyName = rentalProp.name;
+      if (rentalProp.contactPerson) ownerName = rentalProp.contactPerson;
+      if (rentalProp.phone) ownerPhone = rentalProp.phone;
+    } else {
+      propertyName = `Homestay Blok ${dwelling.blockNumber} No. ${dwelling.houseNumber}`;
     }
   }
 
@@ -771,8 +809,8 @@ export async function getPublicScanDwelling(token: string): Promise<PublicScanRe
     type: dwelling.type,
     latitude: dwelling.latitude ? String(dwelling.latitude) : null,
     longitude: dwelling.longitude ? String(dwelling.longitude) : null,
-    ownerName: dwelling.ownerName || null,
-    ownerPhone: dwelling.ownerPhone || null,
+    ownerName,
+    ownerPhone,
     propertyName,
     totalRooms,
     occupiedRooms,
@@ -783,6 +821,255 @@ export async function getPublicScanDwelling(token: string): Promise<PublicScanRe
   };
 }
 
+// ─── OWNERSHIP CHECK ────────────────────────────────────────────────────────
 
+export type ScanOwnershipStatus =
+  | "warga-permanen"
+  | "koordinator-kos"
+  | "pemilik-homestay"
+  | "non-owner";
 
+export interface ScanOwnershipResult {
+  ownershipStatus: ScanOwnershipStatus;
+  redirectTarget: string | null;
+  propertyId: number | null;
+  dwellingId: number | null;
+}
 
+/**
+ * Mengecek apakah user yang login adalah pemilik/koordinator dari dwelling yang di-scan.
+ */
+export async function checkDwellingOwnership(
+  token: string,
+  userId: string
+): Promise<ScanOwnershipResult> {
+  if (!token || !userId) {
+    return { ownershipStatus: "non-owner", redirectTarget: null, propertyId: null, dwellingId: null };
+  }
+
+  const cleanedToken = token.trim();
+  const conds: SQL<unknown>[] = [
+    eq(schema.dwellings.qrToken, cleanedToken),
+    like(schema.dwellings.qrToken, `%${cleanedToken}%`),
+  ];
+
+  const addrRegex = /(?:blok\s*)?([a-z0-9]+)[\s\-\/\,]+(?:no\.?\s*)?([a-z0-9]+)/i;
+  const addrMatch = cleanedToken.match(addrRegex);
+  if (addrMatch?.[1] && addrMatch?.[2]) {
+    conds.push(
+      and(
+        eq(schema.dwellings.blockNumber, addrMatch[1].trim()),
+        eq(schema.dwellings.houseNumber, addrMatch[2].trim())
+      ) as SQL<unknown>
+    );
+  }
+
+  const numId = parseInt(cleanedToken, 10);
+  if (!isNaN(numId) && numId > 0) {
+    conds.push(eq(schema.dwellings.id, numId));
+  }
+
+  const [dwelling] = await db
+    .select({
+      id: schema.dwellings.id,
+      type: schema.dwellings.type,
+      ownerUserId: schema.dwellings.ownerUserId,
+    })
+    .from(schema.dwellings)
+    .where(or(...conds) as SQL<unknown>)
+    .limit(1);
+
+  if (!dwelling) {
+    return { ownershipStatus: "non-owner", redirectTarget: null, propertyId: null, dwellingId: null };
+  }
+
+  // 1. Cek warga permanen: headUserId di families aktif
+  if (dwelling.type === "permanen") {
+    const [familyMatch] = await db
+      .select({ id: schema.families.id })
+      .from(schema.families)
+      .where(
+        and(
+          eq(schema.families.dwellingId, dwelling.id),
+          eq(schema.families.headUserId, userId),
+          eq(schema.families.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (familyMatch) {
+      return {
+        ownershipStatus: "warga-permanen",
+        redirectTarget: "/dashboard",
+        propertyId: null,
+        dwellingId: dwelling.id,
+      };
+    }
+  }
+
+  // 2. Cek koordinator kos: coordinatorUserId di rental_properties aktif
+  if (dwelling.type === "kos") {
+    const [rentalMatch] = await db
+      .select({ id: schema.rentalProperties.id })
+      .from(schema.rentalProperties)
+      .where(
+        and(
+          eq(schema.rentalProperties.dwellingId, dwelling.id),
+          eq(schema.rentalProperties.coordinatorUserId, userId),
+          eq(schema.rentalProperties.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (rentalMatch) {
+      return {
+        ownershipStatus: "koordinator-kos",
+        redirectTarget: `/dashboard/rentals?propertyId=${rentalMatch.id}`,
+        propertyId: rentalMatch.id,
+        dwellingId: dwelling.id,
+      };
+    }
+  }
+
+  // 3. Cek pemilik homestay: ownerUserId di dwellings
+  if (dwelling.type === "homestay" && dwelling.ownerUserId === userId) {
+    return {
+      ownershipStatus: "pemilik-homestay",
+      redirectTarget: `/dashboard/my-properties?dwellingId=${dwelling.id}`,
+      propertyId: null,
+      dwellingId: dwelling.id,
+    };
+  }
+
+  return {
+    ownershipStatus: "non-owner",
+    redirectTarget: null,
+    propertyId: null,
+    dwellingId: dwelling.id,
+  };
+}
+
+// ─── DETAILED SCAN DATA (untuk user login non-pemilik) ─────────────────────
+
+export interface ActiveResidentEntry {
+  type: "keluarga" | "penyewa";
+  name: string;
+  memberCount?: number;
+  roomNumber?: string | null;
+  unitNumber?: string | null;
+  checkInDate: string | null;
+}
+
+export interface DetailedScanResultData {
+  id: number;
+  blockNumber: string;
+  houseNumber: string;
+  type: "permanen" | "kos" | "homestay";
+  latitude: string | null;
+  longitude: string | null;
+  ownerName: string | null;
+  ownerPhone: string | null;
+  propertyName: string | null;
+  totalRooms: number | null;
+  occupiedRooms: number;
+  availableRooms: number | null;
+  activeResidents: ActiveResidentEntry[];
+  rtName: string;
+  rwName: string;
+  villageName: string;
+}
+
+/**
+ * Mengambil data detail hunian untuk user yang login (bukan pemilik/koordinator).
+ * Menampilkan daftar penghuni aktif per unit/kamar.
+ */
+export async function getDetailedScanDwelling(token: string): Promise<DetailedScanResultData | null> {
+  const publicData = await getPublicScanDwelling(token);
+  if (!publicData) return null;
+
+  const settings = await getSystemSettings();
+  const activeResidents: ActiveResidentEntry[] = [];
+
+  // Ambil KK aktif di dwelling ini
+  const activeFamilies = await db
+    .select({
+      id: schema.families.id,
+      headName: schema.families.headName,
+      unitNumber: schema.families.unitNumber,
+      checkInDate: schema.families.checkInDate,
+    })
+    .from(schema.families)
+    .where(
+      and(
+        eq(schema.families.dwellingId, publicData.id),
+        eq(schema.families.isActive, true)
+      )
+    );
+
+  for (const family of activeFamilies) {
+    const [memberCount] = await db
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
+      .from(schema.residents)
+      .where(
+        and(
+          eq(schema.residents.familyId, family.id),
+          eq(schema.residents.isActive, true)
+        )
+      );
+
+    activeResidents.push({
+      type: "keluarga",
+      name: family.headName,
+      memberCount: memberCount?.count || 1,
+      unitNumber: family.unitNumber || null,
+      checkInDate: family.checkInDate ? String(family.checkInDate) : null,
+    });
+  }
+
+  // Untuk kos/homestay: ambil penyewa aktif perorangan
+  if (publicData.type === "kos" || publicData.type === "homestay") {
+    const activeTenants = await db
+      .select({
+        name: schema.residents.name,
+        roomNumber: schema.residents.roomNumber,
+        checkInDate: schema.residents.checkInDate,
+      })
+      .from(schema.residents)
+      .where(
+        and(
+          eq(schema.residents.dwellingId, publicData.id),
+          eq(schema.residents.isActive, true),
+          sql`${schema.residents.checkOutDate} IS NULL`,
+          sql`${schema.residents.familyId} IS NULL`
+        )
+      );
+
+    for (const tenant of activeTenants) {
+      activeResidents.push({
+        type: "penyewa",
+        name: tenant.name,
+        roomNumber: tenant.roomNumber || null,
+        checkInDate: tenant.checkInDate ? String(tenant.checkInDate) : null,
+      });
+    }
+  }
+
+  return {
+    id: publicData.id,
+    blockNumber: publicData.blockNumber,
+    houseNumber: publicData.houseNumber,
+    type: publicData.type,
+    latitude: publicData.latitude,
+    longitude: publicData.longitude,
+    ownerName: publicData.ownerName,
+    ownerPhone: publicData.ownerPhone,
+    propertyName: publicData.propertyName,
+    totalRooms: publicData.totalRooms,
+    occupiedRooms: publicData.occupiedRooms,
+    availableRooms: publicData.availableRooms,
+    activeResidents,
+    rtName: settings?.rtName || "RT -",
+    rwName: settings?.rwName || "RW -",
+    villageName: settings?.villageName || "-",
+  };
+}
