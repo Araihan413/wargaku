@@ -2,9 +2,9 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, ne, like } from 'drizzle-orm';
 import { sendEmail } from './mail';
-import { getWargaRegistrationEmail } from './emails/templates';
+import { getWargaRegistrationEmail, getResetPasswordEmail } from './emails/templates';
 
 export const auth = betterAuth({
   // beritahu untuk berkomunikasi dengan mysql
@@ -61,6 +61,28 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+    sendResetPassword: async ({ user, url, token }) => {
+      try {
+        // Invalidasi/hapus token reset password lama milik user ini agar link sebelumnya otomatis hangus
+        await db
+          .delete(schema.verifications)
+          .where(
+            and(
+              eq(schema.verifications.value, user.id),
+              like(schema.verifications.identifier, 'reset-password:%'),
+              ne(schema.verifications.identifier, `reset-password:${token}`)
+            )
+          );
+
+        await sendEmail({
+          to: { email: user.email, name: user.name },
+          subject: "Reset Kata Sandi Akun Wargaku",
+          htmlContent: getResetPasswordEmail(user.name, url),
+        });
+      } catch (err) {
+        console.error("Gagal mengirim email reset password:", err);
+      }
+    },
   },
   user: {
     // menambah kolom sesuai kabutuhan

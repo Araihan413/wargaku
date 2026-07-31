@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
-import { Lock, Mail, Loader2, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import bigLogo from "@/public/logo/bigLogo.webp";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
@@ -35,6 +35,7 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
+      rememberMe: true,
     },
   });
 
@@ -45,6 +46,7 @@ export default function LoginPage() {
       const res = await authClient.signIn.email({
         email: data.email,
         password: data.password,
+        rememberMe: data.rememberMe,
       });
 
       if (res.error) {
@@ -206,17 +208,23 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between">
-                <div className="flex gap-2 justify-center items-center">
-                  <input type="checkbox" className="w-4 h-4 cursor-pointer" />
-                  <p className="text-sm text-gray-body-text-btn">Ingat Saya</p>
-                </div>
+              <div className="flex items-center justify-between">
+                <label htmlFor="rememberMe" className="flex gap-2 items-center cursor-pointer select-none">
+                  <input
+                    id="rememberMe"
+                    type="checkbox"
+                    {...register("rememberMe")}
+                    className="w-4 h-4 rounded border-gray-border text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-body-text-btn font-medium">Ingat Saya</span>
+                </label>
                 <div>
-                  <button type="button" className="cursor-pointer">
-                    <p className="text-sm text-primary-400 hover:text-primary">
-                      Lupa Password?
-                    </p>
-                  </button>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm font-medium text-primary-400 hover:text-primary transition-colors"
+                  >
+                    Lupa Password?
+                  </Link>
                 </div>
               </div>
 
@@ -235,7 +243,7 @@ export default function LoginPage() {
               </div>
             </form>
 
-            <div className="text-center pt-4 border-t border-gray-divider">
+            <div className="text-center pt-4 border-t border-gray-divider space-y-3">
               <p className="text-sm text-gray-secondary-text">
                 Belum punya akun warga?{" "}
                 <Link
@@ -245,6 +253,15 @@ export default function LoginPage() {
                   Daftar Mandiri
                 </Link>
               </p>
+              <div>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-secondary-text hover:text-primary transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Kembali ke Beranda
+                </Link>
+              </div>
             </div>
           </div>
         )}

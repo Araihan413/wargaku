@@ -21,6 +21,8 @@ import {
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
+  UserCircle,
+  Building2,
 } from "lucide-react";
 
 import { FormField } from "@/components/FormField"; 
@@ -304,24 +306,26 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setValue("accountType", "warga")}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 justify-center py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     accountType === "warga"
                       ? "bg-primary text-white shadow-xs"
                       : "text-gray-secondary-text hover:text-gray-heading-main"
                   }`}
                 >
-                  👤 Warga (KK)
+                  <UserCircle className="h-5 w-5" />
+                  Warga (KK)
                 </button>
                 <button
                   type="button"
                   onClick={() => setValue("accountType", "coordinator")}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 justify-center py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     accountType === "coordinator"
                       ? "bg-primary text-white shadow-xs"
                       : "text-gray-secondary-text hover:text-gray-heading-main"
                   }`}
                 >
-                  🏢 Koordinator Kos
+                  <Building2 className="h-5 w-5" />
+                  Koordinator Kos
                 </button>
               </div>
             </div>
@@ -408,7 +412,7 @@ export default function RegisterPage() {
           </form>
         )}
 
-        <div className="text-center pt-4 mt-6 border-t border-gray-divider">
+        <div className="text-center pt-4 mt-6 border-t border-gray-divider space-y-3">
           <p className="text-sm text-gray-secondary-text">
             Sudah memiliki akun?{" "}
             <Link
@@ -418,6 +422,15 @@ export default function RegisterPage() {
               Masuk Sekarang
             </Link>
           </p>
+          <div>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-secondary-text hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Kembali ke Beranda
+            </Link>
+          </div>
         </div>
       </div>
     </div>
