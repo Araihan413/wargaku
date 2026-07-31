@@ -10,7 +10,11 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isDashboardRoute = pathname.startsWith('/dashboard');
-  const isAuthRoute = pathname === '/login' || pathname === '/register';
+  const isAuthRoute =
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password';
 
   // 1. Jika rute adalah dashboard tetapi tidak ada sesi aktif, alihkan ke /login
   if (isDashboardRoute && !sessionToken) {
@@ -18,9 +22,9 @@ export function proxy(request: NextRequest) {
   }
 
   // 2. Jika rute adalah login/register tetapi sesi sudah aktif, alihkan ke /dashboard
-  // if (isAuthRoute && sessionToken) {
-  //   return NextResponse.redirect(new URL('/dashboard', request.url));
-  // }
+  if (isAuthRoute && sessionToken) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
   return NextResponse.next();
 }
