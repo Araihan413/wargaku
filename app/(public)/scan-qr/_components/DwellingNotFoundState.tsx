@@ -27,7 +27,7 @@ export const DwellingNotFoundState: React.FC<DwellingNotFoundStateProps> = ({
       {/* Main Title & Description */}
       <div className="space-y-2 max-w-md mx-auto">
         <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-          Data Hunian Belum Ditemukan
+          Data Hunian Tidak Ditemukan
         </h3>
         <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
           {searchedQuery ? (

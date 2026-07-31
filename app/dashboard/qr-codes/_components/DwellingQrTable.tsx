@@ -11,13 +11,12 @@ import {
   CheckSquare,
   Square,
   QrCode,
-  Eye,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { DwellingOption } from "@/db/queries/qr-codes";
 import { QrTemplateType, QrCodePrintCanvas } from "@/components/QrCodePrintCanvas";
+import { CustomSelect } from "@/components/CustomSelect";
 
 interface DwellingQrTableProps {
   dwellings: DwellingOption[];
@@ -25,6 +24,13 @@ interface DwellingQrTableProps {
   title: string;
   subtitle: string;
 }
+
+const TYPE_FILTER_OPTIONS = [
+  { value: "semua", label: "Semua Tipe Hunian" },
+  { value: "permanen", label: "Rumah Permanen" },
+  { value: "kos", label: "Kos / Kontrakan" },
+  { value: "homestay", label: "Homestay" },
+];
 
 export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
   dwellings,
@@ -36,17 +42,15 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
   const [typeFilter, setTypeFilter] = useState<string>("semua");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // Preview modal state for single/batch preview
-  const [previewDwelling, setPreviewDwelling] = useState<DwellingOption | null>(null);
+  // Track item targeted for single print
+  const [singlePrintDwelling, setSinglePrintDwelling] = useState<DwellingOption | null>(null);
 
   // Filtered dwellings based on search & type filter
   const filteredDwellings = useMemo(() => {
     return dwellings.filter((d) => {
-      // Filter type
       if (typeFilter !== "semua" && d.type !== typeFilter) {
         return false;
       }
-      // Filter search
       if (!searchTerm.trim()) return true;
       const q = searchTerm.toLowerCase();
       const addr = `blok ${d.blockNumber} no ${d.houseNumber} ${d.blockNumber}-${d.houseNumber}`.toLowerCase();
@@ -70,11 +74,9 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      // Unselect filtered items
       const filteredSet = new Set(filteredDwellings.map((d) => d.id));
       setSelectedIds((prev) => prev.filter((id) => !filteredSet.has(id)));
     } else {
-      // Select all filtered items
       const newIds = new Set([...selectedIds, ...filteredDwellings.map((d) => d.id)]);
       setSelectedIds(Array.from(newIds));
     }
@@ -93,12 +95,38 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
     return `${origin}/scan-qr?token=${encodeURIComponent(qrToken)}`;
   };
 
-  // Get selected dwelling objects
   const selectedDwellings = useMemo(() => {
     return dwellings.filter((d) => selectedIds.includes(d.id));
   }, [dwellings, selectedIds]);
 
-  // Handle Batch Download PNGs
+  // Single Item Download PNG
+  const handleSingleDownload = async (d: DwellingOption) => {
+    try {
+      const qrUrl = getDwellingQrUrl(d.qrToken);
+      const url = await QRCode.toDataURL(qrUrl, { width: 800, margin: 2 });
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `QR_Hunian_Blok_${d.blockNumber}_No_${d.houseNumber}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success(`QR Code Blok ${d.blockNumber} No. ${d.houseNumber} berhasil diunduh.`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal mengunduh QR Code.");
+    }
+  };
+
+  // Single Item Print
+  const handleSinglePrint = (d: DwellingOption) => {
+    setSinglePrintDwelling(d);
+    setTimeout(() => {
+      window.print();
+      setSinglePrintDwelling(null);
+    }, 300);
+  };
+
+  // Batch Download PNGs
   const handleBatchDownload = async () => {
     if (selectedDwellings.length === 0) {
       toast.error("Pilih setidaknya 1 hunian untuk diunduh");
@@ -117,7 +145,6 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        // Small delay to prevent browser download throttling
         await new Promise((r) => setTimeout(r, 200));
       } catch (err) {
         console.error("Error downloading QR:", err);
@@ -127,13 +154,16 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
     toast.success(`${selectedDwellings.length} QR Code berhasil diunduh!`);
   };
 
-  // Handle Batch Print
+  // Batch Print
   const handleBatchPrint = () => {
     if (selectedDwellings.length === 0) {
       toast.error("Pilih setidaknya 1 hunian untuk dicetak");
       return;
     }
-    window.print();
+    setSinglePrintDwelling(null);
+    setTimeout(() => {
+      window.print();
+    }, 300);
   };
 
   const getBadgeStyle = (type: string) => {
@@ -175,42 +205,40 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
           </div>
           <div>
             <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-              2. Cetak QR Hunian (Semua Tipe Hunian)
+              Cetak QR Hunian (Semua Tipe Hunian)
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              Pilih hunian dari daftar di bawah untuk mencetak stiker QR atau mengunduh file gambarnya secara bersamaan.
+              Pilih hunian dari tabel di bawah untuk mencetak atau mengunduh stiker QR secara massal maupun satuan.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Filter & Search Toolbar */}
+      {/* Filter & Search Toolbar (Standardized Style) */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        {/* Search Input */}
+        {/* Standard Search Input with Icon */}
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-gray-placeholder absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Cari blok, no rumah, pemilik..."
-            className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-4 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+            className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
           />
         </div>
 
-        {/* Filter Dropdown & Action Buttons */}
+        {/* Filter & Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-          {/* Dropdown Filter Tipe Hunian */}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold cursor-pointer"
-          >
-            <option value="semua">Semua Tipe Hunian</option>
-            <option value="permanen">Rumah Permanen</option>
-            <option value="kos">Kos / Kontrakan</option>
-            <option value="homestay">Homestay</option>
-          </select>
+          {/* CustomSelect Component for Filter */}
+          <div className="w-full sm:w-52">
+            <CustomSelect
+              value={typeFilter}
+              onChange={setTypeFilter}
+              options={TYPE_FILTER_OPTIONS}
+              size="sm"
+            />
+          </div>
 
           {/* Tombol Unduh Pilihan */}
           <button
@@ -280,7 +308,7 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
             <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
               {filteredDwellings.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400">
+                  <td colSpan={6} className="p-8 text-center text-slate-400 font-medium">
                     Tidak ada data hunian yang cocok dengan pencarian / filter.
                   </td>
                 </tr>
@@ -339,17 +367,29 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
                         {d.qrToken}
                       </td>
 
-                      {/* Aksi Single Preview */}
+                      {/* Aksi Satuan: HANYA ICON Unduh & Print */}
                       <td className="p-3.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewDwelling(d)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold transition cursor-pointer"
-                          title="Pratinjau Stiker QR"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Pratinjau</span>
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Icon Button Unduh PNG */}
+                          <button
+                            type="button"
+                            onClick={() => handleSingleDownload(d)}
+                            className="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg transition cursor-pointer"
+                            title={`Unduh PNG - Blok ${d.blockNumber} No. ${d.houseNumber}`}
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+
+                          {/* Icon Button Print */}
+                          <button
+                            type="button"
+                            onClick={() => handleSinglePrint(d)}
+                            className="p-2 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-lg transition cursor-pointer"
+                            title={`Cetak QR - Blok ${d.blockNumber} No. ${d.houseNumber}`}
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -360,77 +400,37 @@ export const DwellingQrTable: React.FC<DwellingQrTableProps> = ({
         </div>
       </div>
 
-      {/* SINGLE PREVIEW MODAL */}
-      {previewDwelling && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-extrabold text-slate-900">
-                Pratinjau Stiker QR Code
-              </h3>
-              <button
-                type="button"
-                onClick={() => setPreviewDwelling(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200">
-              <QrCodePrintCanvas
-                title={
-                  title ||
-                  `STIKER PINTU — BLOK ${previewDwelling.blockNumber} NO. ${previewDwelling.houseNumber}`
-                }
-                subtitle={subtitle}
-                qrUrl={getDwellingQrUrl(previewDwelling.qrToken)}
-                template={template}
-                dwellingLabel={`Blok ${previewDwelling.blockNumber} No. ${previewDwelling.houseNumber}`}
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setPreviewDwelling(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 cursor-pointer"
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedIds([previewDwelling.id]);
-                  setPreviewDwelling(null);
-                  setTimeout(() => window.print(), 300);
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Cetak QR Ini</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PRINT-ONLY BATCH CONTAINER (Ditampilkan hanya saat print window terbuka) */}
+      {/* PRINT CONTAINER FOR BATCH / SINGLE PRINT */}
       <div className="hidden print:block print:space-y-8">
-        {selectedDwellings.map((d) => (
-          <div key={d.id} className="break-after-page flex justify-center p-4">
+        {singlePrintDwelling ? (
+          <div className="flex justify-center p-4">
             <QrCodePrintCanvas
               title={
                 title ||
-                `STIKER PINTU — BLOK ${d.blockNumber} NO. ${d.houseNumber}`
+                `STIKER PINTU — BLOK ${singlePrintDwelling.blockNumber} NO. ${singlePrintDwelling.houseNumber}`
               }
               subtitle={subtitle}
-              qrUrl={getDwellingQrUrl(d.qrToken)}
+              qrUrl={getDwellingQrUrl(singlePrintDwelling.qrToken)}
               template={template}
-              dwellingLabel={`Blok ${d.blockNumber} No. ${d.houseNumber}`}
+              dwellingLabel={`Blok ${singlePrintDwelling.blockNumber} No. ${singlePrintDwelling.houseNumber}`}
             />
           </div>
-        ))}
+        ) : (
+          selectedDwellings.map((d) => (
+            <div key={d.id} className="break-after-page flex justify-center p-4">
+              <QrCodePrintCanvas
+                title={
+                  title ||
+                  `STIKER PINTU — BLOK ${d.blockNumber} NO. ${d.houseNumber}`
+                }
+                subtitle={subtitle}
+                qrUrl={getDwellingQrUrl(d.qrToken)}
+                template={template}
+                dwellingLabel={`Blok ${d.blockNumber} No. ${d.houseNumber}`}
+              />
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
