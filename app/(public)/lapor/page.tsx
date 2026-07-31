@@ -11,7 +11,6 @@ import {
   Phone,
   Upload,
   X,
-  ChevronRight,
   Check,
   RefreshCw,
 } from "lucide-react";
@@ -20,6 +19,7 @@ import { toast } from "sonner";
 import { CustomSelect } from "@/components/CustomSelect";
 import { PublicPageHeroBanner } from "@/app/_components/PublicPageHeroBanner";
 import { PublicErrorState } from "@/app/_components/PublicErrorState";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 interface TrackedComplaint {
   id: number;
@@ -47,6 +47,7 @@ export default function PublicLaporPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   // Success Modal State
   const [createdTrackingCode, setCreatedTrackingCode] = useState<string | null>(null);
@@ -94,6 +95,11 @@ export default function PublicLaporPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      toast.error("Silakan selesaikan verifikasi CAPTCHA bot terlebih dahulu");
+      return;
+    }
+
     setIsSubmitting(true);
     let uploadedPhotoUrl: string | null = null;
 
@@ -128,6 +134,7 @@ export default function PublicLaporPage() {
           category,
           description: description.trim(),
           photoPath: uploadedPhotoUrl,
+          turnstileToken,
         }),
       });
 
@@ -363,11 +370,23 @@ export default function PublicLaporPage() {
                 )}
               </div>
 
+              {/* Cloudflare Turnstile Anti-Spam Widget */}
+              {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+                <div className="flex justify-center my-4 overflow-hidden">
+                  <Turnstile
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => setTurnstileToken(token)}
+                    onExpire={() => setTurnstileToken(null)}
+                    onError={() => setTurnstileToken(null)}
+                  />
+                </div>
+              ) : null}
+
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white font-extrabold text-sm shadow-sm hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
+                disabled={isSubmitting || !turnstileToken}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white font-extrabold text-sm shadow-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -575,16 +594,34 @@ export default function PublicLaporPage() {
 
             {/* Action Buttons */}
             <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-800 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+              >
+                {isCopied ? (
+                  <>
+                    <Check className="h-4 w-4 text-emerald-600" />
+                    <span className="text-emerald-700">Kode Berhasil Disalin!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 text-slate-600" />
+                    <span>Salin Info Pengaduan</span>
+                  </>
+                )}
+              </button>
+
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `Halo, saya telah mengirimkan laporan pengaduan RT Wargaku dengan Kode Tracking: ${createdTrackingCode}.`
+                  `Halo, saya telah mengirimkan laporan pengaduan Wargaku.\n\nKode Tracking: *${createdTrackingCode}*\n\nGunakan kode ini di halaman "Cek Laporan" aplikasi Wargaku untuk memantau status tindak lanjut.`
                 )}`}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-700 transition"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-700 transition cursor-pointer"
               >
+                <MessageSquare className="h-4 w-4" />
                 <span>Simpan ke WhatsApp</span>
-                <ChevronRight className="h-4 w-4" />
               </a>
 
               <button

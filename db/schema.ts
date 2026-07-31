@@ -214,6 +214,7 @@ export const complaints = mysqlTable('complaints', {
   status: mysqlEnum('status', ['menunggu', 'proses', 'selesai', 'ditolak']).notNull().default('menunggu'),
   responseNote: text('response_note'),
   handledBy: varchar('handled_by', { length: 255 }).references(() => users.id),
+  ipAddress: varchar('ip_address', { length: 45 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   resolvedAt: timestamp('resolved_at'),
 });

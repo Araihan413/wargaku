@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, count, desc, like, or } from "drizzle-orm";
+import { eq, and, count, desc, like, or, gte } from "drizzle-orm";
 
 export interface ListComplaintsOptions {
   status?: string | null;
@@ -15,6 +15,26 @@ export interface CreateComplaintInput {
   description: string;
   photoPath?: string | null;
   dwellingId?: number | null;
+  ipAddress?: string | null;
+}
+
+export async function checkIpRateLimit(ipAddress: string | null): Promise<boolean> {
+  if (!ipAddress) return true;
+
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+  const [res] = await db
+    .select({ count: count() })
+    .from(schema.complaints)
+    .where(
+      and(
+        eq(schema.complaints.ipAddress, ipAddress),
+        gte(schema.complaints.createdAt, oneHourAgo)
+      )
+    );
+
+  const complaintCount = res?.count || 0;
+  return complaintCount < 4;
 }
 
 export interface UpdateComplaintInput {
@@ -169,6 +189,7 @@ export async function createComplaint(input: CreateComplaintInput) {
     description: input.description.trim(),
     photoPath: input.photoPath || null,
     dwellingId: input.dwellingId ? Number(input.dwellingId) : null,
+    ipAddress: input.ipAddress || null,
     status: "menunggu",
   });
 

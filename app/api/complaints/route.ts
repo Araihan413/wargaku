@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission } from '@/lib/rbac';
-import { listComplaints, createComplaint } from '@/db/queries/complaints';
+import { listComplaints, createComplaint, checkIpRateLimit } from '@/db/queries/complaints';
 
 export async function GET(request: Request) {
   try {
@@ -43,8 +43,21 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const reqHeaders = await headers();
+    const forwarded = reqHeaders.get('x-forwarded-for');
+    const clientIp = forwarded ? forwarded.split(',')[0].trim() : reqHeaders.get('x-real-ip') || '127.0.0.1';
+
+    // 1. Rate Limiting Check (Max 4 laporan / IP / jam)
+    const isRateLimitOk = await checkIpRateLimit(clientIp);
+    if (!isRateLimitOk) {
+      return NextResponse.json(
+        { error: 'Batas pengiriman laporan tercapai. Anda hanya dapat mengirim maksimal 4 laporan per jam.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
-    const { reporterName, reporterPhone, category, description, photoPath, dwellingId } = body;
+    const { reporterName, reporterPhone, category, description, photoPath, dwellingId, turnstileToken } = body;
 
     if (!reporterName || !category || !description) {
       return NextResponse.json(
@@ -53,6 +66,44 @@ export async function POST(request: Request) {
       );
     }
 
+    // 2. Strict Turnstile Verification
+    if (!turnstileToken) {
+      return NextResponse.json(
+        { error: 'Verifikasi CAPTCHA bot wajib diselesaikan sebelum mengirim laporan' },
+        { status: 400 }
+      );
+    }
+
+    const secretKey = process.env.TURNSTILE_SECRET_KEY;
+    if (!secretKey) {
+      return NextResponse.json(
+        { error: 'Variabel TURNSTILE_SECRET_KEY belum dikonfigurasi di server .env' },
+        { status: 400 }
+      );
+    }
+
+    const turnstileRes = await fetch(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: secretKey,
+          response: turnstileToken,
+          remoteip: clientIp,
+        }),
+      }
+    );
+
+    const turnstileJson = await turnstileRes.json();
+    if (!turnstileJson.success) {
+      return NextResponse.json(
+        { error: 'Verifikasi bot/CAPTCHA gagal. Silakan muat ulang dan coba lagi.' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Simpan Laporan ke Database
     const created = await createComplaint({
       reporterName,
       reporterPhone,
@@ -60,6 +111,7 @@ export async function POST(request: Request) {
       description,
       photoPath,
       dwellingId,
+      ipAddress: clientIp,
     });
 
     return NextResponse.json(
@@ -77,3 +129,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
