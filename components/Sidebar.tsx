@@ -618,17 +618,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
               isCollapsed ? "justify-center" : "justify-between"
             }`}
           >
-            {/* User Details */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-sidebar-hover border border-gray-border text-gray-heading-main">
-                <User className="h-5 w-5" />
+            {/* User Details (Clickable Link to /dashboard/profile) */}
+            <Link
+              href="/dashboard/profile"
+              onClick={onCloseMobile}
+              className="flex items-center gap-3 min-w-0 group/user cursor-pointer rounded-xl p-1 -m-1"
+              title="Buka Profil Saya"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-sidebar-hover border border-gray-border text-gray-heading-main overflow-hidden relative">
+                {user.image ? (
+                  <Image
+                    src={user.image}
+                    alt={user.name || "Foto Profil"}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <User className="h-5 w-5" />
+                )}
               </div>
               <div className={`flex flex-col min-w-0 transition-all duration-300 overflow-hidden whitespace-nowrap ${
                 isCollapsed 
                   ? 'opacity-0 max-w-0 pointer-events-none duration-150 delay-0' 
                   : 'opacity-100 max-w-xs duration-300 delay-200'
               }`}>
-                <span className="text-xs font-bold text-gray-heading-main truncate">
+                <span className="text-xs font-bold text-gray-heading-main group-hover/user:text-primary transition-colors truncate">
                   {user.name}
                 </span>
                 <span className="text-[10px] text-gray-secondary-text leading-tight truncate">
@@ -640,7 +655,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {currentRoleId === 6 && "Warga"}
                 </span>
               </div>
-            </div>
+            </Link>
 
             {/* Logout Button */}
             <button

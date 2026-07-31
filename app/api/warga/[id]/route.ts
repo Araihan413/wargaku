@@ -149,13 +149,12 @@ export async function GET(
     }
 
     const hasViewPerm = await hasPermission(session.user.roleId, 'view-residents');
-    const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
     if (hasViewPerm) {
       return NextResponse.json(member);
     }
 
-    if (hasOwnFamilyPerm && member.familyId) {
+    if (member.familyId) {
       const family = await getFamilyById(member.familyId);
       if (family && family.headUserId === session.user.id) {
         return NextResponse.json(member);
@@ -205,9 +204,8 @@ export async function PUT(
 
     const hasManagePerm = await hasPermission(session.user.roleId, 'manage-residents');
     const isOwnFamily = family.headUserId === session.user.id;
-    const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
-    if (!hasManagePerm && !(hasOwnFamilyPerm && isOwnFamily)) {
+    if (!hasManagePerm && !isOwnFamily) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
@@ -310,9 +308,8 @@ export async function DELETE(
 
     const hasManagePerm = await hasPermission(session.user.roleId, 'manage-residents');
     const isOwnFamily = family.headUserId === session.user.id;
-    const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
-    if (!hasManagePerm && !(hasOwnFamilyPerm && isOwnFamily)) {
+    if (!hasManagePerm && !isOwnFamily) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 

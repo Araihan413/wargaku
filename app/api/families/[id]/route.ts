@@ -129,9 +129,8 @@ export async function GET(
 
     const hasViewPerm = await hasPermission(session.user.roleId, 'view-residents');
     const isOwnFamily = family.headUserId === session.user.id;
-    const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
-    if (!hasViewPerm && !(hasOwnFamilyPerm && isOwnFamily)) {
+    if (!hasViewPerm && !isOwnFamily) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke keluarga ini' }, { status: 403 });
     }
 
@@ -169,9 +168,8 @@ export async function PUT(
 
     const hasManagePerm = await hasPermission(session.user.roleId, 'manage-residents');
     const isOwnFamily = family.headUserId === session.user.id;
-    const hasOwnFamilyPerm = await hasPermission(session.user.roleId, 'manage-own-family');
 
-    if (!hasManagePerm && !(hasOwnFamilyPerm && isOwnFamily)) {
+    if (!hasManagePerm && !isOwnFamily) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 

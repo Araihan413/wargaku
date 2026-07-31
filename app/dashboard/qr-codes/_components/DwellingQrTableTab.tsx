@@ -11,10 +11,10 @@ import {
   CheckSquare,
   Square,
   QrCode,
-  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
+import { toPng } from "html-to-image";
 import { DwellingOption } from "@/db/queries/qr-codes";
 import { QrTemplateType, QrCodePrintCanvas } from "@/components/QrCodePrintCanvas";
 import { CustomSelect } from "@/components/CustomSelect";
@@ -98,9 +98,23 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
     return dwellings.filter((d) => selectedIds.includes(d.id));
   }, [dwellings, selectedIds]);
 
-  // Single Item Download PNG
+  // Single Item Download PNG Stiker Utuh
   const handleSingleDownload = async (d: DwellingOption) => {
     try {
+      const el = document.getElementById(`dwelling-sticker-card-${d.id}`);
+      if (el) {
+        const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 2 });
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `Stiker_QR_Blok_${d.blockNumber}_No_${d.houseNumber}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.success(`Stiker QR Blok ${d.blockNumber} No. ${d.houseNumber} berhasil diunduh.`);
+        return;
+      }
+
+      // Fallback
       const qrUrl = getDwellingQrUrl(d.qrToken);
       const url = await QRCode.toDataURL(qrUrl, { width: 800, margin: 2 });
       const a = document.createElement("a");
@@ -112,7 +126,7 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
       toast.success(`QR Code Blok ${d.blockNumber} No. ${d.houseNumber} berhasil diunduh.`);
     } catch (err) {
       console.error(err);
-      toast.error("Gagal mengunduh QR Code.");
+      toast.error("Gagal mengunduh stiker QR Code.");
     }
   };
 
@@ -125,17 +139,30 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
     }, 300);
   };
 
-  // Batch Download PNGs
+  // Batch Download PNG Stiker Utuh
   const handleBatchDownload = async () => {
     if (selectedDwellings.length === 0) {
       toast.error("Pilih setidaknya 1 hunian untuk diunduh");
       return;
     }
 
-    toast.info(`Mengunduh ${selectedDwellings.length} gambar QR Code...`);
+    toast.info(`Mengunduh ${selectedDwellings.length} gambar stiker QR Code...`);
 
     for (const d of selectedDwellings) {
       try {
+        const el = document.getElementById(`dwelling-sticker-card-${d.id}`);
+        if (el) {
+          const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 2 });
+          const a = document.createElement("a");
+          a.href = dataUrl;
+          a.download = `Stiker_QR_Blok_${d.blockNumber}_No_${d.houseNumber}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          await new Promise((r) => setTimeout(r, 200));
+          continue;
+        }
+
         const qrUrl = getDwellingQrUrl(d.qrToken);
         const url = await QRCode.toDataURL(qrUrl, { width: 800, margin: 2 });
         const a = document.createElement("a");
@@ -146,11 +173,11 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
         document.body.removeChild(a);
         await new Promise((r) => setTimeout(r, 200));
       } catch (err) {
-        console.error("Error downloading QR:", err);
+        console.error("Error downloading QR sticker:", err);
       }
     }
 
-    toast.success(`${selectedDwellings.length} QR Code berhasil diunduh!`);
+    toast.success(`${selectedDwellings.length} stiker QR Code berhasil diunduh!`);
   };
 
   // Batch Print
@@ -196,14 +223,6 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Informational Banner */}
-      <div className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 font-medium print:hidden">
-        <Info className="w-4 h-4 text-blue-600 shrink-0" />
-        <span>
-          Cetak atau unduh QR Code untuk hunian di bawah. Format judul &amp; ukuran stiker secara otomatis mengikuti pengaturan dari <strong>Tab Pengaturan QR</strong>.
-        </span>
-      </div>
-
       <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-5 print:hidden">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -213,7 +232,7 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
             </div>
             <div>
               <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-                Daftar Hunian Warga (Semua Tipe)
+                Daftar Hunian Warga
               </h2>
               <p className="text-xs text-slate-500 font-medium">
                 Pilihlah hunian yang ingin dicetak stikernya secara massal atau unduh gambar QR per satuan di kolom aksi.
@@ -275,7 +294,7 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
         {/* Selected Items Status Banner */}
         {selectedIds.length > 0 && (
           <div className="flex items-center justify-between px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-semibold">
-            <span>{selectedIds.length} hunian terpilih untuk diprint / diunduh.</span>
+            <span>{selectedIds.length} hunian terpilih.</span>
             <button
               type="button"
               onClick={() => setSelectedIds([])}
@@ -287,36 +306,36 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
         )}
 
         {/* Dwelling List Table */}
-        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+        <div className="border border-gray-border rounded-2xl bg-gray-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider">
-                <tr>
-                  <th className="p-3.5 w-10 text-center">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
+                  <th className="py-4 px-5 w-12 text-center">
                     <button
                       type="button"
                       onClick={toggleSelectAll}
-                      className="cursor-pointer text-slate-600 hover:text-blue-600"
+                      className="cursor-pointer text-gray-secondary-text hover:text-primary transition-colors"
                       title={isAllSelected ? "Batal Pilih Semua" : "Pilih Semua"}
                     >
                       {isAllSelected ? (
-                        <CheckSquare className="w-4 h-4 text-blue-600" />
+                        <CheckSquare className="w-4 h-4 text-primary" />
                       ) : (
-                        <Square className="w-4 h-4 text-slate-400" />
+                        <Square className="w-4 h-4 text-gray-placeholder" />
                       )}
                     </button>
                   </th>
-                  <th className="p-3.5">Alamat / No. Rumah</th>
-                  <th className="p-3.5">Tipe Hunian</th>
-                  <th className="p-3.5">Pemilik / Pengelola / KK</th>
-                  <th className="p-3.5">Token QR</th>
-                  <th className="p-3.5 text-center w-24">Aksi</th>
+                  <th className="py-4 px-5">No. Rumah</th>
+                  <th className="py-4 px-5">Tipe Hunian</th>
+                  <th className="py-4 px-5">Pemilik / Pengelola / KK</th>
+                  <th className="py-4 px-5">Token QR</th>
+                  <th className="py-4 px-5 text-center w-28">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+              <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
                 {filteredDwellings.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-400 font-medium">
+                    <td colSpan={6} className="py-12 text-center text-gray-secondary-text font-medium">
                       Tidak ada data hunian yang cocok dengan pencarian / filter.
                     </td>
                   </tr>
@@ -331,52 +350,52 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
                     return (
                       <tr
                         key={d.id}
-                        className={`hover:bg-slate-50/80 transition ${
-                          isSelected ? "bg-blue-50/40" : ""
+                        className={`hover:bg-gray-sidebar-hover/60 transition ${
+                          isSelected ? "bg-primary-100/40" : ""
                         }`}
                       >
                         {/* Checkbox */}
-                        <td className="p-3.5 text-center">
+                        <td className="py-4 px-5 text-center">
                           <button
                             type="button"
                             onClick={() => toggleSelectOne(d.id)}
                             className="cursor-pointer"
                           >
                             {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-blue-600" />
+                              <CheckSquare className="w-4 h-4 text-primary" />
                             ) : (
-                              <Square className="w-4 h-4 text-slate-300 hover:text-slate-500" />
+                              <Square className="w-4 h-4 text-gray-placeholder hover:text-gray-secondary-text transition-colors" />
                             )}
                           </button>
                         </td>
 
                         {/* Alamat */}
-                        <td className="p-3.5 font-bold text-slate-900">
+                        <td className="py-4 px-5 font-bold text-gray-heading-main">
                           Blok {d.blockNumber} No. {d.houseNumber}
                         </td>
 
                         {/* Tipe Badge */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-5">
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${badge.bg}`}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${badge.bg}`}
                           >
-                            <BadgeIcon className="w-3 h-3" />
+                            <BadgeIcon className="w-3.5 h-3.5" />
                             <span>{badge.label}</span>
                           </span>
                         </td>
 
                         {/* Pemilik/Pengelola */}
-                        <td className="p-3.5 font-semibold text-slate-700">
+                        <td className="py-4 px-5 font-medium text-gray-body-text-btn">
                           {ownerDisplay}
                         </td>
 
                         {/* Token QR */}
-                        <td className="p-3.5 font-mono text-[11px] text-slate-500">
+                        <td className="py-4 px-5 font-mono text-xs text-gray-secondary-text">
                           {d.qrToken}
                         </td>
 
-                        {/* Aksi Satuan: HANYA ICON Unduh & Print */}
-                        <td className="p-3.5 text-center">
+                        {/* Aksi Satuan */}
+                        <td className="py-4 px-5 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             {/* Icon Button Unduh PNG */}
                             <button
@@ -409,8 +428,24 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
         </div>
       </div>
 
+      {/* OFF-SCREEN HIDDEN STICKER CARDS FOR FULL PNG DOWNLOAD */}
+      <div className="fixed left-[-9999px] top-0 pointer-events-none opacity-0">
+        {dwellings.map((d) => (
+          <div key={`sticker-${d.id}`} className="p-4 bg-white">
+            <QrCodePrintCanvas
+              id={`dwelling-sticker-card-${d.id}`}
+              title={title || `STIKER PINTU — BLOK ${d.blockNumber} NO. ${d.houseNumber}`}
+              subtitle={subtitle}
+              qrUrl={getDwellingQrUrl(d.qrToken)}
+              template={template}
+              dwellingLabel={`Blok ${d.blockNumber} No. ${d.houseNumber}`}
+            />
+          </div>
+        ))}
+      </div>
+
       {/* PRINT CONTAINER FOR BATCH / SINGLE PRINT */}
-      <div className="hidden print:block print:space-y-8">
+      <div className="hidden print:block">
         {singlePrintDwelling ? (
           <div className="flex justify-center p-4">
             <QrCodePrintCanvas
@@ -424,21 +459,41 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
               dwellingLabel={`Blok ${singlePrintDwelling.blockNumber} No. ${singlePrintDwelling.houseNumber}`}
             />
           </div>
+        ) : template === "a4_poster" ? (
+          <div className="space-y-8">
+            {selectedDwellings.map((d) => (
+              <div key={d.id} className="break-after-page flex justify-center p-4">
+                <QrCodePrintCanvas
+                  title={
+                    title ||
+                    `STIKER PINTU — BLOK ${d.blockNumber} NO. ${d.houseNumber}`
+                  }
+                  subtitle={subtitle}
+                  qrUrl={getDwellingQrUrl(d.qrToken)}
+                  template={template}
+                  dwellingLabel={`Blok ${d.blockNumber} No. ${d.houseNumber}`}
+                />
+              </div>
+            ))}
+          </div>
         ) : (
-          selectedDwellings.map((d) => (
-            <div key={d.id} className="break-after-page flex justify-center p-4">
-              <QrCodePrintCanvas
-                title={
-                  title ||
-                  `STIKER PINTU — BLOK ${d.blockNumber} NO. ${d.houseNumber}`
-                }
-                subtitle={subtitle}
-                qrUrl={getDwellingQrUrl(d.qrToken)}
-                template={template}
-                dwellingLabel={`Blok ${d.blockNumber} No. ${d.houseNumber}`}
-              />
-            </div>
-          ))
+          /* GRID LAYOUT 2 KOLOM (SEPERTI DI SCREENSHOT USER) */
+          <div className="grid grid-cols-2 gap-4 p-2 w-full">
+            {selectedDwellings.map((d) => (
+              <div key={d.id} className="flex justify-center items-center break-inside-avoid py-2">
+                <QrCodePrintCanvas
+                  title={
+                    title ||
+                    `STIKER PINTU — BLOK ${d.blockNumber} NO. ${d.houseNumber}`
+                  }
+                  subtitle={subtitle}
+                  qrUrl={getDwellingQrUrl(d.qrToken)}
+                  template={template}
+                  dwellingLabel={`Blok ${d.blockNumber} No. ${d.houseNumber}`}
+                />
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

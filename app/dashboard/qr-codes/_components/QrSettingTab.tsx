@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Settings, Type, FileText, Eye } from "lucide-react";
+import { Settings, Type, FileText, Eye, Info } from "lucide-react";
 import { QrTemplateType, QrCodePrintCanvas } from "@/components/QrCodePrintCanvas";
 import { CustomSelect } from "@/components/CustomSelect";
 
@@ -31,6 +31,14 @@ export const QrSettingTab: React.FC<QrSettingTabProps> = ({
   return (
     <div className="space-y-6">
 
+      {/* Informational Banner */}
+      <div className="flex items-center gap-3 p-4 bg-slate-100 border border-slate-200 rounded-2xl text-xs text-slate-700 font-medium print:hidden">
+        <Info className="w-4 h-4 text-blue-600 shrink-0" />
+        <span>
+          Settingan QR Code Ini Akan Digunakan Untuk Seluruh Tab.
+        </span>
+      </div>
+
       <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-6">
         <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
           <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
@@ -46,9 +54,9 @@ export const QrSettingTab: React.FC<QrSettingTabProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Form Settings (7 Cols) */}
-          <div className="lg:col-span-7 space-y-4">
+        <div className="grid grid-cols-1 gap-6 items-start">
+          {/* Form Settings */}
+          <div className="lg:col-span-1 space-y-4">
             {/* Format Ukuran pakai CustomSelect */}
             <div>
               <CustomSelect
@@ -61,7 +69,7 @@ export const QrSettingTab: React.FC<QrSettingTabProps> = ({
 
             {/* Input Judul */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
+              <label className="text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Type className="w-4 h-4 text-blue-600" />
                 <span>Judul Header QR Code</span>
               </label>
@@ -76,7 +84,7 @@ export const QrSettingTab: React.FC<QrSettingTabProps> = ({
 
             {/* Input Subjudul */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
+              <label className="text-sm font-semibold text-black/80 tracking-wider mb-1.5 flex items-center gap-1.5">
                 <FileText className="w-4 h-4 text-blue-600" />
                 <span>Subjudul / Keterangan Tambahan</span>
               </label>
@@ -90,8 +98,8 @@ export const QrSettingTab: React.FC<QrSettingTabProps> = ({
             </div>
           </div>
 
-          {/* Live Preview Side Panel (5 Cols) - HANYA DI TAB 1 */}
-          <div className="lg:col-span-5 bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center space-y-3">
+          {/* Live Preview - HANYA DI TAB 1 */}
+          <div className="lg:col-span-1 bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center space-y-3">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-700 w-full justify-between border-b border-slate-200 pb-2">
               <span className="flex items-center gap-1.5">
                 <Eye className="w-4 h-4 text-blue-600" />

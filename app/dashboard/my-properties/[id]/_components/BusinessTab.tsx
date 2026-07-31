@@ -33,7 +33,6 @@ export function BusinessTab({
   const [coordinatorOption, setCoordinatorOption] = useState<"self" | "other">(
     property?.coordinatorUserId === sessionUserId || !property?.coordinatorUserId ? "self" : "other"
   );
-  const [coordSubOption, setCoordSubOption] = useState<"search" | "invite">("search");
   const [users, setUsers] = useState<UserOption[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [selectedCoordUserId, setSelectedCoordUserId] = useState<string | null>(
@@ -46,12 +45,6 @@ export function BusinessTab({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-
-  // Coordinator Account States (for invite option)
-  const [coordEmail, setCoordEmail] = useState(property?.coordinator?.email || "");
-  const [coordNik, setCoordNik] = useState("");
-  const [coordName, setCoordName] = useState(property?.coordinator?.name || "");
-  const [coordPhone, setCoordPhone] = useState(property?.coordinator?.phone || "");
 
   // QR Code Image State
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
@@ -77,29 +70,27 @@ export function BusinessTab({
       setSelectedCoordUserId(property.coordinatorUserId);
       setSelectedCoordUserName(property.coordinator?.name || "");
     }
-
-    if (property.coordinator) {
-      setCoordEmail(property.coordinator.email || "");
-      setCoordName(property.coordinator.name || "");
-      setCoordPhone(property.coordinator.phone || "");
-    } else {
-      setCoordEmail("");
-      setCoordName("");
-      setCoordPhone("");
-    }
   }
 
   useEffect(() => {
+    let isCancelled = false;
     if (coordinatorOption === "other") {
-      setIsLoadingUsers(true);
       fetch("/api/users?limit=100&status=active")
         .then((res) => res.json())
         .then((data) => {
-          setUsers(data.users || []);
+          if (!isCancelled) {
+            setUsers(data.users || []);
+            setIsLoadingUsers(false);
+          }
         })
-        .catch(console.error)
-        .finally(() => setIsLoadingUsers(false));
+        .catch((err) => {
+          console.error(err);
+          if (!isCancelled) setIsLoadingUsers(false);
+        });
     }
+    return () => {
+      isCancelled = true;
+    };
   }, [coordinatorOption]);
 
   useEffect(() => {

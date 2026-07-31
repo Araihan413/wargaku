@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import { Menu, ChevronDown, User, LogOut, Check, Shield } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRoleStore } from "@/lib/store/use-role-store";
@@ -146,8 +147,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
             className="flex items-center gap-2.5 rounded-xl border border-gray-border bg-gray-card p-1.5 pr-3 hover:bg-gray-sidebar-hover cursor-pointer transition-all duration-200 text-left"
           >
             {/* Avatar */}
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-900-20 text-primary-900 border border-primary/20">
-              <User className="h-4 w-4" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-900-20 text-primary-900 border border-primary/20 overflow-hidden relative shrink-0">
+              {user?.image ? (
+                <Image
+                  src={user.image}
+                  alt={user.name || "Foto Profil"}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <User className="h-4 w-4" />
+              )}
             </div>
 
             {/* User Meta */}
@@ -207,6 +218,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
                   <p className="text-xs font-bold text-gray-heading-main truncate">{user?.name}</p>
                   <p className="text-[9px] text-gray-secondary-text truncate">{user?.email}</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    router.push("/dashboard/profile");
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-gray-heading-main hover:bg-gray-sidebar-hover cursor-pointer transition-colors text-left"
+                >
+                  <User className="h-4 w-4 text-primary" />
+                  <span>Pengaturan Profil</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleLogout}

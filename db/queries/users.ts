@@ -692,3 +692,118 @@ export async function updateUserPassword(userId: string, passwordHash: string) {
     .set({ password: passwordHash, updatedAt: new Date() })
     .where(eq(schema.users.id, userId));
 }
+
+export async function getUserFullProfile(userId: string) {
+  const userList = await db
+    .select({
+      id: schema.users.id,
+      name: schema.users.name,
+      email: schema.users.email,
+      emailVerified: schema.users.emailVerified,
+      image: schema.users.image,
+      nik: schema.users.nik,
+      phone: schema.users.phone,
+      photo: schema.users.photo,
+      roleId: schema.users.roleId,
+      roleName: schema.roles.name,
+      roleSlug: schema.roles.slug,
+      status: schema.users.status,
+      familyNumber: schema.users.familyNumber,
+      unitNumber: schema.users.unitNumber,
+      dwellingId: schema.users.dwellingId,
+      createdAt: schema.users.createdAt,
+    })
+    .from(schema.users)
+    .leftJoin(schema.roles, eq(schema.users.roleId, schema.roles.id))
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+
+  if (userList.length === 0) return null;
+  const user = userList[0];
+
+  // Fetch dwelling details if dwellingId exists
+  let dwellingInfo = null;
+  if (user.dwellingId) {
+    const dwellingRes = await db
+      .select({
+        id: schema.dwellings.id,
+        blockNumber: schema.dwellings.blockNumber,
+        houseNumber: schema.dwellings.houseNumber,
+        type: schema.dwellings.type,
+      })
+      .from(schema.dwellings)
+      .where(eq(schema.dwellings.id, user.dwellingId))
+      .limit(1);
+    if (dwellingRes.length > 0) {
+      dwellingInfo = dwellingRes[0];
+    }
+  }
+
+  // Fetch family details if familyNumber exists
+  let familyInfo = null;
+  if (user.familyNumber) {
+    const familyRes = await db
+      .select({
+        id: schema.families.id,
+        familyNumber: schema.families.familyNumber,
+        headName: schema.families.headName,
+      })
+      .from(schema.families)
+      .where(eq(schema.families.familyNumber, user.familyNumber))
+      .limit(1);
+    if (familyRes.length > 0) {
+      familyInfo = familyRes[0];
+    }
+  }
+
+  return {
+    ...user,
+    dwellingInfo,
+    familyInfo,
+  };
+}
+
+export async function updateUserProfileData(
+  userId: string,
+  data: { name?: string; phone?: string; image?: string }
+) {
+  const updatePayload: Record<string, any> = {
+    updatedAt: new Date(),
+  };
+
+  if (data.name !== undefined) updatePayload.name = data.name;
+  if (data.phone !== undefined) updatePayload.phone = data.phone;
+  if (data.image !== undefined) {
+    updatePayload.image = data.image;
+    updatePayload.photo = data.image;
+  }
+
+  // 1. Update tabel akun pengguna (users)
+  await db
+    .update(schema.users)
+    .set(updatePayload)
+    .where(eq(schema.users.id, userId));
+
+  // 2. Sinkronkan nomor telepon ke data penduduk (tabel residents)
+  if (data.phone !== undefined) {
+    const userRes = await db
+      .select({ nik: schema.users.nik })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+
+    const userNik = userRes[0]?.nik;
+
+    const residentConditions = [eq(schema.residents.userId, userId)];
+    if (userNik) {
+      residentConditions.push(eq(schema.residents.nik, userNik));
+    }
+
+    await db
+      .update(schema.residents)
+      .set({ phone: data.phone, updatedAt: new Date() })
+      .where(or(...residentConditions));
+  }
+
+  return getUserFullProfile(userId);
+}

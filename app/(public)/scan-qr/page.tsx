@@ -198,7 +198,7 @@ export default function PublicScanQrPage() {
             }`}
           >
             <Camera className="w-4 h-4" />
-            <span>Scan Kamera HP (Live)</span>
+            <span>Scan Kamera</span>
           </button>
 
           <button
@@ -211,7 +211,7 @@ export default function PublicScanQrPage() {
             }`}
           >
             <Search className="w-4 h-4" />
-            <span>Cari Blok &amp; Nomor Rumah</span>
+            <span>Nomor Rumah</span>
           </button>
         </div>
 

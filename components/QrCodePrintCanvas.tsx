@@ -11,6 +11,7 @@ export interface QrCodePrintCanvasProps {
   template?: QrTemplateType;
   className?: string;
   dwellingLabel?: string;
+  id?: string;
 }
 
 export const QrCodePrintCanvas: React.FC<QrCodePrintCanvasProps> = ({
@@ -20,6 +21,7 @@ export const QrCodePrintCanvas: React.FC<QrCodePrintCanvasProps> = ({
   template = "a4_poster",
   className = "",
   dwellingLabel,
+  id,
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
@@ -42,7 +44,8 @@ export const QrCodePrintCanvas: React.FC<QrCodePrintCanvasProps> = ({
   if (template === "mini_sticker") {
     return (
       <div
-        className={`w-full max-w-[300px] bg-white border-2 border-slate-900 rounded-2xl p-5 shadow-sm flex flex-col items-center justify-between text-center font-sans print:shadow-none print:border-slate-900 print:w-[8cm] print:h-[10cm] ${className}`}
+        id={id}
+        className={`w-full max-w-75 bg-white border-2 border-slate-900 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col items-center justify-between text-center font-sans print:shadow-none print:border-slate-900 print:w-full print:max-w-[9cm] print:h-auto ${className}`}
       >
         {/* Header: Title & Subtitle Only */}
         <div className="space-y-1 w-full border-b pb-3 border-slate-200">
@@ -77,8 +80,8 @@ export const QrCodePrintCanvas: React.FC<QrCodePrintCanvasProps> = ({
         </div>
 
         {/* Dwelling Label / Footer */}
-        <div className="w-full pt-2 border-t border-slate-200">
-          <p className="text-xs font-extrabold text-blue-800 tracking-tight">
+        <div className="w-full pt-2 border-t border-slate-200 px-2">
+          <p className="text-xs font-extrabold text-blue-800 tracking-tight truncate" title={dwellingLabel}>
             {dwellingLabel || "Pindai QR untuk Informasi Hunian"}
           </p>
         </div>
@@ -90,41 +93,42 @@ export const QrCodePrintCanvas: React.FC<QrCodePrintCanvasProps> = ({
   if (template === "desk_standee") {
     return (
       <div
-        className={`w-full max-w-[380px] bg-white border-2 border-blue-900 rounded-3xl p-6 shadow-md flex flex-col items-center justify-between text-center font-sans space-y-4 print:shadow-none print:w-[12cm] print:h-[18cm] ${className}`}
+        id={id}
+        className={`w-full max-w-90 bg-white border-2 border-blue-900 rounded-3xl p-5 shadow-md flex flex-col items-center justify-between text-center font-sans space-y-3.5 print:shadow-none print:border-blue-900 print:w-full print:max-w-[9.5cm] print:h-auto ${className}`}
       >
         {/* Header: Title & Subtitle Only */}
-        <div className="space-y-1.5 w-full border-b pb-4 border-slate-200">
-          <h2 className="text-base font-black text-slate-900 uppercase tracking-tight leading-snug">
+        <div className="space-y-1.5 w-full border-b pb-3 border-slate-200">
+          <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight leading-snug">
             {title || "STIKER QR CODE HUNIAN"}
           </h2>
           {subtitle && (
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+            <p className="text-[11px] sm:text-xs text-slate-600 font-medium leading-relaxed">
               {subtitle}
             </p>
           )}
         </div>
 
         {/* QR Code Container */}
-        <div className="p-3 bg-blue-50/50 rounded-2xl border-2 border-blue-200 shadow-inner">
+        <div className="p-2.5 bg-blue-50/50 rounded-2xl border-2 border-blue-200 shadow-inner">
           {qrDataUrl ? (
             <Image
               src={qrDataUrl}
               alt="QR Code Hunian"
-              width={220}
-              height={220}
-              className="w-48 h-48 object-contain rounded-lg"
+              width={200}
+              height={200}
+              className="w-44 h-44 object-contain rounded-lg"
               unoptimized
             />
           ) : (
-            <div className="w-48 h-48 flex items-center justify-center text-xs text-slate-400 font-medium">
+            <div className="w-44 h-44 flex items-center justify-center text-xs text-slate-400 font-medium">
               Memuat QR...
             </div>
           )}
         </div>
 
         {/* Dwelling Label / Footer */}
-        <div className="w-full pt-3 border-t border-slate-200">
-          <p className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">
+        <div className="w-full pt-2.5 border-t border-slate-200 px-2">
+          <p className="text-xs font-extrabold text-blue-900 tracking-wider truncate" title={dwellingLabel}>
             {dwellingLabel || "Pindai Menggunakan Kamera HP"}
           </p>
         </div>
@@ -135,7 +139,8 @@ export const QrCodePrintCanvas: React.FC<QrCodePrintCanvasProps> = ({
   // ─── TEMPLATE 3 (DEFAULT): POSTER FULL A4 ──────────────────────────────────
   return (
     <div
-      className={`w-full max-w-[595px] bg-white border border-slate-300 rounded-3xl p-8 shadow-md flex flex-col justify-between text-slate-900 font-sans space-y-6 print:shadow-none print:border-none print:w-full print:max-w-none print:p-8 print:rounded-none ${className}`}
+      id={id}
+      className={`w-full max-w-148.75 bg-white border border-slate-300 rounded-3xl p-8 shadow-md flex flex-col justify-between text-slate-900 font-sans space-y-6 print:shadow-none print:border-none print:w-full print:max-w-none print:p-8 print:rounded-none ${className}`}
     >
       {/* Header: Title & Subtitle Only */}
       <div className="text-center space-y-2 pb-6 border-b-2 border-slate-900">
@@ -168,8 +173,8 @@ export const QrCodePrintCanvas: React.FC<QrCodePrintCanvasProps> = ({
           )}
         </div>
         {dwellingLabel && (
-          <div className="mt-4 text-center">
-            <span className="inline-block px-4 py-1.5 bg-blue-100 text-blue-900 rounded-full text-xs font-extrabold tracking-wider uppercase">
+          <div className="mt-4 text-center max-w-full px-4">
+            <span className="inline-block max-w-full px-4 py-1.5 bg-blue-100 text-blue-900 rounded-full text-xs font-extrabold tracking-wider truncate" title={dwellingLabel}>
               {dwellingLabel}
             </span>
           </div>
@@ -178,7 +183,7 @@ export const QrCodePrintCanvas: React.FC<QrCodePrintCanvasProps> = ({
 
       {/* Bottom Info */}
       <div className="pt-4 border-t border-slate-200 text-center">
-        <p className="text-xs font-extrabold text-slate-800 tracking-wider uppercase">
+        <p className="text-xs font-extrabold text-slate-800 tracking-wider">
           Arahkan Kamera HP Ke Gambar QR Code Ini Untuk Pindai
         </p>
       </div>

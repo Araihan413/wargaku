@@ -17,12 +17,74 @@ export default function QrCodesPage() {
   // Tab State: "setting" | "hunian" | "custom"
   const [activeTab, setActiveTab] = useState<"setting" | "hunian" | "custom">("setting");
 
-  // Global Settings State (Diatur di Tab 1, dipakai oleh Tab 2 & Tab 3)
-  const [template, setTemplate] = useState<QrTemplateType>("mini_sticker");
-  const [title, setTitle] = useState<string>("STIKER PINTU RUMAH WARGA");
-  const [subtitle, setSubtitle] = useState<string>(
-    "Pindai QR code ini menggunakan kamera HP untuk mengakses profil & informasi resmi hunian."
-  );
+  // Global Settings State (Diatur di Tab 1, disimpan di localStorage, dipakai oleh Tab 2 & Tab 3)
+  const [template, setTemplate] = useState<QrTemplateType>(() => {
+    if (typeof window === "undefined") return "mini_sticker";
+    try {
+      const saved = localStorage.getItem("wargaku_qr_settings");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.template) return parsed.template;
+      }
+    } catch {
+      // ignore
+    }
+    return "mini_sticker";
+  });
+
+  const [title, setTitle] = useState<string>(() => {
+    if (typeof window === "undefined") return "STIKER PINTU RUMAH WARGA";
+    try {
+      const saved = localStorage.getItem("wargaku_qr_settings");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.title !== undefined) return parsed.title;
+      }
+    } catch {
+      // ignore
+    }
+    return "STIKER PINTU RUMAH WARGA";
+  });
+
+  const [subtitle, setSubtitle] = useState<string>(() => {
+    if (typeof window === "undefined") return "Pindai QR code ini menggunakan kamera HP untuk mengakses profil & informasi resmi hunian.";
+    try {
+      const saved = localStorage.getItem("wargaku_qr_settings");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.subtitle !== undefined) return parsed.subtitle;
+      }
+    } catch {
+      // ignore
+    }
+    return "Pindai QR code ini menggunakan kamera HP untuk mengakses profil & informasi resmi hunian.";
+  });
+
+  const saveSettingsToLocalStorage = (t: QrTemplateType, ti: string, sub: string) => {
+    try {
+      localStorage.setItem(
+        "wargaku_qr_settings",
+        JSON.stringify({ template: t, title: ti, subtitle: sub })
+      );
+    } catch (e) {
+      console.error("Error saving QR settings to localStorage:", e);
+    }
+  };
+
+  const handleTemplateChange = (val: QrTemplateType) => {
+    setTemplate(val);
+    saveSettingsToLocalStorage(val, title, subtitle);
+  };
+
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    saveSettingsToLocalStorage(template, val, subtitle);
+  };
+
+  const handleSubtitleChange = (val: string) => {
+    setSubtitle(val);
+    saveSettingsToLocalStorage(template, title, val);
+  };
 
   const loadData = () => {
     setIsLoading(true);
@@ -111,44 +173,44 @@ export default function QrCodesPage() {
       </div>
 
       {/* Main 3-Tab Navigation Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-1.5 shadow-xs flex flex-col sm:flex-row items-center gap-2 max-w-xl print:hidden">
+      <div className="flex border-b border-gray-border overflow-x-auto no-scrollbar mb-6 gap-2 print:hidden">
         <button
           type="button"
           onClick={() => setActiveTab("setting")}
-          className={`flex-1 w-full py-2.5 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-semibold text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "setting"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "border-primary text-primary"
+              : "border-transparent text-gray-secondary-text hover:text-gray-heading-main hover:border-gray-border"
           }`}
         >
-          <Settings className="w-4 h-4" />
-          <span>1. Pengaturan QR</span>
+          <Settings className={`h-4.5 w-4.5 ${activeTab === "setting" ? "text-primary" : "text-gray-secondary-text"}`} />
+          <span>Pengaturan QR</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("hunian")}
-          className={`flex-1 w-full py-2.5 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-semibold text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "hunian"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "border-primary text-primary"
+              : "border-transparent text-gray-secondary-text hover:text-gray-heading-main hover:border-gray-border"
           }`}
         >
-          <QrCode className="w-4 h-4" />
-          <span>2. Cetak QR Hunian</span>
+          <QrCode className={`h-4.5 w-4.5 ${activeTab === "hunian" ? "text-primary" : "text-gray-secondary-text"}`} />
+          <span>Cetak QR Hunian</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("custom")}
-          className={`flex-1 w-full py-2.5 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-semibold text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "custom"
-              ? "bg-purple-600 text-white shadow-xs"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "border-primary text-primary"
+              : "border-transparent text-gray-secondary-text hover:text-gray-heading-main hover:border-gray-border"
           }`}
         >
-          <Link2 className="w-4 h-4" />
-          <span>3. Custom QR</span>
+          <Link2 className={`h-4.5 w-4.5 ${activeTab === "custom" ? "text-primary" : "text-gray-secondary-text"}`} />
+          <span>Custom QR Link</span>
         </button>
       </div>
 
@@ -159,16 +221,16 @@ export default function QrCodesPage() {
             template={template}
             title={title}
             subtitle={subtitle}
-            onTemplateChange={setTemplate}
-            onTitleChange={setTitle}
-            onSubtitleChange={setSubtitle}
+            onTemplateChange={handleTemplateChange}
+            onTitleChange={handleTitleChange}
+            onSubtitleChange={handleSubtitleChange}
           />
         </div>
       )}
 
       {/* TAB 2: CETAK QR HUNIAN */}
       {activeTab === "hunian" && (
-        <div className="print:hidden">
+        <div>
           <DwellingQrTableTab
             dwellings={data.dwellings}
             template={template}
@@ -180,7 +242,7 @@ export default function QrCodesPage() {
 
       {/* TAB 3: CUSTOM QR */}
       {activeTab === "custom" && (
-        <div className="print:hidden">
+        <div>
           <CustomUrlQrTab
             template={template}
             title={title}

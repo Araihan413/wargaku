@@ -123,11 +123,13 @@ export default function DashboardLayout({
       />
 
       {/* Main Content Pane */}
-      <main className={`flex-1 min-w-0 pt-16 transition-all duration-300 ${
+      <main className={`flex-1 min-w-0 pt-16 transition-all duration-300 print:p-0 print:pt-0 print:pl-0 print:m-0 print:bg-white ${
         isCollapsed ? "lg:pl-20" : "lg:pl-70"
       }`}>
-        <div className="p-6 md:p-8 max-w-[1920px] mx-auto space-y-6">
-          <Breadcrumb />
+        <div className="p-6 md:p-8 max-w-[1920px] mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
+          <div className="print:hidden">
+            <Breadcrumb />
+          </div>
           {children}
         </div>
       </main>

@@ -84,11 +84,6 @@ export default function MyPropertiesPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [selectedCoordUserId, setSelectedCoordUserId] = useState<string | null>(null);
   const [selectedCoordUserName, setSelectedCoordUserName] = useState<string>("");
-  const [coordSubOption, setCoordSubOption] = useState<"search" | "invite">("search");
-
-  // Coordinator Account States (Case B - Manual Invite)
-  const [coordName, setCoordName] = useState("");
-  const [coordPhone, setCoordPhone] = useState("");
 
   // Invitation link popup details
   const [inviteModalData, setInviteModalData] = useState<{
@@ -218,8 +213,6 @@ export default function MyPropertiesPage() {
         setBusinessPhone("");
         setNotes("");
         setRoomPattern("");
-        setCoordName("");
-        setCoordPhone("");
         setCoordinatorOption("self");
         setSelectedCoordUserId(null);
         setSelectedCoordUserName("");
@@ -244,10 +237,7 @@ export default function MyPropertiesPage() {
     setBusinessPhone("");
     setNotes("");
     setRoomPattern("");
-    setCoordName("");
-    setCoordPhone("");
     setCoordinatorOption("self");
-    setCoordSubOption("search");
     setSelectedCoordUserId(null);
     setSelectedCoordUserName("");
   };
@@ -563,7 +553,7 @@ export default function MyPropertiesPage() {
                     placeholder="Catatan tambahan mengenai kos/kontrakan (opsional)"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all min-h-[80px] resize-none"
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all min-h-20 resize-none"
                   />
                 </div>
 
