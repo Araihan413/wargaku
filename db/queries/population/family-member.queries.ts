@@ -228,10 +228,31 @@ export async function updateFamilyMember(id: number, data: UpdateFamilyMemberInp
     updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
   }
 
-  await db
-    .update(schema.familyMembers)
-    .set(updateData)
-    .where(eq(schema.familyMembers.id, id));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.familyMembers)
+      .set(updateData)
+      .where(eq(schema.familyMembers.id, id));
+
+    // Jika member terhubung ke akun user (misal Kepala Keluarga), sinkronkan nama dan phone ke tabel users
+    const [member] = await tx
+      .select({ userId: schema.familyMembers.userId })
+      .from(schema.familyMembers)
+      .where(eq(schema.familyMembers.id, id))
+      .limit(1);
+
+    if (member?.userId) {
+      const userUpdate: any = { updatedAt: new Date() };
+      if (data.name) userUpdate.name = data.name;
+      if (data.phone !== undefined) userUpdate.phone = data.phone;
+
+      await tx
+        .update(schema.users)
+        .set(userUpdate)
+        .where(eq(schema.users.id, member.userId));
+    }
+  });
+
   return true;
 }
 

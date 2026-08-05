@@ -217,41 +217,140 @@ export async function getUserFullProfile(userId: string) {
 
   const primaryRole = roles.find((r) => r.isPrimary) || roles[0] || null;
 
-  // Ambil data keluarga (KK) jika user adalah kepala keluarga
-  const familyInfo = await db
-    .select({
-      id: schema.families.id,
-      familyNumber: schema.families.familyNumber,
-      verificationStatus: schema.families.verificationStatus,
-      dwellingId: schema.families.dwellingId,
-      blockNumber: schema.dwellings.blockNumber,
-      houseNumber: schema.dwellings.houseNumber,
-    })
-    .from(schema.families)
-    .leftJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
-    .where(eq(schema.families.headUserId, userId))
-    .limit(1);
-
-  // Ambil data anggota keluarga (jika user terhubung ke family_members)
-  const memberInfo = await db
+  // 1. Cari data anggota keluarga (memberInfo) via userId
+  let [memberInfo] = await db
     .select({
       id: schema.familyMembers.id,
       familyId: schema.familyMembers.familyId,
       relationship: schema.familyMembers.relationship,
       nik: schema.familyMembers.nik,
+      name: schema.familyMembers.name,
+      phone: schema.familyMembers.phone,
     })
     .from(schema.familyMembers)
-    .where(eq(schema.familyMembers.userId, userId))
+    .where(and(eq(schema.familyMembers.userId, userId), eq(schema.familyMembers.isActive, true)))
     .limit(1);
+
+  // Jika belum terhubung via userId, coba cari berbasis nomor HP akun & auto-link
+  if (!memberInfo && user.phone) {
+    const [matchedByPhone] = await db
+      .select({
+        id: schema.familyMembers.id,
+        familyId: schema.familyMembers.familyId,
+        relationship: schema.familyMembers.relationship,
+        nik: schema.familyMembers.nik,
+        name: schema.familyMembers.name,
+        phone: schema.familyMembers.phone,
+      })
+      .from(schema.familyMembers)
+      .where(and(eq(schema.familyMembers.phone, user.phone), eq(schema.familyMembers.isActive, true)))
+      .limit(1);
+
+    if (matchedByPhone) {
+      memberInfo = matchedByPhone;
+      await db
+        .update(schema.familyMembers)
+        .set({ userId })
+        .where(eq(schema.familyMembers.id, matchedByPhone.id));
+    }
+  }
+
+  // 2. Cari data keluarga & hunian
+  let familyData: any = null;
+
+  if (memberInfo?.familyId) {
+    // Cari KK berdasarkan familyId milik member
+    const [fam] = await db
+      .select({
+        id: schema.families.id,
+        familyNumber: schema.families.familyNumber,
+        verificationStatus: schema.families.verificationStatus,
+        headUserId: schema.families.headUserId,
+        headName: schema.users.name,
+        dwellingId: schema.families.dwellingId,
+        blockNumber: schema.dwellings.blockNumber,
+        houseNumber: schema.dwellings.houseNumber,
+        dwellingType: schema.dwellings.type,
+      })
+      .from(schema.families)
+      .leftJoin(schema.users, eq(schema.families.headUserId, schema.users.id))
+      .leftJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
+      .where(and(eq(schema.families.id, memberInfo.familyId), eq(schema.families.isActive, true)))
+      .limit(1);
+    familyData = fam;
+  }
+
+  if (!familyData) {
+    // Fallback: cari KK di mana user ini adalah kepala keluarga (headUserId)
+    const [fam] = await db
+      .select({
+        id: schema.families.id,
+        familyNumber: schema.families.familyNumber,
+        verificationStatus: schema.families.verificationStatus,
+        headUserId: schema.families.headUserId,
+        headName: schema.users.name,
+        dwellingId: schema.families.dwellingId,
+        blockNumber: schema.dwellings.blockNumber,
+        houseNumber: schema.dwellings.houseNumber,
+        dwellingType: schema.dwellings.type,
+      })
+      .from(schema.families)
+      .leftJoin(schema.users, eq(schema.families.headUserId, schema.users.id))
+      .leftJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
+      .where(and(eq(schema.families.headUserId, userId), eq(schema.families.isActive, true)))
+      .limit(1);
+
+    if (fam) {
+      familyData = fam;
+      // Jika memberInfo belum didapat, cari member Kepala Keluarga di KK ini & auto-link userId jika belum terhubung
+      if (!memberInfo) {
+        const [headMember] = await db
+          .select({
+            id: schema.familyMembers.id,
+            familyId: schema.familyMembers.familyId,
+            relationship: schema.familyMembers.relationship,
+            nik: schema.familyMembers.nik,
+            name: schema.familyMembers.name,
+            phone: schema.familyMembers.phone,
+          })
+          .from(schema.familyMembers)
+          .where(and(eq(schema.familyMembers.familyId, fam.id), eq(schema.familyMembers.relationship, 'Kepala_Keluarga'), eq(schema.familyMembers.isActive, true)))
+          .limit(1);
+
+        if (headMember) {
+          memberInfo = headMember;
+          // Auto-link userId ke record familyMembers ini jika NULL
+          await db
+            .update(schema.familyMembers)
+            .set({ userId })
+            .where(eq(schema.familyMembers.id, headMember.id));
+        }
+      }
+    }
+  }
+
+  // Format dwellingInfo untuk konsistensi tampilan di UI profil
+  const dwellingInfo = familyData?.blockNumber
+    ? {
+        id: familyData.dwellingId,
+        blockNumber: familyData.blockNumber,
+        houseNumber: familyData.houseNumber,
+        type: familyData.dwellingType || 'permanen',
+      }
+    : null;
 
   return {
     ...user,
+    nik: memberInfo?.nik ?? null,
+    familyNumber: familyData?.familyNumber ?? null,
     roleId: primaryRole?.roleId ?? 6,
     roleName: primaryRole?.roleName ?? 'Warga',
     roleSlug: primaryRole?.roleSlug ?? 'warga',
     roleIds: roles.map((r) => r.roleId),
-    familyInfo: familyInfo[0] ?? null,
-    memberInfo: memberInfo[0] ?? null,
+    familyInfo: familyData ?? null,
+    dwellingInfo,
+    memberInfo: memberInfo ?? null,
+    residentInfo: memberInfo ?? null,
   };
 }
 

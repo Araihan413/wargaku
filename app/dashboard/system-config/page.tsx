@@ -31,7 +31,7 @@ const EMPTY_FORM: SystemConfigFormState = {
 
 export default function SystemConfigPage() {
   return (
-    <PermissionGuard requiredPermission="manage-system-config" requiredRoles={[1]}>
+    <PermissionGuard requiredPermission="manage-system-config">
       <SystemConfigContent />
     </PermissionGuard>
   );

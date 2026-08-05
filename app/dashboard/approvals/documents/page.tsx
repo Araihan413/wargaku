@@ -13,8 +13,16 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { DocumentPreviewModal } from "./_components/DocumentPreviewModal";
 import { VerifyConfirmModal } from "./_components/VerifyConfirmModal";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { RefreshButton } from "@/components/RefreshButton";
+import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+
+const STATUS_OPTIONS: SelectOption[] = [
+  { value: "pending", label: "Menunggu Review" },
+  { value: "verified", label: "Terverifikasi" },
+  { value: "rejected", label: "Ditolak" },
+];
 
 interface FamilyItem {
 
@@ -48,6 +56,14 @@ interface RentalResidentItem {
 }
 
 export default function DocumentApprovalsPage() {
+  return (
+    <PermissionGuard requiredPermission="verify-documents">
+      <DocumentApprovalsContent />
+    </PermissionGuard>
+  );
+}
+
+function DocumentApprovalsContent() {
   const [activeTab, setActiveTab] = useState<"family" | "rental_resident">("family");
   const [statusFilter, setStatusFilter] = useState<"pending" | "verified" | "rejected">("pending");
   const [searchQuery, setSearchQuery] = useState("");
@@ -268,17 +284,13 @@ export default function DocumentApprovalsPage() {
             </div>
 
             {/* Status Selector */}
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as any);
-              }}
-              className="w-full sm:w-auto text-xs px-3 py-2 bg-gray-sidebar-hover/20 border border-gray-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-gray-heading-main cursor-pointer"
-            >
-              <option value="pending">Menunggu Review</option>
-              <option value="verified">Terverifikasi</option>
-              <option value="rejected">Ditolak</option>
-            </select>
+            <div className="w-full sm:w-44">
+              <CustomSelect
+                value={statusFilter}
+                onChange={(val) => setStatusFilter(val as any)}
+                options={STATUS_OPTIONS}
+              />
+            </div>
           </div>
         </div>
 

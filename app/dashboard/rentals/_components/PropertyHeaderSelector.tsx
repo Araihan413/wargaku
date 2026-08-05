@@ -1,6 +1,7 @@
 import React from "react";
-import { Building2, ChevronDown, QrCode, Home, Users, CheckCircle2 } from "lucide-react";
+import { Building2, QrCode, Home, Users, CheckCircle2 } from "lucide-react";
 import { PropertyDetail } from "../types";
+import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 
 interface PropertyHeaderSelectorProps {
   properties: PropertyDetail[];
@@ -25,6 +26,11 @@ export const PropertyHeaderSelector: React.FC<PropertyHeaderSelectorProps> = ({
 
   const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
+  const propertyOptions: SelectOption[] = properties.map((p) => ({
+    value: String(p.id),
+    label: `${p.name} (Blok ${p.blockNumber} No. ${p.houseNumber})`,
+  }));
+
   return (
     <div className="rounded-2xl border border-gray-border bg-gray-card p-6 shadow-sm space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-border pb-4">
@@ -35,22 +41,15 @@ export const PropertyHeaderSelector: React.FC<PropertyHeaderSelectorProps> = ({
           </div>
           <div>
             {properties.length > 1 ? (
-              <div className="relative">
-                <select
-                  value={selectedProperty.id}
-                  onChange={(e) => {
-                    const found = properties.find((p) => p.id === Number(e.target.value));
+              <div className="w-64">
+                <CustomSelect
+                  value={String(selectedProperty.id)}
+                  onChange={(val) => {
+                    const found = properties.find((p) => p.id === Number(val));
                     if (found) onSelectProperty(found);
                   }}
-                  className="appearance-none bg-gray-sidebar-hover/60 border border-gray-border rounded-xl py-1.5 pl-3 pr-8 text-sm font-bold text-gray-heading-main focus:outline-none focus:border-primary cursor-pointer"
-                >
-                  {properties.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} (Blok {p.blockNumber} No. {p.houseNumber})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-secondary-text pointer-events-none" />
+                  options={propertyOptions}
+                />
               </div>
             ) : (
               <h1 className="text-xl font-extrabold text-gray-heading-main">{selectedProperty.name}</h1>

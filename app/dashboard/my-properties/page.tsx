@@ -9,6 +9,7 @@ import { useFamilyVerification } from "@/lib/hooks/use-family-verification";
 import { DwellingSearchSelect } from "./_components/DwellingSearchSelect";
 import { CoordinatorSearchSelect } from "./_components/CoordinatorSearchSelect";
 import { validateAndParseRoomPattern } from "@/lib/room-helper";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 interface PropertyItem {
   id: number;
@@ -47,6 +48,14 @@ function formatWhatsAppLink(phone: string, text: string) {
 }
 
 export default function MyPropertiesPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-boarding">
+      <MyPropertiesContent />
+    </PermissionGuard>
+  );
+}
+
+function MyPropertiesContent() {
   const { data: session } = authClient.useSession();
   const sessionUserId = session?.user?.id;
   const { isVerified, isLoading: isVerificationLoading } = useFamilyVerification(session?.user?.roleId);

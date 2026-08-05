@@ -120,6 +120,7 @@ export async function getFamilyById(id: number) {
       dwellingId: schema.families.dwellingId,
       blockNumber: schema.dwellings.blockNumber,
       houseNumber: schema.dwellings.houseNumber,
+      dwellingType: schema.dwellings.type,
       verificationStatus: schema.families.verificationStatus,
       verificationNote: schema.families.verificationNote,
       kkFile: schema.families.kkFile,
@@ -134,6 +135,35 @@ export async function getFamilyById(id: number) {
     .limit(1);
 
   if (!family) return null;
+
+  let dwellingId = family.dwellingId;
+  let blockNumber = family.blockNumber;
+  let houseNumber = family.houseNumber;
+  let dwellingType = family.dwellingType;
+
+  // Fallback: Jika dwellingId NULL, cari hunian tempat headUserId terdaftar sebagai pemilik
+  if (!dwellingId && family.headUserId) {
+    const [fallbackDwelling] = await db
+      .select({
+        id: schema.dwellings.id,
+        blockNumber: schema.dwellings.blockNumber,
+        houseNumber: schema.dwellings.houseNumber,
+        type: schema.dwellings.type,
+      })
+      .from(schema.dwellings)
+      .where(and(eq(schema.dwellings.ownerUserId, family.headUserId), eq(schema.dwellings.isActive, true)))
+      .limit(1);
+
+    if (fallbackDwelling) {
+      dwellingId = fallbackDwelling.id;
+      blockNumber = fallbackDwelling.blockNumber;
+      houseNumber = fallbackDwelling.houseNumber;
+      dwellingType = fallbackDwelling.type;
+
+      // Auto-link ke database agar permanen
+      await db.update(schema.families).set({ dwellingId: fallbackDwelling.id }).where(eq(schema.families.id, id));
+    }
+  }
 
   const members = await db
     .select({
@@ -157,8 +187,19 @@ export async function getFamilyById(id: number) {
 
   const checkInDateStr = family.createdAt ? (family.createdAt instanceof Date ? family.createdAt.toISOString() : String(family.createdAt)) : null;
 
+  const dwelling = (dwellingId && blockNumber && houseNumber) ? {
+    id: dwellingId,
+    blockNumber,
+    houseNumber,
+    type: dwellingType || "permanen",
+  } : null;
+
   return {
     ...family,
+    dwellingId,
+    blockNumber,
+    houseNumber,
+    dwelling,
     checkInDate: checkInDateStr,
     members,
   };

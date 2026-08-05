@@ -18,6 +18,7 @@ import { PublicDetailModal } from "@/app/_components/PublicDetailModal";
 import { PublicErrorState } from "@/app/_components/PublicErrorState";
 import { PublicFinanceTransactionItem } from "@/db/queries/dashboard/public-portal.queries";
 import { getCachedData, setCachedData } from "@/lib/public-cache";
+import { CustomSelect } from "@/components/CustomSelect";
 import { SearchInput } from "@/components/SearchInput";
 
 const TYPE_FILTERS = [
@@ -304,22 +305,18 @@ export default function PublicFinancePage() {
               </div>
 
               {/* Month Selector Filter (Last 6 Months) */}
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shrink-0">
-                <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
-                <select
+              <div className="w-48 shrink-0">
+                <CustomSelect
                   value={selectedMonth}
-                  onChange={(e) => {
-                    setSelectedMonth(e.target.value);
+                  onChange={(val) => {
+                    setSelectedMonth(val);
                     setPage(1);
                   }}
-                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-2"
-                >
-                  {last6MonthsOptions.map((opt) => (
-                    <option key={opt.key} value={opt.key}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  options={last6MonthsOptions.map((opt) => ({
+                    value: opt.key,
+                    label: opt.label,
+                  }))}
+                />
               </div>
             </div>
 

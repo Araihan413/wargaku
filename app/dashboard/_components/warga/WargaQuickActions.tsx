@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Users, FileText, AlertCircle, Wallet, Search, ArrowUpRight, Lock } from "lucide-react";
+import { Users, AlertCircle, Wallet, Search, ArrowUpRight, Lock, Receipt } from "lucide-react";
 import { toast } from "sonner";
 
 interface QuickActionItem {
@@ -28,11 +28,11 @@ const actions: QuickActionItem[] = [
     iconColor: "text-blue-600",
   },
   {
-    title: "Surat Pengantar",
-    description: "Pengajuan surat RT online & pantau status",
-    href: "/dashboard/family/surat",
-    icon: FileText,
-    badge: "Online",
+    title: "Iuran Warga",
+    description: "Bayar tagihan iuran bulanan & rincian pembayaran",
+    href: "/dashboard/iuran",
+    icon: Receipt,
+    badge: "Tagihan",
     bgGradient: "hover:border-emerald-200 hover:bg-emerald-50/50",
     iconBg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",
     iconColor: "text-emerald-600",

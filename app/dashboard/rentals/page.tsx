@@ -12,8 +12,17 @@ import { CheckInModal } from "../my-properties/[id]/_components/CheckInModal";
 import { CheckOutModal } from "../my-properties/[id]/_components/CheckOutModal";
 import { EditResidentModal } from "../my-properties/[id]/_components/EditResidentModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function RentalsPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-boarding">
+      <RentalsContent />
+    </PermissionGuard>
+  );
+}
+
+function RentalsContent() {
   const [properties, setProperties] = useState<PropertyDetail[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<PropertyDetail | null>(null);
   const [rooms, setRooms] = useState<RoomGridItem[]>([]);

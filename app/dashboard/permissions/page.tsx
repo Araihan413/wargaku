@@ -16,7 +16,7 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function RolePermissionsPage() {
   return (
-    <PermissionGuard requiredPermission="manage-roles" requiredRoles={[1]}>
+    <PermissionGuard requiredPermission="manage-roles">
       <RolePermissionsContent />
     </PermissionGuard>
   );

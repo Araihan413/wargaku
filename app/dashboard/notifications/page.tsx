@@ -27,6 +27,7 @@ interface NotificationItem {
 }
 
 import { formatRelativeTime } from "@/lib/date-format";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -39,6 +40,9 @@ export default function NotificationsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const limit = 15;
+
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const isWarga = activeRoleId === 6;
 
@@ -183,12 +187,8 @@ export default function NotificationsPage() {
   };
 
   // Clear all notifications in current tab view
-  const handleClearAll = async () => {
-    const confirmClear = window.confirm(
-      "Apakah Anda yakin ingin menghapus seluruh riwayat notifikasi pada kategori ini?"
-    );
-    if (!confirmClear) return;
-
+  const handleClearAllConfirm = async () => {
+    setIsClearing(true);
     try {
       const categoryParam = activeTab === "unread" ? "all" : activeTab;
       const res = await fetch(`/api/notifications?category=${categoryParam}`, {
@@ -198,12 +198,15 @@ export default function NotificationsPage() {
       if (res.ok) {
         setNotifications([]);
         toast.success("Riwayat notifikasi berhasil dibersihkan");
+        setShowClearConfirm(false);
       } else {
         toast.error("Gagal menghapus notifikasi");
       }
     } catch (err) {
       console.error("Error clearing notifications:", err);
       toast.error("Terjadi kesalahan koneksi");
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -270,7 +273,7 @@ export default function NotificationsPage() {
               </button>
             )}
             <button
-              onClick={handleClearAll}
+              onClick={() => setShowClearConfirm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-xl transition-all duration-200 cursor-pointer"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -429,6 +432,17 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showClearConfirm}
+        onClose={() => setShowClearConfirm(false)}
+        onConfirm={handleClearAllConfirm}
+        title="Bersihkan Notifikasi"
+        description="Apakah Anda yakin ingin menghapus seluruh riwayat notifikasi pada kategori ini?"
+        confirmText="Hapus Semua"
+        variant="danger"
+        isLoading={isClearing}
+      />
     </div>
   );
 }

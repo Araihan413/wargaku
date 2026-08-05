@@ -8,8 +8,17 @@ import { AnnouncementTable } from "./_components/AnnouncementTable";
 import { AddAnnouncementModal } from "./_components/AddAnnouncementModal";
 import { EditAnnouncementModal } from "./_components/EditAnnouncementModal";
 import { AnnouncementDetailModal } from "./_components/AnnouncementDetailModal";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function AnnouncementsPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-announcements">
+      <AnnouncementsContent />
+    </PermissionGuard>
+  );
+}
+
+function AnnouncementsContent() {
   const [items, setItems] = useState<AnnouncementItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

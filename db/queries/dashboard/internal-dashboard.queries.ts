@@ -38,8 +38,8 @@ export async function getSuperAdminDashboardStats() {
     // Total Penyewa Aktif
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.rentalContracts).where(eq(schema.rentalContracts.isActive, true)),
 
-    // Total KK Terverifikasi
-    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, 'verified'))),
+    // Total KK Aktif
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(eq(schema.families.isActive, true)),
 
     // Agregasi Tunggal Kas (Income & Expense)
     db.select({
@@ -155,8 +155,8 @@ export async function getRtDashboardStats() {
     [totalRoomsAgg],
     [filledRoomsAgg],
   ] = await Promise.all([
-    // Total KK
-    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, 'verified'))),
+    // Total KK Aktif
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(eq(schema.families.isActive, true)),
 
     // Total Warga Tetap
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)),
@@ -555,7 +555,7 @@ export async function getTreasurerDashboardStats() {
     }).from(schema.cashTransactions),
 
     // Total KK Aktif
-    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, 'verified'))),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(eq(schema.families.isActive, true)),
 
     // Kepatuhan Iuran Bulan Ini
     db.select({
@@ -857,11 +857,11 @@ export async function getWargaDashboard(userId: string) {
       .from(schema.familyMembers)
       .where(eq(schema.familyMembers.isActive, true)),
 
-    // Total Kartu Keluarga Verifikasi/Aktif
+    // Total Kartu Keluarga Aktif
     db
       .select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(schema.families)
-      .where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, 'verified'))),
+      .where(eq(schema.families.isActive, true)),
 
     // Agregat Kas RT
     db

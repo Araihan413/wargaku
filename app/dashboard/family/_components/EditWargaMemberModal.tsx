@@ -198,15 +198,15 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
             <div className="space-y-1 sm:col-span-2">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 Nama Lengkap <span className="text-red-500 ml-0.5">*</span>
-                {isHead && <span className="float-right text-[10px] font-normal text-gray-placeholder flex items-center gap-1"><Lock className="h-3 w-3" /> Akun Utama</span>}
+                {isHead && <span className="float-right text-[10px] font-normal text-gray-placeholder flex items-center gap-1">Kepala Keluarga</span>}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                disabled={isHead || isLocked}
+                disabled={isLocked}
                 className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
-                  (isHead || isLocked) ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
+                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
                 }`}
                 required
               />
@@ -216,16 +216,16 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
             <div className="space-y-1">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 NIK (16 Digit) <span className="text-red-500 ml-0.5">*</span>
-                {isHead && <span className="float-right text-[10px] font-normal text-gray-placeholder flex items-center gap-1"><Lock className="h-3 w-3" /> Akun Utama</span>}
+                {isHead && <span className="float-right text-[10px] font-normal text-gray-placeholder flex items-center gap-1">Kepala Keluarga</span>}
               </label>
               <input
                 type="text"
                 maxLength={16}
                 value={nik}
                 onChange={(e) => setNik(e.target.value.replace(/\D/g, ""))}
-                disabled={isHead || isLocked}
+                disabled={isLocked}
                 className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm font-mono text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
-                  (isHead || isLocked) ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
+                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
                 }`}
                 required
               />

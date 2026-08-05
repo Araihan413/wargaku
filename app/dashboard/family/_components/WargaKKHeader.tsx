@@ -33,7 +33,42 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
   const [isCancellingSubmit, setIsCancellingSubmit] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
+  const [isEditingKKNumber, setIsEditingKKNumber] = useState(false);
+  const [kkNumberInput, setKkNumberInput] = useState(family.familyNumber);
+  const [isSavingKKNumber, setIsSavingKKNumber] = useState(false);
+
   const isLocked = family.verificationStatus === "verified" || family.verificationStatus === "pending";
+
+  // Handle edit KK Number
+  const handleSaveKKNumber = async () => {
+    if (!/^[0-9]{16}$/.test(kkNumberInput)) {
+      toast.error("Nomor Kartu Keluarga harus 16 digit angka.");
+      return;
+    }
+
+    setIsSavingKKNumber(true);
+    try {
+      const res = await fetch(`/api/families/${family.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ familyNumber: kkNumberInput }),
+      });
+
+      if (res.ok) {
+        toast.success("Nomor Kartu Keluarga berhasil diperbarui!");
+        setIsEditingKKNumber(false);
+        onRefresh();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal memperbarui Nomor KK");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsSavingKKNumber(false);
+    }
+  };
 
   // Save KK URL (both Cloudinary or Google Drive) to DB
   const saveKKFileToDB = async (url: string) => {
@@ -162,10 +197,59 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
             </div>
 
             <div>
-              <h2 className="text-2xl font-black text-gray-heading-main tracking-tight">
-                No. KK: {family.familyNumber}
-              </h2>
-              <p className="text-sm font-semibold text-gray-heading-main mt-0.5">
+              <div className="flex items-center gap-2">
+                {isEditingKKNumber ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="text"
+                      maxLength={16}
+                      value={kkNumberInput}
+                      onChange={(e) => setKkNumberInput(e.target.value.replace(/\D/g, ""))}
+                      className="w-56 bg-gray-card border border-gray-border rounded-xl px-3.5 py-1.5 text-base font-bold text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      placeholder="16 Digit Nomor KK"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveKKNumber}
+                      disabled={isSavingKKNumber}
+                      className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-xs font-bold transition-all shadow-sm disabled:opacity-60 cursor-pointer"
+                    >
+                      {isSavingKKNumber ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingKKNumber(false);
+                        setKkNumberInput(family.familyNumber);
+                      }}
+                      className="rounded-xl border border-gray-border bg-gray-card hover:bg-gray-sidebar-hover text-gray-secondary-text px-3 py-2 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-black text-gray-heading-main tracking-tight">
+                      No. KK: {family.familyNumber}
+                    </h2>
+                    {!isLocked && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setKkNumberInput(family.familyNumber);
+                          setIsEditingKKNumber(true);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-border bg-gray-card hover:bg-gray-sidebar-hover text-gray-secondary-text hover:text-gray-heading-main px-2 py-1 text-xs font-semibold transition-all cursor-pointer shadow-xs"
+                        title="Edit Nomor KK"
+                      >
+                        <Edit3 className="h-3.5 w-3.5 text-primary" />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+              <p className="text-sm font-semibold text-gray-heading-main mt-1">
                 Kepala Keluarga: <span className="text-primary-900 font-bold">{family.headName}</span>
               </p>
               {family.dwellingAddress && (

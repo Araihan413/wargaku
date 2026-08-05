@@ -54,6 +54,8 @@ interface FamilyDetail {
   hasVerified: boolean;
   lastVerifiedAt: string | null;
   draftOpenedAt: string | null;
+  blockNumber?: string | null;
+  houseNumber?: string | null;
   dwelling: Dwelling | null;
   members: FamilyMember[];
 }
@@ -415,7 +417,7 @@ export default function DocumentVerificationWorkspacePage() {
                       </span>
                     )}
                     <p className="text-[10px] text-gray-secondary-text mt-1 leading-normal">
-                      Tanggal Mulai Tinggal: <span className="font-semibold text-gray-heading-main">{formatDate(family.checkInDate)}</span>
+                      Tanggal Pendaftaran / Tinggal: <span className="font-semibold text-gray-heading-main">{formatDate(family.checkInDate || family.createdAt)}</span>
                     </p>
                   </div>
                 </div>

@@ -19,7 +19,7 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function AuditLogsPage() {
   return (
-    <PermissionGuard requiredPermission="view-audit-logs" requiredRoles={[1]}>
+    <PermissionGuard requiredPermission="view-audit-logs">
       <AuditLogsContent />
     </PermissionGuard>
   );

@@ -324,8 +324,8 @@ function WargaFamilyContent() {
       />
 
       {/* Action Button Section */}
-      {!isLocked && (familyDetail.verificationStatus === "draft" || familyDetail.verificationStatus === "rejected") && familyDetail.kkFile && (
-        <div className="flex justify-end items-center gap-3 pt-4 border-t border-gray-border/40 mt-6">
+      {!isLocked && (familyDetail.verificationStatus === "draft" || familyDetail.verificationStatus === "rejected") && (
+        <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-4 border-t border-gray-border/40 mt-6">
           {/* Batalkan Perubahan (Only shown if draft, already verified, and NO changes) */}
           {familyDetail.verificationStatus === "draft" && familyDetail.hasVerified && !hasUnsubmittedChanges && (
             <button
@@ -343,12 +343,17 @@ function WargaFamilyContent() {
             </button>
           )}
 
-          {/* Verifikasi Ke RT (Disabled if draft, verified before, but no changes yet) */}
+          {/* Verifikasi Ke RT (Disabled if no KK file or no changes made after verified) */}
           <button
             type="button"
             onClick={handleConfirmSubmit}
-            disabled={isSubmittingToRT || (familyDetail.verificationStatus === "draft" && familyDetail.hasVerified && !hasUnsubmittedChanges)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98] duration-150 disabled:pointer-events-none disabled:hover:scale-100"
+            disabled={
+              isSubmittingToRT ||
+              !familyDetail.kkFile ||
+              (familyDetail.verificationStatus === "draft" && familyDetail.hasVerified && !hasUnsubmittedChanges)
+            }
+            title={!familyDetail.kkFile ? "Harap unggah berkas Scan KK terlebih dahulu" : undefined}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-bold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] duration-150 disabled:pointer-events-none disabled:hover:scale-100"
           >
             {isSubmittingToRT ? (
               <Loader2 className="h-4.5 w-4.5 animate-spin" />

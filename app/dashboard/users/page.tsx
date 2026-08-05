@@ -18,7 +18,7 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function UserManagementPage() {
   return (
-    <PermissionGuard requiredPermission="manage-users" requiredRoles={[1]}>
+    <PermissionGuard requiredPermission="manage-users">
       <UserManagementContent />
     </PermissionGuard>
   );

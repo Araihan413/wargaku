@@ -12,8 +12,17 @@ import { CustomSelect } from "@/components/CustomSelect";
 import { SearchInput } from "@/components/SearchInput";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function KelolaManagedPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-finance">
+      <KelolaManagedContent />
+    </PermissionGuard>
+  );
+}
+
+function KelolaManagedContent() {
   // Fee Rules state
   const [rules, setRules] = useState<FeeRule[]>([]);
   const [isLoadingRules, setIsLoadingRules] = useState(true);

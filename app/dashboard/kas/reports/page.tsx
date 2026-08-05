@@ -10,6 +10,7 @@ import { FinancialReportData, ReportFilterState } from "./types";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Printer, Loader2, AlertCircle } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 const MONTH_NAMES = [
   "",
@@ -182,7 +183,8 @@ export default function FinancialReportPage() {
   };
 
   return (
-    <div className="pb-12">
+    <PermissionGuard requiredPermission="view-finance">
+      <div className="pb-12">
       {/* Screen-Only Content Container */}
       <div className="space-y-6 print:hidden">
         {/* Main Page Header */}
@@ -250,5 +252,6 @@ export default function FinancialReportPage() {
       {/* Direct Printable Document (Hidden on screen, Visible ONLY when printing) */}
       <OfficialFinancialReportPrint data={officialReportData} />
     </div>
+    </PermissionGuard>
   );
 }

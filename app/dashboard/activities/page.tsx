@@ -8,8 +8,17 @@ import { ActivityTable } from "./_components/ActivityTable";
 import { AddActivityModal } from "./_components/AddActivityModal";
 import { EditActivityModal } from "./_components/EditActivityModal";
 import { ActivityDetailModal } from "./_components/ActivityDetailModal";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function ActivitiesPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-activities">
+      <ActivitiesContent />
+    </PermissionGuard>
+  );
+}
+
+function ActivitiesContent() {
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

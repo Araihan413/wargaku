@@ -6,6 +6,7 @@ import { AnnouncementItem, AnnouncementCategory } from "../types";
 import { SearchInput } from "@/components/SearchInput";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { toast } from "sonner";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface AnnouncementTableProps {
   items: AnnouncementItem[];
@@ -28,6 +29,7 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingItem, setDeletingItem] = useState<AnnouncementItem | null>(null);
   const [pinningId, setPinningId] = useState<number | null>(null);
 
   const filteredItems = items.filter((item) => {
@@ -72,12 +74,12 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus pengumuman ini?")) return;
+  const handleDeleteConfirm = async () => {
+    if (!deletingItem) return;
 
-    setDeletingId(id);
+    setDeletingId(deletingItem.id);
     try {
-      const res = await fetch(`/api/announcements/${id}`, {
+      const res = await fetch(`/api/announcements/${deletingItem.id}`, {
         method: "DELETE",
       });
 
@@ -86,6 +88,7 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
       }
 
       toast.success("Pengumuman berhasil dihapus");
+      setDeletingItem(null);
       onRefresh();
     } catch (err: any) {
       toast.error(err.message || "Terjadi kesalahan koneksi");
@@ -256,7 +259,7 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
                     type="button"
                     title="Hapus Pengumuman"
                     disabled={deletingId === item.id}
-                    onClick={() => handleDelete(item.id)}
+                    onClick={() => setDeletingItem(item)}
                     className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-1.5 text-rose-600 hover:bg-rose-500/20 transition-colors cursor-pointer"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -267,6 +270,17 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
           })}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(deletingItem)}
+        onClose={() => setDeletingItem(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Hapus Pengumuman"
+        description={`Apakah Anda yakin ingin menghapus pengumuman "${deletingItem?.title}"?`}
+        confirmText="Hapus"
+        variant="danger"
+        isLoading={Boolean(deletingId)}
+      />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import Image from "next/image";
+import { CustomSelect } from "@/components/CustomSelect";
 
 interface LiveCameraScannerProps {
   onScanSuccess: (token: string) => void;
@@ -258,17 +259,16 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({ onScanSucc
 
               {/* Pilih kamera jika ada lebih dari satu */}
               {cameras.length > 1 && (
-                <div className="flex items-center justify-center gap-2">
-                  <label className="text-xs font-semibold text-slate-600">Pilih Kamera:</label>
-                  <select
+                <div className="w-56 mx-auto">
+                  <CustomSelect
+                    label="Pilih Kamera"
                     value={selectedCamera}
-                    onChange={(e) => setSelectedCamera(e.target.value)}
-                    className="text-xs border border-slate-200 bg-white rounded-lg px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-                  >
-                    {cameras.map((cam) => (
-                      <option key={cam.id} value={cam.id}>{cam.label}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedCamera(val)}
+                    options={cameras.map((cam) => ({
+                      value: cam.id,
+                      label: cam.label,
+                    }))}
+                  />
                 </div>
               )}
 

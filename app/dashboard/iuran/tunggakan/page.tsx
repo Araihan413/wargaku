@@ -7,8 +7,17 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { CustomSelect } from "@/components/CustomSelect";
 import { SearchInput } from "@/components/SearchInput";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function LaporanTunggakanPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-finance">
+      <LaporanTunggakanContent />
+    </PermissionGuard>
+  );
+}
+
+function LaporanTunggakanContent() {
 
   const [rules, setRules] = useState<FeeRule[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string>("");

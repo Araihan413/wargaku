@@ -11,6 +11,7 @@ import { EditExpenseModal } from "./_components/EditExpenseModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function CatatPengeluaranPage() {
   const [items, setItems] = useState<CashTransactionItem[]>([]);
@@ -171,99 +172,101 @@ export default function CatatPengeluaranPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main flex items-center gap-2.5">
-            Catat Pengeluaran Kas RT
-          </h1>
-          <p className="text-sm text-gray-secondary-text mt-0.5">
-            Pencatatan uang keluar untuk operasional, kebersihan, kegiatan, & pemeliharaan RT.
-          </p>
-        </div>
+    <PermissionGuard requiredPermission="manage-finance">
+      <div className="space-y-6 pb-12">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main flex items-center gap-2.5">
+              Catat Pengeluaran Kas RT
+            </h1>
+            <p className="text-sm text-gray-secondary-text mt-0.5">
+              Pencatatan uang keluar untuk operasional, kebersihan, kegiatan, & pemeliharaan RT.
+            </p>
+          </div>
 
-        <button
-          type="button"
-          onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Catat Pengeluaran Baru</span>
-        </button>
-      </div>
-
-      {/* KPI Cards */}
-      <ExpenseKpiCards
-        totalMonth={totalMonthAmount}
-        totalFiltered={totalFilteredAmount}
-        totalItemsCount={totalItemsCount}
-      />
-
-      {/* Filter Bar */}
-      <ExpenseFilterBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-        startDate={startDate}
-        onStartDateChange={setStartDate}
-        endDate={endDate}
-        onEndDateChange={setEndDate}
-        onReset={handleResetFilters}
-      />
-
-      {/* Error Message */}
-      {error && (
-        <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-rose-700 text-xs font-semibold flex items-center justify-between">
-          <span>{error}</span>
           <button
             type="button"
-            onClick={fetchExpenseData}
-            className="underline text-xs font-bold hover:text-rose-900 cursor-pointer"
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer self-start sm:self-auto"
           >
-            Coba Lagi
+            <Plus className="h-4 w-4" />
+            <span>Catat Pengeluaran Baru</span>
           </button>
         </div>
-      )}
 
-      {/* Expense Table */}
-      <ExpenseTable
-        items={items}
-        isLoading={isLoading}
-        onEdit={(item) => setEditingItem(item)}
-        onDelete={(item) => setDeletingItem(item)}
-      />
+        {/* KPI Cards */}
+        <ExpenseKpiCards
+          totalMonth={totalMonthAmount}
+          totalFiltered={totalFilteredAmount}
+          totalItemsCount={totalItemsCount}
+        />
 
-      {/* Modals */}
-      <AddExpenseModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSuccess={() => {
-          fetchExpenseData();
-        }}
-      />
+        {/* Filter Bar */}
+        <ExpenseFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          startDate={startDate}
+          onStartDateChange={setStartDate}
+          endDate={endDate}
+          onEndDateChange={setEndDate}
+          onReset={handleResetFilters}
+        />
 
-      <EditExpenseModal
-        key={editingItem?.id || "new-expense-modal"}
-        isOpen={!!editingItem}
-        item={editingItem}
-        onClose={() => setEditingItem(null)}
-        onSuccess={() => {
-          fetchExpenseData();
-        }}
-      />
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-rose-700 text-xs font-semibold flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={fetchExpenseData}
+              className="underline text-xs font-bold hover:text-rose-900 cursor-pointer"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        )}
 
-      <ConfirmModal
-        isOpen={!!deletingItem}
-        onClose={() => setDeletingItem(null)}
-        onConfirm={handleDeleteConfirm}
-        title="Hapus Catatan Pengeluaran"
-        description={`Apakah Anda yakin ingin menghapus catatan pengeluaran "${deletingItem?.description}" sejumlah Rp ${deletingItem?.amount?.toLocaleString("id-ID")}?`}
-        confirmText="Hapus Pengeluaran"
-        variant="danger"
-        isLoading={isDeleting}
-      />
-    </div>
+        {/* Expense Table */}
+        <ExpenseTable
+          items={items}
+          isLoading={isLoading}
+          onEdit={(item) => setEditingItem(item)}
+          onDelete={(item) => setDeletingItem(item)}
+        />
+
+        {/* Modals */}
+        <AddExpenseModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSuccess={() => {
+            fetchExpenseData();
+          }}
+        />
+
+        <EditExpenseModal
+          key={editingItem?.id || "new-expense-modal"}
+          isOpen={!!editingItem}
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSuccess={() => {
+            fetchExpenseData();
+          }}
+        />
+
+        <ConfirmModal
+          isOpen={!!deletingItem}
+          onClose={() => setDeletingItem(null)}
+          onConfirm={handleDeleteConfirm}
+          title="Hapus Catatan Pengeluaran"
+          description={`Apakah Anda yakin ingin menghapus catatan pengeluaran "${deletingItem?.description}" sejumlah Rp ${deletingItem?.amount?.toLocaleString("id-ID")}?`}
+          confirmText="Hapus Pengeluaran"
+          variant="danger"
+          isLoading={isDeleting}
+        />
+      </div>
+    </PermissionGuard>
   );
 }

@@ -68,7 +68,7 @@ export function WargaAnnouncementsWidget({ announcements }: WargaAnnouncementsWi
           </div>
         </div>
         <Link
-          href="/announcements"
+          href="/pengumuman"
           className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-700 transition-colors"
         >
           <span>Lihat Semua</span>

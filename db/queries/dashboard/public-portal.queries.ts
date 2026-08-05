@@ -436,7 +436,7 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
   ] = await Promise.all([
     db.select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(schema.families)
-      .where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, 'verified'))),
+      .where(eq(schema.families.isActive, true)),
 
     db.select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(schema.familyMembers)

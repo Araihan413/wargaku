@@ -13,8 +13,17 @@ import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { RefreshButton } from "@/components/RefreshButton";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function ComplaintsDashboardPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-complaints">
+      <ComplaintsDashboardContent />
+    </PermissionGuard>
+  );
+}
+
+function ComplaintsDashboardContent() {
   const { data: session, isPending: isSessionLoading } = authClient.useSession();
   const { activeRoleId } = useRoleStore();
 

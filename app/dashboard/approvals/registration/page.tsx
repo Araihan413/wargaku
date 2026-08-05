@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { RefreshButton } from "@/components/RefreshButton";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 
 interface PendingUser {
@@ -30,6 +31,14 @@ interface PendingUser {
 }
 
 export default function RegistrationApprovalsPage() {
+  return (
+    <PermissionGuard requiredPermission="verify-registrations">
+      <RegistrationApprovalsContent />
+    </PermissionGuard>
+  );
+}
+
+function RegistrationApprovalsContent() {
   const [pendingList, setPendingList] = useState<PendingUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -11,6 +11,7 @@ import { EditIncomeModal } from "./_components/EditIncomeModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function CatatPemasukanPage() {
   const [items, setItems] = useState<CashTransactionItem[]>([]);
@@ -171,99 +172,101 @@ export default function CatatPemasukanPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main flex items-center gap-2.5">
-            Catat Pemasukan Kas RT
-          </h1>
-          <p className="text-sm text-gray-secondary-text mt-0.5">
-            Kelola dan catat seluruh uang masuk kas RT di luar iuran bulanan warga.
-          </p>
-        </div>
+    <PermissionGuard requiredPermission="manage-finance">
+      <div className="space-y-6 pb-12">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main flex items-center gap-2.5">
+              Catat Pemasukan Kas RT
+            </h1>
+            <p className="text-sm text-gray-secondary-text mt-0.5">
+              Kelola dan catat seluruh uang masuk kas RT di luar iuran bulanan warga.
+            </p>
+          </div>
 
-        <button
-          type="button"
-          onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Catat Pemasukan Baru</span>
-        </button>
-      </div>
-
-      {/* KPI Cards */}
-      <IncomeKpiCards
-        totalMonth={totalMonthAmount}
-        totalFiltered={totalFilteredAmount}
-        totalItemsCount={totalItemsCount}
-      />
-
-      {/* Filter Bar */}
-      <IncomeFilterBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-        startDate={startDate}
-        onStartDateChange={setStartDate}
-        endDate={endDate}
-        onEndDateChange={setEndDate}
-        onReset={handleResetFilters}
-      />
-
-      {/* Error Message */}
-      {error && (
-        <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-rose-700 text-xs font-semibold flex items-center justify-between">
-          <span>{error}</span>
           <button
             type="button"
-            onClick={fetchIncomeData}
-            className="underline text-xs font-bold hover:text-rose-900 cursor-pointer"
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer self-start sm:self-auto"
           >
-            Coba Lagi
+            <Plus className="h-4 w-4" />
+            <span>Catat Pemasukan Baru</span>
           </button>
         </div>
-      )}
 
-      {/* Income Table */}
-      <IncomeTable
-        items={items}
-        isLoading={isLoading}
-        onEdit={(item) => setEditingItem(item)}
-        onDelete={(item) => setDeletingItem(item)}
-      />
+        {/* KPI Cards */}
+        <IncomeKpiCards
+          totalMonth={totalMonthAmount}
+          totalFiltered={totalFilteredAmount}
+          totalItemsCount={totalItemsCount}
+        />
 
-      {/* Modals */}
-      <AddIncomeModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSuccess={() => {
-          fetchIncomeData();
-        }}
-      />
+        {/* Filter Bar */}
+        <IncomeFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          startDate={startDate}
+          onStartDateChange={setStartDate}
+          endDate={endDate}
+          onEndDateChange={setEndDate}
+          onReset={handleResetFilters}
+        />
 
-      <EditIncomeModal
-        key={editingItem?.id || "new-income-modal"}
-        isOpen={!!editingItem}
-        item={editingItem}
-        onClose={() => setEditingItem(null)}
-        onSuccess={() => {
-          fetchIncomeData();
-        }}
-      />
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-rose-700 text-xs font-semibold flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={fetchIncomeData}
+              className="underline text-xs font-bold hover:text-rose-900 cursor-pointer"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        )}
 
-      <ConfirmModal
-        isOpen={!!deletingItem}
-        onClose={() => setDeletingItem(null)}
-        onConfirm={handleDeleteConfirm}
-        title="Hapus Catatan Pemasukan"
-        description={`Apakah Anda yakin ingin menghapus catatan pemasukan "${deletingItem?.description || deletingItem?.category}" sejumlah Rp ${deletingItem?.amount?.toLocaleString("id-ID")}?`}
-        confirmText="Hapus Pemasukan"
-        variant="danger"
-        isLoading={isDeleting}
-      />
-    </div>
+        {/* Income Table */}
+        <IncomeTable
+          items={items}
+          isLoading={isLoading}
+          onEdit={(item) => setEditingItem(item)}
+          onDelete={(item) => setDeletingItem(item)}
+        />
+
+        {/* Modals */}
+        <AddIncomeModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSuccess={() => {
+            fetchIncomeData();
+          }}
+        />
+
+        <EditIncomeModal
+          key={editingItem?.id || "new-income-modal"}
+          isOpen={!!editingItem}
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSuccess={() => {
+            fetchIncomeData();
+          }}
+        />
+
+        <ConfirmModal
+          isOpen={!!deletingItem}
+          onClose={() => setDeletingItem(null)}
+          onConfirm={handleDeleteConfirm}
+          title="Hapus Catatan Pemasukan"
+          description={`Apakah Anda yakin ingin menghapus catatan pemasukan "${deletingItem?.description || deletingItem?.category}" sejumlah Rp ${deletingItem?.amount?.toLocaleString("id-ID")}?`}
+          confirmText="Hapus Pemasukan"
+          variant="danger"
+          isLoading={isDeleting}
+        />
+      </div>
+    </PermissionGuard>
   );
 }

@@ -6,6 +6,7 @@ import { ActivityItem } from "../types";
 import { SearchInput } from "@/components/SearchInput";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { toast } from "sonner";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface ActivityTableProps {
   items: ActivityItem[];
@@ -31,15 +32,22 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingItem, setDeletingItem] = useState<ActivityItem | null>(null);
   const [pinningId, setPinningId] = useState<number | null>(null);
 
   const filteredItems = items.filter((item) => {
-    const term = debouncedSearchTerm.toLowerCase();
-    return (
-      item.title.toLowerCase().includes(term) ||
-      (item.description && item.description.toLowerCase().includes(term)) ||
-      (item.location && item.location.toLowerCase().includes(term))
-    );
+    const matchesSearch =
+      item.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (item.location && item.location.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+
+    const isUpcoming = new Date(item.eventDate) >= new Date();
+    const matchesFilter =
+      activeFilter === "all" ||
+      (activeFilter === "upcoming" && isUpcoming) ||
+      (activeFilter === "past" && !isUpcoming);
+
+    return matchesSearch && matchesFilter;
   });
 
   const handleTogglePin = async (item: ActivityItem) => {
@@ -75,12 +83,12 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus agenda kegiatan ini?")) return;
+  const handleDeleteConfirm = async () => {
+    if (!deletingItem) return;
 
-    setDeletingId(id);
+    setDeletingId(deletingItem.id);
     try {
-      const res = await fetch(`/api/activities/${id}`, {
+      const res = await fetch(`/api/activities/${deletingItem.id}`, {
         method: "DELETE",
       });
 
@@ -89,6 +97,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       }
 
       toast.success("Agenda kegiatan berhasil dihapus");
+      setDeletingItem(null);
       onRefresh();
     } catch (err: any) {
       toast.error(err.message || "Terjadi kesalahan koneksi");
@@ -263,7 +272,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                     type="button"
                     title="Hapus Kegiatan"
                     disabled={deletingId === item.id}
-                    onClick={() => handleDelete(item.id)}
+                    onClick={() => setDeletingItem(item)}
                     className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-1.5 text-rose-600 hover:bg-rose-500/20 transition-colors cursor-pointer"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -274,6 +283,17 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           })}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(deletingItem)}
+        onClose={() => setDeletingItem(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Hapus Agenda Kegiatan"
+        description={`Apakah Anda yakin ingin menghapus kegiatan "${deletingItem?.title}"?`}
+        confirmText="Hapus"
+        variant="danger"
+        isLoading={Boolean(deletingId)}
+      />
     </div>
   );
 };

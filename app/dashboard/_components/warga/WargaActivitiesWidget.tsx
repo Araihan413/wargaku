@@ -43,7 +43,7 @@ export function WargaActivitiesWidget({ activities }: WargaActivitiesWidgetProps
           </div>
         </div>
         <Link
-          href="/activities"
+          href="/kegiatan"
           className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-700 transition-colors"
         >
           <span>Lihat Semua</span>
