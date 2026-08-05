@@ -7,6 +7,7 @@ export interface UserItem {
   photo: string | null;
   status: "pending" | "active" | "suspended";
   roleId: number;
+  roleIds?: number[];
   roleName: string;
   roleSlug: string;
   createdAt: string;

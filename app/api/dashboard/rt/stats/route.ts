@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/rbac";
-import { getRtStats } from "@/db/queries/dashboard";
+import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { getRtDashboardStats } from "@/db/queries";
 
 export async function GET() {
   try {
@@ -14,12 +14,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const allowed = await hasPermission(session.user.roleId, "view-residents");
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const allowed = await hasPermission(effectiveRoleId, "view-residents");
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const stats = await getRtStats();
+    const stats = await getRtDashboardStats();
     return NextResponse.json(stats);
   } catch (error: any) {
     console.error("Dashboard Stats API error:", error);

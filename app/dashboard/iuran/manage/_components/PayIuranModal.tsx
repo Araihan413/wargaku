@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Loader2, Wallet } from "lucide-react";
 import { CustomSelect } from "@/components/CustomSelect";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { FeePaymentItem, PAYMENT_METHOD_OPTIONS } from "../../types";
 import { toast } from "sonner";
 
@@ -53,7 +54,7 @@ export const PayIuranModal: React.FC<PayIuranModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/iuran/payments/${payment.id}/pay`, {
+      const res = await fetch(`/api/fee-payments/${payment.id}/pay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -117,16 +118,12 @@ export const PayIuranModal: React.FC<PayIuranModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Nominal */}
           <div>
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Nominal Uang Diterima (Rp)<span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <input
-              type="number"
-              value={amountPaid}
-              onChange={(e) => setAmountPaid(e.target.value)}
-              max={payment.amountDue}
+            <CurrencyInput
+              label="Nominal Uang Diterima"
               required
-              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main font-mono font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              value={amountPaid}
+              onChange={setAmountPaid}
+              placeholder={payment.amountDue ? payment.amountDue.toLocaleString("id-ID") : "0"}
             />
             <div className="flex gap-2 mt-1.5">
               <button

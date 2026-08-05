@@ -11,10 +11,21 @@ import { AddUserModal } from "./_components/AddUserModal";
 import { MutateRoleModal } from "./_components/MutateRoleModal";
 import { EditUserModal } from "./_components/EditUserModal";
 import { UserDetailModal } from "./_components/UserDetailModal";
+import { ResetPasswordSuccessModal } from "./_components/ResetPasswordSuccessModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function UserManagementPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-users" requiredRoles={[1]}>
+      <UserManagementContent />
+    </PermissionGuard>
+  );
+}
+
+function UserManagementContent() {
+
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id ?? "";
 
@@ -41,10 +52,18 @@ export default function UserManagementPage() {
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserItem | null>(null);
   const [selectedUserForDetail, setSelectedUserForDetail] = useState<UserItem | null>(null);
 
-  // Reset Password Confirmation State
+  // Reset Password States
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [userToReset, setUserToReset] = useState<UserItem | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+
+  // Reset Password Success Modal State
+  const [isResetSuccessOpen, setIsResetSuccessOpen] = useState(false);
+  const [resetResultData, setResetResultData] = useState<{
+    userName: string;
+    userEmail: string;
+    temporaryPassword: string;
+  } | null>(null);
 
   const openEditModal = (user: UserItem) => {
     setSelectedUserForEdit(user);
@@ -144,8 +163,13 @@ export default function UserManagementPage() {
 
       if (res.ok) {
         const data = await res.json();
-        toast.success(`Password untuk ${userToReset.name} berhasil di-reset menjadi: ${data.defaultPassword || 'wargaku123'}`);
         setIsResetConfirmOpen(false);
+        setResetResultData({
+          userName: data.userName || userToReset.name,
+          userEmail: data.userEmail || userToReset.email,
+          temporaryPassword: data.temporaryPassword,
+        });
+        setIsResetSuccessOpen(true);
         setUserToReset(null);
       } else {
         const errorData = await res.json();
@@ -159,6 +183,7 @@ export default function UserManagementPage() {
     }
   };
 
+
   const openMutateModal = (user: UserItem) => {
     setSelectedUser(user);
     setIsMutateModalOpen(true);
@@ -171,10 +196,10 @@ export default function UserManagementPage() {
       {/* Header Halaman */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-heading-main tracking-tight">
+          <h1 className="text-3xl font-extrabold text-gray-heading-main tracking-tight">
             Manajemen Pengguna
           </h1>
-          <p className="text-sm text-gray-secondary-text font-medium">
+          <p className="text-sm text-gray-secondary-text">
             Kelola semua kredensial login, peran akses, dan status penangguhan akun warga & dinas.
           </p>
         </div>
@@ -236,7 +261,6 @@ export default function UserManagementPage() {
             setSelectedUser(null);
           }}
           user={selectedUser}
-          roles={roles}
           onSuccess={() => {
             setIsMutateModalOpen(false);
             setSelectedUser(null);
@@ -244,6 +268,7 @@ export default function UserManagementPage() {
           }}
         />
       )}
+
 
       {/* Modal Dialog: Edit Profil Pengguna */}
       {selectedUserForEdit && (
@@ -294,6 +319,22 @@ export default function UserManagementPage() {
         variant="warning"
         isLoading={isResettingPassword}
       />
+
+      {/* Modal Dialog: Hasil Reset Password Sukses */}
+      {resetResultData && (
+        <ResetPasswordSuccessModal
+          isOpen={isResetSuccessOpen}
+          onClose={() => {
+            setIsResetSuccessOpen(false);
+            setResetResultData(null);
+          }}
+          userName={resetResultData.userName}
+          userEmail={resetResultData.userEmail}
+          temporaryPassword={resetResultData.temporaryPassword}
+        />
+      )}
+
     </div>
   );
 }
+

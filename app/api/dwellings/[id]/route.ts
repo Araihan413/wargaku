@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { getDwellingById, updateDwelling, deleteDwelling, validateAndChangeDwellingType } from '@/db/queries/kependudukan';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { getDwellingById, updateDwelling, deleteDwelling, validateAndChangeDwellingType } from '@/db/queries/population/dwelling.queries';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 import { z } from 'zod';
 
 const updateDwellingSchema = z.object({
@@ -10,12 +12,12 @@ const updateDwellingSchema = z.object({
   houseNumber: z.string().min(1, 'Nomor rumah wajib diisi').max(20),
   type: z.enum(['permanen', 'kos', 'homestay']),
   isActive: z.boolean().optional(),
-  notes: z.string().optional().nullable(),
-  latitude: z.string().optional().nullable(),
-  longitude: z.string().optional().nullable(),
-  ownerUserId: z.string().optional().nullable(),
-  ownerName: z.string().optional().nullable(),
-  ownerPhone: z.string().optional().nullable(),
+  notes: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  latitude: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  longitude: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  ownerUserId: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  ownerName: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  ownerPhone: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
 });
 
 export async function PUT(
@@ -23,7 +25,6 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Auth and permission check
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -32,7 +33,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-dwellings');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
@@ -40,30 +42,28 @@ export async function PUT(
     const { id } = await params;
     const dwellingId = Number(id);
 
-    // 2. Validate body
     const body = await request.json();
     const validatedData = updateDwellingSchema.parse(body);
 
-    // 3. Fetch current dwelling
     const currentDwelling = await getDwellingById(dwellingId);
-
     if (!currentDwelling) {
       return NextResponse.json({ error: 'Hunian tidak ditemukan' }, { status: 404 });
     }
 
-    // 4. Validate and perform type change if necessary
     try {
       await validateAndChangeDwellingType(dwellingId, currentDwelling.type, validatedData.type);
     } catch (err: any) {
       if (err.message === 'HAS_ACTIVE_FAMILIES') {
-        return NextResponse.json({
-          error: 'Tidak dapat mengubah tipe hunian karena masih ada Kartu Keluarga aktif yang terdaftar di hunian ini. Silakan pindahkan atau nonaktifkan KK terlebih dahulu.'
-        }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Tipe hunian permanen tidak dapat diubah menjadi kos/homestay selama terdapat Kartu Keluarga aktif yang terdaftar di hunian ini.' },
+          { status: 400 }
+        );
       }
       if (err.message === 'HAS_ACTIVE_TENANTS') {
-        return NextResponse.json({
-          error: 'Tidak dapat mengubah tipe hunian karena masih ada penyewa aktif yang terdaftar di properti ini. Silakan check-out penyewa terlebih dahulu.'
-        }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Tipe kos/homestay tidak dapat diubah selama terdapat penghuni sewa aktif. Silakan check-out semua penghuni sewa terlebih dahulu.' },
+          { status: 400 }
+        );
       }
       throw err;
     }
@@ -77,8 +77,15 @@ export async function PUT(
       latitude: validatedData.latitude,
       longitude: validatedData.longitude,
       ownerUserId: validatedData.ownerUserId,
-      ownerName: validatedData.ownerName,
-      ownerPhone: validatedData.ownerPhone,
+    });
+
+    const ipAddress = await getClientIp(request);
+    await createAuditLog({
+      userId: session.user.id,
+      action: 'UPDATE_DWELLING',
+      module: 'hunian',
+      description: `Memperbarui data hunian ID #${dwellingId}: Blok ${validatedData.blockNumber.toUpperCase()} No. ${validatedData.houseNumber.trim()}`,
+      ipAddress,
     });
 
     return NextResponse.json({ success: true, message: 'Data hunian berhasil diperbarui' });
@@ -86,11 +93,29 @@ export async function PUT(
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validasi gagal', issues: error.issues }, { status: 400 });
     }
+
+    const errMsg = error.message || '';
+    if (
+      errMsg.includes('DWELLING_ADDRESS_EXISTS') ||
+      errMsg.includes('ER_DUP_ENTRY') ||
+      errMsg.includes('unique_address_idx')
+    ) {
+      let block = '';
+      let house = '';
+      if (errMsg.includes('DWELLING_ADDRESS_EXISTS:')) {
+        const parts = errMsg.split(':');
+        block = parts[1] || '';
+        house = parts[2] || '';
+      }
+      const addressLabel = block && house ? `Blok ${block} No. ${house}` : 'tersebut';
+      return NextResponse.json(
+        { error: `Alamat hunian (${addressLabel}) sudah terdaftar di sistem. Silakan gunakan kombinasi Blok dan Nomor Rumah lain.` },
+        { status: 400 }
+      );
+    }
+
     console.error('Error in PUT /api/dwellings/[id]:', error);
-    return NextResponse.json(
-      { error: error.message || 'Kesalahan server internal' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
 
@@ -99,7 +124,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Auth and permission check
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -108,7 +132,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-dwellings');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
@@ -116,14 +141,25 @@ export async function DELETE(
     const { id } = await params;
     const dwellingId = Number(id);
 
+    const currentDwelling = await getDwellingById(dwellingId);
+    if (!currentDwelling) {
+      return NextResponse.json({ error: 'Hunian tidak ditemukan' }, { status: 404 });
+    }
+
     await deleteDwelling(dwellingId);
+
+    const ipAddress = await getClientIp(request);
+    await createAuditLog({
+      userId: session.user.id,
+      action: 'DELETE_DWELLING',
+      module: 'hunian',
+      description: `Menonaktifkan hunian ID #${dwellingId}: Blok ${currentDwelling.blockNumber} No. ${currentDwelling.houseNumber}`,
+      ipAddress,
+    });
 
     return NextResponse.json({ success: true, message: 'Hunian berhasil dinonaktifkan' });
   } catch (error: any) {
     console.error('Error in DELETE /api/dwellings/[id]:', error);
-    return NextResponse.json(
-      { error: error.message || 'Kesalahan server internal' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/rbac";
-import { getSmartGroupsByRt, createSmartGroup } from "@/db/queries/smart-groups";
+import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { listSmartGroups, createSmartGroup } from "@/db/queries/system/smart-group.queries";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -14,12 +14,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, "view-residents");
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, "view-residents");
     if (!isAllowed) {
       return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
     }
 
-    const data = await getSmartGroupsByRt(session.user.id);
+    const data = await listSmartGroups();
     return NextResponse.json({ data });
   } catch (error: any) {
     console.error("Error in GET /api/smart-groups:", error);
@@ -37,19 +38,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, "manage-residents");
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, "manage-residents");
     if (!isAllowed) {
       return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
     }
 
     const body = await request.json();
-    const { name, queryRules } = body;
+    const { name, description, criteria } = body;
 
-    if (!name || !queryRules) {
+    if (!name || !criteria) {
       return NextResponse.json({ error: "Nama kelompok dan kriteria aturan wajib diisi" }, { status: 400 });
     }
 
-    const smartGroupId = await createSmartGroup(session.user.id, name, queryRules, session.user.id);
+    const smartGroupId = await createSmartGroup({
+      name,
+      description,
+      criteria,
+      createdBy: session.user.id,
+    });
 
     return NextResponse.json({ id: smartGroupId, message: "Kelompok warga berhasil disimpan" });
   } catch (error: any) {

@@ -4,6 +4,33 @@ import React, { useState } from "react";
 import { X, Calendar } from "lucide-react";
 import { ActivityItem } from "../types";
 import { toast } from "sonner";
+import { MultiAttachmentInput, AttachmentItem } from "@/components/MultiAttachmentInput";
+import { formatToDatetimeLocal } from "@/lib/date-format";
+
+function parseInitialAttachments(attachments?: string | null): AttachmentItem[] {
+  if (!attachments) return [];
+  try {
+    if (attachments.startsWith("[")) {
+      const parsed = JSON.parse(attachments);
+      return parsed.map((item: any) => ({
+        name: item.name || "Lampiran File",
+        url: item.url || item,
+        type: item.type || (item.url?.toLowerCase().includes(".pdf") ? "pdf" : "image"),
+      }));
+    }
+    return [
+      {
+        name: "Lampiran File",
+        url: attachments,
+        type: attachments.toLowerCase().includes(".pdf") ? "pdf" : "image",
+      },
+    ];
+  } catch {
+    return [];
+  }
+}
+
+
 
 interface EditActivityModalProps {
   isOpen: boolean;
@@ -21,10 +48,11 @@ export const EditActivityModal: React.FC<EditActivityModalProps> = ({
   const [prevId, setPrevId] = useState<number | null>(activity?.id ?? null);
   const [title, setTitle] = useState(activity?.title || "");
   const [description, setDescription] = useState(activity?.description || "");
-  const [eventDate, setEventDate] = useState(
-    activity?.eventDate ? new Date(activity.eventDate).toISOString().slice(0, 16) : ""
-  );
+  const [eventDate, setEventDate] = useState(formatToDatetimeLocal(activity?.eventDate));
   const [location, setLocation] = useState(activity?.location || "");
+  const [attachments, setAttachments] = useState<AttachmentItem[]>(
+    parseInitialAttachments(activity?.attachments)
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Sync state during render pass if selected activity changes
@@ -32,8 +60,9 @@ export const EditActivityModal: React.FC<EditActivityModalProps> = ({
     setPrevId(activity.id);
     setTitle(activity.title);
     setDescription(activity.description || "");
-    setEventDate(activity.eventDate ? new Date(activity.eventDate).toISOString().slice(0, 16) : "");
+    setEventDate(formatToDatetimeLocal(activity.eventDate));
     setLocation(activity.location || "");
+    setAttachments(parseInitialAttachments(activity.attachments));
   }
 
   if (!isOpen || !activity) return null;
@@ -47,6 +76,44 @@ export const EditActivityModal: React.FC<EditActivityModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      // 1. Upload any pending new files
+      const uploadedAttachments: Array<{ name: string; url: string; type: "image" | "pdf" }> = [];
+
+      for (const item of attachments) {
+        if (item.file) {
+          const formData = new FormData();
+          formData.append("file", item.file);
+          formData.append("folder", "activities");
+
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error(`Gagal mengunggah berkas ${item.name}`);
+          }
+
+          const uploadJson = await uploadRes.json();
+          const uploadedUrl = uploadJson.url || uploadJson.secure_url;
+          uploadedAttachments.push({
+            name: item.name,
+            url: uploadedUrl,
+            type: item.type,
+          });
+        } else if (item.url) {
+          uploadedAttachments.push({
+            name: item.name,
+            url: item.url,
+            type: item.type,
+          });
+        }
+      }
+
+      const finalAttachmentsJson =
+        uploadedAttachments.length > 0 ? JSON.stringify(uploadedAttachments) : null;
+
+      // 2. Patch Activity
       const res = await fetch(`/api/activities/${activity.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -55,6 +122,7 @@ export const EditActivityModal: React.FC<EditActivityModalProps> = ({
           description: description.trim(),
           eventDate,
           location: location.trim(),
+          attachments: finalAttachmentsJson,
         }),
       });
 
@@ -155,6 +223,14 @@ export const EditActivityModal: React.FC<EditActivityModalProps> = ({
               className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
             />
           </div>
+
+          {/* Multi Attachment Input */}
+          <MultiAttachmentInput
+            label="Lampiran Poster / Surat Edaran Resmi"
+            maxFiles={3}
+            items={attachments}
+            onChange={setAttachments}
+          />
 
           {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-border">

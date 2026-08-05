@@ -62,7 +62,6 @@ export default function RegisterPage() {
       nik: "",
       familyNumber: "",
       dwellingId: "",
-      unitNumber: "",
     },
     mode: "onTouched",
   });
@@ -83,6 +82,7 @@ export default function RegisterPage() {
       id: "email",
       label: "Email",
       type: "email",
+      required: true,
       placeholder: "contoh@email.com",
       icon: Mail,
       registerProps: register("email"),
@@ -92,9 +92,10 @@ export default function RegisterPage() {
       id: "phone",
       label: "Nomor WhatsApp / HP",
       type: "text",
+      required: true,
       placeholder: "081234567890",
       icon: Phone,
-      note: "Digunakan untuk di hubungi oleh RT/RW.",
+      note: "Digunakan untuk dihubungi oleh RT/RW.",
       registerProps: register("phone", {
         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
           setValue("phone", e.target.value.replace(/\D/g, ""));
@@ -106,6 +107,7 @@ export default function RegisterPage() {
       id: "password",
       label: "Password",
       type: showPassword ? "text" : "password",
+      required: true,
       placeholder: "••••••••",
       icon: Lock,
       isPassword: true,
@@ -116,6 +118,7 @@ export default function RegisterPage() {
       id: "confirmPassword",
       label: "Konfirmasi Password",
       type: "password",
+      required: true,
       placeholder: "••••••••",
       icon: Lock,
       registerProps: register("confirmPassword"),
@@ -128,6 +131,7 @@ export default function RegisterPage() {
       id: "name",
       label: accountType === "coordinator" ? "Nama Lengkap Koordinator / Pengelola" : "Nama Lengkap Kepala Keluarga",
       type: "text",
+      required: true,
       placeholder: "Nama lengkap sesuai KTP",
       icon: User,
       registerProps: register("name"),
@@ -137,6 +141,7 @@ export default function RegisterPage() {
       id: "nik",
       label: accountType === "coordinator" ? "NIK Koordinator / Pengelola" : "NIK Kepala Keluarga",
       type: "text",
+      required: true,
       placeholder: "16 digit NIK",
       icon: FileText,
       maxLength: 16,
@@ -153,6 +158,7 @@ export default function RegisterPage() {
             id: "familyNumber",
             label: "Nomor Kartu Keluarga (KK)",
             type: "text",
+            required: true,
             placeholder: "16 digit Nomor KK",
             icon: FileText,
             maxLength: 16,
@@ -174,7 +180,8 @@ export default function RegisterPage() {
         const res = await fetch("/api/dwellings");
         if (res.ok) {
           const data = await res.json();
-          setDwellingsList(data);
+          const validDwellings = Array.isArray(data) ? data.filter((d: any) => d.type !== 'homestay') : [];
+          setDwellingsList(validDwellings);
         }
       } catch (err) {
         console.error("Gagal memuat daftar hunian:", err);
@@ -212,7 +219,6 @@ export default function RegisterPage() {
           status: "pending", // Status default pending menunggu persetujuan RT
           familyNumber: data.accountType === "warga" ? data.familyNumber : undefined,
           dwellingId: data.accountType === "warga" && data.dwellingId ? Number(data.dwellingId) : undefined,
-          unitNumber: data.accountType === "warga" ? (data.unitNumber || undefined) : undefined,
         },
         {
           onRequest: () => {
@@ -368,17 +374,6 @@ export default function RegisterPage() {
                     setValue("dwellingId", id);
                   }}
                   error={errors.dwellingId?.message}
-                />
-
-                {/* Nomor Pintu/Unit (Kontrakan) */}
-                <FormField
-                  id="unitNumber"
-                  label="Nomor Pintu / Unit"
-                  type="text"
-                  placeholder="Contoh: Kamar 03 (Diisi jika menyewa/sekat)"
-                  icon={Home}
-                  registerProps={register("unitNumber")}
-                  error={errors.unitNumber?.message}
                 />
               </>
             )}

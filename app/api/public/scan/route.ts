@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPublicScanDwelling } from "@/db/queries/public-portal";
+import { getPublicScanDwelling } from "@/db/queries/dashboard/public-portal.queries";
 
 export async function GET(req: Request) {
   try {
@@ -22,7 +22,14 @@ export async function GET(req: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, data: dwelling });
+    return NextResponse.json(
+      { success: true, data: dwelling },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error: unknown) {
     console.error("Error in GET /api/public/scan:", error);
     return NextResponse.json(

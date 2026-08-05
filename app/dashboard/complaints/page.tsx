@@ -11,8 +11,8 @@ import { DeleteComplaintModal } from "./_components/DeleteComplaintModal";
 import { ComplaintItem, ComplaintKpiSummary } from "./types";
 import { RefreshCw } from "lucide-react"; 
 import { toast } from "sonner";
-
 import { RefreshButton } from "@/components/RefreshButton";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 
 export default function ComplaintsDashboardPage() {
   const { data: session, isPending: isSessionLoading } = authClient.useSession();
@@ -30,6 +30,7 @@ export default function ComplaintsDashboardPage() {
 
   // Filters
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 400);
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
 
@@ -49,7 +50,7 @@ export default function ComplaintsDashboardPage() {
       const params = new URLSearchParams();
       if (status !== "all") params.append("status", status);
       if (category !== "all") params.append("category", category);
-      if (search.trim()) params.append("search", search.trim());
+      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
 
       const res = await fetch(`/api/complaints?${params.toString()}`);
       if (res.ok) {
@@ -65,7 +66,7 @@ export default function ComplaintsDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [status, category, search]);
+  }, [status, category, debouncedSearch]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -75,7 +76,7 @@ export default function ComplaintsDashboardPage() {
         const params = new URLSearchParams();
         if (status !== "all") params.append("status", status);
         if (category !== "all") params.append("category", category);
-        if (search.trim()) params.append("search", search.trim());
+        if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
 
         const res = await fetch(`/api/complaints?${params.toString()}`);
         if (res.ok) {
@@ -106,7 +107,7 @@ export default function ComplaintsDashboardPage() {
     return () => {
       isCancelled = true;
     };
-  }, [status, category, search]);
+  }, [status, category, debouncedSearch]);
 
   const handleResetFilters = () => {
     setSearch("");
@@ -138,11 +139,11 @@ export default function ComplaintsDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-heading-main">
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main">
               Kelola Pengaduan Warga
             </h1>
           </div>
-          <p className="text-xs text-gray-secondary-text mt-1">
+          <p className="text-sm text-gray-secondary-text mt-1">
             Respon, tinjau bukti foto lampiran, dan perbarui status laporan pengaduan dari warga setempat.
           </p>
         </div>

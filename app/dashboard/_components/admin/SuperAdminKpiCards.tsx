@@ -15,6 +15,16 @@ const formatCurrency = (val: number) => {
 };
 
 export const SuperAdminKpiCards: React.FC<SuperAdminKpiCardsProps> = ({ summary }) => {
+  const safeSummary = summary || {
+    totalUsers: 0,
+    totalResidents: 0,
+    verifiedFamilies: 0,
+    totalCashBalance: 0,
+    pendingVerifications: 0,
+    activeComplaints: 0,
+    todayAuditLogsCount: 0,
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {/* 1. Total Warga */}
@@ -29,7 +39,7 @@ export const SuperAdminKpiCards: React.FC<SuperAdminKpiCardsProps> = ({ summary 
         </div>
         <div>
           <h3 className="text-2xl font-black text-blue-900 tracking-tight">
-            {summary.totalResidents}
+            {safeSummary.totalResidents}
           </h3>
           <p className="text-[11px] text-blue-800/80 font-medium mt-1">
             Warga tetap & penyewa aktif
@@ -49,7 +59,7 @@ export const SuperAdminKpiCards: React.FC<SuperAdminKpiCardsProps> = ({ summary 
         </div>
         <div>
           <h3 className="text-2xl font-black text-emerald-700 tracking-tight">
-            {summary.verifiedFamilies} KK
+            {safeSummary.verifiedFamilies} KK
           </h3>
           <p className="text-[11px] text-emerald-800/80 font-medium mt-1">
             Status data keluarga Verified
@@ -69,7 +79,7 @@ export const SuperAdminKpiCards: React.FC<SuperAdminKpiCardsProps> = ({ summary 
         </div>
         <div>
           <h3 className="text-xl font-black text-teal-700 tracking-tight font-mono">
-            {formatCurrency(summary.totalCashBalance)}
+            {formatCurrency(safeSummary.totalCashBalance)}
           </h3>
           <p className="text-[11px] text-teal-800/80 font-medium mt-1">
             Real-time kas utama RT
@@ -89,7 +99,7 @@ export const SuperAdminKpiCards: React.FC<SuperAdminKpiCardsProps> = ({ summary 
         </div>
         <div>
           <h3 className="text-2xl font-black text-amber-700 tracking-tight">
-            {summary.pendingVerifications}
+            {safeSummary.pendingVerifications}
           </h3>
           <p className="text-[11px] text-amber-800/80 font-medium mt-1">
             Berkas keluarga/warga pending
@@ -109,7 +119,7 @@ export const SuperAdminKpiCards: React.FC<SuperAdminKpiCardsProps> = ({ summary 
         </div>
         <div>
           <h3 className="text-2xl font-black text-rose-700 tracking-tight">
-            {summary.activeComplaints}
+            {safeSummary.activeComplaints}
           </h3>
           <p className="text-[11px] text-rose-800/80 font-medium mt-1">
             Menunggu / sedang diproses
@@ -129,7 +139,7 @@ export const SuperAdminKpiCards: React.FC<SuperAdminKpiCardsProps> = ({ summary 
         </div>
         <div>
           <h3 className="text-2xl font-black text-indigo-700 tracking-tight">
-            {summary.todayAuditLogsCount} Aksi
+            {safeSummary.todayAuditLogsCount} Aksi
           </h3>
           <p className="text-[11px] text-indigo-800/80 font-medium mt-1">
             Aktivitas dicatat hari ini

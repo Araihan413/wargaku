@@ -29,7 +29,7 @@ export const NonaktifkanAnggotaModal: React.FC<NonaktifkanAnggotaModalProps> = (
     if (!member) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/warga/${member.id}`, {
+      const res = await fetch(`/api/family-members/${member.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inactiveReason }),

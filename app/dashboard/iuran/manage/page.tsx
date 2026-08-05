@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Plus, Users, Wallet, AlertCircle, Search } from "lucide-react";
+import { Plus, Users, Wallet, AlertCircle } from "lucide-react";
 import { FeeRule, FeePaymentItem } from "../types";
 import { FeeRuleCard } from "./_components/FeeRuleCard";
 import { AddFeeRuleModal } from "./_components/AddFeeRuleModal";
 import { PaymentMatrixTable } from "./_components/PaymentMatrixTable";
 import { PayIuranModal } from "./_components/PayIuranModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { CustomSelect } from "@/components/CustomSelect";
+import { SearchInput } from "@/components/SearchInput";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import { toast } from "sonner";
 
 export default function KelolaManagedPage() {
@@ -26,6 +29,7 @@ export default function KelolaManagedPage() {
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   const [payingItem, setPayingItem] = useState<FeePaymentItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
   const [isDeletingRule, setIsDeletingRule] = useState(false);
 
   // Period selector - default to current month
@@ -45,7 +49,7 @@ export default function KelolaManagedPage() {
   const fetchRules = useCallback(async () => {
     setIsLoadingRules(true);
     try {
-      const res = await fetch("/api/iuran/rules");
+      const res = await fetch("/api/fee-rules");
       if (res.ok) {
         const data = await res.json();
         setRules(data.data || []);
@@ -68,8 +72,8 @@ export default function KelolaManagedPage() {
         ruleId: String(selectedRule.id),
         period: selectedPeriod,
       });
-      if (searchQuery) params.set("query", searchQuery);
-      const res = await fetch(`/api/iuran/payments?${params}`);
+      if (debouncedSearchQuery) params.set("query", debouncedSearchQuery);
+      const res = await fetch(`/api/fee-payments?${params}`);
       if (res.ok) {
         const data = await res.json();
         setPayments(data.data || []);
@@ -80,14 +84,14 @@ export default function KelolaManagedPage() {
     } finally {
       setIsLoadingPayments(false);
     }
-  }, [selectedRule, selectedPeriod, searchQuery]);
+  }, [selectedRule, selectedPeriod, debouncedSearchQuery]);
 
   useEffect(() => {
     let isCancelled = false;
     async function loadRules() {
       setIsLoadingRules(true);
       try {
-        const res = await fetch("/api/iuran/rules");
+        const res = await fetch("/api/fee-rules");
         if (res.ok) {
           const data = await res.json();
           if (!isCancelled) {
@@ -117,7 +121,8 @@ export default function KelolaManagedPage() {
           ruleId: String(selectedRule!.id),
           period: selectedPeriod,
         });
-        const res = await fetch(`/api/iuran/payments?${params}`);
+        if (debouncedSearchQuery) params.set("query", debouncedSearchQuery);
+        const res = await fetch(`/api/fee-payments?${params}`);
         if (res.ok) {
           const data = await res.json();
           if (!isCancelled) {
@@ -133,12 +138,12 @@ export default function KelolaManagedPage() {
     }
     loadPayments();
     return () => { isCancelled = true; };
-  }, [selectedRule, selectedPeriod]);
+  }, [selectedRule, selectedPeriod, debouncedSearchQuery]);
 
   const handleGenerate = async (rule: FeeRule) => {
     setGeneratingRuleId(rule.id);
     try {
-      const res = await fetch(`/api/iuran/rules/${rule.id}/generate`, { method: "POST" });
+      const res = await fetch(`/api/fee-rules/${rule.id}/generate`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal generate tagihan");
       toast.success(data.message);
@@ -154,7 +159,7 @@ export default function KelolaManagedPage() {
     if (!deletingRule) return;
     setIsDeletingRule(true);
     try {
-      const res = await fetch(`/api/iuran/rules/${deletingRule.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/fee-rules/${deletingRule.id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal menghapus aturan iuran");
       toast.success("Aturan iuran berhasil dihapus");
@@ -173,7 +178,7 @@ export default function KelolaManagedPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-gray-heading-main">Kelola Iuran Warga</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main">Kelola Iuran Warga</h1>
           <p className="text-sm text-gray-secondary-text mt-0.5">Konfigurasi tarif iuran dan pencatatan setoran warga per periode.</p>
         </div>
         <button
@@ -244,16 +249,13 @@ export default function KelolaManagedPage() {
                 {selectedRule.isMandatory ? "Iuran Wajib" : "Sukarela"}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <select
+            <div className="w-52">
+              <CustomSelect
                 value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="bg-gray-card border border-gray-border rounded-xl px-3 py-2 text-xs font-bold text-gray-heading-main focus:outline-none focus:border-primary cursor-pointer"
-              >
-                {periodOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedPeriod(val)}
+                options={periodOptions}
+                size="sm"
+              />
             </div>
           </div>
 
@@ -272,25 +274,12 @@ export default function KelolaManagedPage() {
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-placeholder" />
-              <input
-                type="text"
-                placeholder="Cari kepala keluarga..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") fetchPayments(); }}
-                className="w-full bg-gray-card border border-gray-border rounded-xl pl-9 pr-3.5 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-            </div>
-            <button
-              onClick={fetchPayments}
-              className="px-3 py-2 bg-gray-sidebar-hover border border-gray-border rounded-xl text-xs font-bold text-gray-heading-main hover:bg-gray-border transition cursor-pointer"
-            >
-              Cari
-            </button>
-          </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Cari kepala keluarga..."
+            containerClassName="w-full sm:w-72"
+          />
 
           <PaymentMatrixTable
             payments={payments}

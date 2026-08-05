@@ -3,6 +3,7 @@
 import React from "react";
 import { X, Megaphone, Calendar, User, Pin } from "lucide-react";
 import { AnnouncementItem } from "../types";
+import { isEdited, formatUpdatedDate } from "@/lib/date-format";
 
 interface AnnouncementDetailModalProps {
   isOpen: boolean;
@@ -76,6 +77,11 @@ export const AnnouncementDetailModal: React.FC<AnnouncementDetailModalProps> = (
                 <span className="inline-flex items-center gap-1 rounded-lg bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 text-xs font-bold text-purple-600">
                   <Pin className="h-3 w-3 fill-current" />
                   <span>Disematkan</span>
+                </span>
+              )}
+              {isEdited(announcement.createdAt, announcement.updatedAt) && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-xs font-bold text-blue-600">
+                  <span>Diperbarui: {formatUpdatedDate(announcement.updatedAt)}</span>
                 </span>
               )}
             </div>

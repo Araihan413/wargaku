@@ -29,9 +29,18 @@ export const AuditLogDetailModal: React.FC<AuditLogDetailModalProps> = ({
     }
   };
 
+  const formatIp = (ip?: string | null) => {
+    if (!ip) return "127.0.0.1";
+    if (ip === "::1" || ip.includes("0000:0000:0000:0000") || ip === "::ffff:127.0.0.1") {
+      return "127.0.0.1";
+    }
+    return ip;
+  };
+
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-gray-card border border-gray-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+      <div className="bg-gray-card border border-gray-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-border">
           <div className="flex items-center gap-2.5">
@@ -62,26 +71,26 @@ export const AuditLogDetailModal: React.FC<AuditLogDetailModalProps> = ({
           {/* Metadata Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Pelaku */}
-            <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1">
+            <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1 overflow-hidden">
               <div className="flex items-center gap-1.5 text-gray-secondary-text font-bold text-[11px]">
-                <User className="w-3.5 h-3.5 text-primary" />
+                <User className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span>Pelaku Utama</span>
               </div>
-              <p className="text-sm font-extrabold text-gray-heading-main">
+              <p className="text-sm font-extrabold text-gray-heading-main truncate">
                 {log.actorName || "Sistem"}
               </p>
-              <p className="text-[11px] text-gray-secondary-text font-mono">
+              <p className="text-[11px] text-gray-secondary-text font-mono truncate">
                 NIK: {log.actorNik || "-"}
               </p>
             </div>
 
             {/* Role & Access */}
-            <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1">
+            <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1 overflow-hidden">
               <div className="flex items-center gap-1.5 text-gray-secondary-text font-bold text-[11px]">
-                <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                <Shield className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                 <span>Peran / Role Pengguna</span>
               </div>
-              <p className="text-sm font-extrabold text-indigo-700">
+              <p className="text-sm font-extrabold text-indigo-700 truncate">
                 {log.actorRoleName || "Super Admin"}
               </p>
               <p className="text-[11px] text-gray-secondary-text truncate">
@@ -90,30 +99,31 @@ export const AuditLogDetailModal: React.FC<AuditLogDetailModalProps> = ({
             </div>
 
             {/* Modul & Aksi */}
-            <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1">
+            <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1 overflow-hidden">
               <div className="flex items-center gap-1.5 text-gray-secondary-text font-bold text-[11px]">
-                <Terminal className="w-3.5 h-3.5 text-emerald-600" />
+                <Terminal className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>Modul & Tipe Aksi</span>
               </div>
-              <p className="text-sm font-extrabold text-emerald-700">
+              <p className="text-sm font-extrabold text-emerald-700 break-all">
                 {log.module} / {log.action}
               </p>
             </div>
 
             {/* Waktu & IP */}
-            <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1">
+            <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1 overflow-hidden">
               <div className="flex items-center gap-1.5 text-gray-secondary-text font-bold text-[11px]">
-                <Globe className="w-3.5 h-3.5 text-blue-600" />
+                <Globe className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                 <span>Waktu & IP Address</span>
               </div>
-              <p className="text-sm font-mono font-extrabold text-gray-heading-main">
-                {log.ipAddress || "127.0.0.1"}
+              <p className="text-xs font-mono font-extrabold text-gray-heading-main break-all leading-tight">
+                {formatIp(log.ipAddress)}
               </p>
               <p className="text-[11px] text-gray-secondary-text">
                 {formatDate(log.createdAt)}
               </p>
             </div>
           </div>
+
 
           {/* Deskripsi Detail Box */}
           <div className="space-y-1.5">

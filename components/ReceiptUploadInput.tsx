@@ -38,10 +38,12 @@ export const ReceiptUploadInput: React.FC<ReceiptUploadInputProps> = ({
       if (typeof value === "string") {
         return "Bukti Nota Terunggah (Klik untuk mengganti)";
       }
-      return value.name;
+      const nameWithoutExt = value.name.replace(/\.[^/.]+$/, "");
+      return nameWithoutExt || value.name;
     }
     return disabled ? "Berkas Bukti Terkunci" : "Pilih Foto Kwitansi / Bukti Nota";
   };
+
 
   return (
     <div className="space-y-1.5 w-full">

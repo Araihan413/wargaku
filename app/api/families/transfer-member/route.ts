@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { transferFamilyMember } from '@/db/queries/kependudukan';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { getFamilyById } from '@/db/queries/population/family.queries';
+import { getFamilyMemberById, transferFamilyMember } from '@/db/queries/population/family-member.queries';
 import { transferFamilyMemberSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
+import { notifyUser } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +18,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-residents');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-residents');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
@@ -24,7 +27,34 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = transferFamilyMemberSchema.parse(body);
 
-    const newFamilyId = await transferFamilyMember(validated);
+    const member = await getFamilyMemberById(validated.memberId).catch(() => null);
+    const sourceFamilyId = member?.familyId;
+    const sourceFamily = sourceFamilyId ? await getFamilyById(sourceFamilyId).catch(() => null) : null;
+
+    const newFamilyId = await transferFamilyMember({
+      memberId: validated.memberId,
+      targetFamilyId: validated.targetFamilyId || 0,
+      relationship: validated.relationship,
+    });
+
+    if (sourceFamily?.headUserId) {
+      notifyUser(sourceFamily.headUserId, {
+        title: "Anggota Keluarga Dipindahkan",
+        message: `Seorang anggota keluarga Anda (${member?.name || 'Anggota'}) telah dipindahkan ke Kartu Keluarga lain oleh Pengurus RT.`,
+        category: "personal",
+        redirectLink: "/dashboard/family",
+      });
+    }
+
+    const targetFamily = await getFamilyById(newFamilyId).catch(() => null);
+    if (targetFamily?.headUserId && targetFamily.headUserId !== sourceFamily?.headUserId) {
+      notifyUser(targetFamily.headUserId, {
+        title: "Anggota Keluarga Baru Bergabung",
+        message: `${member?.name || 'Seorang anggota'} telah bergabung ke Kartu Keluarga Anda dari KK lain atas penugasan Pengurus RT.`,
+        category: "personal",
+        redirectLink: "/dashboard/family",
+      });
+    }
 
     return NextResponse.json({
       message: 'Anggota keluarga berhasil dipindahkan',

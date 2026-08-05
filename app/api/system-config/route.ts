@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getSystemSettings, updateSystemSettings } from "@/db/queries/system-settings";
-import type { UpdateSystemSettingsInput } from "@/db/queries/system-settings";
+import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
+import { getSystemSettings, updateSystemSettings } from "@/db/queries/system/system-setting.queries";
+import type { UpdateSystemSettingsInput } from "@/db/queries/system/system-setting.queries";
+import { getClientIp } from "@/lib/audit-logger";
 
 export async function GET() {
   try {
@@ -14,7 +16,9 @@ export async function GET() {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    if (session.user.roleId !== 1) {
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const allowed = await hasPermission(effectiveRoleId, "manage-system-config");
+    if (!allowed) {
       return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
     }
 
@@ -39,13 +43,14 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    if (session.user.roleId !== 1) {
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const allowed = await hasPermission(effectiveRoleId, "manage-system-config");
+    if (!allowed) {
       return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
     }
 
     const body = await req.json() as UpdateSystemSettingsInput;
 
-    // Validasi field wajib
     if (!body.rtName?.trim()) {
       return NextResponse.json({ error: "Nama RT wajib diisi" }, { status: 400 });
     }
@@ -59,21 +64,15 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Nama Kecamatan wajib diisi" }, { status: 400 });
     }
     if (!body.city?.trim()) {
-      return NextResponse.json({ error: "Kota/Kabupaten wajib diisi" }, { status: 400 });
+      return NextResponse.json({ error: "Nama Kota/Kabupaten wajib diisi" }, { status: 400 });
     }
 
-    // Ambil IP dari header request
-    const reqHeaders = await headers();
-    const ipAddress =
-      reqHeaders.get("x-forwarded-for") ||
-      reqHeaders.get("x-real-ip") ||
-      "127.0.0.1";
-
-    const updatedSettings = await updateSystemSettings(body, session.user.id, ipAddress);
+    const ipAddress = await getClientIp(req);
+    const updatedSettings = await updateSystemSettings(body, session.user.id, ipAddress || undefined);
 
     return NextResponse.json({
+      message: "Konfigurasi sistem berhasil diperbarui",
       settings: updatedSettings,
-      message: "Konfigurasi sistem berhasil disimpan",
     });
   } catch (error: any) {
     console.error("Error in PUT /api/system-config:", error);

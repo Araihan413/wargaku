@@ -58,7 +58,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
         file: ktpFile,
         folder: "ktp",
         submitFn: (finalKtpUrl) =>
-          fetch("/api/warga", {
+          fetch("/api/family-members", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { listCoordinators, createCoordinator, createCoordinatorSchema } from '@/db/queries/coordinators';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { listCoordinators, createCoordinator, createCoordinatorSchema } from '@/db/queries';
 import { z } from 'zod';
+import { notifyUser } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -15,10 +16,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
+    const effectiveRoleId = await getEffectiveRoleId(session);
     const isAllowed =
-      (await hasPermission(session.user.roleId, 'view-residents')) ||
-      (await hasPermission(session.user.roleId, 'view-dwelling-details')) ||
-      (await hasPermission(session.user.roleId, 'manage-dwellings'));
+      (await hasPermission(effectiveRoleId, 'view-residents')) ||
+      (await hasPermission(effectiveRoleId, 'view-dwelling-details')) ||
+      (await hasPermission(effectiveRoleId, 'manage-dwellings'));
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
@@ -43,7 +45,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-dwellings');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
@@ -54,23 +57,34 @@ export async function POST(request: Request) {
     const { targetUserId, isNewUserCreated, generatedPassword, emailSentSuccessfully } =
       await createCoordinator(validated);
 
+    if (targetUserId) {
+      notifyUser(targetUserId, {
+        title: "Penugasan Koordinator Kost",
+        message: "Anda telah ditugaskan atau diperbarui sebagai Koordinator Kost oleh Pengurus RT.",
+        category: "personal",
+        redirectLink: "/dashboard",
+      }).catch((err) => console.error("Gagal kirim notifikasi koordinator:", err));
+    }
+
+    let responseMessage = "Koordinator kos berhasil ditambahkan/diperbarui.";
+    if (isNewUserCreated) {
+      responseMessage = emailSentSuccessfully
+        ? `Akun koordinator kos berhasil dibuat. Email aktivasi dengan password sementara (${generatedPassword}) telah dikirim ke ${validated.email}.`
+        : `Akun koordinator kos berhasil dibuat. Password sementara: ${generatedPassword} (Gagal mengirim email, berikan password ini secara manual).`;
+    }
+
     return NextResponse.json({
-      success: true,
-      message: isNewUserCreated
-        ? 'Akun koordinator baru berhasil dibuat dan didaftarkan.'
-        : 'Pengguna berhasil dipromosikan sebagai koordinator.',
-      data: {
-        userId: targetUserId,
-        isNewUserCreated,
-        generatedPassword: generatedPassword || null,
-        emailSent: emailSentSuccessfully,
-      },
-    });
+      message: responseMessage,
+      targetUserId,
+      isNewUserCreated,
+      temporaryPassword: generatedPassword || undefined,
+    }, { status: 201 });
+
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validasi gagal', issues: error.issues }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message || 'Input tidak valid' }, { status: 400 });
     }
-    if (error.message === 'USER_NOT_FOUND') {
+    if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
       return NextResponse.json({ error: 'Pengguna yang dipilih tidak ditemukan' }, { status: 404 });
     }
     console.error('Error in POST /api/coordinators:', error);

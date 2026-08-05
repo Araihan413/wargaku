@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { suspendCoordinator } from '@/db/queries/coordinators';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { suspendCoordinator } from '@/db/queries/auth/user.queries';
 
 export async function PUT(
   request: Request,
@@ -17,7 +17,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-dwellings');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }

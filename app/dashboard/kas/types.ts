@@ -22,6 +22,7 @@ export const INCOME_CATEGORIES = [
   { value: "Penjualan Daur Ulang", label: "Penjualan Barang Daur Ulang" },
   { value: "Bunga Bank", label: "Bunga Bank / Jasa Giro" },
   { value: "Lainnya", label: "Lainnya (Pemasukan Non-Iuran)" },
+  { value: "Iuran Warga", label: "Iuran Warga" },
 ];
 
 export const EXPENSE_CATEGORIES = [

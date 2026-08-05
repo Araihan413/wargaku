@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { MessageSquare, PhoneCall, AlertCircle } from "lucide-react";
-import { PublicFinanceSummary, EmergencyContactItem } from "@/db/queries/public-portal";
+import { PublicFinanceSummary, EmergencyContactItem } from "@/db/queries/dashboard/public-portal.queries";
 
 interface PublicFinanceAndEmergencySectionProps {
   finance: PublicFinanceSummary;

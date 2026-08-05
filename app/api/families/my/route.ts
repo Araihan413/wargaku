@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { getMyFamily } from '@/db/queries/kependudukan';
+import { getMyFamily } from '@/db/queries/population/family.queries';
 
 export async function GET() {
   try {
@@ -13,7 +13,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const family = await getMyFamily(session.user.id, session.user.familyNumber);
+    const family = await getMyFamily(session.user.id);
 
     if (!family) {
       return NextResponse.json(
@@ -27,12 +27,13 @@ export async function GET() {
       familyNumber: family.familyNumber,
       headUserId: family.headUserId,
       headName: family.headName,
+      isHeadOfFamily: family.headUserId === session.user.id,
       verificationStatus: family.verificationStatus,
       verificationNote: family.verificationNote,
       kkFile: family.kkFile,
       dwellingId: family.dwellingId,
-      hasVerified: family.hasVerified,
     });
+
   } catch (error: any) {
     console.error('Error in GET /api/families/my:', error);
     return NextResponse.json({ error: 'Kesalahan server internal' }, { status: 500 });

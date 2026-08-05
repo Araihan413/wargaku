@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { registerCoord } from '@/db/queries/users';
+import { registerCoord } from '@/db/queries/auth/user.queries';
 import { hashPassword } from 'better-auth/crypto';
 
 const nikRegex = /^[0-9]{16}$/;

@@ -11,7 +11,6 @@ export const authClient = createAuthClient({
         phone: { type: 'string', required: false },
         familyNumber: { type: 'string', required: false },
         dwellingId: { type: 'number', required: false },
-        unitNumber: { type: 'string', required: false },
       },
     }),
   ],

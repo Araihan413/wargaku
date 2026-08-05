@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { getRentalPropertyById, getRoomHistory } from '@/db/queries/rental';
+import { getRoomContractHistory } from '@/db/queries/property/tenant.queries';
 
 export async function GET(
   request: Request,
@@ -21,30 +20,14 @@ export async function GET(
     const propertyId = Number(id);
 
     if (isNaN(propertyId)) {
-      return NextResponse.json({ error: 'ID properti tidak valid' }, { status: 400 });
+      return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
-    const property = await getRentalPropertyById(propertyId);
-    if (!property) {
-      return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
-    }
-
-    const isGlobalAllowed = await hasPermission(session.user.roleId, 'manage-boarding');
-    const isCoordinator = property.coordinatorUserId === session.user.id;
-    const isOwner = property.dwelling?.ownerUserId === session.user.id;
-
-    if (!isGlobalAllowed && !isCoordinator && !isOwner) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
-    const history = await getRoomHistory(propertyId, roomNumber);
+    const history = await getRoomContractHistory(propertyId, decodeURIComponent(roomNumber));
 
     return NextResponse.json(history);
   } catch (error: any) {
-    console.error('Error in GET room history:', error);
-    return NextResponse.json(
-      { error: error.message || 'Kesalahan server internal' },
-      { status: 500 }
-    );
+    console.error('Error in GET /api/rentals/[id]/rooms/[roomNumber]/history:', error);
+    return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }

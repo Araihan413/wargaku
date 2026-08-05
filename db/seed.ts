@@ -1,7 +1,7 @@
 import { db } from './index';
 import * as schema from './schema';
 import { hashPassword } from 'better-auth/crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 async function main() {
   console.log('🌱 Memulai proses seeding data...');
@@ -70,23 +70,29 @@ async function main() {
   await db.delete(schema.permissions);
 
   const permissionsData = [
-    { id: 1, slug: 'view-residents', name: 'Lihat Data Warga', module: 'kependudukan', description: 'Melihat seluruh data kependudukan warga tetap & penyewa' },
-    { id: 2, slug: 'manage-residents', name: 'Kelola Data Warga', module: 'kependudukan', description: 'Membuat, mengedit, dan menghapus data warga tetap & KK' },
-    { id: 3, slug: 'manage-boarding', name: 'Kelola Kos & Penghuni', module: 'kependudukan', description: 'Mengelola properti sewa dan data penghuni sewa/kos' },
-    { id: 4, slug: 'view-finance', name: 'Lihat Keuangan Kas', module: 'keuangan', description: 'Melihat laporan transaksi kas dan iuran kas RT' },
-    { id: 5, slug: 'manage-income', name: 'Kelola Pemasukan Kas', module: 'keuangan', description: 'Mencatat transaksi pemasukan kas RT' },
-    { id: 6, slug: 'manage-expense', name: 'Kelola Pengeluaran Kas', module: 'keuangan', description: 'Mencatat draf rencana pengeluaran kas RT' },
-    { id: 7, slug: 'approve-expense', name: 'Setujui Pengeluaran Kas', module: 'keuangan', description: 'Menyetujui atau menolak draf pengeluaran kas RT' },
-    { id: 8, slug: 'manage-iuran', name: 'Kelola & Setor Iuran', module: 'keuangan', description: 'Mengatur tarif, menginisialisasi, dan menginput setoran iuran warga' },
-    { id: 9, slug: 'manage-announcements', name: 'Kelola Pengumuman', module: 'pengumuman', description: 'Membuat, mengedit, dan menghapus pengumuman warga' },
-    { id: 10, slug: 'manage-activities', name: 'Kelola Kegiatan', module: 'kegiatan', description: 'Mengelola agenda dan jadwal kegiatan warga RT' },
-    { id: 11, slug: 'manage-complaints', name: 'Kelola Pengaduan Warga', module: 'laporan', description: 'Memproses dan memperbarui status laporan aduan warga' },
-    { id: 12, slug: 'manage-users', name: 'Kelola User & Akun', module: 'pengguna', description: 'CRUD pengguna, reset password, suspend & mutasi peran' },
-    { id: 13, slug: 'manage-roles', name: 'Kelola Role & Permission', module: 'pengguna', description: 'Mengatur matriks otorisasi dan hak akses permission role' },
-    { id: 14, slug: 'view-audit-logs', name: 'Lihat Log Aktivitas Audit', module: 'pengguna', description: 'Melihat log riwayat aktivitas keamanan dan transaksi data' },
-    { id: 15, slug: 'verify-registrations', name: 'Verifikasi Pendaftaran', module: 'verifikasi', description: 'Menyetujui pendaftaran akun warga mandiri' },
-    { id: 16, slug: 'verify-documents', name: 'Verifikasi Berkas KK/KTP', module: 'verifikasi', description: 'Menyetujui unggahan berkas scan KK & KTP warga' },
-    { id: 17, slug: 'manage-dwellings', name: 'Kelola Hunian & Alamat', module: 'hunian', description: 'Mengelola data alamat hunian dan cetak QR Code rumah' },
+    { id: 1, slug: 'view-residents', name: 'Lihat Data Warga (Strict Read-Only)', module: 'kependudukan', description: 'Melihat seluruh tabel & detail kependudukan warga' },
+    { id: 2, slug: 'manage-residents', name: 'Kelola Data Warga (Full Operational)', module: 'kependudukan', description: 'Membuat, mengedit, ganti KK, nonaktifkan, dan menghapus data warga' },
+    { id: 3, slug: 'manage-smart-groups', name: 'Kelompok Warga (Smart Group)', module: 'kependudukan', description: 'Mengelola kelompok warga terfilter' },
+    { id: 4, slug: 'manage-dwellings', name: 'Cetak QR Code RT', module: 'hunian', description: 'Mengelola hunian & mencetak QR Code rumah' },
+    { id: 5, slug: 'verify-registrations', name: 'Persetujuan Registrasi', module: 'verifikasi', description: 'Menyetujui pendaftaran akun warga' },
+    { id: 6, slug: 'verify-documents', name: 'Verifikasi Berkas KK/KTP', module: 'verifikasi', description: 'Menyetujui berkas scan KK & KTP warga' },
+    { id: 7, slug: 'manage-income', name: 'Catat Pemasukan Kas', module: 'kas_rt', description: 'Mencatat transaksi pemasukan kas RT' },
+    { id: 8, slug: 'manage-expense', name: 'Catat Pengeluaran Kas', module: 'kas_rt', description: 'Mencatat transaksi pengeluaran kas RT' },
+    { id: 9, slug: 'view-finance', name: 'Laporan Keuangan Kas RT', module: 'kas_rt', description: 'Melihat laporan transaksi kas dan saldo RT' },
+    { id: 10, slug: 'manage-iuran', name: 'Kelola & Setor Iuran', module: 'iuran_warga', description: 'Mengatur tarif, inisialisasi, dan menginput setoran iuran warga' },
+    { id: 11, slug: 'view-tunggakan', name: 'Laporan Tunggakan Iuran', module: 'iuran_warga', description: 'Melihat rekapitulasi tunggakan iuran warga' },
+    { id: 12, slug: 'manage-announcements', name: 'Kelola Pengumuman', module: 'pengumuman', description: 'Membuat, mengedit, dan menghapus pengumuman warga' },
+    { id: 13, slug: 'manage-activities', name: 'Kelola Kegiatan RT', module: 'kegiatan', description: 'Mengelola agenda dan jadwal kegiatan warga RT' },
+    { id: 14, slug: 'manage-complaints', name: 'Tanggapan Pengaduan Warga', module: 'laporan', description: 'Merespon dan memperbarui status laporan aduan warga' },
+    { id: 15, slug: 'manage-boarding', name: 'Kelola Properti Sewa (Kos)', module: 'properti', description: 'Mengelola properti sewa dan data penghuni sewa/kos' },
+    { id: 16, slug: 'manage-users', name: 'Manajemen Pengguna (Super Admin)', module: 'pengguna', description: 'CRUD pengguna, reset password, suspend & mutasi peran' },
+    { id: 17, slug: 'manage-roles', name: 'Role & Permission (Super Admin)', module: 'pengguna', description: 'Mengatur matriks otorisasi dan hak akses permission role' },
+    { id: 18, slug: 'view-audit-logs', name: 'Log Aktivitas Audit (Super Admin)', module: 'pengguna', description: 'Melihat log riwayat aktivitas audit keamanan' },
+    { id: 19, slug: 'view-complaints-report', name: 'Laporan Pengaduan Global (Super Admin)', module: 'laporan', description: 'Memantau laporan pengaduan wilayah' },
+    { id: 20, slug: 'manage-system-config', name: 'Konfigurasi Sistem (Super Admin)', module: 'pengguna', description: 'Mengatur konfigurasi sistem & kop surat' },
+    { id: 21, slug: 'manage-family-profile', name: 'Kelola Anggota Keluarga & Biodata', module: 'warga', description: 'Mengelola data anggota keluarga & biodata KK' },
+    { id: 22, slug: 'view-neighborhood-map', name: 'Peta Hunian & Tetangga', module: 'warga', description: 'Melihat peta hunian dan direktori warga tetangga' },
+    { id: 23, slug: 'manage-my-properties', name: 'Kelola Properti Pribadi', module: 'warga', description: 'Mengelola properti pribadi milik sendiri' },
   ];
 
   for (const perm of permissionsData) {
@@ -98,37 +104,40 @@ async function main() {
   const rolePermissionsData: { id: number; roleId: number; permissionId: number }[] = [];
   let rpId = 1;
 
-  // Super Admin (1 - 17)
-  for (let p = 1; p <= 17; p++) {
+  // Super Admin (1 - 20)
+  for (let p = 1; p <= 20; p++) {
     rolePermissionsData.push({ id: rpId++, roleId: 1, permissionId: p });
   }
 
-  // Ketua RT (1, 2, 3, 4, 7, 8, 9, 10, 11, 15, 16, 17)
-  const rtPerms = [1, 2, 3, 4, 7, 8, 9, 10, 11, 15, 16, 17];
+  // Ketua RT (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+  const rtPerms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
   for (const p of rtPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 2, permissionId: p });
   }
 
-  // Sekretaris (1, 9, 10, 11, 15, 16, 17)
-  const sekPerms = [1, 9, 10, 11, 15, 16, 17];
+  // Sekretaris (1, 2, 3, 4, 5, 6, 12, 13, 14, 15)
+  const sekPerms = [1, 2, 3, 4, 5, 6, 12, 13, 14, 15];
   for (const p of sekPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 3, permissionId: p });
   }
 
-  // Bendahara (4, 5, 6, 8)
-  const bendPerms = [4, 5, 6, 8];
+  // Bendahara (7, 8, 9, 10, 11)
+  const bendPerms = [7, 8, 9, 10, 11];
   for (const p of bendPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 4, permissionId: p });
   }
 
-  // Koordinator Kost (3, 17)
-  const kostPerms = [3, 17];
+  // Koordinator Kost (15, 4, 21, 22, 23)
+  const kostPerms = [15, 4, 21, 22, 23];
   for (const p of kostPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 5, permissionId: p });
   }
 
-  // Warga (bebas akses warga)
-  // (Tanpa permission pengurus khusus)
+  // Warga (21, 22, 23)
+  const wargaPerms = [21, 22, 23];
+  for (const p of wargaPerms) {
+    rolePermissionsData.push({ id: rpId++, roleId: 6, permissionId: p });
+  }
 
   for (const rp of rolePermissionsData) {
     await db.insert(schema.rolePermissions).values(rp);
@@ -140,24 +149,26 @@ async function main() {
   const plainPassword = 'admin123';
   const hashedPassword = await hashPassword(plainPassword);
 
-  // Cek apakah admin sudah ada
   const existingAdmins = await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.email, adminEmail));
 
   if (existingAdmins.length === 0) {
-    // Tambahkan user
     await db.insert(schema.users).values({
       id: '1',
       name: 'Super Admin Utama',
       email: adminEmail,
       password: hashedPassword,
-      roleId: 1, // Super Admin
       status: 'active',
     });
 
-    // Tambahkan account credential untuk Better Auth
+    await db.insert(schema.userRoles).values({
+      userId: '1',
+      roleId: 1,
+      isPrimary: true,
+    }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+
     await db.insert(schema.accounts).values({
       id: 'admin-credential-id',
       accountId: adminEmail,
@@ -171,6 +182,26 @@ async function main() {
     console.log(`   Password: ${plainPassword}`);
   } else {
     console.log('ℹ️ User Super Admin sudah ada, melewati pembuatan user.');
+  }
+
+  // 5. Seed System Settings (Default single row ID 1)
+  console.log('Seeding system settings...');
+  const existingSettings = await db.select().from(schema.systemSettings).where(eq(schema.systemSettings.id, 1));
+  if (existingSettings.length === 0) {
+    await db.insert(schema.systemSettings).values({
+      id: 1,
+      rtName: '001',
+      rwName: '005',
+      villageName: 'Sukamaju',
+      subdistrict: 'Cilodong',
+      city: 'Kota Depok',
+      secretariatAddress: 'Jl. Merdeka No. 123, Depok',
+      officialEmail: 'rt001rw005@wargaku.local',
+      emergencyContacts: [
+        { id: '1', name: 'Ketua RT', phone: '081234567890', subtitle: 'Pak Ahmad' },
+        { id: '2', name: 'Polsek Perumahan', phone: '110', subtitle: 'Layanan 24 Jam' }
+      ]
+    });
   }
 
   console.log('🎉 Proses seeding selesai dengan sukses!');

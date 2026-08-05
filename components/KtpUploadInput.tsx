@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { FileUploadModal } from "@/components/FileUploadModal";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
+import { FILE_PRESETS } from "@/lib/file-processor/presets";
 
 interface KtpUploadInputProps {
   value: File | string | null | undefined;
@@ -25,26 +27,28 @@ export const KtpUploadInput: React.FC<KtpUploadInputProps> = ({
   error,
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const { processFile, isProcessing } = useFileProcessor(FILE_PRESETS.KTP);
 
-  const handleSelectLocal = (file: File) => {
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Ukuran berkas KTP melebihi batas maksimum 2MB.");
-      return;
+  const handleSelectLocal = async (file: File) => {
+    const processed = await processFile(file);
+    if (processed) {
+      onChange(processed.file);
+      toast.success("Berkas KTP berhasil diunggah!");
     }
-    onChange(file);
-    toast.success("Berkas KTP berhasil diimpor!");
   };
 
-  // Get displayed file name/status
+  // Get displayed file name/status (tanpa menampilkan ekstensi .pdf/.jpg agar tidak membingungkan)
   const getDisplayName = () => {
     if (value) {
       if (typeof value === "string") {
-        return "Scan KTP Terunggah (Pilih Ulang)";
+        return "Scan Dokumen Terunggah (Pilih Ulang)";
       }
-      return value.name;
+      const nameWithoutExt = value.name.replace(/\.[^/.]+$/, "");
+      return nameWithoutExt || value.name;
     }
     return disabled ? "Berkas KTP Terkunci" : "Pilih Berkas Scan KTP";
   };
+
 
   return (
     <div className="space-y-1.5 w-full">
@@ -71,7 +75,7 @@ export const KtpUploadInput: React.FC<KtpUploadInputProps> = ({
           <p className="font-bold text-gray-heading-main truncate max-w-full px-2">
             {getDisplayName()}
           </p>
-          <p className="text-[10px] text-gray-placeholder">Maksimal ukuran 2MB (JPG/PNG/PDF)</p>
+          <p className="text-[10px] text-gray-placeholder">Maksimal ukuran 2MB (JPG/PNG/WebP/PDF)</p>
         </div>
       </div>
 
@@ -92,7 +96,7 @@ export const KtpUploadInput: React.FC<KtpUploadInputProps> = ({
           title={`Unggah ${label}`}
           description={`Pilih metode pengunggahan berkas ${label} dari perangkat lokal atau gunakan tautan Google Drive.`}
           onSelectLocalFile={handleSelectLocal}
-          isLoading={false}
+          isLoading={isProcessing}
         />
       )}
     </div>

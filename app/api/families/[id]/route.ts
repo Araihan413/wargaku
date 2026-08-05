@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { getFamilyById, updateFamily, deleteFamily } from '@/db/queries/kependudukan';
+import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { getFamilyById, updateFamily, deleteFamily } from '@/db/queries/population/family.queries';
 import { updateFamilySchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 import { deleteCloudinaryFileByUrl } from '@/lib/cloudinary';
+import { notifyUser } from '@/lib/notifications';
+
 
 /**
  * @openapi
@@ -127,7 +129,8 @@ export async function GET(
       return NextResponse.json({ error: 'Kartu Keluarga tidak ditemukan' }, { status: 404 });
     }
 
-    const hasViewPerm = await hasPermission(session.user.roleId, 'view-residents');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const hasViewPerm = await hasPermission(effectiveRoleId, 'view-residents');
     const isOwnFamily = family.headUserId === session.user.id;
 
     if (!hasViewPerm && !isOwnFamily) {
@@ -166,12 +169,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Kartu Keluarga tidak ditemukan' }, { status: 404 });
     }
 
-    const hasManagePerm = await hasPermission(session.user.roleId, 'manage-residents');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const hasManagePerm = await hasPermission(effectiveRoleId, 'manage-residents');
     const isOwnFamily = family.headUserId === session.user.id;
 
     if (!hasManagePerm && !isOwnFamily) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
+
 
     const body = await request.json();
     let updateData: any;
@@ -199,12 +204,28 @@ export async function PUT(
 
     const validated = updateFamilySchema.parse(updateData);
 
-    // Hapus file KK lama dari Cloudinary jika diganti dengan file baru
-    if (validated.kkFile && family.kkFile && validated.kkFile !== family.kkFile) {
-      await deleteCloudinaryFileByUrl(family.kkFile);
-    }
+    const oldKkFile = (validated.kkFile && family.kkFile && validated.kkFile !== family.kkFile) ? family.kkFile : null;
 
     await updateFamily(familyId, validated);
+
+    // Kirim notifikasi ke Kepala Keluarga jika data diubah oleh Pengurus/RT
+    if (hasManagePerm && family.headUserId && session.user.id !== family.headUserId) {
+      notifyUser(family.headUserId, {
+        title: "Pembaruan Data Keluarga",
+        message: "Data Kartu Keluarga Anda telah diperbarui oleh Pengurus RT. Silakan tinjau.",
+        category: "personal",
+        redirectLink: "/dashboard/family",
+      }).catch((notifErr) =>
+        console.error("Gagal mengirim notifikasi update KK ke Kepala Keluarga:", notifErr)
+      );
+    }
+
+    // Hapus file KK lama dari Cloudinary HANYA SETELAH update DB berhasil
+    if (oldKkFile) {
+      deleteCloudinaryFileByUrl(oldKkFile).catch((err) =>
+        console.error('Gagal menghapus file KK lama dari Cloudinary:', err)
+      );
+    }
 
     return NextResponse.json({ message: 'Data Kartu Keluarga berhasil diperbarui' });
   } catch (error: any) {
@@ -236,10 +257,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-residents');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-residents');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
+
 
     const family = await getFamilyById(familyId);
     if (!family) {

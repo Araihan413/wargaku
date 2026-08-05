@@ -17,7 +17,7 @@ import {
   ChevronRight,
   LogIn,
 } from "lucide-react";
-import { PublicScanResultData, DetailedScanResultData, ActiveResidentEntry } from "@/db/queries/public-portal";
+import { PublicScanResultData, DetailedScanResultData, ActiveResidentEntry } from "@/db/queries/dashboard/public-portal.queries";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -70,12 +70,12 @@ const getTypeBadge = (type: PublicScanResultData["type"]) => {
   }
 };
 
-function formatCheckIn(dateStr: string | null) {
+function formatCheckIn(dateStr: string | Date | null) {
   if (!dateStr) return "-";
   try {
     return format(new Date(dateStr), "MMM yyyy", { locale: localeId });
   } catch {
-    return dateStr;
+    return String(dateStr);
   }
 }
 
@@ -298,7 +298,7 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({ mode, scanResult
             <Users className="w-4 h-4 text-slate-600" />
             <span className="text-xs font-bold text-slate-700">Daftar Penghuni Aktif</span>
           </div>
-          <ActiveResidentsList residents={detailData.activeResidents} />
+          <ActiveResidentsList residents={detailData.activeResidents || []} />
         </div>
       )}
 

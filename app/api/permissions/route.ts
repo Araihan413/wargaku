@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getRolePermissionMatrix, updateRolePermissions } from "@/db/queries/permissions";
+import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
+import { listPermissions, createPermission, getRolePermissionMatrix, updateRolePermissions } from '@/db/queries/system/permission.queries';
 
 export async function GET() {
   try {
@@ -13,7 +14,9 @@ export async function GET() {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    if (session.user.roleId !== 1) {
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const allowed = await hasPermission(effectiveRoleId, "manage-roles");
+    if (!allowed) {
       return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
     }
 
@@ -38,9 +41,12 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    if (session.user.roleId !== 1) {
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const allowed = await hasPermission(effectiveRoleId, "manage-roles");
+    if (!allowed) {
       return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
     }
+
 
     const body = await req.json();
     const { roleId, permissionIds } = body;

@@ -25,7 +25,7 @@ export const DeleteWargaMemberModal: React.FC<DeleteWargaMemberModalProps> = ({
   const handleDelete = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/warga/${member.id}`, {
+      const res = await fetch(`/api/family-members/${member.id}`, {
         method: "DELETE",
       });
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { cancelFamilyChange } from '@/db/queries/kependudukan';
+import { cancelFamilyChange } from '@/db/queries/population/family.queries';
 
 export async function POST(
   request: Request,
@@ -39,13 +39,7 @@ export async function POST(
     if (error.message === 'INVALID_STATUS') {
       return NextResponse.json({ error: 'Pembatalan perubahan hanya dapat dilakukan jika KK berstatus Draf' }, { status: 400 });
     }
-    if (error.message === 'NOT_YET_VERIFIED') {
-      return NextResponse.json({ error: 'Kartu Keluarga belum pernah diverifikasi sebelumnya' }, { status: 400 });
-    }
-    if (error.message === 'HAS_CHANGES') {
-      return NextResponse.json({ error: 'Tidak dapat membatalkan perubahan karena data sudah diubah' }, { status: 400 });
-    }
     console.error('Error in POST /api/families/[id]/cancel-change:', error);
-    return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
+    return NextResponse.json({ error: 'Kesalahan server internal' }, { status: 500 });
   }
 }

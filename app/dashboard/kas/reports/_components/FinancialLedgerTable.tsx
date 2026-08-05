@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { LedgerItem } from "../types";
-import { Search, FileText, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { FileText, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { SearchInput } from "@/components/SearchInput";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 
 interface FinancialLedgerTableProps {
   items: LedgerItem[];
@@ -28,23 +30,25 @@ const formatDate = (dateStr: string) => {
 
 export const FinancialLedgerTable: React.FC<FinancialLedgerTableProps> = ({ items }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
   const [filterType, setFilterType] = useState<"all" | "income" | "expense">("all");
 
   const filteredItems = items.filter((item) => {
     const matchesType = filterType === "all" || item.type === filterType;
+    const term = debouncedSearchTerm.toLowerCase();
     const matchesSearch =
-      searchTerm === "" ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.source.toLowerCase().includes(searchTerm.toLowerCase());
+      term === "" ||
+      item.description.toLowerCase().includes(term) ||
+      item.category.toLowerCase().includes(term) ||
+      item.source.toLowerCase().includes(term);
 
     return matchesType && matchesSearch;
   });
 
   return (
-    <div className="border border-gray-border bg-gray-card rounded-2xl shadow-xs overflow-hidden p-4 md:p-5 space-y-4">
+    <div className="border border-gray-border bg-gray-card rounded-2xl shadow-xs overflow-hidden p-4 md:p-5 gap-4">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-border">
+      <div className="flex flex-col items-start justify-center gap-4 pb-4 border-b border-gray-border">
         <div>
           <h3 className="text-base font-extrabold text-gray-heading-main tracking-tight">
             Buku Besar Transaksi Keuangan
@@ -54,7 +58,7 @@ export const FinancialLedgerTable: React.FC<FinancialLedgerTableProps> = ({ item
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
           {/* Filter Type Pills */}
           <div className="flex bg-gray-100 p-1 rounded-xl">
             <button
@@ -87,16 +91,12 @@ export const FinancialLedgerTable: React.FC<FinancialLedgerTableProps> = ({ item
           </div>
 
           {/* Search Input */}
-          <div className="relative w-full sm:w-60">
-            <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-placeholder" />
-            <input
-              type="text"
-              placeholder="Cari deskripsi / kategori..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-3.5 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Cari deskripsi / kategori..."
+            containerClassName="w-full sm:max-w-96"
+          />
         </div>
       </div>
 
@@ -104,7 +104,7 @@ export const FinancialLedgerTable: React.FC<FinancialLedgerTableProps> = ({ item
       <div className="overflow-x-auto rounded-xl border border-gray-border">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover/30 text-gray-secondary-text font-bold uppercase tracking-wider">
+            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
               <th className="py-3 px-3.5">Tanggal</th>
               <th className="py-3 px-3.5">Jenis / Sumber</th>
               <th className="py-3 px-3.5">Kategori</th>

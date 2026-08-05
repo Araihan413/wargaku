@@ -194,7 +194,8 @@ export default function PropertyDetailsPage() {
   if (!property) return null;
 
   // Case A check: Is the logged-in owner also the manager (coordinator)?
-  const isCoordinator = property.coordinatorUserId === sessionUserId;
+  const isCoordinator = property.coordinatorUserId === sessionUserId || property.coordinatorUserId === null;
+
 
   return (
     <div className="space-y-6 pb-12">

@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { getNeighborhoodMap } from '@/db/queries/kependudukan';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { getNeighborhoodMap } from '@/db/queries/population/dwelling.queries';
 
 export async function GET() {
   try {
-    // 1. Authenticate user
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -15,10 +14,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    // 2. Check if officer (view-residents permission)
-    const isOfficer = await hasPermission(session.user.roleId, 'view-residents');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isOfficer = await hasPermission(effectiveRoleId, 'view-residents');
 
-    // 3. Fetch neighborhood map data
     const results = await getNeighborhoodMap(isOfficer);
 
     return NextResponse.json(results);

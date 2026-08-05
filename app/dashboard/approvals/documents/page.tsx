@@ -14,8 +14,10 @@ import Link from "next/link";
 import { DocumentPreviewModal } from "./_components/DocumentPreviewModal";
 import { VerifyConfirmModal } from "./_components/VerifyConfirmModal";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { RefreshButton } from "@/components/RefreshButton";
 
 interface FamilyItem {
+
   id: number;
   familyNumber: string;
   headName: string;
@@ -181,19 +183,26 @@ export default function DocumentApprovalsPage() {
     }
   };
 
+  const handleRefresh = () => {
+    fetchDocuments();
+    fetchPendingCounts();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-heading-main tracking-tight">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main">
             Verifikasi Kependudukan
           </h1>
-          <p className="text-xs text-gray-secondary-text mt-1">
+          <p className="text-sm text-gray-secondary-text mt-1">
             Tinjau dan verifikasi data kependudukan beserta dokumen pendukung (KK & KTP) warga secara mandiri
           </p>
         </div>
+        <RefreshButton onClick={handleRefresh} isLoading={isLoading} />
       </div>
+
 
       {/* Tabs & Controls */}
       <div className="bg-gray-card border border-gray-border rounded-2xl p-4 space-y-4">

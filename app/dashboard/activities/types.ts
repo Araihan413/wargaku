@@ -4,6 +4,7 @@ export interface ActivityItem {
   description?: string | null;
   eventDate: string;
   location?: string | null;
+  attachments?: string | null;
   isPinned: boolean;
   createdBy: string;
   creatorName?: string | null;
@@ -16,5 +17,6 @@ export interface ActivityFormData {
   description?: string;
   eventDate: string;
   location?: string;
+  attachments?: string;
   isPinned: boolean;
 }

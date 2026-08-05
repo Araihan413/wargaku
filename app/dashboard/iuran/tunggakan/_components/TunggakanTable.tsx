@@ -58,11 +58,11 @@ export const TunggakanTable: React.FC<TunggakanTableProps> = ({
         return (
           <div
             key={item.familyId}
-            className="rounded-2xl border border-gray-border bg-gray-card overflow-hidden"
+            className="rounded-2xl border border-gray-border bg-gray-card overflow-hidden shadow-sm"
           >
             {/* Row Header */}
             <div
-              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-sidebar-hover/50 transition-colors"
+              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-sidebar-hover/50 transition-colors "
               onClick={() => toggle(item.familyId)}
             >
               <div className="flex items-center gap-3">

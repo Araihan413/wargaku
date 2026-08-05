@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, User, ShieldAlert, Mail, Loader2 } from "lucide-react";
+import { X, ShieldAlert, Mail, Loader2 } from "lucide-react";
+
 import { toast } from "sonner";
 import { changeFamilyHeadSchema } from "@/lib/validations/kependudukan";
 import { FormField } from "@/components/FormField";

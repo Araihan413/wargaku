@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getWargaDashboard } from "@/db/queries/dashboard";
+import { getWargaDashboard } from "@/db/queries/dashboard/internal-dashboard.queries";
 
 export async function GET() {
   try {

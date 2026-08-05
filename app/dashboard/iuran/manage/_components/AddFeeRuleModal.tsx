@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { CustomSelect } from "@/components/CustomSelect";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { FeeRule } from "../../types";
 import { toast } from "sonner";
 
@@ -41,7 +42,7 @@ export const AddFeeRuleModal: React.FC<AddFeeRuleModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const url = isEdit ? `/api/iuran/rules/${existingRule!.id}` : "/api/iuran/rules";
+      const url = isEdit ? `/api/fee-rules/${existingRule!.id}` : "/api/fee-rules";
       const method = isEdit ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -90,19 +91,13 @@ export const AddFeeRuleModal: React.FC<AddFeeRuleModalProps> = ({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Nominal per KK / Bulan (Rp)<span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <input
-              type="number"
-              placeholder="Contoh: 50000"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main font-mono font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
+          <CurrencyInput
+            label="Nominal per KK / Bulan"
+            required
+            value={amount}
+            onChange={setAmount}
+            placeholder="50.000"
+          />
 
           <div>
             <CustomSelect
@@ -117,12 +112,6 @@ export const AddFeeRuleModal: React.FC<AddFeeRuleModalProps> = ({
               placeholder="Pilih Sifat Iuran"
             />
           </div>
-
-          {!isEdit && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
-              <strong>Info:</strong> Setelah disimpan, tagihan untuk bulan berjalan akan otomatis di-generate untuk seluruh Kepala Keluarga yang terverifikasi.
-            </div>
-          )}
 
           <div className="flex items-center justify-end gap-3 border-t border-gray-border pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2.5 border border-gray-border rounded-xl text-xs font-bold text-gray-heading-main hover:bg-gray-sidebar-hover transition cursor-pointer">

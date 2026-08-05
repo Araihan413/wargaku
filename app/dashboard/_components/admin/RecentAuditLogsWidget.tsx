@@ -21,6 +21,14 @@ const formatDate = (dateStr: string) => {
   }
 };
 
+const formatIp = (ip?: string | null) => {
+  if (!ip) return "127.0.0.1";
+  if (ip === "::1" || ip.includes("0000:0000:0000:0000") || ip === "::ffff:127.0.0.1") {
+    return "127.0.0.1";
+  }
+  return ip;
+};
+
 export const RecentAuditLogsWidget: React.FC<RecentAuditLogsWidgetProps> = ({ logs }) => {
   return (
     <div className="border border-gray-border bg-gray-card rounded-2xl p-5 shadow-xs space-y-4">
@@ -86,7 +94,7 @@ export const RecentAuditLogsWidget: React.FC<RecentAuditLogsWidgetProps> = ({ lo
                     {log.description || "-"}
                   </td>
                   <td className="py-3 px-3.5 text-right font-mono text-gray-secondary-text whitespace-nowrap">
-                    {log.ipAddress || "127.0.0.1"}
+                    {formatIp(log.ipAddress)}
                   </td>
                 </tr>
               ))}

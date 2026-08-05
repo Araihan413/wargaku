@@ -18,12 +18,15 @@ interface WargaActivitiesWidgetProps {
 }
 
 export function WargaActivitiesWidget({ activities }: WargaActivitiesWidgetProps) {
-  const formatEventDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const dayName = date.toLocaleDateString("id-ID", { weekday: "short" });
+  const formatEventDate = (dateStr?: string | null) => {
+    if (!dateStr) return { dayName: "-", day: "-", month: "-", time: "-" };
+    const cleanStr = dateStr.endsWith("Z") ? dateStr.slice(0, -1) : dateStr;
+    const date = new Date(cleanStr);
+    if (isNaN(date.getTime())) return { dayName: "-", day: "-", month: "-", time: "-" };
+    const dayName = date.toLocaleDateString("id-ID", { weekday: "short", timeZone: "Asia/Jakarta" });
     const day = date.getDate();
-    const month = date.toLocaleDateString("id-ID", { month: "short" });
-    const time = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const month = date.toLocaleDateString("id-ID", { month: "short", timeZone: "Asia/Jakarta" });
+    const time = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" });
     return { dayName, day, month, time };
   };
 

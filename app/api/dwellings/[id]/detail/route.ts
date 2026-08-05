@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { getDwellingDetailById } from '@/db/queries/kependudukan';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { getDwellingDetailById } from '@/db/queries/population/dwelling.queries';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Auth and permission check
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -18,7 +17,8 @@ export async function GET(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'view-residents');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'view-residents');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }

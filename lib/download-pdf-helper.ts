@@ -93,8 +93,23 @@ export async function downloadFileAsPdf(
         const xPos = (pageWidth - imgWidth) / 2;
         const yPos = marginTop + (maxImgHeight - imgHeight) / 2;
 
+        // Render gambar ke canvas untuk konversi ke JPEG Data URL yang 100% aman bagi jsPDF
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+
+        let safeImageDataUrl = imageBase64;
+        if (ctx) {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, img.width, img.height);
+          ctx.drawImage(img, 0, 0, img.width, img.height);
+          safeImageDataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        }
+
         // Tambahkan Gambar ke Dokumen PDF
-        doc.addImage(imageBase64 || img, "JPEG", xPos, yPos, imgWidth, imgHeight);
+        doc.addImage(safeImageDataUrl, "JPEG", xPos, yPos, imgWidth, imgHeight);
+
 
         // Footer Dokumen
         doc.setFontSize(8);

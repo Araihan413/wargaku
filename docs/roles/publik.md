@@ -14,7 +14,7 @@ Pengunjung yang membuka domain utama web RT akan menemui navigasi publik:
 *   **Portal Pengaduan:** (Menu Utama)
     *   **Lapor Warga:** (Sub-menu / Dropdown) Formulir pengiriman laporan pengaduan publik dengan nomor HP aktif & upload foto (anti-spam).
     *   **Cek Status Aduan:** (Sub-menu / Dropdown) Halaman tracking pelacakan laporan menggunakan Kode Tracking unik.
-*   **Scan QR Code Hunian:** (Menu Utama) Akses instan deteksi status alamat rumah, tipe hunian, & detail kontak komersial sewaan (kos/kontrakan/homestay) tanpa login.
+*   **Scan QR Code Hunian:** (Menu Utama) Akses pemindaian stiker QR fisik (kamera live / upload foto) atau pencarian manual Blok & Nomor Rumah untuk deteksi status alamat, tipe hunian, ketersediaan kamar sewaan, kontak pengelola, serta rute Google Maps tanpa login.
 
 ---
 
@@ -45,12 +45,32 @@ Pengunjung yang membuka domain utama web RT akan menemui navigasi publik:
     *   Jika laporan tidak valid, iseng, atau tidak jelas, pengurus akan mengubah status menjadi **`Ditolak`** dan memberikan **Catatan Tanggapan/Alasan Penolakan** yang dapat dibaca oleh pelapor secara terbuka melalui halaman tracking.
     *   Tampilannya hanya berupa form pengajuan laporan and setelah melapor ada opsi copy kode tracking dan kirim code ke WA pelapor serta ada peringatan untuk menyimpan code jika ingin melacak aduan.
 *   **PB-04: Info Dasar QR Code Rumah (Smart QR)**
-    Mendukung tampilan informasi kondisional berdasarkan **Tipe Hunian** saat memindai QR Code fisik di dinding rumah warga:
-    *   **Semua Tipe Hunian:** Halaman hasil scan publik akan selalu menampilkan **Nomor Rumah**, **RT/RW**, dan **Tipe Hunian**.
-    *   **Aturan Detail Per Tipe Hunian:**
-        *   **Rumah Tinggal Pribadi:** Hanya menampilkan data alamat & tipe hunian dan nama pemilik.
-        *   **Kos-kosan / Kontrakan:** Menampilkan tambahan berupa **Nama Properti** (misal: "Kos Melati"), **Sisa Kamar Kosong** (dihitung otomatis: `total_rooms` dikurangi penyewa aktif) dan **Kontak Pengelola** (Nama & tombol WhatsApp) untuk memudahkan promosi sewa.
-        *   **Homestay (Sewa Harian):** Menampilkan tambahan berupa **Nama Properti** (misal: "Villa Indah") dan **Kontak Pengelola** (Nama & tombol WhatsApp) saja untuk reservasi harian. **TIDAK menampilkan** sisa kamar kosong karena sirkulasi harian tidak terdata di aplikasi kependudukan.
+    Mendukung pemindaian stiker QR Code fisik di dinding rumah warga, unggah foto QR, atau pencarian manual nomor rumah dengan tampilan kondisional per tipe hunian dan penyesuaian hak akses (Publik vs Warga Login):
+    *   **Metode Pemindaian & Pencarian Multi-mode:**
+        1.  **Scan Kamera Live:** Memindai stiker QR Code secara langsung via kamera perangkat (`qr-scanner` dengan otomatisasi memilih kamera belakang dan selector pemilihan kamera jika >1).
+        2.  **Upload Foto QR Code:** Mengunggah file gambar foto QR Code dari galeri perangkat.
+        3.  **Pencarian Manual Nomor Rumah:** Formulir pencarian manual dengan kata kunci Blok & Nomor Rumah (contoh: `A1-12`, `Blok A1 No. 12`) atau Kode Token QR (`qr-dwelling-xxx`).
+    *   **Informasi Standar Semua Hunian:** Menampilkan Nomor Rumah, RT/RW, Desa/Kelurahan, Tipe Hunian, serta Koordinat GPS & Tombol Rute Google Maps (`📍 Petunjuk Rute Google Maps`).
+    *   **Aturan Detail Tampilan Per Tipe Hunian (Mode Publik):**
+        *   **Rumah Tinggal Pribadi (`permanen`):** Menampilkan data alamat, RT/RW, tipe hunian, dan Nama Pemilik / Kepala Keluarga.
+        *   **Kos-kosan / Kontrakan (`kos`):** Menampilkan Nama Properti Kos (contoh: "Kos Melati"), Ketersediaan Kamar Kosong (dihitung otomatis: `total_rooms` dikurangi penyewa aktif), rincian terisi & total kamar, serta Nama Pengelola & Tombol Pesan WhatsApp langsung (`wa.me` otomatis).
+        *   **Homestay (Sewa Harian) (`homestay`):** Menampilkan Nama Homestay (contoh: "Villa Indah") dan Kontak Pengelola/Reservasi via WhatsApp. **Tidak menampilkan** sisa kamar kosong karena sirkulasi sewa harian tidak terdata di sistem kependudukan.
+    *   **Mode Pengunjung Publik / Tamu (Tanpa Akun / Belum Login):**
+        *   Pengunjung umum/tamu yang tidak memiliki akun atau belum masuk (login) ke sistem akan menerima tampilan **Mode Publik**.
+        *   **Perlindungan Privasi Warga:** Rincian data sensitif perorangan (seperti daftar nama anggota keluarga, NIK, atau daftar nama penyewa kamar) **TIDAK ditampilkan** kepada publik.
+        *   **Informasi yang Dapat Diakses Tamu Publik:**
+            1.  **Status Alamat & Hunian:** Nomor Rumah, RT/RW, Desa/Kelurahan, & Tipe Hunian.
+            2.  **Informasi Komersial & Kontak Sewa:** Sisa kamar kosong (khusus Kos) & Tombol Kontak Pengelola via WhatsApp (`wa.me`) untuk reservasi/tanya jawab sewa (Kos & Homestay).
+            3.  **Navigasi Lokasi GPS:** Koordinat lokasi terdaftar & tombol langsung petunjuk rute Google Maps (`📍 Petunjuk Rute Google Maps`).
+    *   **Pemeriksaan Kepemilikan & Auto-Redirect (Post-Scan Check):**
+        *   Jika pengunjung **sedang login** dan merupakan pemilik/koordinator dari hunian yang di-scan:
+            *   *Warga Permanen (Kepala KK):* Dialihkan (redirect) otomatis ke Dashboard Warga (`/dashboard`).
+            *   *Koordinator Kos:* Dialihkan otomatis ke Halaman Kelola Kamar Kos (`/dashboard/rentals?propertyId=...`).
+            *   *Pemilik Homestay:* Dialihkan otomatis ke Halaman Kelola Homestay (`/dashboard/my-properties?dwellingId=...`).
+    *   **Mode Tampilan Warga Login (Non-Pemilik):**
+        *   Jika pengunjung **sedang login** sebagai warga/pengurus (tetapi bukan pemilik hunian tersebut), sistem menampilkan banner mode login, **Daftar Penghuni Aktif** (Nama KK & Jumlah Anggota untuk Keluarga; atau Nama Penyewa, Nomor Kamar, & Tanggal Masuk untuk Kos), serta tombol "Ke Dashboard Saya".
+    *   **Penanganan State Error / Not Found (`DwellingNotFoundState`):**
+        *   Jika token atau nomor rumah tidak ditemukan dalam database, sistem menampilkan kartu state *Friendly Not Found* lengkap dengan saran format pencarian yang benar, tombol *Coba Ulangi Pencarian*, dan navigasi *Kembali ke Beranda*.
 
 ---
 
@@ -64,7 +84,7 @@ flowchart TD
     B -->|Buka Kas RT| D[Lihat Grafik Saldo Kas & Riwayat Transaksi Kas]
     B -->|Kirim Aduan| E[Isi Form Lapor -> Dapatkan Tracking Code]
     B -->|Cek Aduan| F[Input Tracking Code -> Tampilkan Status Penanganan]
-    B -->|Scan QR Rumah| G[Scan Fisik -> Tampilkan Nomor Rumah & Status Hunian]
+    B -->|Scan QR Rumah| G[Scan Kamera / Upload Foto / Ketik Blok No Rumah]
     
     C --> H[Selesai]
     D --> H
@@ -97,14 +117,35 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    C -->|Tidak / Publik| D{Tipe Hunian?}
-    D -->|Rumah Tinggal| D1[Tampilkan: No Rumah, RT/RW & Tipe Hunian<br>- Tautan Lapor Pengaduan]
-    D -->|Kos / Kontrakan| D2[Tampilkan: No Rumah, RT/RW & Tipe Hunian<br>- Nama Properti<br>- Sisa Kamar Kosong<br>- Kontak Pengelola WA]
-    D -->|Homestay| D3[Tampilkan: No Rumah, RT/RW & Tipe Hunian<br>- Nama Properti<br>- Kontak Pengelola WA<br><i>(Tanpa Kamar Kosong)</i>]
-    C -->|Ya / Warga atau Pengurus| E[Tampilkan Detail Hunian per Pintu/Kamar:<br>- Nama Pemilik & Kontak<br>- Daftar Penghuni Aktif<br>  * KK: Nama KK + Jml Anggota<br>  * Mandiri: Nama (Tinggal Sendiri)<br>  * Penyewa: Nama Penyewa + No Kamar/Pintu<br>- Riwayat Penghuni Terdahulu<br>  * Periode: Bulan & Tahun Masuk/Keluar]
+    A[Mulai: Buka Halaman Scan QR / Pindai Stiker Fisik] --> B{Metode Input}
+    B -->|Scan Kamera| B1[Kamera Live Scanner]
+    B -->|Upload Foto| B2[Unggah Gambar QR dari Galeri]
+    B -->|Pencarian Manual| B3[Ketik Blok & No. Rumah / Token]
     
-    D1 --> F[Selesai]
-    D2 --> F
-    D3 --> F
-    E --> F
+    B1 --> C[Sistem Cari Data Hunian via API /api/public/scan]
+    B2 --> C
+    B3 --> C
+    
+    C -->|Tidak Ditemukan| ERR[Tampilkan Card Data Tidak Ditemukan & Saran Format]
+    C -->|Ditemukan| D{User Sedang Login?}
+    
+    D -->|Tidak / Publik Guest| E{Tipe Hunian?}
+    E -->|Rumah Tinggal| E1[Tampilkan: No Rumah, RT/RW, Tipe Hunian, Nama Pemilik, Rute Google Maps]
+    E -->|Kos / Kontrakan| E2[Tampilkan: No Rumah, RT/RW, Tipe Hunian, Nama Properti, Sisa Kamar Kosong, Kontak WA Pengelola, Rute Google Maps]
+    E -->|Homestay| E3[Tampilkan: No Rumah, RT/RW, Tipe Hunian, Nama Properti, Kontak Reservasi WA, Rute Google Maps]
+    
+    D -->|Ya / User Login| F{Pemeriksaan Kepemilikan Hunian}
+    F -->|Pemilik KK Permanen| F1[Toast & Auto-Redirect ke /dashboard]
+    F -->|Koordinator Kos| F2[Toast & Auto-Redirect ke /dashboard/rentals]
+    F -->|Pemilik Homestay| F3[Toast & Auto-Redirect ke /dashboard/my-properties]
+    F -->|Warga / Pengurus Lain| G[Ambil Detail via /api/public/scan/detail -> Tampilkan Profile Hunian + Daftar Penghuni Aktif]
+    
+    ERR --> H[Selesai]
+    E1 --> H
+    E2 --> H
+    E3 --> H
+    F1 --> H
+    F2 --> H
+    F3 --> H
+    G --> H
 ```

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { changeFamilyHead } from '@/db/queries/kependudukan';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { changeFamilyHead } from '@/db/queries/population/family-member.queries';
 import { changeFamilyHeadSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 
@@ -26,7 +26,8 @@ export async function POST(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-residents');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-residents');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }

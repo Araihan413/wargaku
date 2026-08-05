@@ -15,7 +15,7 @@ import {
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { toPng } from "html-to-image";
-import { DwellingOption } from "@/db/queries/qr-codes";
+import { DwellingOption } from "@/db/queries/population/dwelling.queries";
 import { QrTemplateType, QrCodePrintCanvas } from "@/components/QrCodePrintCanvas";
 import { CustomSelect } from "@/components/CustomSelect";
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getPendingCoordInfo } from '@/db/queries/users';
+import { getPendingCoordInfo } from '@/db/queries/auth/user.queries';
 
 export async function GET(request: Request) {
   try {

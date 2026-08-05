@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/rbac";
+import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { getFinancialReportData } from "@/db/queries/reports";
 
 export async function GET(request: Request) {
@@ -14,19 +14,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    const currentRoleId = session.user.roleId;
-    const isAllowed =
-      currentRoleId === 1 ||
-      currentRoleId === 2 ||
-      currentRoleId === 3 ||
-      currentRoleId === 4 ||
-      currentRoleId === 5 ||
-      currentRoleId === 6 ||
-      (await hasPermission(currentRoleId, "view-finance"));
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, "view-finance");
 
     if (!isAllowed) {
       return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
     }
+
 
     const { searchParams } = new URL(request.url);
     const yearParam = searchParams.get("year");

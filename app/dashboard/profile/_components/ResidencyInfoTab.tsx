@@ -1,15 +1,19 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { IdCard, Home, FileText, ShieldCheck, Info } from "lucide-react";
 import { UserProfileData } from "../types";
+import { RegisterMyFamilyModal } from "../../family/_components/RegisterMyFamilyModal";
 
 interface ResidencyInfoTabProps {
   profile: UserProfileData;
 }
 
 export const ResidencyInfoTab: React.FC<ResidencyInfoTabProps> = ({ profile }) => {
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
   return (
+
     <div className="bg-white border border-gray-border rounded-2xl p-6 shadow-sm space-y-6">
       <div className="border-b border-gray-border pb-4">
         <h2 className="text-base font-extrabold text-gray-heading-main tracking-tight">
@@ -27,6 +31,35 @@ export const ResidencyInfoTab: React.FC<ResidencyInfoTabProps> = ({ profile }) =
           Demi validitas data kependudukan RT, perubahan <strong>NIK</strong> atau <strong>Data Hunian</strong> dilakukan melalui pengurus RT/Sekretaris.
         </span>
       </div>
+
+      {/* Conditional: Jika belum terdaftar di KK manapun (bukan Kepala Keluarga & bukan Anggota Keluarga di KK lain) */}
+      {!profile.familyNumber && !profile.familyInfo && !profile.residentInfo ? (
+        <div className="p-5 border border-primary/20 bg-primary/5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="space-y-1">
+            <h4 className="text-sm font-extrabold text-gray-heading-main">
+              Kartu Keluarga Belum Terdaftar
+            </h4>
+            <p className="text-xs text-gray-secondary-text max-w-lg">
+              Akun Anda belum terdaftar dalam Kartu Keluarga (KK). Daftarkan KK Anda untuk mengaktifkan akses Warga dan mengelola data kependudukan.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsRegisterModalOpen(true)}
+            className="shrink-0 px-4 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-extrabold rounded-xl shadow-sm transition-all cursor-pointer inline-flex items-center gap-2"
+          >
+            <Home className="w-4 h-4" />
+            <span>Daftarkan KK Mandiri</span>
+          </button>
+        </div>
+      ) : profile.residentInfo && profile.residentInfo.relationship !== "Kepala_Keluarga" ? (
+        <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center gap-3 text-xs text-emerald-900 font-semibold">
+          <ShieldCheck className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+          <span>
+            Akun Anda terdaftar sebagai <strong>{profile.residentInfo.relationship.replace("_", " ")}</strong> di Kartu Keluarga <strong>{profile.familyInfo?.headName || "Keluarga"}</strong>.
+          </span>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* NIK Card */}
@@ -50,7 +83,7 @@ export const ResidencyInfoTab: React.FC<ResidencyInfoTabProps> = ({ profile }) =
           <div className="space-y-0.5">
             <span className="text-xs font-semibold text-gray-secondary-text">Nomor Kartu Keluarga (KK)</span>
             <p className="text-sm font-bold text-gray-heading-main font-mono">
-              {profile.familyNumber || "Belum Terdaftar"}
+              {profile.familyNumber || profile.familyInfo?.familyNumber || "Belum Terdaftar"}
             </p>
           </div>
         </div>
@@ -85,6 +118,18 @@ export const ResidencyInfoTab: React.FC<ResidencyInfoTabProps> = ({ profile }) =
           <span>Status Verifikasi Akun: <strong>TERVERIFIKASI SISTEM RT</strong></span>
         </div>
       </div>
+
+      <RegisterMyFamilyModal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        onSuccess={() => {
+          setIsRegisterModalOpen(false);
+          window.location.reload();
+        }}
+        userName={profile.name}
+        userNik={profile.nik || undefined}
+      />
     </div>
   );
 };
+

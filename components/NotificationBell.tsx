@@ -16,23 +16,7 @@ interface NotificationItem {
   createdAt: string;
 }
 
-// Helper for relative time formatting
-const formatRelativeTime = (dateStr: string): string => {
-  const now = new Date();
-  // Strip 'Z' to force parsing in local time, solving local database timezone offset bugs
-  const cleanDateStr = dateStr.endsWith("Z") ? dateStr.slice(0, -1) : dateStr;
-  const past = new Date(cleanDateStr);
-  const diffMs = Math.max(0, now.getTime() - past.getTime());
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return "Baru saja";
-  if (diffMins < 60) return `${diffMins} menit lalu`;
-  if (diffHours < 24) return `${diffHours} jam lalu`;
-  if (diffDays === 1) return "Kemarin";
-  return past.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-};
+import { formatRelativeTime } from "@/lib/date-format";
 
 export const NotificationBell: React.FC = () => {
   const router = useRouter();

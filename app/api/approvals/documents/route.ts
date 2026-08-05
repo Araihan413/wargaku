@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/rbac";
-import { listFamilies } from "@/db/queries/kependudukan";
-import { listAllRentalResidents } from "@/db/queries/rental";
+import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { listFamilies } from "@/db/queries/population/family.queries";
+import { listAllTenantContracts } from "@/db/queries/property/tenant.queries";
 
 export async function GET(request: Request) {
   try {
@@ -15,7 +15,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, "verify-documents");
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, "verify-documents");
     if (!isAllowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -35,9 +36,7 @@ export async function GET(request: Request) {
       });
       return NextResponse.json({ data: result.data || [] });
     } else if (type === "rental_resident") {
-      const result = await listAllRentalResidents({
-        tenantType: "perorangan",
-        verificationStatus: status,
+      const result = await listAllTenantContracts({
         query,
         isActive: true,
         limit: 100,

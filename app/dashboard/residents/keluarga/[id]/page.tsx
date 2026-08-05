@@ -25,7 +25,20 @@ export default function FamilyDetailPage({ params }: PageProps) {
   const { data: session } = authClient.useSession();
   const { activeRoleId } = useRoleStore();
   const currentRole = activeRoleId || session?.user?.roleId || 6;
-  const canManage = currentRole === 1 || currentRole === 2;
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch(`/api/permissions/my-permissions?roleId=${currentRole}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const rawPerms = Array.isArray(data.permissions) ? data.permissions : [];
+        const slugs = rawPerms.map((p: any) => (typeof p === "string" ? p : p.slug)).filter(Boolean);
+        setUserPermissions(slugs);
+      })
+      .catch((err) => console.error("Error fetching permissions:", err));
+  }, [currentRole]);
+
+  const canManage = userPermissions.includes("manage-residents");
   const isReadOnly = !canManage;
 
   const resolvedParams = use(params);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   QrCode,
@@ -11,14 +11,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PublicPageHeroBanner } from "@/app/_components/PublicPageHeroBanner";
-import { PublicScanResultData, DetailedScanResultData } from "@/db/queries/public-portal";
+import { PublicScanResultData, DetailedScanResultData } from "@/db/queries/dashboard/public-portal.queries";
 import { LiveCameraScanner } from "./_components/LiveCameraScanner";
 import { ScanResultCard } from "./_components/ScanResultCard";
 import { DwellingNotFoundState } from "./_components/DwellingNotFoundState";
 import { authClient } from "@/lib/auth-client";
 
-export default function PublicScanQrPage() {
+function PublicScanQrContent() {
   const searchParams = useSearchParams();
+
   const router = useRouter();
   const initialToken = searchParams.get("token") || searchParams.get("code") || "";
 
@@ -337,3 +338,18 @@ export default function PublicScanQrPage() {
     </>
   );
 }
+
+export default function PublicScanQrPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[400px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <PublicScanQrContent />
+    </Suspense>
+  );
+}
+

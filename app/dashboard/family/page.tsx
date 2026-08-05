@@ -11,8 +11,17 @@ import { EditWargaMemberModal } from "./_components/EditWargaMemberModal";
 import { DeleteWargaMemberModal } from "./_components/DeleteWargaMemberModal";
 import { WargaFamilyDetail, WargaFamilyMember } from "./types";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function StandaloneWargaFamilyPage() {
+  return (
+    <PermissionGuard requiredRoles={[5, 6]}>
+      <WargaFamilyContent />
+    </PermissionGuard>
+  );
+}
+
+function WargaFamilyContent() {
   const [familyId, setFamilyId] = useState<number | null>(null);
   const [familyDetail, setFamilyDetail] = useState<WargaFamilyDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -116,8 +125,14 @@ export default function StandaloneWargaFamilyPage() {
 
         const data = await res.json();
         if (!isMounted) return;
-        setFamilyId(data.id);
 
+        if (!data.isHeadOfFamily) {
+          setError("Akses Ditolak: Hanya Kepala Keluarga yang berhak mengelola data keluarga.");
+          setIsLoading(false);
+          return;
+        }
+
+        setFamilyId(data.id);
         const detailRes = await fetch(`/api/families/${data.id}`);
         if (detailRes.ok) {
           const detailData = await detailRes.json();
@@ -130,6 +145,7 @@ export default function StandaloneWargaFamilyPage() {
             setError(err.error || "Gagal memuat rincian Kartu Keluarga");
           }
         }
+
       } catch (err) {
         console.error(err);
         if (isMounted) {
@@ -180,6 +196,8 @@ export default function StandaloneWargaFamilyPage() {
       </div>
     );
   }
+
+
 
   const isLocked = familyDetail.verificationStatus === "verified" || familyDetail.verificationStatus === "pending";
 

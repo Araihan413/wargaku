@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
+import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import {
   getComplaintById,
   updateComplaintStatus,
   deleteComplaint,
-} from '@/db/queries/complaints';
+} from '@/db/queries/communication/complaint.queries';
 
 export async function GET(
   request: Request,
@@ -57,15 +57,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed =
-      session.user.roleId === 1 ||
-      session.user.roleId === 2 ||
-      session.user.roleId === 3 ||
-      (await hasPermission(session.user.roleId, 'manage-complaints'));
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-complaints');
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
+
 
     const { id } = await params;
     const complaintId = parseInt(id, 10);
@@ -105,14 +103,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = session.user.roleId === 1 || session.user.roleId === 2;
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-complaints');
 
     if (!isAllowed) {
       return NextResponse.json(
-        { error: 'Hanya Super Admin atau Ketua RT yang dapat menghapus pengaduan' },
+        { error: 'Tidak memiliki izin untuk menghapus pengaduan' },
         { status: 403 }
       );
     }
+
 
     const { id } = await params;
     const complaintId = parseInt(id, 10);

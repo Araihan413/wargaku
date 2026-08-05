@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { getEffectiveRoleId } from "@/lib/rbac";
 import {
   getComplaintsReportOverview,
   getComplaintsReportList,
   getAnnouncementsReportList,
   getActivitiesReportList,
-} from "@/db/queries/complaints-report";
+} from "@/db/queries/reports";
 
 export async function GET(req: Request) {
   try {
@@ -18,22 +19,21 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    if (session.user.roleId !== 1) {
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    if (effectiveRoleId !== 1) {
       return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
-    const type = searchParams.get("type") || "complaints"; // complaints | announcements | activities
+    const type = searchParams.get("type") || "complaints";
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "15", 10);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "all";
     const category = searchParams.get("category") || "all";
-    const filter = searchParams.get("filter") || "all"; // for activities: all | upcoming | past
+    const filter = searchParams.get("filter") || "all";
 
-    // Always return overview stats
     const overview = await getComplaintsReportOverview();
-
     let listResult;
 
     if (type === "announcements") {
@@ -41,7 +41,6 @@ export async function GET(req: Request) {
     } else if (type === "activities") {
       listResult = await getActivitiesReportList({ page, limit, filter, search });
     } else {
-      // default: complaints
       listResult = await getComplaintsReportList({ page, limit, status, category, search });
     }
 

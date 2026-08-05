@@ -163,6 +163,14 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
     onClose();
   };
 
+  const onFormError = (formErrors: any) => {
+    const keys = Object.keys(formErrors);
+    if (keys.length > 0) {
+      const firstMsg = formErrors[keys[0]]?.message || "Harap isi semua kolom wajib dengan benar";
+      toast.error(`Periksa Input: ${firstMsg}`);
+    }
+  };
+
   const onSubmit = async (data: any) => {
     try {
       const response = await fetch("/api/dwellings", {
@@ -245,7 +253,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+        <form onSubmit={handleSubmit(onSubmit, onFormError)} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
             {/* Block Number */}
             <FormField

@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Megaphone, Pin } from "lucide-react";
+import { X, Megaphone } from "lucide-react";
 import { CustomSelect } from "@/components/CustomSelect";
 import { AnnouncementCategory } from "../types";
 import { toast } from "sonner";
+import { MultiAttachmentInput, AttachmentItem } from "@/components/MultiAttachmentInput";
 
 interface AddAnnouncementModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const AddAnnouncementModal: React.FC<AddAnnouncementModalProps> = ({
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState<AnnouncementCategory>("umum");
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -33,6 +35,44 @@ export const AddAnnouncementModal: React.FC<AddAnnouncementModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      // 1. Upload any pending new files
+      const uploadedAttachments: Array<{ name: string; url: string; type: "image" | "pdf" }> = [];
+
+      for (const item of attachments) {
+        if (item.file) {
+          const formData = new FormData();
+          formData.append("file", item.file);
+          formData.append("folder", "announcements");
+
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error(`Gagal mengunggah berkas ${item.name}`);
+          }
+
+          const uploadJson = await uploadRes.json();
+          const uploadedUrl = uploadJson.url || uploadJson.secure_url;
+          uploadedAttachments.push({
+            name: item.name,
+            url: uploadedUrl,
+            type: item.type,
+          });
+        } else if (item.url) {
+          uploadedAttachments.push({
+            name: item.name,
+            url: item.url,
+            type: item.type,
+          });
+        }
+      }
+
+      const finalAttachmentsJson =
+        uploadedAttachments.length > 0 ? JSON.stringify(uploadedAttachments) : null;
+
+      // 2. Post Announcement
       const res = await fetch("/api/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,6 +80,7 @@ export const AddAnnouncementModal: React.FC<AddAnnouncementModalProps> = ({
           title: title.trim(),
           content: content.trim(),
           category,
+          attachments: finalAttachmentsJson,
         }),
       });
 
@@ -52,6 +93,7 @@ export const AddAnnouncementModal: React.FC<AddAnnouncementModalProps> = ({
       setTitle("");
       setContent("");
       setCategory("umum");
+      setAttachments([]);
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -134,6 +176,14 @@ export const AddAnnouncementModal: React.FC<AddAnnouncementModalProps> = ({
               className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
             />
           </div>
+
+          {/* Multi Attachment Input */}
+          <MultiAttachmentInput
+            label="Lampiran Foto / Surat Edaran Resmi"
+            maxFiles={3}
+            items={attachments}
+            onChange={setAttachments}
+          />
 
           {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-border">

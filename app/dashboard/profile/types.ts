@@ -13,6 +13,13 @@ export interface FamilyInfo {
   headName: string;
 }
 
+export interface ResidentInfo {
+  id: number;
+  familyId: number;
+  relationship: string;
+  name: string;
+}
+
 export interface UserProfileData {
   id: string;
   name: string;
@@ -32,4 +39,6 @@ export interface UserProfileData {
   createdAt: string | Date;
   dwellingInfo?: DwellingInfo | null;
   familyInfo?: FamilyInfo | null;
+  residentInfo?: ResidentInfo | null;
 }
+

@@ -15,8 +15,10 @@ import { PublicLoadMoreButton } from "@/app/_components/PublicLoadMoreButton";
 import { PublicDetailModal } from "@/app/_components/PublicDetailModal";
 import { PublicGridSkeleton } from "@/app/_components/PublicGridSkeleton";
 import { PublicErrorState } from "@/app/_components/PublicErrorState";
-import { PublicAnnouncementItem } from "@/db/queries/public-portal";
+import { PublicAnnouncementItem } from "@/db/queries/dashboard/public-portal.queries";
 import { getCachedData, setCachedData } from "@/lib/public-cache";
+import { PublicAttachmentList } from "@/components/PublicAttachmentList";
+import { isEdited, formatUpdatedDate } from "@/lib/date-format";
 
 const CATEGORIES = [
   { key: "semua", label: "Semua Pengumuman" },
@@ -272,12 +274,19 @@ export default function AnnouncementsPublicPage() {
                       >
                         {item.category}
                       </span>
-                      {item.isPinned && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                          <Pin className="w-3 h-3 fill-amber-500" />
-                          Disematkan
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1.5 justify-end">
+                        {item.isPinned && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                            <Pin className="w-3 h-3 fill-amber-500" />
+                            Disematkan
+                          </span>
+                        )}
+                        {isEdited(item.createdAt, item.updatedAt) && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-full">
+                            Diperbarui: {formatUpdatedDate(item.updatedAt)}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <h3 className="text-base font-extrabold text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
@@ -289,23 +298,30 @@ export default function AnnouncementsPublicPage() {
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-4 space-y-3">
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        {formatDate(item.createdAt)}
-                      </span>
-                      <span className="flex items-center gap-1 truncate max-w-30">
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                        {item.creatorName || "Pengurus RT"}
-                      </span>
-                    </div>
+                    <div className="border-t border-slate-100 pt-4 space-y-3">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          {formatDate(String(item.createdAt))}
+                        </span>
+                        <span className="flex items-center gap-1 truncate max-w-30">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          {item.creatorName || "Pengurus RT"}
+                        </span>
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAnnouncement(item)}
-                      className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-600 text-xs font-bold transition-all border border-slate-200/80 cursor-pointer"
-                    >
+                      {/* Public Attachments List & Single Diperbarui Badge */}
+                        <PublicAttachmentList
+                          attachmentsStr={item.attachments}
+                          createdAt={item.createdAt ? String(item.createdAt) : undefined}
+                          updatedAt={item.updatedAt ? String(item.updatedAt) : undefined}
+                        />
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAnnouncement(item)}
+                        className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-600 text-xs font-bold transition-all border border-slate-200/80 cursor-pointer"
+                      >
                       <span>Baca Selengkapnya</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -349,6 +365,11 @@ export default function AnnouncementsPublicPage() {
                   Disematkan
                 </span>
               )}
+              {isEdited(selectedAnnouncement.createdAt, selectedAnnouncement.updatedAt) && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-full">
+                  Diperbarui: {formatUpdatedDate(selectedAnnouncement.updatedAt)}
+                </span>
+              )}
             </>
           ) : null
         }
@@ -357,7 +378,7 @@ export default function AnnouncementsPublicPage() {
             <div className="flex items-center gap-4 text-xs text-slate-500 font-medium pb-2 border-b border-slate-100">
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-blue-600" />
-                {formatDate(selectedAnnouncement.createdAt)}
+                {formatDate(String(selectedAnnouncement.createdAt))}
               </span>
               <span className="flex items-center gap-1.5">
                 <User className="w-4 h-4 text-blue-600" />
@@ -367,7 +388,14 @@ export default function AnnouncementsPublicPage() {
           ) : null
         }
       >
-        {selectedAnnouncement?.content}
+        <div className="space-y-4">
+          <p className="whitespace-pre-wrap">{selectedAnnouncement?.content}</p>
+          <PublicAttachmentList
+            attachmentsStr={selectedAnnouncement?.attachments}
+            createdAt={selectedAnnouncement?.createdAt ? String(selectedAnnouncement.createdAt) : undefined}
+            updatedAt={selectedAnnouncement?.updatedAt ? String(selectedAnnouncement.updatedAt) : undefined}
+          />
+        </div>
       </PublicDetailModal>
     </>
   );

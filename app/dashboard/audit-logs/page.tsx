@@ -15,7 +15,17 @@ import { AuditLogFilterBar } from "./_components/AuditLogFilterBar";
 import { AuditLogTable } from "./_components/AuditLogTable";
 import { AuditLogDetailModal } from "./_components/AuditLogDetailModal";
 
+import { PermissionGuard } from "@/components/PermissionGuard";
+
 export default function AuditLogsPage() {
+  return (
+    <PermissionGuard requiredPermission="view-audit-logs" requiredRoles={[1]}>
+      <AuditLogsContent />
+    </PermissionGuard>
+  );
+}
+
+function AuditLogsContent() {
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [stats, setStats] = useState<AuditLogStats | null>(null);
   const [pagination, setPagination] = useState<AuditLogPagination>({

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/rbac";
-import { evaluateSmartGroupRules } from "@/db/queries/smart-groups";
+import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { filterCitizens } from "@/db/queries/residents/citizen-filter.queries";
 
 export async function POST(request: Request) {
   try {
@@ -14,15 +14,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, "view-residents");
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, "view-residents");
     if (!isAllowed) {
       return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
     }
 
     const body = await request.json();
-    const { rules = [], globalOperator = "AND" } = body;
+    const criteria = body.criteria || body;
 
-    const data = await evaluateSmartGroupRules(session.user.id, rules, globalOperator);
+    const data = await filterCitizens(criteria);
 
     return NextResponse.json({ data });
   } catch (error: any) {

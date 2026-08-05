@@ -168,16 +168,16 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
       </div>
 
       {/* Pagination Footer */}
-      {!isLoading && totalPages > 1 && (
+      {!isLoading && coordinators.length > 0 && (
         <div className="flex items-center justify-between px-5 py-4 border-t border-gray-border bg-gray-sidebar-hover/20">
           <div className="text-xs text-gray-secondary-text font-medium">
             Menampilkan <span className="font-semibold text-gray-heading-main">{coordinators.length}</span> dari{" "}
-            <span className="font-semibold text-gray-heading-main">{totalItems}</span> koordinator
+            <span className="font-semibold text-gray-heading-main">{totalItems}</span> data koordinator
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
+              disabled={currentPage === 1 || isLoading}
               className="p-1.5 border border-gray-border rounded-lg bg-gray-card hover:bg-gray-sidebar-hover text-gray-secondary-text disabled:opacity-40 disabled:hover:bg-gray-card cursor-pointer transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -188,7 +188,7 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
             </span>
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              disabled={currentPage === totalPages || isLoading}
               className="p-1.5 border border-gray-border rounded-lg bg-gray-card hover:bg-gray-sidebar-hover text-gray-secondary-text disabled:opacity-40 disabled:hover:bg-gray-card cursor-pointer transition-colors"
             >
               <ChevronRight className="h-4 w-4" />

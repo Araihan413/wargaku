@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { submitFamily } from '@/db/queries/kependudukan';
+import { submitFamily, getFamilyById } from '@/db/queries/population/family.queries';
+import { notifyRoles } from '@/lib/notifications';
 
 export async function POST(
   request: Request,
@@ -24,6 +25,15 @@ export async function POST(
     }
 
     await submitFamily(familyId, session.user.id);
+
+    // Notifikasi ke Ketua RT + Sekretaris bahwa ada berkas KK baru menunggu verifikasi
+    const family = await getFamilyById(familyId).catch(() => null);
+    notifyRoles(["ketua-rt", "sekretaris"], {
+      title: "Berkas KK Menunggu Verifikasi",
+      message: `Berkas Kartu Keluarga${family?.familyNumber ? ` No. ${family.familyNumber}` : ''} telah dikirim oleh ${session.user.name || 'Warga'} untuk verifikasi.`,
+      category: "dinas",
+      redirectLink: "/dashboard/approvals/verification",
+    });
 
     return NextResponse.json({
       success: true,

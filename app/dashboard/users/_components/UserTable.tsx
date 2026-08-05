@@ -109,10 +109,28 @@ export const UserTable: React.FC<UserTableProps> = ({
                     {u.phone || "-"}
                   </td>
                   <td className="py-4 text-center px-5">
-                    <span className="inline-flex rounded-lg bg-primary-900-20 border border-primary/20 px-2 py-1 text-xs font-semibold text-primary-900">
-                      {u.roleName}
-                    </span>
+                    <div className="flex flex-wrap gap-1 justify-center">
+                      {(u.roleIds && u.roleIds.length > 0 ? u.roleIds : [u.roleId]).map((rId) => {
+                        const roleNamesMap: Record<number, string> = {
+                          1: "Super Admin",
+                          2: "Ketua RT",
+                          3: "Sekretaris",
+                          4: "Bendahara",
+                          5: "Koordinator Kost",
+                          6: "Warga",
+                        };
+                        return (
+                          <span
+                            key={rId}
+                            className="inline-flex rounded-lg bg-primary-900-20 border border-primary/20 px-2 py-0.5 text-[11px] font-semibold text-primary-900"
+                          >
+                            {roleNamesMap[rId] || "Pengguna"}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </td>
+
                   <td className="py-4 px-5">
                     {u.status === "active" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-success/15 border border-success/20 px-2.5 py-0.5 text-xs font-bold text-success">

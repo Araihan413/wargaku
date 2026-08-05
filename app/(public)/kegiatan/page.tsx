@@ -16,8 +16,10 @@ import { PublicLoadMoreButton } from "@/app/_components/PublicLoadMoreButton";
 import { PublicDetailModal } from "@/app/_components/PublicDetailModal";
 import { PublicGridSkeleton } from "@/app/_components/PublicGridSkeleton";
 import { PublicErrorState } from "@/app/_components/PublicErrorState";
-import { PublicActivityItem } from "@/db/queries/public-portal";
+import { PublicActivityItem } from "@/db/queries/dashboard/public-portal.queries";
 import { getCachedData, setCachedData } from "@/lib/public-cache";
+import { PublicAttachmentList } from "@/components/PublicAttachmentList";
+import { isEdited, formatUpdatedDate } from "@/lib/date-format";
 
 const FILTERS = [
   { key: "semua", label: "Semua Agenda" },
@@ -185,7 +187,7 @@ export default function ActivitiesPublicPage() {
     }
   }, [isLoadingMore, hasMore, page, selectedFilter, debouncedSearch]);
 
-  const formatDate = (dateStr: string | null) => {
+  const formatDate = (dateStr: string | Date | null) => {
     if (!dateStr) return "Tanggal Belum Ditentukan";
     try {
       return new Date(dateStr).toLocaleDateString("id-ID", {
@@ -195,11 +197,11 @@ export default function ActivitiesPublicPage() {
         year: "numeric",
       });
     } catch {
-      return dateStr;
+      return String(dateStr);
     }
   };
 
-  const formatTime = (dateStr: string | null) => {
+  const formatTime = (dateStr: string | Date | null) => {
     if (!dateStr) return "";
     try {
       return new Date(dateStr).toLocaleTimeString("id-ID", {
@@ -211,7 +213,7 @@ export default function ActivitiesPublicPage() {
     }
   };
 
-  const isUpcoming = (dateStr: string | null) => {
+  const isUpcoming = (dateStr: string | Date | null) => {
     if (!dateStr) return true;
     if (!nowTimestamp) return true;
     return new Date(dateStr).getTime() >= nowTimestamp;
@@ -317,12 +319,19 @@ export default function ActivitiesPublicPage() {
                         >
                           {upcoming ? "Akan Datang" : "Selesai"}
                         </span>
-                        {item.isPinned && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                            <Pin className="w-3 h-3 fill-amber-500" />
-                            Disematkan
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1.5 justify-end">
+                          {item.isPinned && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                              <Pin className="w-3 h-3 fill-amber-500" />
+                              Disematkan
+                            </span>
+                          )}
+                          {isEdited(item.createdAt, item.updatedAt) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-full">
+                              Diperbarui: {formatUpdatedDate(item.updatedAt)}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <h3 className="text-base font-extrabold text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
@@ -357,6 +366,13 @@ export default function ActivitiesPublicPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Public Attachments List & Single Diperbarui Badge */}
+                      <PublicAttachmentList
+                        attachmentsStr={item.attachments}
+                        createdAt={item.createdAt ? String(item.createdAt) : undefined}
+                        updatedAt={item.updatedAt ? String(item.updatedAt) : undefined}
+                      />
 
                       <button
                         type="button"
@@ -409,6 +425,11 @@ export default function ActivitiesPublicPage() {
                   Disematkan
                 </span>
               )}
+              {isEdited(selectedActivity.createdAt, selectedActivity.updatedAt) && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full">
+                  Diperbarui: {formatUpdatedDate(selectedActivity.updatedAt)}
+                </span>
+              )}
             </>
           ) : null
         }
@@ -452,7 +473,14 @@ export default function ActivitiesPublicPage() {
           )
         }
       >
-        {selectedActivity?.description || "Tidak ada rincian deskripsi tambahan untuk kegiatan ini."}
+        <div className="space-y-4">
+          <p>{selectedActivity?.description || "Tidak ada rincian deskripsi tambahan untuk kegiatan ini."}</p>
+          <PublicAttachmentList
+            attachmentsStr={selectedActivity?.attachments}
+            createdAt={selectedActivity?.createdAt ? String(selectedActivity.createdAt) : undefined}
+            updatedAt={selectedActivity?.updatedAt ? String(selectedActivity.updatedAt) : undefined}
+          />
+        </div>
       </PublicDetailModal>
     </>
   );

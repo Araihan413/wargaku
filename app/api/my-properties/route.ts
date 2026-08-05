@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { listRentalProperties, createRentalProperty, checkExistingActiveRental } from '@/db/queries/rental';
-import { getDwellingOwner, claimDwellingOwner } from '@/db/queries/kependudukan';
-import { findOrCreatePendingCoordinatorByPhone } from '@/db/queries/coordinators';
+import { db } from '@/db';
+import * as schema from '@/db/schema';
+import { sql } from 'drizzle-orm';
+
+import { listRentalProperties, createRentalProperty, checkExistingActiveRental } from '@/db/queries/property/rental-property.queries';
+import { getDwellingOwner, claimDwellingOwner } from '@/db/queries/population/dwelling.queries';
+import { findOrCreatePendingCoordinatorByPhone } from '@/db/queries/auth/user.queries';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
@@ -73,7 +77,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tempat tinggal/dwelling ini sudah dimiliki oleh warga lain' }, { status: 403 });
     }
 
-    let coordinatorId = validated.coordinatorUserId || null;
+    let coordinatorId = validated.coordinatorUserId ? String(validated.coordinatorUserId) : null;
 
     if (!coordinatorId && body.coordinatorName && body.coordinatorPhone) {
       coordinatorId = await findOrCreatePendingCoordinatorByPhone(body.coordinatorName, body.coordinatorPhone);
@@ -91,9 +95,18 @@ export async function POST(request: Request) {
       finalRoomList = generateDefaultRooms(validated.totalRooms);
     }
 
+    const finalCoordinatorId = coordinatorId || session.user.id;
+
+    // Auto-assign Role 5 (Koordinator Kost) to coordinator
+    await db.insert(schema.userRoles).values({
+      userId: finalCoordinatorId,
+      roleId: 5,
+      isPrimary: false,
+    }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+
     const propertyId = await createRentalProperty({
       ...validated,
-      coordinatorUserId: coordinatorId,
+      coordinatorUserId: finalCoordinatorId,
       roomList: finalRoomList,
     });
 

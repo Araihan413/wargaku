@@ -11,17 +11,13 @@ import { toast } from "sonner";
 import {
   LayoutDashboard,
   ShieldCheck,
-  Activity,
   Settings,
   Users,
+  UserCheck,
+  LifeBuoy,
   Clock,
   Wallet,
   Megaphone,
-  LifeBuoy,
-  UserCheck,
-  Coins,
-  CreditCard,
-  Home,
   Search,
   Building2,
   ChevronDown,
@@ -36,6 +32,7 @@ import {
 interface SidebarSubItem {
   title: string;
   href: string;
+  permission?: string;
   requiresVerification?: boolean;
 }
 
@@ -44,154 +41,127 @@ interface SidebarItem {
   icon: React.ComponentType<{ className?: string }>;
   href?: string;
   subItems?: SidebarSubItem[];
-  roles: number[];
+  permission?: string;
   requiresVerification?: boolean;
 }
 
-// Full schema of dynamic, role-based sidebar items
+// Full schema of dynamic, permission-driven sidebar items (1-to-1 unique permissions)
 const sidebarItems: SidebarItem[] = [
+  // 0. Dashboard Utama (Semua Role)
   {
     title: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard",
-    roles: [1, 2, 3, 4, 5, 6],
   },
-  // Super Admin Menus (Role 1)
+
+  // 1. Super Admin Control & Monitoring (Dynamic Permitted)
+  {
+    title: "Manajemen Pengguna",
+    icon: UserCheck,
+    href: "/dashboard/users",
+    permission: "manage-users",
+  },
   {
     title: "Keamanan & Otoritas",
     icon: ShieldCheck,
-    roles: [1],
     subItems: [
-      { title: "Manajemen Pengguna", href: "/dashboard/users" },
-      { title: "Role & Permission", href: "/dashboard/permissions" },
-      { title: "Log Aktivitas", href: "/dashboard/audit-logs" },
+      { title: "Role & Permission", href: "/dashboard/permissions", permission: "manage-roles" },
+      { title: "Log Aktivitas Audit", href: "/dashboard/audit-logs", permission: "view-audit-logs" },
     ],
   },
   {
-    title: "Pemantauan Wilayah",
-    icon: Activity,
-    roles: [1],
-    subItems: [
-      { title: "Data Kependudukan", href: "/dashboard/residents" },
-      { title: "Laporan Keuangan Kas", href: "/dashboard/kas/reports" },
-      { title: "Postingan & Pengaduan", href: "/dashboard/complaints-report" },
-    ],
+    title: "Laporan Pengaduan Global",
+    icon: LifeBuoy,
+    href: "/dashboard/complaints-report",
+    permission: "view-complaints-report",
   },
   {
     title: "Konfigurasi Sistem",
     icon: Settings,
     href: "/dashboard/system-config",
-    roles: [1],
+    permission: "manage-system-config",
   },
 
-  // Ketua RT Menus (Role 2)
+  // 2. Modul Kependudukan & Hunian RT (Dynamic Permitted)
   {
     title: "Kelola Kependudukan",
     icon: Users,
-    roles: [1, 2],
     subItems: [
-      { title: "Data Warga & Hunian", href: "/dashboard/residents" },
-      { title: "Kelompok Warga", href: "/dashboard/smart-groups" },
-      { title: "Cetak QR Code", href: "/dashboard/qr-codes" },
+      { title: "Data Warga & Hunian", href: "/dashboard/residents", permission: "view-residents" },
+      { title: "Kelompok Warga", href: "/dashboard/smart-groups", permission: "manage-smart-groups" },
+      { title: "Cetak QR Code RT", href: "/dashboard/qr-codes", permission: "manage-dwellings" },
     ],
   },
+
+  // 3. Modul Antrean Persetujuan RT (Dynamic Permitted)
   {
     title: "Antrean Persetujuan",
     icon: Clock,
-    roles: [2],
     subItems: [
-      { title: "Persetujuan Registrasi", href: "/dashboard/approvals/registration" },
-      { title: "Verifikasi Kependudukan", href: "/dashboard/approvals/documents" },
-      { title: "Persetujuan Kas Masuk/Keluar", href: "/dashboard/approvals/kas" },
-    ],
-  },
-  {
-    title: "Laporan Keuangan RT",
-    icon: Wallet,
-    href: "/dashboard/kas/reports",
-    roles: [2, 4],
-  },
-  {
-    title: "Portal Informasi",
-    icon: Megaphone,
-    roles: [2, 3], // Both Ketua RT (2) & Sekretaris (3) have access
-    subItems: [
-      { title: "Kelola Pengumuman", href: "/dashboard/announcements" },
-      { title: "Kelola Kegiatan", href: "/dashboard/activities" },
-    ],
-  },
-  {
-    title: "Respon Pengaduan",
-    icon: LifeBuoy,
-    href: "/dashboard/complaints",
-    roles: [2],
-  },
-
-  {
-    title: "Kelola Pengaduan",
-    icon: LifeBuoy,
-    href: "/dashboard/complaints",
-    roles: [3],
-  },
-  {
-    title: "Kelola Kependudukan",
-    icon: UserCheck,
-    roles: [3],
-    subItems: [
-      { title: "Data Warga & Hunian", href: "/dashboard/residents" },
-      { title: "Persetujuan Registrasi", href: "/dashboard/approvals/registration" },
-      { title: "Kelompok Warga", href: "/dashboard/smart-groups" },
-      { title: "Cetak QR Code", href: "/dashboard/qr-codes" },
+      { title: "Persetujuan Registrasi", href: "/dashboard/approvals/registration", permission: "verify-registrations" },
+      { title: "Verifikasi Kependudukan", href: "/dashboard/approvals/documents", permission: "verify-documents" },
     ],
   },
 
-  // Bendahara Menus (Role 4)
+  // 4. Modul Kas RT / Cashflow (Dynamic Permitted)
   {
     title: "Kas RT (Cashflow)",
-    icon: Coins,
-    roles: [4],
+    icon: Wallet,
     subItems: [
-      { title: "Catat Pemasukan", href: "/dashboard/kas/income" },
-      { title: "Catat Pengeluaran", href: "/dashboard/kas/expense" },
+      { title: "Catat Pemasukan Kas", href: "/dashboard/kas/income", permission: "manage-income" },
+      { title: "Catat Pengeluaran Kas", href: "/dashboard/kas/expense", permission: "manage-expense" },
+      { title: "Laporan Keuangan Kas RT", href: "/dashboard/kas/reports", permission: "view-finance" },
     ],
   },
+
+  // 5. Modul Iuran Warga (Dynamic Permitted)
   {
     title: "Iuran Warga",
-    icon: CreditCard,
-    roles: [4],
+    icon: Wallet,
     subItems: [
-      { title: "Kelola & Setor Iuran", href: "/dashboard/iuran/manage" },
-      { title: "Laporan Tunggakan", href: "/dashboard/iuran/tunggakan" },
+      { title: "Kelola & Setor Iuran", href: "/dashboard/iuran/manage", permission: "manage-iuran" },
+      { title: "Laporan Tunggakan Iuran", href: "/dashboard/iuran/tunggakan", permission: "view-tunggakan" },
     ],
   },
 
-  // Koordinator Kos (Role 5)
+  // 6. Modul Portal Informasi & Layanan (Dynamic Permitted)
   {
-    title: "Kelola Properti Sewa",
-    icon: Home,
-    href: "/dashboard/rentals",
-    roles: [5],
+    title: "Portal Informasi & Layanan",
+    icon: Megaphone,
+    subItems: [
+      { title: "Kelola Pengumuman", href: "/dashboard/announcements", permission: "manage-announcements" },
+      { title: "Kelola Kegiatan RT", href: "/dashboard/activities", permission: "manage-activities" },
+      { title: "Tanggapan Pengaduan Warga", href: "/dashboard/complaints", permission: "manage-complaints" },
+    ],
   },
 
-  // Warga & Koordinator Warga Menus (Role 5, 6)
+  // 7. Modul Properti Sewa (Koordinator Kos / Merangkap)
+  {
+    title: "Kelola Properti Sewa",
+    icon: Building2,
+    href: "/dashboard/rentals",
+    permission: "manage-boarding",
+  },
+
+  // 8. Fitur Personal Warga (Dynamic Permitted)
   {
     title: "Kelola Anggota Keluarga",
-    icon: Users,
+    icon: User,
     href: "/dashboard/family",
-    roles: [5, 6],
+    permission: "manage-family-profile",
   },
   {
     title: "Peta Hunian & Tetangga",
     icon: Search,
     href: "/dashboard/neighborhood",
-    roles: [1, 2, 3, 4, 5, 6],
+    permission: "view-neighborhood-map",
     requiresVerification: true,
   },
   {
     title: "Kelola Properti Pribadi",
     icon: Building2,
     href: "/dashboard/my-properties",
-    roles: [5, 6],
+    permission: "manage-my-properties",
     requiresVerification: true,
   },
 ];
@@ -217,9 +187,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
 
   const { activeRoleId } = useRoleStore();
-  const baseRoleId = user?.roleId;
-  const currentRoleId = baseRoleId === 6 ? 6 : (activeRoleId ?? baseRoleId);
-  const { isVerified, hasFamily, isLoading: isVerificationLoading } = useFamilyVerification(baseRoleId);
+  const currentRoleId = activeRoleId ?? 6;
+  const { isVerified, hasFamily, verificationStatus, isLoading: isVerificationLoading } = useFamilyVerification(currentRoleId);
 
   const [pendingRegCount, setPendingRegCount] = useState<number>(0);
   const [pendingDocCount, setPendingDocCount] = useState<number>(0);
@@ -271,31 +240,80 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return 0;
   };
 
+  const isUnlockedStatus =
+    isVerified ||
+    verificationStatus === "verified" ||
+    verificationStatus === "changes_pending";
+
   const isLocked = (requiresVerification?: boolean) =>
-    currentRoleId === 6 && Boolean(requiresVerification) && !isVerificationLoading && !isVerified;
+    currentRoleId === 6 && Boolean(requiresVerification) && !isVerificationLoading && !isUnlockedStatus;
 
-  // Filter items matching the current active role
-  const filteredItems = useMemo(() => {
-    return sidebarItems.filter((item) => {
-      if (!item.roles.includes(currentRoleId)) return false;
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
-      // Special rule for Koordinator (Role 5):
-      // If item is Warga family/resident menu (Administrasi Keluarga / Kelola Properti Pribadi / Peta Hunian),
-      // only show if user is a Warga Tetap with a registered family KK (hasFamily is true)
-      if (
-        currentRoleId === 5 &&
-        (
-          item.title === "Administrasi Keluarga" ||
-          item.href === "/dashboard/my-properties" ||
-          item.href === "/dashboard/neighborhood"
-        )
-      ) {
-        return Boolean(hasFamily);
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchPermissions() {
+      try {
+        const res = await fetch(`/api/permissions/my-permissions?roleId=${currentRoleId}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (isMounted) {
+            const rawPerms = Array.isArray(json.permissions) ? json.permissions : [];
+            const slugs = rawPerms.map((p: any) => (typeof p === "string" ? p : p.slug)).filter(Boolean);
+            setUserPermissions(slugs);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch permissions in Sidebar:", err);
       }
+    }
+    fetchPermissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentRoleId]);
 
-      return true;
-    });
-  }, [currentRoleId, hasFamily]);
+  // Filter items matching the current active role and permission matrix
+  const filteredItems = useMemo(() => {
+    return sidebarItems
+      .map((item) => {
+        // Cek filter permission eksplisit jika ada
+        if (item.permission && !userPermissions.includes(item.permission)) {
+          return null;
+        }
+
+        // Aturan khusus Koordinator Kos (Role 5): Fitur Warga personal disyaratkan registrasi KK
+        if (
+          currentRoleId === 5 &&
+          (item.title === "Kelola Anggota Keluarga" ||
+            item.href === "/dashboard/my-properties" ||
+            item.href === "/dashboard/neighborhood") &&
+          !hasFamily
+        ) {
+          return null;
+        }
+
+        // Jika item memiliki subItems, filter subItems yang berizin
+        if (item.subItems) {
+          const validSubItems = item.subItems.filter((sub) => {
+            if (sub.permission && !userPermissions.includes(sub.permission)) {
+              return false;
+            }
+            return true;
+          });
+
+          // Jika setelah difilter subItems kosong, auto-hide menu induk ini
+          if (validSubItems.length === 0) {
+            return null;
+          }
+
+          return { ...item, subItems: validSubItems };
+        }
+
+        return item;
+      })
+      .filter((item): item is SidebarItem => item !== null);
+  }, [currentRoleId, userPermissions, hasFamily]);
 
   const isActive = useCallback(
     (href?: string) => {
@@ -456,38 +474,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       />
                     </div>
                   </button>
-                ) : (
-                  <Link
-                    href={item.href || "#"}
-                    onClick={(e) => {
-                      if (isLocked(item.requiresVerification)) {
-                        e.preventDefault();
-                        toast.error("Menu ini terkunci. Unggah scan KK dan tunggu verifikasi Ketua RT.");
-                        return;
-                      }
-                      onCloseMobile();
-                    }}
-                    className={`${parentClassName} ${
-                      isLocked(item.requiresVerification)
-                        ? "opacity-60 cursor-not-allowed"
-                        : ""
-                    }`}
-                  >
-                    <div className={iconContainerClassName}>
-                      <Icon className="h-5 w-5 shrink-0" />
-                      <span className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${
-                        isCollapsed 
-                          ? 'opacity-0 max-w-0 pointer-events-none duration-150 delay-0' 
-                          : 'opacity-100 max-w-xs duration-300 delay-200'
-                      }`}>
-                        {item.title}
-                      </span>
-                      {isLocked(item.requiresVerification) && (
-                        <Lock className="h-3.5 w-3.5 text-amber-500 ml-auto shrink-0" />
-                      )}
-                    </div>
-                  </Link>
-                )}
+                ) : (() => {
+                  const itemLocked = isLocked(item.requiresVerification);
+                  return (
+                    <Link
+                      href={item.href || "#"}
+                      onClick={(e) => {
+                        if (itemLocked) {
+                          e.preventDefault();
+                          toast.error("Menu ini terkunci. Unggah scan KK dan tunggu verifikasi Ketua RT.");
+                          return;
+                        }
+                        onCloseMobile();
+                      }}
+                      className={`${parentClassName} ${
+                        itemLocked ? "cursor-not-allowed" : ""
+                      }`}
+                    >
+                      <div className={iconContainerClassName}>
+                        <div className="relative shrink-0 flex items-center justify-center">
+                          <Icon className={`h-5 w-5 transition-opacity ${itemLocked ? "opacity-40" : ""}`} />
+                          {itemLocked && (
+                            <div className="absolute -bottom-1 -right-1 flex p-1 items-center justify-center bg-amber-500 text-white rounded-2xl opacity-80">
+                              <Lock className="h-3 w-3 stroke-[2.5]" />
+                            </div>
+                          )}
+                        </div>
+                        <span className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                          isCollapsed 
+                            ? 'opacity-0 max-w-0 pointer-events-none duration-150 delay-0' 
+                            : 'opacity-100 max-w-xs duration-300 delay-200'
+                        } ${itemLocked ? "opacity-50 font-medium" : ""}`}>
+                          {item.title}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })()}
 
                 {/* Submenu Accordion Panel (Desktop Expanded / Mobile) */}
                 {hasSub && !isCollapsed && open && (

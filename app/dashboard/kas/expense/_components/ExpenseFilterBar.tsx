@@ -1,6 +1,7 @@
 import React from "react";
-import { Search, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { CustomSelect } from "@/components/CustomSelect";
+import { SearchInput } from "@/components/SearchInput";
 import { EXPENSE_CATEGORIES } from "../../types";
 
 interface ExpenseFilterBarProps {
@@ -33,18 +34,14 @@ export const ExpenseFilterBar: React.FC<ExpenseFilterBarProps> = ({
 
   return (
     <div className="p-4 border border-gray-border bg-gray-card rounded-2xl shadow-xs space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Search Query */}
-        <div className="relative">
-          <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-placeholder" />
-          <input
-            type="text"
-            placeholder="Cari keperluan / kategori..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-          />
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={onSearchChange}
+          placeholder="Cari keperluan / kategori..."
+          containerClassName="w-full"
+        />
 
         {/* Category Select */}
         <div>
@@ -62,7 +59,7 @@ export const ExpenseFilterBar: React.FC<ExpenseFilterBarProps> = ({
             type="date"
             value={startDate}
             onChange={(e) => onStartDateChange(e.target.value)}
-            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
           />
         </div>
 
@@ -72,7 +69,7 @@ export const ExpenseFilterBar: React.FC<ExpenseFilterBarProps> = ({
             type="date"
             value={endDate}
             onChange={(e) => onEndDateChange(e.target.value)}
-            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
           />
           <button
             type="button"

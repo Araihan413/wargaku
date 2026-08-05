@@ -7,6 +7,20 @@ interface TreasurerKpiCardsProps {
 }
 
 export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) => {
+  const safeStats = stats || {
+    totalBalance: 0,
+    thisMonthIncome: 0,
+    thisMonthExpense: 0,
+    duesStats: {
+      totalActiveFamilies: 0,
+      paidFamiliesCount: 0,
+      unpaidFamiliesCount: 0,
+      duesPaidPercentage: 0,
+      currentPeriod: "",
+    },
+    recentTransactions: [],
+  };
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -18,7 +32,7 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
   const cards = [
     {
       title: "Total Saldo Kas RT",
-      value: formatCurrency(stats.totalBalance),
+      value: formatCurrency(safeStats.totalBalance),
       subtitle: "Akumulasi Pemasukan - Pengeluaran",
       icon: Wallet,
       badge: "Kas Utama",
@@ -29,7 +43,7 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
     },
     {
       title: "Pemasukan Bulan Ini",
-      value: formatCurrency(stats.thisMonthIncome),
+      value: formatCurrency(safeStats.thisMonthIncome),
       subtitle: "Setor Iuran & Pemasukan Kas Non-Iuran",
       icon: TrendingUp,
       badge: "Bulan Ini",
@@ -40,7 +54,7 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
     },
     {
       title: "Pengeluaran Bulan Ini",
-      value: formatCurrency(stats.thisMonthExpense),
+      value: formatCurrency(safeStats.thisMonthExpense),
       subtitle: "Total Pengeluaran Kas RT",
       icon: TrendingDown,
       badge: "Bulan Ini",
@@ -51,10 +65,10 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
     },
     {
       title: "Capaian Iuran Bulan Ini",
-      value: `${stats.duesStats.duesPaidPercentage}% KK Lunas`,
-      subtitle: `${stats.duesStats.paidFamiliesCount} dari ${stats.duesStats.totalActiveFamilies} KK Terbayar`,
+      value: `${safeStats.duesStats.duesPaidPercentage}% KK Lunas`,
+      subtitle: `${safeStats.duesStats.paidFamiliesCount} dari ${safeStats.duesStats.totalActiveFamilies} KK Terbayar`,
       icon: CreditCard,
-      badge: `Periode ${stats.duesStats.currentPeriod}`,
+      badge: `Periode ${safeStats.duesStats.currentPeriod}`,
       bgColor: "bg-sky-50 border-sky-100",
       iconBg: "bg-primary text-white",
       badgeColor: "bg-sky-100 text-sky-800 border-sky-200",

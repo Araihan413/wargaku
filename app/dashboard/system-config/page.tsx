@@ -10,6 +10,7 @@ import { IdentityFormSection } from "./_components/IdentityFormSection";
 import { OfficialContactFormSection } from "./_components/OfficialContactFormSection";
 import { BrandingLogoFormSection } from "./_components/BrandingLogoFormSection";
 import { EmergencyContactFormSection } from "./_components/EmergencyContactFormSection";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 const EMPTY_FORM: SystemConfigFormState = {
   rtName: "",
@@ -29,74 +30,65 @@ const EMPTY_FORM: SystemConfigFormState = {
 };
 
 export default function SystemConfigPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-system-config" requiredRoles={[1]}>
+      <SystemConfigContent />
+    </PermissionGuard>
+  );
+}
+
+function SystemConfigContent() {
+
   const [settings, setSettings] = useState<SystemSettingsData | null>(null);
   const [form, setForm] = useState<SystemConfigFormState>(EMPTY_FORM);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSettings = () => {
+  const populateForm = (s: SystemSettingsData) => {
+    setSettings(s);
+    setForm({
+      rtName: s.rtName,
+      rwName: s.rwName,
+      villageName: s.villageName,
+      subdistrict: s.subdistrict,
+      city: s.city,
+      secretariatAddress: s.secretariatAddress || "",
+      logoPath: s.logoPath,
+      officialEmail: s.officialEmail || "",
+      officialRtPhone: s.officialRtPhone || "",
+      officialSecretaryPhone: s.officialSecretaryPhone || "",
+      officialTreasurerPhone: s.officialTreasurerPhone || "",
+      emergencyContacts: s.emergencyContacts || [],
+      latitude: s.latitude || "",
+      longitude: s.longitude || "",
+    });
+  };
+
+  const handleRetry = async () => {
     setIsLoading(true);
     setError(null);
-
-    (async () => {
-      try {
-        const res = await fetch("/api/system-config");
-        if (!res.ok) throw new Error("Gagal memuat konfigurasi sistem");
-        const json = await res.json();
-        const s: SystemSettingsData = json.settings;
-        setSettings(s);
-        setForm({
-          rtName: s.rtName,
-          rwName: s.rwName,
-          villageName: s.villageName,
-          subdistrict: s.subdistrict,
-          city: s.city,
-          secretariatAddress: s.secretariatAddress || "",
-          logoPath: s.logoPath,
-          officialEmail: s.officialEmail || "",
-          officialRtPhone: s.officialRtPhone || "",
-          officialSecretaryPhone: s.officialSecretaryPhone || "",
-          officialTreasurerPhone: s.officialTreasurerPhone || "",
-          emergencyContacts: s.emergencyContacts || [],
-          latitude: s.latitude || "",
-          longitude: s.longitude || "",
-        });
-      } catch (err: any) {
-        setError(err.message || "Terjadi kesalahan koneksi");
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+    try {
+      const res = await fetch("/api/system-config");
+      if (!res.ok) throw new Error("Gagal memuat konfigurasi sistem");
+      const json = await res.json();
+      populateForm(json.settings);
+    } catch (err: any) {
+      setError(err.message || "Terjadi kesalahan koneksi");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     let isCancelled = false;
-
-    async function loadData() {
+    async function fetchSettings() {
       try {
         const res = await fetch("/api/system-config");
         if (!res.ok) throw new Error("Gagal memuat konfigurasi sistem");
         const json = await res.json();
-        const s: SystemSettingsData = json.settings;
         if (!isCancelled) {
-          setSettings(s);
-          setForm({
-            rtName: s.rtName,
-            rwName: s.rwName,
-            villageName: s.villageName,
-            subdistrict: s.subdistrict,
-            city: s.city,
-            secretariatAddress: s.secretariatAddress || "",
-            logoPath: s.logoPath,
-            officialEmail: s.officialEmail || "",
-            officialRtPhone: s.officialRtPhone || "",
-            officialSecretaryPhone: s.officialSecretaryPhone || "",
-            officialTreasurerPhone: s.officialTreasurerPhone || "",
-            emergencyContacts: s.emergencyContacts || [],
-            latitude: s.latitude || "",
-            longitude: s.longitude || "",
-          });
+          populateForm(json.settings);
           setError(null);
         }
       } catch (err: any) {
@@ -104,11 +96,12 @@ export default function SystemConfigPage() {
           setError(err.message || "Terjadi kesalahan koneksi");
         }
       } finally {
-        if (!isCancelled) setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     }
-
-    loadData();
+    fetchSettings();
     return () => {
       isCancelled = true;
     };
@@ -198,7 +191,7 @@ export default function SystemConfigPage() {
           {error || "Konfigurasi sistem tidak dapat dimuat."}
         </p>
         <div className="mt-4">
-          <RefreshButton onClick={loadSettings} isLoading={isLoading} />
+          <RefreshButton onClick={handleRetry} isLoading={isLoading} />
         </div>
       </div>
     );

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { listActivities, createActivity } from '@/db/queries/activities';
+import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { listActivities, createActivity } from '@/db/queries/communication/activity.queries';
+import { notifyAllWarga } from '@/lib/notifications';
 
 // GET /api/activities - Fetch list of RT activities
 export async function GET(request: Request) {
@@ -47,18 +48,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed =
-      session.user.roleId === 1 ||
-      session.user.roleId === 2 ||
-      session.user.roleId === 3 ||
-      await hasPermission(session.user.roleId, 'manage-activities');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-activities');
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin untuk membuat kegiatan RT' }, { status: 403 });
     }
 
+
     const body = await request.json();
-    const { title, description, eventDate, location } = body;
+    const { title, description, eventDate, location, attachments } = body;
 
     if (!title || !eventDate) {
       return NextResponse.json(
@@ -67,7 +66,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const newId = await createActivity({ title, description, eventDate, location }, session.user.id);
+    const newId = await createActivity(
+      { title, description, eventDate, location, attachments },
+      session.user.id
+    );
+
+    // Broadcast notifikasi kegiatan ke seluruh warga
+    notifyAllWarga({
+      title: `[KEGIATAN RT] ${title}`,
+      message: description || `Agenda kegiatan RT baru: ${title}`,
+      category: "dinas",
+      redirectLink: "/kegiatan",
+    }).catch((notifErr) =>
+      console.error("Gagal broadcast notifikasi kegiatan:", notifErr)
+    );
 
     return NextResponse.json(
       { message: 'Kegiatan RT berhasil ditambahkan', id: newId },

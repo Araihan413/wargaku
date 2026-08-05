@@ -12,8 +12,18 @@ import {
 import { RolePermissionKpiCards } from "./_components/RolePermissionKpiCards";
 import { PermissionFilterBar } from "./_components/PermissionFilterBar";
 import { RolePermissionMatrixTable } from "./_components/RolePermissionMatrixTable";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function RolePermissionsPage() {
+  return (
+    <PermissionGuard requiredPermission="manage-roles" requiredRoles={[1]}>
+      <RolePermissionsContent />
+    </PermissionGuard>
+  );
+}
+
+function RolePermissionsContent() {
+
   const [data, setData] = useState<RolePermissionMatrixData | null>(null);
   const [initialMatrix, setInitialMatrix] = useState<MatrixState>({});
   const [currentMatrix, setCurrentMatrix] = useState<MatrixState>({});
@@ -236,7 +246,7 @@ export default function RolePermissionsPage() {
             Manajemen Role & Permission (RBAC)
           </h1>
           <p className="text-sm text-gray-secondary-text mt-0.5">
-            Pengaturan matriks hak akses 17 permission MVP secara dinamis per modul untuk 6 role sistem.
+            Pengaturan matriks hak akses {data.permissions.length} permission secara dinamis dari {data.moduleGroups.length} modul untuk {data.roles.length} role sistem.
           </p>
         </div>
       </div>
@@ -251,6 +261,7 @@ export default function RolePermissionsPage() {
         selectedModule={selectedModule}
         onModuleChange={setSelectedModule}
         moduleOptions={moduleOptions}
+        totalPermissions={data.permissions.length}
         hasChanges={hasChanges}
         onResetChanges={handleResetChanges}
       />

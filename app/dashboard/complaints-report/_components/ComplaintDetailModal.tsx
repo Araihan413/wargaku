@@ -96,6 +96,9 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             </div>
             <p className="text-sm font-extrabold text-gray-heading-main">{item.reporterName}</p>
             <p className="text-[11px] text-gray-secondary-text">{item.reporterPhone || "Tidak ada nomor"}</p>
+            {item.dwellingAddress && (
+              <p className="text-[11px] font-bold text-primary">{item.dwellingAddress}</p>
+            )}
           </div>
 
           <div className="p-3 bg-gray-50/80 border border-gray-border/60 rounded-xl space-y-1">
@@ -123,25 +126,51 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Foto Bukti */}
-        {item.photoPath && (
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-gray-heading-main">
-              <ImageIcon className="w-3.5 h-3.5 text-gray-secondary-text" />
-              Foto Lampiran Bukti Aduan:
-            </label>
-            <div className="rounded-xl overflow-hidden border border-gray-border">
-              <Image
-                src={`/uploads/${item.photoPath}`}
-                alt="Foto Bukti Aduan"
-                className="w-full max-h-64 object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
+        {/* Foto Lampiran Bukti Aduan */}
+        {(() => {
+          let urls: string[] = [];
+          if (item.photoPath) {
+            try {
+              if (item.photoPath.startsWith("[")) {
+                urls = JSON.parse(item.photoPath);
+              } else {
+                urls = [item.photoPath.startsWith("http") ? item.photoPath : `/uploads/${item.photoPath}`];
+              }
+            } catch {
+              urls = [item.photoPath.startsWith("http") ? item.photoPath : `/uploads/${item.photoPath}`];
+            }
+          }
+          if (urls.length === 0) return null;
+
+          return (
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-gray-heading-main">
+                <ImageIcon className="w-3.5 h-3.5 text-gray-secondary-text" />
+                Foto Lampiran Bukti Aduan ({urls.length} Foto):
+              </label>
+              <div className="flex flex-wrap gap-2.5">
+                {urls.map((url, idx) => (
+                  <a
+                    key={idx}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-gray-border bg-gray-50 shrink-0 group hover:border-primary transition"
+                  >
+                    <Image
+                      src={url}
+                      alt={`Foto Bukti ${idx + 1}`}
+                      width={96}
+                      height={96}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      unoptimized
+                    />
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Catatan Tanggapan RT */}
         {item.responseNote && (

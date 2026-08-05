@@ -9,6 +9,7 @@ import { ExpenseTable } from "./_components/ExpenseTable";
 import { AddExpenseModal } from "./_components/AddExpenseModal";
 import { EditExpenseModal } from "./_components/EditExpenseModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import { toast } from "sonner";
 
 export default function CatatPengeluaranPage() {
@@ -22,6 +23,7 @@ export default function CatatPengeluaranPage() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedQuery = useDebounce(searchQuery, 400);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -36,8 +38,8 @@ export default function CatatPengeluaranPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (searchQuery) params.append("query", searchQuery);
+      const params = new URLSearchParams({ type: "expense" });
+      if (debouncedQuery) params.append("query", debouncedQuery);
       if (selectedCategory) params.append("category", selectedCategory);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
@@ -46,13 +48,14 @@ export default function CatatPengeluaranPage() {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
       const monthParams = new URLSearchParams({
+        type: "expense",
         startDate: startOfMonth,
         endDate: endOfMonth,
       });
 
       const [resFiltered, resMonth] = await Promise.all([
-        fetch(`/api/kas/expense?${params.toString()}`),
-        fetch(`/api/kas/expense?${monthParams.toString()}`),
+        fetch(`/api/cash-transactions?${params.toString()}`),
+        fetch(`/api/cash-transactions?${monthParams.toString()}`),
       ]);
 
       if (!resFiltered.ok) {
@@ -62,7 +65,7 @@ export default function CatatPengeluaranPage() {
       const dataFiltered = await resFiltered.json();
       const dataMonth = resMonth.ok ? await resMonth.json() : null;
 
-      setItems(dataFiltered.data || []);
+      setItems(dataFiltered.items || []);
       setTotalFilteredAmount(dataFiltered.metadata?.totalAmount || 0);
       setTotalItemsCount(dataFiltered.metadata?.total || 0);
       if (dataMonth) {
@@ -74,15 +77,15 @@ export default function CatatPengeluaranPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, selectedCategory, startDate, endDate]);
+  }, [debouncedQuery, selectedCategory, startDate, endDate]);
 
   useEffect(() => {
     let isCancelled = false;
 
     async function loadData() {
       try {
-        const params = new URLSearchParams();
-        if (searchQuery) params.append("query", searchQuery);
+        const params = new URLSearchParams({ type: "expense" });
+        if (debouncedQuery) params.append("query", debouncedQuery);
         if (selectedCategory) params.append("category", selectedCategory);
         if (startDate) params.append("startDate", startDate);
         if (endDate) params.append("endDate", endDate);
@@ -91,13 +94,14 @@ export default function CatatPengeluaranPage() {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
         const monthParams = new URLSearchParams({
+          type: "expense",
           startDate: startOfMonth,
           endDate: endOfMonth,
         });
 
         const [resFiltered, resMonth] = await Promise.all([
-          fetch(`/api/kas/expense?${params.toString()}`),
-          fetch(`/api/kas/expense?${monthParams.toString()}`),
+          fetch(`/api/cash-transactions?${params.toString()}`),
+          fetch(`/api/cash-transactions?${monthParams.toString()}`),
         ]);
 
         if (!resFiltered.ok) {
@@ -108,7 +112,7 @@ export default function CatatPengeluaranPage() {
         const dataMonth = resMonth.ok ? await resMonth.json() : null;
 
         if (!isCancelled) {
-          setItems(dataFiltered.data || []);
+          setItems(dataFiltered.items || []);
           setTotalFilteredAmount(dataFiltered.metadata?.totalAmount || 0);
           setTotalItemsCount(dataFiltered.metadata?.total || 0);
           if (dataMonth) {
@@ -132,7 +136,7 @@ export default function CatatPengeluaranPage() {
     return () => {
       isCancelled = true;
     };
-  }, [searchQuery, selectedCategory, startDate, endDate]);
+  }, [debouncedQuery, selectedCategory, startDate, endDate]);
 
   const handleResetFilters = () => {
     setSearchQuery("");
@@ -146,7 +150,7 @@ export default function CatatPengeluaranPage() {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/kas/expense/${deletingItem.id}`, {
+      const res = await fetch(`/api/cash-transactions/${deletingItem.id}`, {
         method: "DELETE",
       });
 
@@ -171,7 +175,7 @@ export default function CatatPengeluaranPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-gray-heading-main flex items-center gap-2.5">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main flex items-center gap-2.5">
             Catat Pengeluaran Kas RT
           </h1>
           <p className="text-sm text-gray-secondary-text mt-0.5">

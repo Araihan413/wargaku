@@ -1,8 +1,10 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { ImageIcon, Upload, Trash2, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { SystemConfigFormState } from "../types";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
+import { FILE_PRESETS } from "@/lib/file-processor/presets";
 
 interface BrandingLogoFormSectionProps {
   form: SystemConfigFormState;
@@ -14,49 +16,19 @@ export const BrandingLogoFormSection: React.FC<BrandingLogoFormSectionProps> = (
   onChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const { uploadFile, isLoading: isUploading } = useFileProcessor(FILE_PRESETS.LOGO);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validasi tipe file
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Format file tidak didukung. Harap unggah gambar JPG, PNG, atau WebP.");
-      return;
-    }
-
-    // Validasi ukuran file (maks 2 MB untuk logo)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Ukuran file logo melebihi batas maksimal 2 MB.");
-      return;
-    }
-
-    setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "logos");
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Gagal mengunggah gambar logo");
+      const result = await uploadFile(file, FILE_PRESETS.LOGO.folder);
+      if (result) {
+        onChange("logoPath", result.url);
+        toast.success("Logo berhasil diunggah.");
       }
-
-      const data = await res.json();
-      onChange("logoPath", data.url);
-      toast.success("Logo berhasil diunggah. Klik Simpan untuk menyimpan perubahan.");
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Gagal mengunggah logo");
     } finally {
-      setIsUploading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -65,7 +37,7 @@ export const BrandingLogoFormSection: React.FC<BrandingLogoFormSectionProps> = (
 
   const handleRemoveLogo = () => {
     onChange("logoPath", null);
-    toast.info("Logo dihapus. Klik Simpan untuk menyimpan perubahan.");
+    toast.info("Logo dihapus.");
   };
 
   return (
@@ -77,10 +49,10 @@ export const BrandingLogoFormSection: React.FC<BrandingLogoFormSectionProps> = (
         </div>
         <div>
           <h2 className="text-sm font-extrabold text-gray-heading-main tracking-tight">
-            Branding & Logo Kop Surat
+            Branding & Logo
           </h2>
           <p className="text-[11px] text-gray-secondary-text">
-            Logo resmi RT/Korp yang akan ditampilkan di kop surat pengantar warga dan header aplikasi.
+            Logo resmi RT/Korp yang akan ditampilkan di header aplikasi.
             Rekomendasi: format PNG transparan, ukuran minimum 200×200px, maks 2 MB.
           </p>
         </div>

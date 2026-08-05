@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { Search, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { CustomSelect } from "@/components/CustomSelect";
+import { SearchInput } from "@/components/SearchInput";
 
 interface ComplaintFilterBarProps {
   search: string;
@@ -44,16 +45,12 @@ export const ComplaintFilterBar: React.FC<ComplaintFilterBarProps> = ({
     <div className="rounded-2xl border border-gray-border bg-gray-card p-4 shadow-sm space-y-4">
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search Input */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-placeholder" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Cari kode tracking (LAP-...), nama, WhatsApp, atau isi aduan..."
-            className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-gray-heading-main placeholder:text-gray-placeholder focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Cari kode tracking (LAP-...), nama, WhatsApp, atau isi aduan..."
+          containerClassName="flex-1"
+        />
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
@@ -63,7 +60,6 @@ export const ComplaintFilterBar: React.FC<ComplaintFilterBarProps> = ({
               onChange={onCategoryChange}
               options={categoryOptions}
               placeholder="Pilih Kategori"
-              size="sm"
             />
           </div>
 
@@ -73,7 +69,6 @@ export const ComplaintFilterBar: React.FC<ComplaintFilterBarProps> = ({
               onChange={onStatusChange}
               options={statusOptions}
               placeholder="Pilih Status"
-              size="sm"
             />
           </div>
 

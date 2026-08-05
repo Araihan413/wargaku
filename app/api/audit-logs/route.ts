@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getAuditLogs, getAuditLogStats } from "@/db/queries/audit-logs";
+import { getEffectiveRoleId } from "@/lib/rbac";
+import { getAuditLogs, getAuditLogStats } from "@/db/queries/system/audit-log.queries";
 
 export async function GET(req: Request) {
   try {
@@ -13,7 +14,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
     }
 
-    if (session.user.roleId !== 1) {
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    if (effectiveRoleId !== 1) {
       return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
     }
 

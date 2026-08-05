@@ -3,6 +3,7 @@
 import React from "react";
 import { X, Calendar, MapPin, User, Clock, Pin } from "lucide-react";
 import { ActivityItem } from "../types";
+import { isEdited, formatUpdatedDate } from "@/lib/date-format";
 
 interface ActivityDetailModalProps {
   isOpen: boolean;
@@ -75,6 +76,12 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                 <span className="inline-flex items-center gap-1 rounded-lg bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 text-xs font-bold text-purple-600">
                   <Pin className="h-3 w-3 fill-current" />
                   <span>Disematkan</span>
+                </span>
+              )}
+
+              {isEdited(activity.createdAt, activity.updatedAt) && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-xs font-bold text-blue-600">
+                  <span>Diperbarui: {formatUpdatedDate(activity.updatedAt)}</span>
                 </span>
               )}
             </div>

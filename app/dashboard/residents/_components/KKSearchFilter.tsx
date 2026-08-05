@@ -1,6 +1,6 @@
 import React from "react";
-import { Search } from "lucide-react";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { SearchInput } from "@/components/SearchInput";
 
 interface KKSearchFilterProps {
   searchQuery: string;
@@ -37,19 +37,15 @@ export const KKSearchFilter: React.FC<KKSearchFilterProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-card border border-gray-border rounded-2xl p-4 shadow-sm items-end">
       {/* Search Input */}
-      <div className="relative md:col-span-2">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <Search className="h-5 w-5 text-gray-placeholder" />
-        </div>
-        <input
-          type="text"
-          placeholder="Cari nomor KK atau nama Kepala Keluarga..."
+      <div className="md:col-span-2">
+        <SearchInput
           value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
+          onChange={(val) => {
+            setSearchQuery(val);
             setCurrentPage(1);
           }}
-          className="block w-full rounded-xl border border-gray-border bg-gray-card py-2.5 pl-10 pr-3 text-gray-heading-main placeholder-gray-placeholder text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+          placeholder="Cari nomor KK atau nama Kepala Keluarga..."
+          containerClassName="w-full"
         />
       </div>
 

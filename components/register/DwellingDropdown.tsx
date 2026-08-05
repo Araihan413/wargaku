@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
-import { MapPin, ChevronDown, Check, PlusCircle } from "lucide-react";
+import { MapPin, ChevronDown, Check } from "lucide-react";
+
 
 interface DwellingOption {
   id: number;
@@ -68,7 +69,7 @@ export const DwellingDropdown: React.FC<DwellingDropdownProps> = ({
             <div className="max-h-60 overflow-y-auto space-y-1 scrollbar-thin">
               {dwellingsList.length === 0 ? (
                 <div className="px-3 py-2 text-xs text-gray-placeholder text-center">
-                  Memuat daftar hunian...
+                  Tidak ada hunian terdaftar
                 </div>
               ) : (
                 dwellingsList.map((option) => (

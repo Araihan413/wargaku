@@ -1,7 +1,8 @@
 import React from "react";
 import Link from "next/link";
 import { Megaphone, Clock } from "lucide-react";
-import { PublicAnnouncementItem } from "@/db/queries/public-portal";
+import { PublicAnnouncementItem } from "@/db/queries/dashboard/public-portal.queries";
+import { formatRelativeTime } from "@/lib/date-format";
 
 interface PublicAnnouncementsSectionProps {
   announcements: PublicAnnouncementItem[];
@@ -31,19 +32,6 @@ const categoryStyles: Record<string, { label: string; textClass: string; bgClass
   },
 };
 
-const getRelativeTime = (dateStr: string | null) => {
-  if (!dateStr) return "1 jam yang lalu";
-  try {
-    const d = new Date(dateStr);
-    const diffHours = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60));
-    if (diffHours < 1) return "Baru saja";
-    if (diffHours < 24) return `${diffHours} jam yang lalu`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} hari yang lalu`;
-  } catch {
-    return "1 jam yang lalu";
-  }
-};
 
 export const PublicAnnouncementsSection: React.FC<PublicAnnouncementsSectionProps> = ({
   announcements = [],
@@ -113,7 +101,7 @@ export const PublicAnnouncementsSection: React.FC<PublicAnnouncementsSectionProp
 
                     <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium pt-1">
                       <Clock className="w-3.5 h-3.5" />
-                      <span>{getRelativeTime(item.publishedAt || item.createdAt)}</span>
+                      <span>{formatRelativeTime(item.publishedAt || item.createdAt)}</span>
                     </div>
                   </div>
                 </div>

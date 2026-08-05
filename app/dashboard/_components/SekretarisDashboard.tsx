@@ -102,13 +102,11 @@ export function SekretarisDashboard() {
     );
   }
 
-  const {
-    summary,
-    pendingRegistrations,
-    upcomingActivities,
-    latestAnnouncements,
-    recentComplaints,
-  } = stats;
+  const summary = stats?.summary || { pendingRegistrations: 0, newComplaints: 0, upcomingActivities: 0 };
+  const pendingRegistrations = stats?.pendingRegistrations || [];
+  const upcomingActivities = stats?.upcomingActivities || [];
+  const latestAnnouncements = stats?.latestAnnouncements || [];
+  const recentComplaints = stats?.recentComplaints || [];
 
   return (
     <div className="space-y-8 pb-12">

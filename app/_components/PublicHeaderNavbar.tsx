@@ -31,7 +31,7 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
   const mobileInactiveStyle = "px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors text-slate-700 font-semibold";
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
       <div className="max-w-[1920] mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* Brand & Logo */}
         <Link href="/" className="group flex items-center gap-2">

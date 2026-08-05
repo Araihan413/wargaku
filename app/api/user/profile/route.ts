@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getUserFullProfile, updateUserProfileData } from "@/db/queries/users";
-import { uploadToCloudinary, deleteCloudinaryFileByUrl } from "@/lib/cloudinary";
+import { getUserFullProfile, updateUserProfileData } from "@/db/queries/auth/user.queries";
+import { uploadAndExecuteWithRollback } from "@/lib/file-processor/server";
 
 export async function GET() {
   try {
@@ -41,10 +41,15 @@ export async function PATCH(req: NextRequest) {
     const phone = formData.get("phone") as string | null;
     const imageFile = formData.get("image") as File | null;
 
-    let imageUrl: string | undefined = undefined;
+    const payload: { name?: string; phone?: string; image?: string } = {};
+    if (name) payload.name = name.trim();
+    if (phone !== null) payload.phone = phone.trim();
+
+    const currentProfile = await getUserFullProfile(session.user.id);
+
+    let updatedProfile;
 
     if (imageFile && imageFile.size > 0) {
-      // Validasi ukuran maks 2MB
       if (imageFile.size > 2 * 1024 * 1024) {
         return NextResponse.json(
           { error: "Ukuran foto profil maksimal 2 MB" },
@@ -52,34 +57,23 @@ export async function PATCH(req: NextRequest) {
         );
       }
 
-      // Ambil profil saat ini untuk mengetahui URL foto lama
-      const currentProfile = await getUserFullProfile(session.user.id);
-
       const arrayBuffer = await imageFile.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      // Upload foto baru ke Cloudinary
-      const uploadRes = await uploadToCloudinary(
-        buffer,
-        "avatars",
-        `avatar_${session.user.id}_${Date.now()}`
-      );
-      imageUrl = uploadRes.url;
-
-      // Hapus foto lama dari Cloudinary (jika ada)
-      if (currentProfile?.image) {
-        deleteCloudinaryFileByUrl(currentProfile.image).catch((err) =>
-          console.error("Gagal menghapus foto profil lama dari Cloudinary:", err)
-        );
-      }
+      // Transaksi Atomic: Upload + Simpan DB + Rollback jika Gagal + Hapus foto lama jika Sukses
+      updatedProfile = await uploadAndExecuteWithRollback({
+        fileBuffer: buffer,
+        folder: "avatars",
+        fileName: `avatar_${session.user.id}_${Date.now()}`,
+        oldFileUrl: currentProfile?.image,
+        dbOperation: async ({ url }) => {
+          payload.image = url;
+          return await updateUserProfileData(session.user.id, payload);
+        },
+      });
+    } else {
+      updatedProfile = await updateUserProfileData(session.user.id, payload);
     }
-
-    const payload: { name?: string; phone?: string; image?: string } = {};
-    if (name) payload.name = name.trim();
-    if (phone !== null) payload.phone = phone.trim();
-    if (imageUrl) payload.image = imageUrl;
-
-    const updatedProfile = await updateUserProfileData(session.user.id, payload);
 
     return NextResponse.json({
       message: "Profil berhasil diperbarui",

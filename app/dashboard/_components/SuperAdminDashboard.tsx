@@ -111,19 +111,19 @@ export function SuperAdminDashboard() {
           </p>
       </div>
       {/* 1. Global KPI Summary Cards */}
-      <SuperAdminKpiCards summary={stats.summary} />
+      <SuperAdminKpiCards summary={stats?.summary} />
 
       {/* 2. Admin Quick Actions Grid */}
       <AdminQuickActionsGrid />
 
       {/* 3. Identitas & Metadata Wilayah */}
-      <SystemIdentityCard info={stats.systemSettingInfo} />
+      <SystemIdentityCard info={stats?.systemSettingInfo} />
 
       {/* 4. Distribusi Peran Pengguna (RBAC Status) */}
-      <RoleDistributionWidget distribution={stats.roleDistribution} />
+      <RoleDistributionWidget distribution={stats?.roleDistribution} />
 
       {/* 5. Audit Trail Keamanan Terkini */}
-      <RecentAuditLogsWidget logs={stats.recentAuditLogs} />
+      <RecentAuditLogsWidget logs={stats?.recentAuditLogs || []} />
     </div>
   );
 }

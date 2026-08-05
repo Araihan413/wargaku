@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Edit3, Loader2 } from "lucide-react";
 import { CustomSelect } from "@/components/CustomSelect";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { ReceiptUploadInput } from "@/components/ReceiptUploadInput";
 import { executeWithFileUpload } from "@/lib/upload-helper";
 import { EXPENSE_CATEGORIES, CashTransactionItem } from "../../types";
@@ -63,7 +64,7 @@ export const EditExpenseModal: React.FC<EditExpenseModalProps> = ({
         file: receiptFile,
         folder: "receipts",
         submitFn: async (fileUrl) => {
-          return fetch(`/api/kas/expense/${item.id}`, {
+          return fetch(`/api/cash-transactions/${item.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -125,18 +126,13 @@ export const EditExpenseModal: React.FC<EditExpenseModalProps> = ({
           </div>
 
           {/* Nominal */}
-          <div>
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Nominal Pengeluaran (Rp)<span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-bold"
-            />
-          </div>
+          <CurrencyInput
+            label="Nominal Pengeluaran"
+            required
+            value={amount}
+            onChange={setAmount}
+            placeholder="150.000"
+          />
 
           {/* Tanggal & Kategori */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

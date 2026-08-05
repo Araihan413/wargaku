@@ -206,50 +206,6 @@ export function getRegistrationRejectionEmail(name: string, rejectReason: string
   });
 }
 
-export function getCoordWelcomeWithPasswordEmail(name: string, email: string, password: string, loginLink: string): string {
-  const content = `
-    <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 16px; letter-spacing: -0.4px;">Akun Koordinator Baru Berhasil Dibuat!</h2>
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
-      Halo <strong>${name}</strong>, Anda telah didaftarkan secara manual oleh pengurus RT sebagai <strong>Koordinator (Pengelola) Properti Sewa</strong> di sistem Wargaku.
-    </p>
-    
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 16px;">
-      Berikut adalah kredensial akun Anda untuk login pertama kali:
-    </p>
-
-    <div style="background-color: #f8fafc; border-radius: 10px; padding: 18px 20px; border: 1px solid #e2e8f0; margin-bottom: 28px;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 14px; color: #334155;">
-        <tr>
-          <td style="padding: 6px 0; font-weight: 700; width: 90px; color: #475569;">Email:</td>
-          <td style="padding: 6px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: #0f172a; font-weight: 600;">${email}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; font-weight: 700; color: #475569;">Password:</td>
-          <td style="padding: 6px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: #0f172a; font-weight: 600;">${password}</td>
-        </tr>
-      </table>
-    </div>
-
-    <div style="text-align: center; margin-bottom: 28px;">
-      <a href="${loginLink}" style="background-color: #10b981; color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);">
-        Login ke Wargaku
-      </a>
-    </div>
-
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-top: 24px; margin-bottom: 0;">
-      Salam hangat,<br/>
-      <strong>Pengurus RT - Wargaku</strong>
-    </p>
-  `;
-
-  return getBaseEmailLayout({
-    title: "WARGAKU",
-    subtitle: "Sistem Informasi & Manajemen RT",
-    theme: "success",
-    contentHtml: content,
-  });
-}
-
 export function getTenantFamilyWelcomeEmail(name: string, email: string, password: string, loginLink: string): string {
   const content = `
     <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 16px; letter-spacing: -0.4px;">Akun Keluarga Penyewa Baru Berhasil Dibuat!</h2>
@@ -343,3 +299,46 @@ export function getResetPasswordEmail(name: string, resetLink: string): string {
     contentHtml: content,
   });
 }
+
+export function getAdminCreatedUserCredentialsEmail(
+  name: string,
+  email: string,
+  password: string,
+  loginLink: string
+): string {
+  const content = `
+    <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 16px; letter-spacing: -0.4px;">Akun Wargaku Anda Telah Dibuat!</h2>
+    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+      Halo <strong>${name}</strong>, akun pengguna Anda di aplikasi <strong>Wargaku</strong> telah didaftarkan secara resmi oleh Pengurus RT.
+    </p>
+    
+    <div style="background-color: #f1f5f9; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+      <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Kredensial Login Anda:</p>
+      <p style="margin: 0 0 6px 0; font-size: 14px; color: #334155;"><strong>Email:</strong> <span style="font-family: monospace; color: #0f172a;">${email}</span></p>
+      <p style="margin: 0; font-size: 14px; color: #334155;"><strong>Password Awal:</strong> <span style="font-family: monospace; color: #2563eb; font-weight: 700;">${password}</span></p>
+    </div>
+    
+    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px;">
+      Anda dapat langsung masuk ke aplikasi melalui tombol di bawah ini. Demi keamanan akun Anda, disarankan untuk <strong>mengubah kata sandi awal ini di Halaman Profil</strong> setelah login.
+    </p>
+
+    <div style="text-align: center; margin-bottom: 28px;">
+      <a href="${loginLink}" style="background-color: #10b981; color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);">
+        Masuk ke Wargaku
+      </a>
+    </div>
+    
+    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-top: 24px; margin-bottom: 0;">
+      Salam hangat,<br/>
+      <strong>Pengurus RT - Wargaku</strong>
+    </p>
+  `;
+
+  return getBaseEmailLayout({
+    title: "WARGAKU",
+    subtitle: "Sistem Informasi & Manajemen RT",
+    theme: "success",
+    contentHtml: content,
+  });
+}
+

@@ -52,6 +52,12 @@ export default function LoginPage() {
       if (res.error) {
         setIsLoading(false);
         toast.error(res.error.message || "Email atau password salah.");
+        // Record failed login audit log
+        fetch("/api/auth/log-failed-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: data.email, reason: res.error.message || "Email atau Password Salah" }),
+        }).catch(() => {});
         return;
       }
 
@@ -71,6 +77,11 @@ export default function LoginPage() {
         toast.warning(
           "Akun Anda berstatus PENDING. Silakan tunggu verifikasi dari Ketua RT."
         );
+        fetch("/api/auth/log-failed-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: data.email, reason: "Akun Berstatus Pending Approval" }),
+        }).catch(() => {});
         return;
       }
 
@@ -78,8 +89,14 @@ export default function LoginPage() {
         await authClient.signOut();
         setIsLoading(false);
         toast.error("Akun Anda telah ditangguhkan. Silakan hubungi pengurus RT.");
+        fetch("/api/auth/log-failed-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: data.email, reason: "Akun Dalam Status Ditangguhkan (Suspended)" }),
+        }).catch(() => {});
         return;
       }
+
 
       setIsLoading(false);
       toast.success("Login berhasil! Mengalihkan...");
@@ -134,9 +151,9 @@ export default function LoginPage() {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm font-semibold text-gray-body-text-btn tracking-wider mb-2"
+                    className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5"
                   >
-                    Email
+                    Email <span className="text-red-500 ml-0.5">*</span>
                   </label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -151,7 +168,7 @@ export default function LoginPage() {
                         errors.email
                           ? "border-error focus:ring-error/20 focus:border-error"
                           : "border-gray-border focus:border-primary focus:ring-2 focus:ring-primary/20"
-                      } bg-gray-card py-3 pl-10 pr-3 text-gray-heading-main placeholder-gray-placeholder sm:text-sm transition-all outline-none`}
+                      } bg-gray-card py-2.5 pl-10 pr-3 text-gray-heading-main placeholder-gray-placeholder text-sm transition-all outline-none`}
                       placeholder="name@example.com"
                     />
                   </div>
@@ -164,12 +181,12 @@ export default function LoginPage() {
 
                 {/* Password Field */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-1.5">
                     <label
                       htmlFor="password"
-                      className="block text-sm font-semibold text-gray-body-text-btn tracking-wider"
+                      className="block text-sm font-semibold text-black/80 tracking-wider"
                     >
-                      Password
+                      Password <span className="text-red-500 ml-0.5">*</span>
                     </label>
                   </div>
                   <div className="relative">
@@ -185,7 +202,7 @@ export default function LoginPage() {
                         errors.password
                           ? "border-error focus:ring-error/20 focus:border-error"
                           : "border-gray-border focus:border-primary focus:ring-2 focus:ring-primary/20"
-                      } bg-gray-card py-3 pl-10 pr-10 text-gray-heading-main placeholder-gray-placeholder sm:text-sm transition-all outline-none`}
+                      } bg-gray-card py-2.5 pl-10 pr-10 text-gray-heading-main placeholder-gray-placeholder text-sm transition-all outline-none`}
                       placeholder="••••••••"
                     />
                     <button

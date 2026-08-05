@@ -10,8 +10,11 @@ import {
   X
 } from "lucide-react";
 import { toast } from "sonner";
+import { RefreshButton } from "@/components/RefreshButton";
+
 
 interface PendingUser {
+
   id: string;
   name: string;
   email: string;
@@ -145,14 +148,18 @@ export default function RegistrationApprovalsPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main">
-          Persetujuan Registrasi
-        </h1>
-        <p className="text-sm text-gray-secondary-text mt-1">
-          Tinjau pendaftaran warga mandiri (Kepala Keluarga) sebelum mengizinkan login dan membuat Kartu Keluarga otomatis.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main">
+            Persetujuan Registrasi
+          </h1>
+          <p className="text-sm text-gray-secondary-text mt-1">
+            Tinjau pendaftaran warga mandiri (Kepala Keluarga) sebelum mengizinkan login dan membuat Kartu Keluarga otomatis.
+          </p>
+        </div>
+        <RefreshButton onClick={fetchPendingUsers} isLoading={isLoading} />
       </div>
+
 
       {/* Main Content Card */}
       <div className="bg-gray-card border border-gray-border rounded-2xl shadow-sm overflow-hidden">

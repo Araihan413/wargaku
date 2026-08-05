@@ -5,16 +5,20 @@ import Link from "next/link";
 import { Users, Home, Wallet, ArrowUpRight } from "lucide-react";
 
 interface WargaStatsWidgetProps {
-  stats: {
-    totalWarga: number;
-    totalKK: number;
+  stats?: {
+    totalWarga?: number;
+    totalKK?: number;
   };
-  finance: {
-    balance: number;
+  finance?: {
+    balance?: number;
   };
 }
 
 export function WargaStatsWidget({ stats, finance }: WargaStatsWidgetProps) {
+  const totalWarga = stats?.totalWarga ?? 0;
+  const totalKK = stats?.totalKK ?? 0;
+  const balance = finance?.balance ?? 0;
+
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -29,7 +33,7 @@ export function WargaStatsWidget({ stats, finance }: WargaStatsWidgetProps) {
       <div className="flex items-center justify-between rounded-2xl border border-gray-border bg-gray-card p-4 shadow-sm">
         <div className="space-y-1">
           <span className="text-xs font-semibold text-gray-secondary-text">Total Penduduk RT</span>
-          <p className="text-2xl font-black text-gray-heading-main">{stats.totalWarga} Warga</p>
+          <p className="text-2xl font-black text-gray-heading-main">{totalWarga} Warga</p>
         </div>
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
           <Users className="h-5 w-5" />
@@ -40,7 +44,7 @@ export function WargaStatsWidget({ stats, finance }: WargaStatsWidgetProps) {
       <div className="flex items-center justify-between rounded-2xl border border-gray-border bg-gray-card p-4 shadow-sm">
         <div className="space-y-1">
           <span className="text-xs font-semibold text-gray-secondary-text">Kartu Keluarga (KK)</span>
-          <p className="text-2xl font-black text-gray-heading-main">{stats.totalKK} KK</p>
+          <p className="text-2xl font-black text-gray-heading-main">{totalKK} KK</p>
         </div>
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
           <Home className="h-5 w-5" />
@@ -49,7 +53,7 @@ export function WargaStatsWidget({ stats, finance }: WargaStatsWidgetProps) {
 
       {/* Stat 3: Saldo Kas RT */}
       <Link
-        href="/dashboard/finance"
+        href="/transparansi-kas"
         className="group flex items-center justify-between rounded-2xl border border-gray-border bg-gray-card p-4 shadow-sm transition-all hover:border-purple-200 hover:bg-purple-50/40"
       >
         <div className="space-y-1">
@@ -58,7 +62,7 @@ export function WargaStatsWidget({ stats, finance }: WargaStatsWidgetProps) {
             <ArrowUpRight className="h-3.5 w-3.5 text-gray-400 group-hover:text-purple-600 transition-colors" />
           </div>
           <p className="text-xl font-black text-purple-700 dark:text-purple-300">
-            {formatRupiah(finance.balance)}
+            {formatRupiah(balance)}
           </p>
         </div>
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400 group-hover:scale-110 transition-transform">

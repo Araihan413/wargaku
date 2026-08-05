@@ -50,7 +50,7 @@ const actions: QuickActionItem[] = [
   {
     title: "Keuangan RT",
     description: "Transparansi saldo kas, pemasukan, & pengeluaran",
-    href: "/dashboard/finance",
+    href: "/transparansi-kas",
     icon: Wallet,
     bgGradient: "hover:border-purple-200 hover:bg-purple-50/50",
     iconBg: "bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400",

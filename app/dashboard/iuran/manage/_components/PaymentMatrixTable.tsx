@@ -57,20 +57,21 @@ export const PaymentMatrixTable: React.FC<PaymentMatrixTableProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-gray-sidebar-hover border-b border-gray-border">
-            <th className="text-left py-3 px-4 text-xs font-bold text-gray-secondary-text uppercase tracking-wider whitespace-nowrap">No</th>
-            <th className="text-left py-3 px-4 text-xs font-bold text-gray-secondary-text uppercase tracking-wider whitespace-nowrap">Kepala Keluarga</th>
-            <th className="text-left py-3 px-4 text-xs font-bold text-gray-secondary-text uppercase tracking-wider whitespace-nowrap">Alamat</th>
-            <th className="text-right py-3 px-4 text-xs font-bold text-gray-secondary-text uppercase tracking-wider whitespace-nowrap">Tagihan</th>
-            <th className="text-right py-3 px-4 text-xs font-bold text-gray-secondary-text uppercase tracking-wider whitespace-nowrap">Terbayar</th>
-            <th className="text-right py-3 px-4 text-xs font-bold text-gray-secondary-text uppercase tracking-wider whitespace-nowrap">Sisa</th>
-            <th className="text-center py-3 px-4 text-xs font-bold text-gray-secondary-text uppercase tracking-wider whitespace-nowrap">Status</th>
-            <th className="text-center py-3 px-4 text-xs font-bold text-gray-secondary-text uppercase tracking-wider whitespace-nowrap">Aksi</th>
-          </tr>
-        </thead>
+    <div className="border border-gray-border rounded-2xl bg-gray-card shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
+              <th className="py-3.5 px-4 text-left whitespace-nowrap">No</th>
+              <th className="py-3.5 px-4 text-left whitespace-nowrap">Kepala Keluarga</th>
+              <th className="py-3.5 px-4 text-left whitespace-nowrap">Alamat</th>
+              <th className="py-3.5 px-4 text-right whitespace-nowrap">Tagihan</th>
+              <th className="py-3.5 px-4 text-right whitespace-nowrap">Terbayar</th>
+              <th className="py-3.5 px-4 text-right whitespace-nowrap">Sisa</th>
+              <th className="py-3.5 px-4 text-center whitespace-nowrap">Status</th>
+              <th className="py-3.5 px-4 text-center whitespace-nowrap">Aksi</th>
+            </tr>
+          </thead>
         <tbody className="divide-y divide-gray-border">
           {payments.map((p, idx) => (
             <tr key={p.id} className="hover:bg-gray-sidebar-hover/40 transition-colors">
@@ -111,5 +112,6 @@ export const PaymentMatrixTable: React.FC<PaymentMatrixTableProps> = ({
         </tbody>
       </table>
     </div>
-  );
+  </div>
+);
 };

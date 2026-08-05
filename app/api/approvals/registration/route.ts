@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/rbac";
-import { listPendingRegistrations } from "@/db/queries/approvals";
+import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { listPendingRegistrations } from "@/db/queries/system/approval.queries";
 
 export async function GET() {
   try {
@@ -14,7 +14,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, "verify-registrations");
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, "verify-registrations");
     if (!isAllowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

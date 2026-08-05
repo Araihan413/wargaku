@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/rbac";
+import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import {
   updateUserProfile,
-  mutateUserRole,
+  mutateOfficerRole,
   suspendToggleUser,
   resetUserPassword,
-} from "@/db/queries/users";
+  getUserFullProfile,
+} from "@/db/queries/auth/user.queries";
+import { createAuditLog } from "@/db/queries/system/audit-log.queries";
+import { getClientIp } from "@/lib/audit-logger";
 import { updateUserSchema } from "@/lib/validations/user";
+import { notifyUser } from "@/lib/notifications";
 import { ZodError } from "zod";
+import { getAppBaseUrl, generateTemporaryPassword } from "@/lib/config";
+import { sendPasswordResetEmail } from "@/lib/mail";
 
 export async function PATCH(
   request: Request,
@@ -24,7 +30,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const allowed = await hasPermission(session.user.roleId, "manage-users");
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const allowed = await hasPermission(effectiveRoleId, "manage-users");
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -39,18 +46,35 @@ export async function PATCH(
 
     if (action === "update_profile") {
       const validatedData = updateUserSchema.parse(payload);
-      await updateUserProfile(id, validatedData, session.user.id);
+      await updateUserProfile(id, validatedData);
       return NextResponse.json({ success: true, message: "Profil pengguna berhasil diperbarui" });
     }
 
     if (action === "mutate_role") {
-      const { roleId } = payload;
-      if (typeof roleId !== "number") {
-        return NextResponse.json({ error: "Invalid roleId" }, { status: 400 });
-      }
+      const officerRoleId = payload.officerRoleId !== undefined
+        ? payload.officerRoleId
+        : (typeof payload.roleId === "number" && [2, 3, 4].includes(payload.roleId) ? payload.roleId : null);
 
-      await mutateUserRole(id, roleId, session.user.id);
-      return NextResponse.json({ success: true, message: "Peran berhasil dimutasi" });
+      await mutateOfficerRole(id, officerRoleId, session.user.id);
+
+      const targetUser = await getUserFullProfile(id);
+      const ipAddress = await getClientIp(request);
+      await createAuditLog({
+        userId: session.user.id,
+        action: "MUTATE_ROLE",
+        module: "pengguna",
+        description: `Mengubah role/jabatan pengguna ${targetUser?.name || id} menjadi Role ID #${officerRoleId || 6}`,
+        ipAddress,
+      });
+
+      notifyUser(id, {
+        title: "Perubahan Jabatan",
+        message: `Jabatan Anda dalam sistem Wargaku telah diubah oleh Admin. Silakan login kembali untuk melihat perubahan akses.`,
+        category: "personal",
+        redirectLink: "/dashboard",
+      });
+
+      return NextResponse.json({ success: true, message: "Jabatan pengurus berhasil dimutasi" });
     }
 
     if (action === "suspend_toggle") {
@@ -60,6 +84,27 @@ export async function PATCH(
       }
 
       await suspendToggleUser(id, status, session.user.id);
+
+      const targetUser = await getUserFullProfile(id);
+      const ipAddress = await getClientIp(request);
+      const isSuspended = status === "suspended";
+      await createAuditLog({
+        userId: session.user.id,
+        action: isSuspended ? "SUSPEND_USER" : "ACTIVATE_USER",
+        module: "pengguna",
+        description: `${isSuspended ? "Menangguhkan (suspend)" : "Mengaktifkan kembali"} akun pengguna: ${targetUser?.name || id} (${targetUser?.email || ''})`,
+        ipAddress,
+      });
+
+      notifyUser(id, {
+        title: isSuspended ? "Akun Ditangguhkan" : "Akun Diaktifkan Kembali",
+        message: isSuspended
+          ? "Akun Anda telah ditangguhkan (suspended) oleh Admin. Hubungi Pengurus RT untuk informasi lebih lanjut."
+          : "Akun Anda telah diaktifkan kembali oleh Admin. Silakan login untuk mengakses sistem.",
+        category: "personal",
+        redirectLink: "/login",
+      });
+
       return NextResponse.json({
         success: true,
         message: status === "suspended" ? "Akun berhasil ditangguhkan" : "Akun berhasil diaktifkan",
@@ -67,71 +112,50 @@ export async function PATCH(
     }
 
     if (action === "reset_password") {
-      const defaultPassword = process.env.DEFAULT_PASSWORD!;
-      if (!defaultPassword) {
-        return NextResponse.json({ error: "Password default tidak ditemukan" }, { status: 500 });
+      const user = await getUserFullProfile(id);
+      if (!user) {
+        return NextResponse.json({ error: "Pengguna tidak ditemukan" }, { status: 404 });
       }
 
-      await resetUserPassword(id, defaultPassword);
+      const temporaryPassword = generateTemporaryPassword();
+      await resetUserPassword(id, temporaryPassword);
+
+      const ipAddress = await getClientIp(request);
+      await createAuditLog({
+        userId: session.user.id,
+        action: "RESET_PASSWORD",
+        module: "pengguna",
+        description: `Mereset password akun pengguna: ${user.name} (${user.email})`,
+        ipAddress,
+      });
+
+      const baseUrl = getAppBaseUrl(request);
+      const loginUrl = `${baseUrl}/login`;
+
+      try {
+        await sendPasswordResetEmail({
+          toEmail: user.email,
+          userName: user.name,
+          temporaryPassword,
+          loginUrl,
+        });
+      } catch (emailErr) {
+        console.error("Gagal mengirim email reset password:", emailErr);
+      }
+
       return NextResponse.json({
         success: true,
-        message: `Password berhasil di-reset menjadi ${defaultPassword}`,
-        defaultPassword,
+        message: `Password berhasil direset. Password sementara: ${temporaryPassword}`,
+        temporaryPassword,
       });
     }
 
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
     if (error instanceof ZodError) {
-      return NextResponse.json({ error: error.issues[0]?.message || "Validasi gagal" }, { status: 400 });
-    }
-    if (error instanceof Error) {
-      if (error.message === "SELF_ROLE_CHANGE" || error.message === "SELF_SUSPEND") {
-        return NextResponse.json(
-          { error: error.message === "SELF_SUSPEND" ? "Anda tidak dapat menangguhkan atau mengaktifkan akun Anda sendiri" : "Anda tidak dapat mengubah peran akun Anda sendiri" },
-          { status: 403 }
-        );
-      }
-      if (error.message === "SA_MUTUAL_PROTECTION") {
-        return NextResponse.json(
-          { error: "Status/profil/peran akun Super Admin lain tidak dapat diubah" },
-          { status: 403 }
-        );
-      }
-      if (error.message === "SA_PROMOTION_FORBIDDEN") {
-        return NextResponse.json(
-          { error: "Peran Super Admin tidak dapat diberikan melalui pembaruan profil atau mutasi peran" },
-          { status: 400 }
-        );
-      }
-      if (error.message === "NIK_EXISTS") {
-        return NextResponse.json({ error: "NIK sudah terdaftar" }, { status: 400 });
-      }
-      if (error.message === "EMAIL_EXISTS") {
-        return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 400 });
-      }
-      if (error.message.startsWith("OFFICER_EXISTS:")) {
-        const parts = error.message.split(":");
-        return NextResponse.json(
-          { error: `Akun untuk posisi ${parts[1]} yang aktif/pending sudah ada (${parts[2]})` },
-          { status: 400 }
-        );
-      }
-      if (error.message.startsWith("OFFICER_EXISTS_ACTIVATION:")) {
-        const parts = error.message.split(":");
-        return NextResponse.json(
-          { error: `Tidak dapat mengaktifkan akun. Posisi ${parts[1]} yang aktif sudah diisi oleh (${parts[2]})` },
-          { status: 400 }
-        );
-      }
-      if (error.message === "SUPERADMIN_LIMIT_REACHED") {
-        return NextResponse.json(
-          { error: "Batas maksimum 2 akun Super Admin aktif/pending telah tercapai" },
-          { status: 400 }
-        );
-      }
+      return NextResponse.json({ error: "Input tidak valid", issues: error.issues }, { status: 400 });
     }
     console.error("PATCH /api/users/[id] error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

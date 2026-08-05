@@ -27,7 +27,17 @@ const DEFAULT_PAGINATION: ReportPagination = {
   limit: 15,
 };
 
+import { PermissionGuard } from "@/components/PermissionGuard";
+
 export default function ComplaintsReportPage() {
+  return (
+    <PermissionGuard requiredPermission="view-complaints-report" requiredRoles={[1]}>
+      <ComplaintsReportContent />
+    </PermissionGuard>
+  );
+}
+
+function ComplaintsReportContent() {
   const [overview, setOverview] = useState<ComplaintsReportOverview | null>(null);
   const [complaints, setComplaints] = useState<ComplaintReportItem[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementReportItem[]>([]);

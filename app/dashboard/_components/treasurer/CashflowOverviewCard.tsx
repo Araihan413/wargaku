@@ -1,5 +1,6 @@
 import React from "react";
-import { ArrowUpRight, ArrowDownRight, ShieldCheck, AlertCircle, Users } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Users } from "lucide-react";
+
 import { TreasurerDashboardStats } from "./types";
 
 interface CashflowOverviewCardProps {
@@ -16,7 +17,6 @@ export const CashflowOverviewCard: React.FC<CashflowOverviewCardProps> = ({ stat
   };
 
   const netMonthCashflow = stats.thisMonthIncome - stats.thisMonthExpense;
-  const isHealthy = netMonthCashflow >= 0;
 
   const maxVal = Math.max(stats.thisMonthIncome, stats.thisMonthExpense, 1);
   const incomePercent = Math.round((stats.thisMonthIncome / maxVal) * 100);

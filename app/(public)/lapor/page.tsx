@@ -43,8 +43,7 @@ export default function PublicLaporPage() {
   const [reporterPhone, setReporterPhone] = useState("");
   const [category, setCategory] = useState("Infrastruktur");
   const [description, setDescription] = useState("");
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<Array<{ file: File; previewUrl: string }>>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -58,6 +57,7 @@ export default function PublicLaporPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [trackedData, setTrackedData] = useState<TrackedComplaint | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
   const categoryOptions = [
     { value: "Infrastruktur", label: "Infrastruktur (Jalan, Lampu, Fasum)" },
@@ -68,23 +68,48 @@ export default function PublicLaporPage() {
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Ukuran foto maksimal 5MB");
-        return;
-      }
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    if (photos.length + selectedFiles.length > 5) {
+      toast.error("Maksimal 5 foto bukti lampiran yang diperbolehkan.");
     }
+
+    const availableSlots = 5 - photos.length;
+    const filesToAdd = selectedFiles.slice(0, availableSlots);
+
+    const newItems: Array<{ file: File; previewUrl: string }> = [];
+
+    for (const file of filesToAdd) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`File ${file.name} melebihi batas 5MB.`);
+        continue;
+      }
+      newItems.push({
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    }
+
+    setPhotos((prev) => [...prev, ...newItems]);
+    e.target.value = "";
   };
 
-  const handleRemovePhoto = () => {
-    setPhotoFile(null);
-    if (photoPreview) {
-      URL.revokeObjectURL(photoPreview);
-    }
-    setPhotoPreview(null);
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => {
+      const target = prev[index];
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const clearAllPhotos = () => {
+    photos.forEach((p) => {
+      if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+    });
+    setPhotos([]);
   };
 
   const handleSubmitReport = async (e: React.FormEvent) => {
@@ -101,28 +126,39 @@ export default function PublicLaporPage() {
     }
 
     setIsSubmitting(true);
-    let uploadedPhotoUrl: string | null = null;
+    const uploadedPhotoUrls: string[] = [];
 
     try {
-      // 1. Upload photo if selected
-      if (photoFile) {
+      // 1. Upload all photos to Cloudinary if selected
+      if (photos.length > 0) {
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append("file", photoFile);
-        formData.append("folder", "complaints");
+        for (const item of photos) {
+          const formData = new FormData();
+          formData.append("file", item.file);
+          formData.append("folder", "complaints");
 
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
 
-        if (!uploadRes.ok) {
-          throw new Error("Gagal mengunggah foto lampiran");
+          if (!uploadRes.ok) {
+            throw new Error("Gagal mengunggah foto lampiran");
+          }
+
+          const uploadJson = await uploadRes.json();
+          const url = uploadJson.url || uploadJson.secure_url;
+          if (url) uploadedPhotoUrls.push(url);
         }
-
-        const uploadJson = await uploadRes.json();
-        uploadedPhotoUrl = uploadJson.url || uploadJson.secure_url;
       }
+
+      // Serialize photo URLs to JSON string if > 1 or present
+      const finalPhotoPath =
+        uploadedPhotoUrls.length === 0
+          ? null
+          : uploadedPhotoUrls.length === 1
+          ? uploadedPhotoUrls[0]
+          : JSON.stringify(uploadedPhotoUrls);
 
       // 2. Post complaint
       const res = await fetch("/api/complaints", {
@@ -133,7 +169,7 @@ export default function PublicLaporPage() {
           reporterPhone: reporterPhone.trim(),
           category,
           description: description.trim(),
-          photoPath: uploadedPhotoUrl,
+          photoPath: finalPhotoPath,
           turnstileToken,
         }),
       });
@@ -147,7 +183,7 @@ export default function PublicLaporPage() {
         setReporterPhone("");
         setCategory("Infrastruktur");
         setDescription("");
-        handleRemovePhoto();
+        clearAllPhotos();
       } else {
         const err = await res.json();
         toast.error(err.error || "Gagal mengirim laporan");
@@ -330,44 +366,62 @@ export default function PublicLaporPage() {
                 />
               </div>
 
-              {/* Unggah Foto Pendukung */}
-              <div>
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  Foto Bukti Lampiran
-                </label>
-                {photoPreview ? (
-                  <div className="relative w-full h-48 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
-                    <Image
-                      src={photoPreview}
-                      alt="Preview Lampiran"
-                      fill
-                      className="object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRemovePhoto}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/80 hover:border-blue-400 hover:bg-blue-50/30 transition cursor-pointer text-center space-y-1">
-                    <Upload className="h-7 w-7 text-slate-400 mb-1" />
-                    <span className="text-xs font-bold text-slate-800">
-                      Klik untuk Unggah Foto Bukti
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      Format: JPG, PNG, WebP (Maks 5MB)
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
+              {/* Unggah Foto Pendukung (Shopee Review Style Grid - Max 5) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider">
+                    Foto Bukti Lampiran <span className="text-xs text-slate-400 font-normal">(Opsional, Maksimal 5 Foto)</span>
                   </label>
-                )}
+                  <span className="text-xs font-bold font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                    {photos.length}/5 Foto
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Item Foto Terpilih */}
+                  {photos.map((item, index) => (
+                    <div
+                      key={index}
+                      className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 shrink-0 group shadow-xs hover:border-blue-400 transition"
+                    >
+                      <Image
+                        src={item.previewUrl}
+                        alt={`Foto Bukti ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(index)}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-rose-600 transition cursor-pointer"
+                        title="Hapus Foto"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Tombol Tambah Foto (Hanya tampil jika < 5 foto) */}
+                  {photos.length < 5 && (
+                    <label className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-500 bg-slate-50/80 hover:bg-blue-50/40 flex flex-col items-center justify-center gap-1 cursor-pointer transition text-center shrink-0 group">
+                      <Upload className="h-5 w-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                      <span className="text-[10px] font-bold text-slate-600 group-hover:text-blue-600 transition-colors">
+                        Tambah Foto
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-slate-400 leading-normal">
+                  Ukuran ringkas hemat ruang. Format: JPG, PNG, WebP (Maks 5MB per foto).
+                </p>
               </div>
 
               {/* Cloudflare Turnstile Anti-Spam Widget */}
@@ -537,6 +591,47 @@ export default function PublicLaporPage() {
                     </p>
                   </div>
 
+                  {/* Foto Bukti Lampiran jika Ada */}
+                  {(() => {
+                    let urls: string[] = [];
+                    if (trackedData.photoPath) {
+                      try {
+                        if (trackedData.photoPath.startsWith("[")) {
+                          urls = JSON.parse(trackedData.photoPath);
+                        } else {
+                          urls = [trackedData.photoPath];
+                        }
+                      } catch {
+                        urls = [trackedData.photoPath];
+                      }
+                    }
+                    if (urls.length === 0) return null;
+                    return (
+                      <div className="space-y-1.5">
+                        <span className="text-xs font-medium text-slate-400">
+                          Foto Bukti Lampiran ({urls.length} Foto):
+                        </span>
+                        <div className="flex flex-wrap gap-2.5 pt-0.5">
+                          {urls.map((url, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setZoomImageUrl(url)}
+                              className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 shrink-0 group hover:border-blue-500 transition cursor-pointer"
+                            >
+                              <Image
+                                src={url}
+                                alt={`Lampiran ${idx + 1}`}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {trackedData.responseNote && (
                     <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70 space-y-1.5 text-xs">
                       <span className="font-bold text-emerald-800 flex items-center gap-1.5">
@@ -636,6 +731,30 @@ export default function PublicLaporPage() {
                 Tutup & Lacak Status
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Zoom Modal */}
+      {zoomImageUrl && (
+        <div
+          className="fixed inset-0 z-60 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setZoomImageUrl(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
+            <Image
+              src={zoomImageUrl}
+              alt="Foto Bukti Resolusi Penuh"
+              fill
+              className="object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setZoomImageUrl(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 cursor-pointer"
+            >
+              <X className="h-6 w-6" />
+            </button>
           </div>
         </div>
       )}

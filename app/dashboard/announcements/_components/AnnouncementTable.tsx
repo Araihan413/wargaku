@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Eye, Edit2, Trash2, Pin, Plus, Calendar, User, Clock } from "lucide-react";
+import { Eye, Edit2, Trash2, Pin, Plus, Calendar, User, Clock } from "lucide-react";
 import { AnnouncementItem, AnnouncementCategory } from "../types";
+import { SearchInput } from "@/components/SearchInput";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import { toast } from "sonner";
 
 interface AnnouncementTableProps {
@@ -23,14 +25,15 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
   onOpenDetailModal,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pinningId, setPinningId] = useState<number | null>(null);
 
   const filteredItems = items.filter((item) => {
     const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.content.toLowerCase().includes(searchTerm.toLowerCase());
+      item.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      item.content.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
     const matchesCategory =
       selectedCategory === "all" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -108,16 +111,12 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-card border border-gray-border p-4 rounded-2xl shadow-xs">
         <div className="flex flex-1 flex-col sm:flex-row items-center gap-3">
           {/* Search Input */}
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-secondary-text" />
-            <input
-              type="text"
-              placeholder="Cari pengumuman..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-3.5 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Cari pengumuman..."
+            containerClassName="w-full sm:w-72"
+          />
 
           {/* Category Filter Tabs */}
           <div className="flex items-center gap-1 bg-gray-sidebar-hover/40 p-1 rounded-xl border border-gray-border/60 overflow-x-auto w-full sm:w-auto">
@@ -131,7 +130,7 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                   selectedCategory === cat.id
                     ? "bg-primary text-white shadow-xs"
                     : "text-gray-secondary-text hover:text-gray-heading-main"
@@ -147,7 +146,7 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
         <button
           type="button"
           onClick={onOpenAddModal}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-900 transition-all shadow-xs cursor-pointer shrink-0"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-900 transition-all shadow-xs cursor-pointer shrink-0"
         >
           <Plus className="h-4 w-4" />
           <span>Buat Pengumuman Baru</span>

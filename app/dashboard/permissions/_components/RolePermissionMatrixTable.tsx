@@ -15,13 +15,39 @@ export const RolePermissionMatrixTable: React.FC<RolePermissionMatrixTableProps>
   onTogglePermission,
   filteredModuleGroups,
 }) => {
-  // Core permissions locked for Super Admin
-  const isSuperAdminLocked = (roleId: number, permissionSlug: string) => {
-    return (
-      roleId === 1 &&
-      ["manage-users", "manage-roles", "view-audit-logs"].includes(permissionSlug)
-    );
+  // System Admin permissions list
+  const SYSTEM_ADMIN_PERMISSIONS = [
+    "manage-users",
+    "manage-roles",
+    "view-audit-logs",
+    "view-complaints-report",
+    "manage-system-config",
+  ];
+
+  // Core permissions locked
+  const isRoleLocked = (roleId: number, permissionSlug: string) => {
+    // 1. System Admin permissions dikunci untuk seluruh role
+    if (SYSTEM_ADMIN_PERMISSIONS.includes(permissionSlug)) {
+      return true;
+    }
+    // 2. Role Non-Pengurus (Role 5: Koordinator Kost, Role 6: Warga) dikunci (Permission paten bawaan sistem)
+    if (roleId === 5 || roleId === 6) {
+      return true;
+    }
+    return false;
   };
+
+  const getLockTooltip = (roleId: number, _permissionSlug: string) => {
+    if (roleId === 5 || roleId === 6) {
+      return `Permission untuk ${roleId === 5 ? "Koordinator Kost" : "Warga"} dikelola oleh sistem dan bersifat paten`;
+    }
+    if (roleId === 1) {
+      return "Izin core Super Admin dilindungi dari penonaktifan";
+    }
+    return "Hak Akses Otoritas Keamanan Sistem dikunci (Khusus Super Admin)";
+  };
+
+
 
   const getRoleBadgeStyle = (roleId: number) => {
     switch (roleId) {
@@ -47,13 +73,13 @@ export const RolePermissionMatrixTable: React.FC<RolePermissionMatrixTableProps>
           {/* Table Header */}
           <thead>
             <tr className="border-b border-gray-border bg-gray-sidebar-hover/40 text-gray-heading-main">
-              <th className="py-4 px-4 font-extrabold text-sm min-w-[280px]">
-                Izin Fitur / Modul (17 MVP)
+              <th className="py-4 px-4 font-extrabold text-sm min-w-70">
+                Izin Fitur / Modul ({data.permissions.length} Permission)
               </th>
               {data.roles.map((role) => (
                 <th
                   key={role.id}
-                  className="py-4 px-3 text-center min-w-[120px] font-bold"
+                  className="py-4 px-3 text-center min-w-30 font-bold"
                 >
                   <div
                     className={`inline-flex items-center justify-center px-2.5 py-1 rounded-lg border text-[11px] font-extrabold ${getRoleBadgeStyle(
@@ -123,20 +149,30 @@ export const RolePermissionMatrixTable: React.FC<RolePermissionMatrixTableProps>
                         const isChecked = (matrix[role.id] || []).includes(
                           perm.id
                         );
-                        const isLocked = isSuperAdminLocked(role.id, perm.slug);
+                        const isLocked = isRoleLocked(role.id, perm.slug);
+                        const lockTooltip = getLockTooltip(role.id, perm.slug);
 
                         return (
                           <td key={role.id} className="py-3 px-3 text-center">
                             <div className="flex items-center justify-center">
                               {isLocked ? (
                                 <div
-                                  title="Izin core Super Admin dilindungi dari penonaktifan"
-                                  className="p-1.5 bg-gray-100 border border-gray-border rounded-lg text-gray-placeholder cursor-not-allowed flex items-center justify-center"
+                                  title={lockTooltip}
+                                  className={`p-1.5 border rounded-lg cursor-not-allowed flex items-center justify-center ${
+                                    isChecked
+                                      ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                                      : "bg-gray-100/80 border-gray-border text-gray-400 opacity-60"
+                                  }`}
                                 >
-                                  <Lock className="w-4 h-4 text-indigo-600" />
+                                  {isChecked ? (
+                                    <Check className="w-4 h-4 text-emerald-600 stroke-3" />
+                                  ) : (
+                                    <Lock className="w-4 h-4" />
+                                  )}
                                 </div>
                               ) : (
                                 <label className="relative inline-flex items-center cursor-pointer group">
+
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
@@ -147,7 +183,7 @@ export const RolePermissionMatrixTable: React.FC<RolePermissionMatrixTableProps>
                                   />
                                   <div className="w-5 h-5 bg-gray-card border-2 border-gray-border rounded-md peer-checked:bg-primary peer-checked:border-primary peer-focus:ring-2 peer-focus:ring-primary/20 transition-all flex items-center justify-center">
                                     {isChecked && (
-                                      <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                                      <Check className="w-3.5 h-3.5 text-white stroke-3" />
                                     )}
                                   </div>
                                 </label>

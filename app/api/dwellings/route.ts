@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { createDwelling, createDwellingsBulk, listDwellingsAdmin, listActiveDwellingsPublic } from '@/db/queries/kependudukan';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { createDwelling, createDwellingsBulk, listDwellingsAdmin, listActiveDwellingsPublic, createAuditLog } from '@/db/queries';
+import { getClientIp } from '@/lib/audit-logger';
 import { z } from 'zod';
 
 const createDwellingSchema = z.object({
@@ -10,12 +11,12 @@ const createDwellingSchema = z.object({
   blockNumber: z.string().min(1, 'Nomor blok wajib diisi').max(20),
   houseNumber: z.string().optional().nullable(),
   type: z.enum(['permanen', 'kos', 'homestay']),
-  notes: z.string().optional().nullable(),
-  latitude: z.string().optional().nullable(),
-  longitude: z.string().optional().nullable(),
-  ownerUserId: z.string().optional().nullable(),
-  ownerName: z.string().optional().nullable(),
-  ownerPhone: z.string().optional().nullable(),
+  notes: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  latitude: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  longitude: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  ownerUserId: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  ownerName: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+  ownerPhone: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
   startNumber: z.preprocess((val) => (val === '' ? null : val), z.number().int().positive().optional().nullable()),
   endNumber: z.preprocess((val) => (val === '' ? null : val), z.number().int().positive().optional().nullable()),
 }).superRefine((data, ctx) => {
@@ -57,17 +58,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const isAdmin = searchParams.get('admin') === 'true';
 
-    // 1. Get Session
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (isAdmin) {
-      // Check auth and permissions for admin view
       if (!session) {
         return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
       }
-      const isAllowed = await hasPermission(session.user.roleId, 'view-residents');
+      const effectiveRoleId = await getEffectiveRoleId(session);
+      const isAllowed = await hasPermission(effectiveRoleId, 'view-residents');
       if (!isAllowed) {
         return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
       }
@@ -93,7 +93,6 @@ export async function GET(request: Request) {
       return NextResponse.json(result);
     }
 
-    // 2. Public view: return simple dropdown list
     const formattedData = await listActiveDwellingsPublic();
     return NextResponse.json(formattedData);
   } catch (error: any) {
@@ -107,7 +106,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // 1. Auth and permission check
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -116,12 +114,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, 'manage-dwellings');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
-    // 2. Validate body
     const body = await request.json();
     const validatedData = createDwellingSchema.parse(body);
 
@@ -134,9 +132,18 @@ export async function POST(request: Request) {
         latitude: validatedData.latitude,
         longitude: validatedData.longitude,
         ownerUserId: validatedData.ownerUserId,
-        ownerName: validatedData.ownerName,
-        ownerPhone: validatedData.ownerPhone,
       });
+
+      const ipAddress = await getClientIp(request);
+      const typeLabel = validatedData.type === 'kos' ? 'Rumah Kost' : validatedData.type === 'homestay' ? 'Homestay' : 'Rumah Tinggal';
+      await createAuditLog({
+        userId: session.user.id,
+        action: 'CREATE_DWELLING',
+        module: 'hunian',
+        description: `Menambah hunian baru: Blok ${validatedData.blockNumber.toUpperCase()} No. ${validatedData.houseNumber!.trim()} (Tipe: ${typeLabel})`,
+        ipAddress,
+      });
+
       return NextResponse.json({ success: true, id: dwellingId, message: 'Hunian berhasil ditambahkan' }, { status: 201 });
     } else {
       const dwellingsInserted = await createDwellingsBulk({
@@ -145,19 +152,53 @@ export async function POST(request: Request) {
         endNumber: validatedData.endNumber!,
         type: validatedData.type,
       });
+
+      const ipAddress = await getClientIp(request);
+      const typeLabel = validatedData.type === 'kos' ? 'Rumah Kost' : validatedData.type === 'homestay' ? 'Homestay' : 'Rumah Tinggal';
+      await createAuditLog({
+        userId: session.user.id,
+        action: 'CREATE_DWELLINGS_BULK',
+        module: 'hunian',
+        description: `Melakukan penambahan massal ${dwellingsInserted.length} unit hunian baru: Blok ${validatedData.blockNumber.toUpperCase()} No. ${validatedData.startNumber} s/d No. ${validatedData.endNumber} (Tipe: ${typeLabel})`,
+        ipAddress,
+      });
+
       return NextResponse.json({
         success: true,
         count: dwellingsInserted.length,
         message: `${dwellingsInserted.length} Hunian berhasil digenerate secara massal`,
       }, { status: 201 });
     }
+
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validasi gagal', issues: error.issues }, { status: 400 });
+      const firstIssueMessage = error.issues[0]?.message || 'Input tidak valid';
+      return NextResponse.json({ error: firstIssueMessage, issues: error.issues }, { status: 400 });
     }
+
+    const errMsg = error.message || '';
+    if (
+      errMsg.includes('DWELLING_ADDRESS_EXISTS') ||
+      errMsg.includes('ER_DUP_ENTRY') ||
+      errMsg.includes('unique_address_idx')
+    ) {
+      let block = '';
+      let house = '';
+      if (errMsg.includes('DWELLING_ADDRESS_EXISTS:')) {
+        const parts = errMsg.split(':');
+        block = parts[1] || '';
+        house = parts[2] || '';
+      }
+      const addressLabel = block && house ? `Blok ${block} No. ${house}` : 'tersebut';
+      return NextResponse.json(
+        { error: `Alamat hunian (${addressLabel}) sudah terdaftar di sistem. Silakan gunakan kombinasi Blok dan Nomor Rumah lain.` },
+        { status: 400 }
+      );
+    }
+
     console.error('Error in POST /api/dwellings:', error);
     return NextResponse.json(
-      { error: error.message || 'Kesalahan server internal' },
+      { error: error.message || 'Gagal menambahkan hunian baru. Silakan periksa kembali input Anda.' },
       { status: 400 }
     );
   }

@@ -27,6 +27,7 @@ export interface ComplaintReportItem {
   responseNote: string | null;
   handledBy: string | null;
   handlerName: string | null;
+  dwellingAddress?: string | null;
   createdAt: string;
   resolvedAt: string | null;
 }

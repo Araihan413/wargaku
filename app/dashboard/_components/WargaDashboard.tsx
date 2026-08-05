@@ -30,7 +30,7 @@ interface WargaDashboardData {
   family: {
     id: number;
     familyNumber: string;
-    verificationStatus: "draft" | "pending" | "verified" | "rejected";
+    verificationStatus: "draft" | "pending" | "verified" | "rejected" | "changes_pending";
     verificationNote?: string | null;
     headName: string;
     hasVerified: boolean;
@@ -121,7 +121,11 @@ export function WargaDashboard() {
     );
   }
 
-  const isVerified = data?.family?.hasVerified || data?.family?.verificationStatus === "verified";
+  const isVerified = Boolean(
+    data?.family?.hasVerified ||
+    data?.family?.verificationStatus === "verified" ||
+    data?.family?.verificationStatus === "changes_pending"
+  );
 
   const downloadQRCode = async (token: string, block: string, houseNum: string) => {
     try {

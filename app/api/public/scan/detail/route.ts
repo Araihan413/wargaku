@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getDetailedScanDwelling } from "@/db/queries/public-portal";
+import { getDetailedScanDwelling } from "@/db/queries/dashboard/public-portal.queries";
 
 /**
  * GET /api/public/scan/detail?token=xxx

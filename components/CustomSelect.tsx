@@ -15,6 +15,7 @@ interface CustomSelectProps {
   onChange: (value: string) => void;
   options: SelectOption[];
   placeholder?: string;
+  emptyText?: string;
   label?: string;
   required?: boolean;
   disabled?: boolean;
@@ -27,6 +28,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   onChange,
   options,
   placeholder = "Pilih salah satu...",
+  emptyText = "Pilihan tidak tersedia",
   label,
   required = false,
   disabled = false,
@@ -175,7 +177,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         className={`flex w-full items-center justify-between rounded-xl border border-gray-border outline-none transition-all cursor-pointer select-none text-left disabled:opacity-50 disabled:cursor-not-allowed ${
           size === "sm"
             ? "bg-gray-page-bg py-2 px-3.5 text-xs text-gray-heading-main"
-            : "bg-gray-card py-2.5 px-3.5 text-sm text-gray-heading-main"
+            : "bg-gray-card py-2 px-3.5 text-sm text-gray-heading-main"
         } ${
           isOpen ? "border-primary ring-2 ring-primary/20" : "focus:border-primary focus:ring-2 focus:ring-primary/20"
         }`}
@@ -203,44 +205,50 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         <div
           ref={optionsRef}
           role="listbox"
-          className={`absolute left-0 z-50 w-full rounded-xl border border-gray-border bg-gray-card/95 backdrop-blur-xl p-1.5 shadow-xl max-h-60 overflow-y-auto outline-none animate-in fade-in duration-150 scrollbar-none ${
+          className={`absolute left-0 z-9999 w-full rounded-xl border border-gray-border bg-gray-card/95 backdrop-blur-xl p-1.5 shadow-xl max-h-60 overflow-y-auto outline-none animate-in fade-in duration-150 scrollbar-none ${
             openUpward
               ? "bottom-full mb-1.5 slide-in-from-bottom-2"
               : "top-full mt-1.5 slide-in-from-top-2"
           }`}
         >
-          {options.map((opt, idx) => {
-            const isSelected = opt.value === value;
-            const isFocused = idx === focusedIndex;
+          {options.length > 0 ? (
+            options.map((opt, idx) => {
+              const isSelected = opt.value === value;
+              const isFocused = idx === focusedIndex;
 
-            return (
-              <div
-                key={`${opt.value}-${idx}`}
-                role="option"
-                aria-selected={isSelected}
-                onClick={() => handleSelectOption(opt)}
-                onMouseEnter={() => setFocusedIndex(idx)}
-                className={`flex items-center gap-2 rounded-lg py-2 px-2.5 cursor-pointer transition-colors outline-none select-none ${
-                  size === "sm" ? "text-xs" : "text-sm"
-                } ${
-                  isSelected
-                    ? "bg-primary/10 text-primary font-bold"
-                    : isFocused
-                    ? "bg-gray-sidebar-hover text-gray-heading-main"
-                    : "text-gray-secondary-text hover:text-gray-heading-main"
-                }`}
-              >
-                {opt.icon && (
-                  <opt.icon
-                    className={`shrink-0 ${
-                      size === "sm" ? "h-4 w-4" : "h-4.5 w-4.5"
-                    } ${isSelected ? "text-primary" : "text-gray-placeholder"}`}
-                  />
-                )}
-                <span className="truncate">{opt.label}</span>
-              </div>
-            );
-          })}
+              return (
+                <div
+                  key={`${opt.value}-${idx}`}
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => handleSelectOption(opt)}
+                  onMouseEnter={() => setFocusedIndex(idx)}
+                  className={`flex items-center gap-2 rounded-lg py-2 px-2.5 cursor-pointer transition-colors outline-none select-none ${
+                    size === "sm" ? "text-xs" : "text-sm"
+                  } ${
+                    isSelected
+                      ? "bg-primary/10 text-primary font-bold"
+                      : isFocused
+                      ? "bg-gray-sidebar-hover text-gray-heading-main"
+                      : "text-gray-secondary-text hover:text-gray-heading-main"
+                  }`}
+                >
+                  {opt.icon && (
+                    <opt.icon
+                      className={`shrink-0 ${
+                        size === "sm" ? "h-4 w-4" : "h-4.5 w-4.5"
+                      } ${isSelected ? "text-primary" : "text-gray-placeholder"}`}
+                    />
+                  )}
+                  <span className="truncate">{opt.label}</span>
+                </div>
+              );
+            })
+          ) : (
+            <div className="py-3 px-3 text-center text-xs text-gray-placeholder font-medium select-none">
+              {emptyText}
+            </div>
+          )}
         </div>
       )}
     </div>

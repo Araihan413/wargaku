@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { cancelSubmitFamily } from '@/db/queries/kependudukan';
+import { cancelSubmitFamily } from '@/db/queries/population/family.queries';
 
 export async function POST(
   request: Request,

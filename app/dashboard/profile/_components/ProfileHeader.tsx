@@ -3,8 +3,9 @@
 import React, { useRef } from "react";
 import Image from "next/image";
 import { Camera, CheckCircle2, Shield, Calendar, Mail, Phone, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { UserProfileData } from "../types";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
+import { FILE_PRESETS } from "@/lib/file-processor/presets";
 
 interface ProfileHeaderProps {
   profile: UserProfileData;
@@ -18,16 +19,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onAvatarUpload,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { processFile, isProcessing } = useFileProcessor(FILE_PRESETS.AVATAR);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("Ukuran foto profil maksimal 2 MB");
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        return;
+      const processed = await processFile(file);
+      if (processed) {
+        onAvatarUpload(processed.file);
       }
-      onAvatarUpload(file);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -73,7 +74,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </span>
           )}
 
-          {isUploadingAvatar && (
+          {(isUploadingAvatar || isProcessing) && (
             <div className="absolute inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center text-white">
               <Loader2 className="w-6 h-6 animate-spin" />
             </div>
@@ -84,7 +85,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploadingAvatar}
+          disabled={isUploadingAvatar || isProcessing}
           className="absolute -bottom-2 -right-2 p-2 bg-primary hover:bg-primary/90 text-white rounded-xl shadow-md transition-all cursor-pointer border-2 border-white"
           title="Ganti Foto Profil"
         >

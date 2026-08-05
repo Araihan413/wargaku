@@ -8,6 +8,7 @@ interface PermissionFilterBarProps {
   selectedModule: string;
   onModuleChange: (mod: string) => void;
   moduleOptions: { value: string; label: string }[];
+  totalPermissions: number;
   hasChanges: boolean;
   onResetChanges: () => void;
 }
@@ -18,6 +19,7 @@ export const PermissionFilterBar: React.FC<PermissionFilterBarProps> = ({
   selectedModule,
   onModuleChange,
   moduleOptions,
+  totalPermissions,
   hasChanges,
   onResetChanges,
 }) => {
@@ -49,7 +51,7 @@ export const PermissionFilterBar: React.FC<PermissionFilterBarProps> = ({
             value={selectedModule}
             onChange={onModuleChange}
             options={[
-              { value: "all", label: "Semua Modul (17 Permission)" },
+              { value: "all", label: `Semua Modul (${totalPermissions} Permission)` },
               ...moduleOptions,
             ]}
           />

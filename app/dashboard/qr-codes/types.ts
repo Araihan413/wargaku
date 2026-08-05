@@ -1,5 +1,5 @@
 import { SystemSettingsData } from "../system-config/types";
-import { DwellingOption } from "@/db/queries/qr-codes";
+import { DwellingOption } from "@/db/queries/population/dwelling.queries";
 import { QrTemplateType } from "@/components/QrCodePrintCanvas";
 
 export type QrPresetType = "rt_public" | "dwelling_sticker" | "rental_property" | "custom_url";

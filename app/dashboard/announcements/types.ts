@@ -5,6 +5,7 @@ export interface AnnouncementItem {
   title: string;
   content: string;
   category: AnnouncementCategory;
+  attachments?: string | null;
   isPinned: boolean;
   pinUntil?: string | null;
   createdBy: string;
@@ -18,5 +19,6 @@ export interface AnnouncementFormData {
   title: string;
   content: string;
   category: AnnouncementCategory;
+  attachments?: string;
   isPinned: boolean;
 }

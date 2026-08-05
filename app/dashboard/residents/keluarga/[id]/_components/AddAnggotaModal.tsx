@@ -86,7 +86,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
         ktpFile: finalKtpUrl,
       };
 
-      const res = await fetch("/api/warga", {
+      const res = await fetch("/api/family-members", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

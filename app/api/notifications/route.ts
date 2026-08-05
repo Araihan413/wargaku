@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { listNotifications, markNotificationsRead, deleteNotifications } from '@/db/queries/notifications';
+import { listNotifications, markNotificationsRead, deleteNotifications } from '@/db/queries/system/notification.queries';
 
 /**
  * @openapi
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const result = await listNotifications(session.user.id, { category, limit, offset });
+    const result = await listNotifications(session.user.id, category === 'all' ? undefined : category);
 
     if (paginated) {
       return NextResponse.json({ data: result, hasMore: result.length === limit });
@@ -93,9 +93,9 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { id, category } = body;
+    const { id } = body;
 
-    await markNotificationsRead(session.user.id, id, category);
+    await markNotificationsRead(session.user.id, id);
 
     return NextResponse.json({ message: 'Berhasil menandai notifikasi sebagai telah dibaca' });
   } catch (error: any) {
@@ -116,10 +116,9 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const idStr = searchParams.get('id');
-    const category = searchParams.get('category') as 'personal' | 'dinas' | 'all';
 
     const id = idStr ? parseInt(idStr) : undefined;
-    await deleteNotifications(session.user.id, id, category ?? undefined);
+    await deleteNotifications(session.user.id, id ? [id] : []);
 
     return NextResponse.json({ message: 'Berhasil menghapus notifikasi' });
   } catch (error: any) {

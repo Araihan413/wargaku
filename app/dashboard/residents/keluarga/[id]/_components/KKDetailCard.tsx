@@ -21,16 +21,18 @@ export const KKDetailCard: React.FC<KKDetailCardProps> = ({
   ].filter(Boolean);
   const addressStr = addressParts.join(" ") || "-";
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString || dateString === "Invalid Date") return "-";
     try {
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "-";
       return date.toLocaleDateString("id-ID", {
         day: "numeric",
         month: "long",
         year: "numeric",
       });
     } catch {
-      return dateString;
+      return "-";
     }
   };
 
@@ -143,7 +145,7 @@ export const KKDetailCard: React.FC<KKDetailCardProps> = ({
               Riwayat Tinggal
             </span>
             <span className="text-sm font-extrabold text-gray-heading-main block mt-1">
-              Masuk: {formatDate(familyDetail.checkInDate)}
+              Masuk: {formatDate(familyDetail.checkInDate || (familyDetail as any).createdAt)}
             </span>
             {familyDetail.checkOutDate && (
               <span className="text-xs text-error font-semibold block mt-0.5">

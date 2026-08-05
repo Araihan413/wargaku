@@ -115,8 +115,9 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
 
                   {/* IP Address */}
                   <td className="py-3.5 px-4 text-center font-mono text-gray-secondary-text whitespace-nowrap">
-                    {log.ipAddress || "127.0.0.1"}
+                    {!log.ipAddress || log.ipAddress === "::1" || log.ipAddress.includes("0000:0000:0000:0000") || log.ipAddress === "::ffff:127.0.0.1" ? "127.0.0.1" : log.ipAddress}
                   </td>
+
 
                   {/* Action Button */}
                   <td className="py-3.5 px-4 text-center whitespace-nowrap">

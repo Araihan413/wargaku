@@ -1,11 +1,22 @@
 import 'dotenv/config';
-import {drizzle} from 'drizzle-orm/mysql2';
+import { drizzle } from 'drizzle-orm/mysql2';
 import mysql from 'mysql2';
 
 import * as schema from './schema';
 
-const pool = mysql.createPool({
-  uri: process.env.DATABASE_URL,
-})
+const globalForDb = globalThis as unknown as {
+  pool: mysql.Pool | undefined;
+};
 
-export const db = drizzle(pool, {schema, mode: "default"});
+const pool =
+  globalForDb.pool ??
+  mysql.createPool({
+    uri: process.env.DATABASE_URL,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
+
+if (process.env.NODE_ENV !== 'production') globalForDb.pool = pool;
+
+export const db = drizzle(pool, { schema, mode: "default" });

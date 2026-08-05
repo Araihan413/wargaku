@@ -157,7 +157,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               />
             </div>
 
-            {/* Pilihan Peran */}
+            {/* Pilihan Peran (Read-Only) */}
             <div>
               <label className="block text-xs font-bold text-gray-heading-main uppercase tracking-wider mb-2">
                 Peran Akses / Role
@@ -168,25 +168,24 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 render={({ field }) => (
                   <CustomSelect
                     value={field.value.toString()}
-                    onChange={(val) => !isSelf && field.onChange(val ? parseInt(val, 10) : 6)}
+                    onChange={() => {}}
                     options={roles.map((r) => ({
                       value: r.id.toString(),
                       label: r.name,
                     }))}
                     placeholder="Pilih Peran Akses"
-                    disabled={isSelf}
+                    disabled={true}
                   />
                 )}
               />
-              {isSelf && (
-                <p className="text-[10px] text-gray-placeholder mt-1.5 flex items-center gap-1">
-                  <span>🔒</span> Anda tidak dapat mengubah peran akun Anda sendiri
-                </p>
-              )}
+              <p className="text-[10px] text-gray-placeholder mt-1.5 flex items-center gap-1">
+                <span>🔒</span> Peran pengguna hanya dapat diubah melalui tombol <strong>Mutasi Peran</strong>
+              </p>
               {errors.roleId && (
                 <p className="text-xs text-error mt-1">{errors.roleId.message}</p>
               )}
             </div>
+
           </div>
 
           {/* Actions Footer */}

@@ -5,7 +5,7 @@ import {
   PublicDemographicsData,
   PublicFinanceSummary,
   EmergencyContactItem,
-} from "@/db/queries/public-portal";
+} from "@/db/queries/dashboard/public-portal.queries";
 
 export interface PublicPortalData {
   settings: SystemSettingsData;

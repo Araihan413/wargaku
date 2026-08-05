@@ -1,10 +1,34 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Megaphone, Pin } from "lucide-react";
+import { X, Megaphone } from "lucide-react";
 import { CustomSelect } from "@/components/CustomSelect";
 import { AnnouncementItem, AnnouncementCategory } from "../types";
 import { toast } from "sonner";
+import { MultiAttachmentInput, AttachmentItem } from "@/components/MultiAttachmentInput";
+
+function parseInitialAttachments(attachments?: string | null): AttachmentItem[] {
+  if (!attachments) return [];
+  try {
+    if (attachments.startsWith("[")) {
+      const parsed = JSON.parse(attachments);
+      return parsed.map((item: any) => ({
+        name: item.name || "Lampiran File",
+        url: item.url || item,
+        type: item.type || (item.url?.toLowerCase().includes(".pdf") ? "pdf" : "image"),
+      }));
+    }
+    return [
+      {
+        name: "Lampiran File",
+        url: attachments,
+        type: attachments.toLowerCase().includes(".pdf") ? "pdf" : "image",
+      },
+    ];
+  } catch {
+    return [];
+  }
+}
 
 interface EditAnnouncementModalProps {
   isOpen: boolean;
@@ -23,6 +47,9 @@ export const EditAnnouncementModal: React.FC<EditAnnouncementModalProps> = ({
   const [title, setTitle] = useState(announcement?.title || "");
   const [content, setContent] = useState(announcement?.content || "");
   const [category, setCategory] = useState<AnnouncementCategory>(announcement?.category || "umum");
+  const [attachments, setAttachments] = useState<AttachmentItem[]>(
+    parseInitialAttachments(announcement?.attachments)
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Sync state during render pass if selected announcement changes
@@ -31,6 +58,7 @@ export const EditAnnouncementModal: React.FC<EditAnnouncementModalProps> = ({
     setTitle(announcement.title);
     setContent(announcement.content);
     setCategory(announcement.category);
+    setAttachments(parseInitialAttachments(announcement.attachments));
   }
 
   if (!isOpen || !announcement) return null;
@@ -44,6 +72,44 @@ export const EditAnnouncementModal: React.FC<EditAnnouncementModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      // 1. Upload any pending new files
+      const uploadedAttachments: Array<{ name: string; url: string; type: "image" | "pdf" }> = [];
+
+      for (const item of attachments) {
+        if (item.file) {
+          const formData = new FormData();
+          formData.append("file", item.file);
+          formData.append("folder", "announcements");
+
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error(`Gagal mengunggah berkas ${item.name}`);
+          }
+
+          const uploadJson = await uploadRes.json();
+          const uploadedUrl = uploadJson.url || uploadJson.secure_url;
+          uploadedAttachments.push({
+            name: item.name,
+            url: uploadedUrl,
+            type: item.type,
+          });
+        } else if (item.url) {
+          uploadedAttachments.push({
+            name: item.name,
+            url: item.url,
+            type: item.type,
+          });
+        }
+      }
+
+      const finalAttachmentsJson =
+        uploadedAttachments.length > 0 ? JSON.stringify(uploadedAttachments) : null;
+
+      // 2. Patch Announcement
       const res = await fetch(`/api/announcements/${announcement.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -51,6 +117,7 @@ export const EditAnnouncementModal: React.FC<EditAnnouncementModalProps> = ({
           title: title.trim(),
           content: content.trim(),
           category,
+          attachments: finalAttachmentsJson,
         }),
       });
 
@@ -140,6 +207,14 @@ export const EditAnnouncementModal: React.FC<EditAnnouncementModalProps> = ({
               className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
             />
           </div>
+
+          {/* Multi Attachment Input */}
+          <MultiAttachmentInput
+            label="Lampiran Foto / Surat Edaran Resmi"
+            maxFiles={3}
+            items={attachments}
+            onChange={setAttachments}
+          />
 
           {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-border">

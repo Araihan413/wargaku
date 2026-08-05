@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPaginatedPublicAnnouncements } from "@/db/queries/public-portal";
+import { getPaginatedPublicAnnouncements } from "@/db/queries/dashboard/public-portal.queries";
 
 export async function GET(req: Request) {
   try {
@@ -16,7 +16,11 @@ export async function GET(req: Request) {
       search,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+      },
+    });
   } catch (error: unknown) {
     console.error("Error in GET /api/public/announcements:", error);
     return NextResponse.json(

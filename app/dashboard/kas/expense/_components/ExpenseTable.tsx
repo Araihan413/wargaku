@@ -51,7 +51,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover/30 text-gray-secondary-text font-bold uppercase tracking-wider">
+            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
               <th className="py-3.5 px-4">Tanggal & Transaksi</th>
               <th className="py-3.5 px-4">Kategori</th>
               <th className="py-3.5 px-4">Judul / Keperluan</th>

@@ -44,11 +44,14 @@ export function WargaAnnouncementsWidget({ announcements }: WargaAnnouncementsWi
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "-";
-    const date = new Date(dateStr);
+    const cleanStr = dateStr.endsWith("Z") ? dateStr.slice(0, -1) : dateStr;
+    const date = new Date(cleanStr);
+    if (isNaN(date.getTime())) return "-";
     return date.toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
       year: "numeric",
+      timeZone: "Asia/Jakarta",
     });
   };
 

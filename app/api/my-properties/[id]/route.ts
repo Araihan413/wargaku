@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { db } from '@/db';
+import * as schema from '@/db/schema';
+import { and, eq, ne, sql } from 'drizzle-orm';
+
 import {
   getRentalPropertyById,
   updateRentalProperty,
   deleteRentalProperty,
   isPropertyOwner,
-} from '@/db/queries/rental';
-import { getCoordinatorById, findOrCreatePendingCoordinatorByPhone } from '@/db/queries/coordinators';
+} from '@/db/queries/property/rental-property.queries';
+import { findOrCreatePendingCoordinatorByPhone, getUserFullProfile } from '@/db/queries/auth/user.queries';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
@@ -44,7 +48,7 @@ export async function GET(
 
     let coordinator = null;
     if (property.coordinatorUserId) {
-      coordinator = await getCoordinatorById(property.coordinatorUserId);
+      coordinator = await getUserFullProfile(property.coordinatorUserId);
     }
 
     return NextResponse.json({
@@ -109,15 +113,52 @@ export async function PUT(
       validated.roomList = finalRoomList;
     }
 
-    let coordinatorId = validated.coordinatorUserId;
+    const oldCoordinatorId = property.coordinatorUserId;
+    let newCoordinatorId = validated.coordinatorUserId ? String(validated.coordinatorUserId) : null;
     
-    if (!coordinatorId && body.coordinatorName && body.coordinatorPhone) {
-      coordinatorId = await findOrCreatePendingCoordinatorByPhone(body.coordinatorName, body.coordinatorPhone);
+    if (!newCoordinatorId && body.coordinatorName && body.coordinatorPhone) {
+      newCoordinatorId = await findOrCreatePendingCoordinatorByPhone(body.coordinatorName, body.coordinatorPhone);
+    }
+
+    if (!newCoordinatorId) {
+      newCoordinatorId = session.user.id;
+    }
+
+    // 1. Auto-assign Role 5 to new coordinator
+    await db.insert(schema.userRoles).values({
+      userId: newCoordinatorId,
+      roleId: 5,
+      isPrimary: false,
+    }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+
+    // 2. If coordinator changed, remove Role 5 from old coordinator if no remaining active properties
+    if (oldCoordinatorId && oldCoordinatorId !== newCoordinatorId) {
+      const remainingManaged = await db
+        .select({ id: schema.rentalProperties.id })
+        .from(schema.rentalProperties)
+        .where(
+          and(
+            eq(schema.rentalProperties.coordinatorUserId, oldCoordinatorId),
+            ne(schema.rentalProperties.id, propertyId),
+            eq(schema.rentalProperties.isActive, true)
+          )
+        );
+
+      if (remainingManaged.length === 0) {
+        await db
+          .delete(schema.userRoles)
+          .where(
+            and(
+              eq(schema.userRoles.userId, oldCoordinatorId),
+              eq(schema.userRoles.roleId, 5)
+            )
+          );
+      }
     }
 
     await updateRentalProperty(propertyId, {
       ...validated,
-      coordinatorUserId: coordinatorId,
+      coordinatorUserId: newCoordinatorId,
     });
 
     return NextResponse.json({ message: 'Properti pribadi berhasil diperbarui' });
@@ -159,7 +200,6 @@ export async function DELETE(
     await deleteRentalProperty(propertyId);
 
     return NextResponse.json({ message: 'Properti pribadi berhasil dinonaktifkan' });
-
   } catch (error: any) {
     console.error('Error in DELETE /api/my-properties/[id]:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });

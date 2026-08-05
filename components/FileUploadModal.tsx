@@ -11,6 +11,7 @@ interface FileUploadModalProps {
   description?: string;
   onSelectLocalFile: (file: File) => Promise<void> | void;
   isLoading?: boolean;
+  acceptTypes?: string;
 }
 
 declare global {
@@ -27,6 +28,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   description = "Silakan pilih metode pengunggahan berkas yang ingin Anda gunakan.",
   onSelectLocalFile,
   isLoading = false,
+  acceptTypes = "image/jpeg,image/png,image/webp,application/pdf",
 }) => {
   const [isOpeningDrivePicker, setIsOpeningDrivePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -246,7 +248,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
+                accept={acceptTypes}
                 onChange={handleFileChange}
                 className="hidden"
               />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRoleStore } from "@/lib/store/use-role-store";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
@@ -10,11 +10,16 @@ import { WargaDashboard } from "./_components/WargaDashboard";
 import { SekretarisDashboard } from "./_components/SekretarisDashboard";
 import { BendaharaDashboard } from "./_components/BendaharaDashboard";
 import { KoordinatorKosDashboard } from "./_components/KoordinatorKosDashboard";
+import { IdleAccountNotice } from "@/components/IdleAccountNotice";
 
 export default function Dashboard() {
   const { data: session, isPending } = authClient.useSession();
   const { activeRoleId, initialize } = useRoleStore();
   const router = useRouter();
+
+  const userBaseRoleId = session?.user?.roleId || 6;
+  const [assignedRoles, setAssignedRoles] = useState<number[]>([userBaseRoleId]);
+  const [isRolesLoaded, setIsRolesLoaded] = useState(false);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -22,20 +27,45 @@ export default function Dashboard() {
     }
   }, [session, isPending, router]);
 
-  const userBaseRoleId = session?.user?.roleId || 6;
-  const isOfficer = userBaseRoleId >= 2 && userBaseRoleId <= 5;
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchAssignedRoles() {
+      if (!session?.user) return;
+      try {
+        const res = await fetch(`/api/permissions/my-permissions`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && Array.isArray(data.allowedRoles)) {
+            setAssignedRoles(data.allowedRoles);
+            setIsRolesLoaded(true);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch assigned roles in Dashboard:", err);
+        if (isMounted) setIsRolesLoaded(true);
+      }
+    }
+    fetchAssignedRoles();
+    return () => {
+      isMounted = false;
+    };
+  }, [session?.user]);
+
+  const isOfficer = userBaseRoleId >= 2 && userBaseRoleId <= 4;
   const allowedRoles = React.useMemo(() => {
-    if (userBaseRoleId === 1) return [1];
-    return isOfficer ? [userBaseRoleId, 6] : [6];
-  }, [isOfficer, userBaseRoleId]);
+    const list = new Set<number>(assignedRoles);
+    if (isOfficer) list.add(6);
+    return Array.from(list).sort((a, b) => a - b);
+  }, [assignedRoles, isOfficer]);
+
 
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && isRolesLoaded) {
       initialize(session.user.roleId, allowedRoles);
     }
-  }, [session, initialize, allowedRoles]);
+  }, [session, isRolesLoaded, initialize, allowedRoles]);
 
-  if (isPending) {
+  if (isPending || !isRolesLoaded) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -50,21 +80,33 @@ export default function Dashboard() {
       ? activeRoleId
       : null;
 
-  const currentRoleId = validActiveRole ?? session.user.roleId;
+  const currentRoleId =
+    validActiveRole ??
+    (allowedRoles.length > 0
+      ? allowedRoles.includes(userBaseRoleId)
+        ? userBaseRoleId
+        : allowedRoles[0]
+      : null);
+
+  if (!currentRoleId) {
+    return <IdleAccountNotice userName={session.user.name} />;
+  }
 
   // Render dashboard based on active role
   switch (currentRoleId) {
-    case 1: // Super Admin
+    case 1:
       return <SuperAdminDashboard />;
-    case 2: // Ketua RT
+    case 2:
       return <KetuaRTDashboard />;
-    case 3: // Sekretaris
+    case 3:
       return <SekretarisDashboard />;
-    case 4: // Bendahara
+    case 4:
       return <BendaharaDashboard />;
-    case 5: // Koordinator Kost
+    case 5:
       return <KoordinatorKosDashboard />;
-    default: // Warga
+    case 6:
       return <WargaDashboard />;
+    default:
+      return <IdleAccountNotice userName={session.user.name} />;
   }
 }

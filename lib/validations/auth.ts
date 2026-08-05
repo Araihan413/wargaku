@@ -29,10 +29,6 @@ export const registerSchema = z.object({
     .string()
     .optional(),
   dwellingId: z.string().optional(),
-  unitNumber: z
-    .string()
-    .max(10, "Nomor unit/blok tambahan maksimal 10 karakter")
-    .optional(),
 }).superRefine((data, ctx) => {
   // Pengecekan kecocokan password
   if (data.password !== data.confirmPassword) {

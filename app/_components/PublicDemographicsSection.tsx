@@ -15,7 +15,7 @@ import {
   CartesianGrid,
   LabelList,
 } from "recharts";
-import { PublicDemographicsData } from "@/db/queries/public-portal";
+import { PublicDemographicsData } from "@/db/queries/dashboard/public-portal.queries";
 
 interface PublicDemographicsSectionProps {
   demographics: PublicDemographicsData;
@@ -178,7 +178,7 @@ export const PublicDemographicsSection: React.FC<PublicDemographicsSectionProps>
                         nameKey="label"
                         style={{ outline: "none" }}
                       >
-                        {ageDistribution.map((entry, idx) => (
+                        {ageDistribution.map((entry: any, idx: number) => (
                           <Cell key={`cell-age-${idx}`} fill={entry.color || PALETTE[idx % PALETTE.length]} style={{ outline: "none" }} />
                         ))}
                       </Pie>
@@ -192,7 +192,7 @@ export const PublicDemographicsSection: React.FC<PublicDemographicsSectionProps>
                   </ResponsiveContainer>
                 </div>
                 <div className="space-y-2 text-xs font-medium text-slate-600 flex-1 w-full">
-                  {ageDistribution.map((item, idx) => (
+                  {ageDistribution.map((item: any, idx: number) => (
                     <div key={idx} className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5 last:border-0">
                       <span className="flex items-center gap-2 truncate">
                         <span
@@ -311,7 +311,7 @@ export const PublicDemographicsSection: React.FC<PublicDemographicsSectionProps>
                           fontWeight={700}
                           offset={8}
                         />
-                        {educationDistribution.map((entry, idx) => (
+                        {educationDistribution.map((entry: any, idx: number) => (
                           <Cell key={`cell-edu-${idx}`} fill={PALETTE[idx % PALETTE.length]} />
                         ))}
                       </Bar>
@@ -484,7 +484,7 @@ export const PublicDemographicsSection: React.FC<PublicDemographicsSectionProps>
                         fontWeight={700}
                         offset={6}
                       />
-                      {complaintsByCategory.map((c, idx) => (
+                      {complaintsByCategory.map((c: any, idx: number) => (
                         <Cell key={`cell-complaint-${idx}`} fill={c.color || PALETTE[idx % PALETTE.length]} />
                       ))}
                     </Bar>

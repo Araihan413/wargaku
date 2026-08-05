@@ -110,7 +110,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
         ktpFile: finalKtpUrl,
       };
 
-      const res = await fetch(`/api/warga/${member.id}`, {
+      const res = await fetch(`/api/family-members/${member.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

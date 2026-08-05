@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
+import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import {
   getActivityById,
   updateActivity,
   deleteActivity,
-} from '@/db/queries/activities';
+} from '@/db/queries/communication/activity.queries';
+import { deleteNotificationsByRedirectLink } from '@/lib/notifications';
 
 export async function GET(
   request: Request,
@@ -49,15 +50,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed =
-      session.user.roleId === 1 ||
-      session.user.roleId === 2 ||
-      session.user.roleId === 3 ||
-      await hasPermission(session.user.roleId, 'manage-activities');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-activities');
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin untuk mengedit kegiatan RT' }, { status: 403 });
     }
+
 
     const { id } = await params;
     const actId = parseInt(id, 10);
@@ -107,15 +106,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const isAllowed =
-      session.user.roleId === 1 ||
-      session.user.roleId === 2 ||
-      session.user.roleId === 3 ||
-      await hasPermission(session.user.roleId, 'manage-activities');
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, 'manage-activities');
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin untuk menghapus kegiatan RT' }, { status: 403 });
     }
+
 
     const { id } = await params;
     const actId = parseInt(id, 10);
@@ -125,6 +122,11 @@ export async function DELETE(
     }
 
     await deleteActivity(actId);
+
+    // Hapus notifikasi terkait yang pernah dikirimkan ke warga
+    deleteNotificationsByRedirectLink("/kegiatan").catch((err) =>
+      console.error("Gagal menghapus notifikasi kegiatan:", err)
+    );
 
     return NextResponse.json({ message: 'Kegiatan RT berhasil dihapus' });
   } catch (error: any) {

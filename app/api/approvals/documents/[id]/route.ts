@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/rbac";
-import { updateFamily, getFamilyById } from "@/db/queries/kependudukan";
-import { updateRentalResident, getRentalResidentById } from "@/db/queries/rental";
-import { createNotification } from "@/db/queries/notifications";
+import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { updateFamily, getFamilyById } from "@/db/queries/population/family.queries";
+import { getTenantContractById, updateTenantContract } from "@/db/queries/property/tenant.queries";
+import { createNotification } from "@/db/queries/system/notification.queries";
+import { createAuditLog } from "@/db/queries/system/audit-log.queries";
+import { getClientIp } from "@/lib/audit-logger";
 
 export async function PATCH(
   request: Request,
@@ -19,7 +21,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAllowed = await hasPermission(session.user.roleId, "verify-documents");
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAllowed = await hasPermission(effectiveRoleId, "verify-documents");
     if (!isAllowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -58,8 +61,15 @@ export async function PATCH(
       await updateFamily(documentId, {
         verificationStatus: status,
         verificationNote: note,
-        hasVerified: status === "verified" ? true : undefined,
-        lastVerifiedAt: status === "verified" ? new Date() : undefined,
+      });
+
+      const ipAddress = await getClientIp(request);
+      await createAuditLog({
+        userId: session.user.id,
+        action: action === "approve" ? "VERIFY_FAMILY_CARD" : "REJECT_FAMILY_CARD",
+        module: "persetujuan",
+        description: `${action === "approve" ? "Menyetujui verifikasi berkas" : "Menolak berkas"} Kartu Keluarga No. ${family.familyNumber || `#${documentId}`}${note ? ` (Catatan: ${note})` : ''}`,
+        ipAddress,
       });
 
       try {
@@ -85,32 +95,23 @@ export async function PATCH(
           : "Berkas Kartu Keluarga ditolak",
       });
     } else {
-      const resident = await getRentalResidentById(documentId);
-      if (!resident) {
+      const contract = await getTenantContractById(documentId);
+      if (!contract) {
         return NextResponse.json({ error: "Penghuni sewa tidak ditemukan" }, { status: 404 });
       }
 
-      await updateRentalResident(documentId, {
-        verificationStatus: status,
-        verificationNote: note,
-        updatedBy: session.user.id,
+      await updateTenantContract(documentId, {
+        notes: note,
       });
 
-      try {
-        if (resident.createdBy) {
-          await createNotification({
-            userId: resident.createdBy,
-            title: action === "approve" ? "Berkas KTP Penghuni Disetujui" : "Berkas KTP Penghuni Ditolak",
-            message: action === "approve"
-              ? `Berkas KTP untuk penghuni bernama ${resident.name} telah berhasil diverifikasi dan disetujui oleh Ketua RT.`
-              : `Berkas KTP untuk penghuni bernama ${resident.name} ditolak oleh Ketua RT. Alasan: "${note}"`,
-            category: "personal",
-            redirectLink: "/dashboard/rentals",
-          });
-        }
-      } catch (notifErr) {
-        console.error("Failed to create notification for Rental Resident:", notifErr);
-      }
+      const ipAddress = await getClientIp(request);
+      await createAuditLog({
+        userId: session.user.id,
+        action: action === "approve" ? "VERIFY_TENANT_KTP" : "REJECT_TENANT_KTP",
+        module: "persetujuan",
+        description: `${action === "approve" ? "Menyetujui verifikasi berkas KTP" : "Menolak berkas KTP"} penghuni sewa: ${contract.individualName} (NIK: ${contract.individualNik})${note ? ` (Catatan: ${note})` : ''}`,
+        ipAddress,
+      });
 
       return NextResponse.json({
         success: true,
@@ -119,6 +120,7 @@ export async function PATCH(
           : "Berkas KTP Penghuni ditolak",
       });
     }
+
   } catch (error: any) {
     console.error("Error in PATCH /api/approvals/documents/[id]:", error);
     return NextResponse.json({ error: error.message || "Kesalahan server internal" }, { status: 500 });

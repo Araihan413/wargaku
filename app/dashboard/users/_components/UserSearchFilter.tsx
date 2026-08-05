@@ -1,7 +1,7 @@
 import React from "react";
-import { Search } from "lucide-react";
 import { RoleItem } from "../types";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { SearchInput } from "@/components/SearchInput";
 
 interface UserSearchFilterProps {
   searchQuery: string;
@@ -42,19 +42,15 @@ export const UserSearchFilter: React.FC<UserSearchFilterProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-card border border-gray-border rounded-2xl p-4 shadow-sm items-end">
       {/* Kolom Pencarian */}
-      <div className="relative md:col-span-2">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <Search className="h-5 w-5 text-gray-placeholder" />
-        </div>
-        <input
-          type="text"
-          placeholder="Cari berdasarkan nama, email, atau NIK..."
+      <div className="md:col-span-2">
+        <SearchInput
           value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
+          onChange={(val) => {
+            setSearchQuery(val);
             setCurrentPage(1);
           }}
-          className="block w-full rounded-xl border border-gray-border bg-gray-card py-2.5 pl-10 pr-3 text-gray-heading-main placeholder-gray-placeholder text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+          placeholder="Cari berdasarkan nama atau email..."
+          containerClassName="w-full"
         />
       </div>
 

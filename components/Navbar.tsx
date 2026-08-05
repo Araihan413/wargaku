@@ -28,7 +28,6 @@ const getPageTitle = (pathname: string): string => {
   if (pathname.startsWith("/dashboard/qr-codes")) return "Cetak QR Code RT & Sekre";
   if (pathname.startsWith("/dashboard/approvals/registration")) return "Persetujuan Registrasi";
   if (pathname.startsWith("/dashboard/approvals/documents")) return "Verifikasi Kependudukan";
-  if (pathname.startsWith("/dashboard/approvals/kas")) return "Persetujuan Kas";
   if (pathname.startsWith("/dashboard/surat/approvals")) return "Persetujuan Surat";
   if (pathname.startsWith("/dashboard/surat/archive")) return "Arsip Surat RT";
   if (pathname.startsWith("/dashboard/kas/transactions")) return "Laporan Transaksi Kas";
@@ -75,21 +74,40 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Switched Role Allowed Options (Only Pengurus RT: Ketua RT [2], Sekretaris [3], Bendahara [4])
-  const userBaseRoleId = user?.roleId || 6;
-  const isOfficer = userBaseRoleId >= 2 && userBaseRoleId <= 4;
-  
-  const allowedRoles = React.useMemo(() => {
-    if (userBaseRoleId === 1) return [1];
-    return isOfficer ? [userBaseRoleId, 6] : [userBaseRoleId];
-  }, [isOfficer, userBaseRoleId]);
+  const [assignedRoles, setAssignedRoles] = useState<number[]>([]);
+  const [primaryRoleId, setPrimaryRoleId] = useState<number | null>(null);
 
-  // Initialize Switched Role Store
   useEffect(() => {
-    if (userBaseRoleId) {
-      initialize(userBaseRoleId, allowedRoles);
+    let isMounted = true;
+    async function fetchAssignedRoles() {
+      try {
+        const res = await fetch(`/api/permissions/my-permissions`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            const serverRoleId = typeof data.roleId === "number" ? data.roleId : 6;
+            const serverAllowed = Array.isArray(data.allowedRoles) && data.allowedRoles.length > 0 ? data.allowedRoles : [serverRoleId];
+
+            setAssignedRoles(serverAllowed);
+            setPrimaryRoleId(serverRoleId);
+            initialize(serverRoleId, serverAllowed);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch assigned roles in Navbar:", err);
+      }
     }
-  }, [userBaseRoleId, allowedRoles, initialize]);
+    fetchAssignedRoles();
+    return () => {
+      isMounted = false;
+    };
+  }, [initialize]);
+
+  const allowedRoles = React.useMemo(() => {
+    const list = new Set<number>(assignedRoles);
+    if (primaryRoleId) list.add(primaryRoleId);
+    return Array.from(list).sort((a, b) => a - b);
+  }, [assignedRoles, primaryRoleId]);
 
   // Click outside to close profile dropdown
   useEffect(() => {
@@ -112,102 +130,98 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
   };
 
   return (
-    <header className="fixed top-0 right-0 z-40 flex h-16 items-center justify-between border-b border-gray-border bg-gray-card/95 backdrop-blur-xl px-6 transition-all duration-300 left-0 lg:left-70 group-data-[sidebar-collapsed=true]/layout:lg:left-20">
+    <header className="fixed top-0 right-0 z-20 flex h-16 items-center justify-between border-b border-gray-border bg-gray-card/95 backdrop-blur-xl px-6 transition-all duration-300 left-0 lg:left-70 group-data-[sidebar-collapsed=true]/layout:lg:left-20">
       {/* Left section: Hamburger / Breadcrumbs */}
       <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={onOpenMobile}
-          className="rounded-xl p-2 text-gray-heading-main hover:bg-gray-sidebar-hover lg:hidden cursor-pointer transition-colors"
-          aria-label="Open sidebar"
+          className="lg:hidden p-2 rounded-xl border border-gray-border hover:bg-gray-sidebar-hover text-gray-secondary-text cursor-pointer transition-colors"
+          title="Buka Menu"
         >
           <Menu className="h-5 w-5" />
         </button>
-
-        <div className="hidden sm:flex flex-col">
-          <span className="text-sm font-bold text-gray-heading-main tracking-tight">
+        <div>
+          <h1 className="text-base font-extrabold text-gray-heading-main tracking-tight hidden sm:block">
             {getPageTitle(pathname)}
-          </span>
-          <span className="text-[10px] text-gray-secondary-text leading-tight">
-            Wargaku &bull; Smart System RT
-          </span>
+          </h1>
+          <p className="text-[10px] font-semibold text-gray-secondary-text hidden sm:block">
+            Sistem Informasi Pengelolaan Lingkungan RT
+          </p>
         </div>
       </div>
 
-      {/* Right section: Notification & Switched Profile Dropdown */}
-      <div className="flex items-center gap-4">
-        {/* Lonceng Notifikasi */}
+      {/* Right section: Profile Dropdown & Notifications */}
+      <div className="flex items-center gap-3">
+        {/* Notification Bell */}
         <NotificationBell />
 
-        {/* Switched Profile & Role Switcher */}
+        {/* User Profile Menu */}
         <div className="relative" ref={profileRef}>
           <button
             type="button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2.5 rounded-xl border border-gray-border bg-gray-card p-1.5 pr-3 hover:bg-gray-sidebar-hover cursor-pointer transition-all duration-200 text-left"
+            className="flex items-center gap-2.5 rounded-2xl border border-gray-border/80 bg-gray-card p-1.5 pr-3 transition-all duration-200 hover:bg-gray-sidebar-hover hover:border-gray-border cursor-pointer shadow-2xs"
           >
-            {/* Avatar */}
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-900-20 text-primary-900 border border-primary/20 overflow-hidden relative shrink-0">
+            <div className="relative h-8 w-8 overflow-hidden rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
               {user?.image ? (
                 <Image
                   src={user.image}
-                  alt={user.name || "Foto Profil"}
+                  alt={user?.name || "Avatar"}
                   fill
                   className="object-cover"
-                  unoptimized
                 />
               ) : (
-                <User className="h-4 w-4" />
+                <span className="font-extrabold text-xs text-primary">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                </span>
               )}
             </div>
-
-            {/* User Meta */}
-            <div className="hidden md:flex flex-col">
-              <span className="text-xs font-bold text-gray-heading-main leading-tight truncate max-w-28">
-                {user?.name}
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-xs font-extrabold text-gray-heading-main leading-tight line-clamp-1">
+                {user?.name || "Pengguna"}
               </span>
-              <span className="text-[9px] font-semibold text-gray-secondary-text uppercase tracking-wider">
-                {activeRoleId ? getRoleLabel(activeRoleId) : "Memuat..."}
+              <span className="text-[10px] font-bold text-primary leading-tight">
+                {getRoleLabel(activeRoleId ?? primaryRoleId ?? 6)}
               </span>
             </div>
-            <ChevronDown className={`h-4 w-4 text-gray-placeholder transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-4 w-4 text-gray-secondary-text transition-transform duration-200 ${isProfileOpen ? "rotate-180" : ""}`} />
           </button>
 
-          {/* Profile Dropdown Panel */}
+          {/* Profile & Role Switcher Dropdown */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2.5 z-50 w-64 rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-2 transition-all duration-200 animate-in fade-in slide-in-from-top-3">
-              {/* Switched Role Section */}
-              {isOfficer && (
+            <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-gray-border bg-gray-card p-2 shadow-xl animate-in fade-in-50 zoom-in-95 z-50">
+              {/* Role Switcher Section */}
+              {allowedRoles.length > 1 && (
                 <div className="px-3 py-2 border-b border-gray-divider mb-1.5">
                   <div className="flex items-center gap-1.5 mb-2 text-gray-placeholder">
                     <Shield className="h-3.5 w-3.5" />
                     <span className="text-[10px] font-bold uppercase tracking-wider">Mode Tampilan</span>
                   </div>
                   <div className="space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => handleSwitchRole(userBaseRoleId)}
-                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                        activeRoleId === userBaseRoleId
-                          ? "bg-primary text-white"
-                          : "text-gray-heading-main hover:bg-gray-sidebar-hover"
-                      }`}
-                    >
-                      <span>Mode Dinas ({getRoleLabel(userBaseRoleId)})</span>
-                      {activeRoleId === userBaseRoleId && <Check className="h-3.5 w-3.5" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSwitchRole(6)}
-                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                        activeRoleId === 6
-                          ? "bg-primary text-white"
-                          : "text-gray-heading-main hover:bg-gray-sidebar-hover"
-                      }`}
-                    >
-                      <span>Mode Personal (Warga)</span>
-                      {activeRoleId === 6 && <Check className="h-3.5 w-3.5" />}
-                    </button>
+                    {allowedRoles.map((rId) => {
+                      const isActive = activeRoleId === rId;
+                      let label = `Mode ${getRoleLabel(rId)}`;
+                      if (rId === 6) label = "Mode Warga Personal";
+                      else if (rId >= 1 && rId <= 4) label = `Mode Kedinasan (${getRoleLabel(rId)})`;
+                      else if (rId === 5) label = "Mode Koordinator Kost";
+
+                      return (
+                        <button
+                          key={rId}
+                          type="button"
+                          onClick={() => handleSwitchRole(rId)}
+                          className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                            isActive
+                              ? "bg-primary text-white"
+                              : "text-gray-heading-main hover:bg-gray-sidebar-hover"
+                          }`}
+                        >
+                          <span>{label}</span>
+                          {isActive && <Check className="h-3.5 w-3.5" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

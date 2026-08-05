@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { requestFamilyChange } from '@/db/queries/kependudukan';
+import { requestFamilyChange, getFamilyById } from '@/db/queries/population/family.queries';
+import { notifyRoles } from '@/lib/notifications';
 
 export async function POST(
   request: Request,
@@ -24,6 +25,15 @@ export async function POST(
     }
 
     await requestFamilyChange(familyId, session.user.id);
+
+    // Notifikasi ke Ketua RT + Sekretaris
+    const family = await getFamilyById(familyId).catch(() => null);
+    notifyRoles(["ketua-rt", "sekretaris"], {
+      title: "Permohonan Perubahan Data KK",
+      message: `${session.user.name || 'Kepala Keluarga'} mengajukan permohonan perubahan data KK${family?.familyNumber ? ` No. ${family.familyNumber}` : ''}.`,
+      category: "dinas",
+      redirectLink: "/dashboard/warga",
+    });
 
     return NextResponse.json({
       success: true,

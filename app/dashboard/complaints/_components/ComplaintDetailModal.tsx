@@ -40,6 +40,7 @@ const ComplaintDetailModalContent: React.FC<ModalContentProps> = ({
   const [responseNote, setResponseNote] = useState<string>(complaint.responseNote || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isZoomImageOpen, setIsZoomImageOpen] = useState(false);
+  const [selectedZoomUrl, setSelectedZoomUrl] = useState<string | null>(null);
 
   const formattedDate = new Date(complaint.createdAt).toLocaleDateString("id-ID", {
     weekday: "long",
@@ -134,38 +135,62 @@ const ComplaintDetailModalContent: React.FC<ModalContentProps> = ({
           {/* Scrollable Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
             {/* DIRECT PHOTO PREVIEW DISPLAY AT THE VERY TOP */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-secondary-text">
-                Foto Bukti Lampiran
-              </label>
+            {(() => {
+              let photoUrls: string[] = [];
+              if (complaint.photoPath) {
+                try {
+                  if (complaint.photoPath.startsWith("[")) {
+                    photoUrls = JSON.parse(complaint.photoPath);
+                  } else {
+                    photoUrls = [complaint.photoPath];
+                  }
+                } catch {
+                  photoUrls = [complaint.photoPath];
+                }
+              }
 
-              {complaint.photoPath ? (
-                <div className="relative w-full h-64 sm:h-72 rounded-2xl overflow-hidden border border-gray-border bg-gray-page-bg shadow-inner group">
-                  <Image
-                    src={complaint.photoPath}
-                    alt="Foto Bukti Aduan"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsZoomImageOpen(true)}
-                    className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/70 text-white text-xs font-bold hover:bg-black/90 transition shadow-md cursor-pointer"
-                  >
-                    <Maximize2 className="h-3.5 w-3.5" />
-                    <span>Perbesar Foto</span>
-                  </button>
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-secondary-text">
+                      Foto Bukti Lampiran ({photoUrls.length} Foto)
+                    </label>
+                  </div>
+
+                  {photoUrls.length > 0 ? (
+                    <div className="flex flex-wrap gap-3">
+                      {photoUrls.map((url, idx) => (
+                        <div
+                          key={idx}
+                          className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border border-gray-border bg-gray-page-bg shadow-xs group cursor-pointer"
+                          onClick={() => {
+                            setSelectedZoomUrl(url);
+                            setIsZoomImageOpen(true);
+                          }}
+                        >
+                          <Image
+                            src={url}
+                            alt={`Foto Bukti ${idx + 1}`}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform"
+                          />
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                            <Maximize2 className="h-5 w-5" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-dashed border-gray-border bg-gray-page-bg/50 text-gray-secondary-text text-center">
+                      <ImageIcon className="h-8 w-8 text-gray-placeholder mb-2" />
+                      <span className="text-xs font-medium">
+                        Warga tidak mengunggah lampiran foto bukti.
+                      </span>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-dashed border-gray-border bg-gray-page-bg/50 text-gray-secondary-text text-center">
-                  <ImageIcon className="h-8 w-8 text-gray-placeholder mb-2" />
-                  <span className="text-xs font-medium">
-                    Warga tidak mengunggah lampiran foto bukti.
-                  </span>
-                </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* Reporter & Complaint Metadata Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl border border-gray-border bg-gray-page-bg/40">
@@ -320,21 +345,27 @@ const ComplaintDetailModalContent: React.FC<ModalContentProps> = ({
       </div>
 
       {/* Lightbox Zoom Modal if User Clicks Zoom */}
-      {isZoomImageOpen && complaint.photoPath && (
+      {isZoomImageOpen && selectedZoomUrl && (
         <div
           className="fixed inset-0 z-60 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setIsZoomImageOpen(false)}
+          onClick={() => {
+            setIsZoomImageOpen(false);
+            setSelectedZoomUrl(null);
+          }}
         >
           <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
             <Image
-              src={complaint.photoPath}
+              src={selectedZoomUrl}
               alt="Foto Bukti Resolusi Penuh"
               fill
               className="object-contain"
             />
             <button
               type="button"
-              onClick={() => setIsZoomImageOpen(false)}
+              onClick={() => {
+                setIsZoomImageOpen(false);
+                setSelectedZoomUrl(null);
+              }}
               className="absolute top-4 right-4 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 cursor-pointer"
             >
               <X className="h-6 w-6" />

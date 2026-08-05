@@ -16,8 +16,9 @@ import { PublicPageHeroBanner } from "@/app/_components/PublicPageHeroBanner";
 import { PublicLoadMoreButton } from "@/app/_components/PublicLoadMoreButton";
 import { PublicDetailModal } from "@/app/_components/PublicDetailModal";
 import { PublicErrorState } from "@/app/_components/PublicErrorState";
-import { PublicFinanceTransactionItem } from "@/db/queries/public-portal";
+import { PublicFinanceTransactionItem } from "@/db/queries/dashboard/public-portal.queries";
 import { getCachedData, setCachedData } from "@/lib/public-cache";
+import { SearchInput } from "@/components/SearchInput";
 
 const TYPE_FILTERS = [
   { key: "semua", label: "Semua Transaksi" },
@@ -323,16 +324,12 @@ export default function PublicFinancePage() {
             </div>
 
             {/* Search Box */}
-            <div className="relative w-full lg:w-72 shrink-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari transaksi / keterangan..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all"
-              />
-            </div>
+            <SearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Cari transaksi / keterangan..."
+              containerClassName="w-full lg:w-72 shrink-0"
+            />
           </div>
         </div>
 
@@ -426,7 +423,7 @@ export default function PublicFinancePage() {
                           </span>
                           <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
                             <Calendar className="w-3 h-3 text-slate-400" />
-                            {formatDate(item.transactionDate)}
+                            {formatDate(String(item.transactionDate))}
                           </span>
                         </div>
 
@@ -507,7 +504,7 @@ export default function PublicFinancePage() {
               </div>
               <div className="flex items-center justify-between text-slate-600 font-medium pt-1 border-t border-slate-200/60">
                 <span className="text-slate-500">Tanggal Transaksi:</span>
-                <span>{formatDate(selectedTransaction.transactionDate)}</span>
+                <span>{formatDate(String(selectedTransaction.transactionDate))}</span>
               </div>
             </div>
           ) : null

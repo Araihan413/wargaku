@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { hasPermission } from '@/lib/rbac';
-import { listComplaints, createComplaint, checkIpRateLimit } from '@/db/queries/complaints';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { listComplaints, createComplaint, checkIpRateLimit } from '@/db/queries';
+import { notifyRoles } from '@/lib/notifications';
 
 export async function GET(request: Request) {
   try {
@@ -14,11 +15,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
+    const effectiveRoleId = await getEffectiveRoleId(session);
     const isAllowed =
-      session.user.roleId === 1 ||
-      session.user.roleId === 2 ||
-      session.user.roleId === 3 ||
-      (await hasPermission(session.user.roleId, 'manage-complaints'));
+      effectiveRoleId === 1 ||
+      effectiveRoleId === 2 ||
+      effectiveRoleId === 3 ||
+      (await hasPermission(effectiveRoleId, 'manage-complaints'));
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
@@ -47,7 +49,6 @@ export async function POST(request: Request) {
     const forwarded = reqHeaders.get('x-forwarded-for');
     const clientIp = forwarded ? forwarded.split(',')[0].trim() : reqHeaders.get('x-real-ip') || '127.0.0.1';
 
-    // 1. Rate Limiting Check (Max 4 laporan / IP / jam)
     const isRateLimitOk = await checkIpRateLimit(clientIp);
     if (!isRateLimitOk) {
       return NextResponse.json(
@@ -57,67 +58,37 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { reporterName, reporterPhone, category, description, photoPath, dwellingId, turnstileToken } = body;
+    const { reporterName, reporterPhone, category, description, photoPath, dwellingId } = body;
 
-    if (!reporterName || !category || !description) {
-      return NextResponse.json(
-        { error: 'Nama pelapor, kategori, dan deskripsi laporan wajib diisi' },
-        { status: 400 }
-      );
-    }
+    if (!reporterName?.trim()) return NextResponse.json({ error: 'Nama pelapor wajib diisi' }, { status: 400 });
+    if (!category) return NextResponse.json({ error: 'Kategori pengaduan wajib dipilih' }, { status: 400 });
+    if (!description?.trim()) return NextResponse.json({ error: 'Rincian pengaduan wajib diisi' }, { status: 400 });
 
-    // 2. Strict Turnstile Verification
-    if (!turnstileToken) {
-      return NextResponse.json(
-        { error: 'Verifikasi CAPTCHA bot wajib diselesaikan sebelum mengirim laporan' },
-        { status: 400 }
-      );
-    }
-
-    const secretKey = process.env.TURNSTILE_SECRET_KEY;
-    if (!secretKey) {
-      return NextResponse.json(
-        { error: 'Variabel TURNSTILE_SECRET_KEY belum dikonfigurasi di server .env' },
-        { status: 400 }
-      );
-    }
-
-    const turnstileRes = await fetch(
-      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          secret: secretKey,
-          response: turnstileToken,
-          remoteip: clientIp,
-        }),
-      }
-    );
-
-    const turnstileJson = await turnstileRes.json();
-    if (!turnstileJson.success) {
-      return NextResponse.json(
-        { error: 'Verifikasi bot/CAPTCHA gagal. Silakan muat ulang dan coba lagi.' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Simpan Laporan ke Database
-    const created = await createComplaint({
-      reporterName,
-      reporterPhone,
+    const complaintRes = await createComplaint({
+      reporterName: reporterName.trim(),
+      reporterPhone: reporterPhone?.trim() || null,
       category,
-      description,
-      photoPath,
-      dwellingId,
+      description: description.trim(),
+      photoPath: photoPath || null,
+      dwellingId: dwellingId ? Number(dwellingId) : null,
       ipAddress: clientIp,
     });
 
+    notifyRoles(['ketua-rt', 'sekretaris'], {
+      title: `Pengaduan Warga Baru [${category}]`,
+      message: `Laporan baru dari ${reporterName.trim()}: "${description.trim().slice(0, 60)}..."`,
+      category: 'dinas',
+      redirectLink: '/dashboard/complaints',
+    }).catch((err) => console.error('Gagal kirim notifikasi pengaduan:', err));
+
     return NextResponse.json(
       {
-        message: 'Laporan pengaduan berhasil dikirim',
-        data: created,
+        success: true,
+        data: {
+          id: complaintRes.id,
+          trackingCode: complaintRes.trackingCode,
+        },
+        message: 'Laporan pengaduan berhasil dikirim. Terima kasih atas kepedulian Anda!',
       },
       { status: 201 }
     );
@@ -129,4 +100,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

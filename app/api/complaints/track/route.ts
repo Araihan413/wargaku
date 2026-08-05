@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getComplaintByTrackingCode } from '@/db/queries/complaints';
+import { getComplaintByTrackingCode } from '@/db/queries';
 
 export async function GET(request: Request) {
   try {
@@ -19,9 +19,14 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({
-      data: complaint,
-    });
+    return NextResponse.json(
+      { data: complaint },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Error in GET /api/complaints/track:', error);
     return NextResponse.json(

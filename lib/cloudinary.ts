@@ -42,8 +42,16 @@ export async function uploadToCloudinary(
       uploadOptions.filename_override = fileName;
     }
 
-    if (format) {
-      uploadOptions.format = format;
+    // Jika folder berupa kk/ktp atau format pdf di-request, pastikan disimpan sebagai PDF
+    if (folderName === "kk" || folderName === "ktp" || format === "pdf") {
+      uploadOptions.format = "pdf";
+    } else {
+      // Optimasi gambar otomatis Cloudinary saat upload (q_auto, f_auto, resize max 1920px tanpa ubah rasio)
+      uploadOptions.transformation = [
+        { width: 1920, height: 1920, crop: "limit" },
+        { quality: "auto" },
+        { fetch_format: "auto" },
+      ];
     }
 
     const uploadStream = cloudinary.uploader.upload_stream(

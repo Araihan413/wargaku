@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadSingleFile } from "@/lib/file-processor/server";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_MIME_TYPES = [
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const folder = (formData.get("folder") as string) || "documents";
+    const oldFileUrl = formData.get("oldFileUrl") as string | null;
 
     if (!session && folder !== "complaints") {
       return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
@@ -49,7 +50,13 @@ export async function POST(request: Request) {
 
     // If uploading KK or KTP, instruct Cloudinary to convert it to PDF
     const format = (folder === "kk" || folder === "ktp") ? "pdf" : undefined;
-    const result = await uploadToCloudinary(buffer, folder, file.name, format);
+    const result = await uploadSingleFile({
+      buffer,
+      folder,
+      fileName: file.name,
+      format,
+      oldFileUrl,
+    });
 
     return NextResponse.json({
       url: result.url,

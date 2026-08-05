@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useFamilyVerification } from "@/lib/hooks/use-family-verification";
-import { Loader2, Search, MapPin, MapPinOff, Home, Phone, Users, Info, Shield, HelpCircle } from "lucide-react";
+import { Loader2, MapPin, MapPinOff, Home, Phone, Users, Info, Shield, HelpCircle } from "lucide-react";
+import { SearchInput } from "@/components/SearchInput";
 import { toast } from "sonner";
 
 // Load MapComponent dynamically without SSR to avoid 'window is not defined' Leaflet error
@@ -175,8 +176,8 @@ export default function NeighborhoodPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-heading-main">Peta Hunian & Tetangga</h1>
-        <p className="text-xs sm:text-sm text-gray-secondary-text">
+        <h1 className="text-3xl font-extrabold text-gray-heading-main">Peta Hunian & Tetangga</h1>
+        <p className="text-sm text-gray-secondary-text">
           Telusuri alamat hunian dan daftar tetangga di wilayah RT Anda secara interaktif.
         </p>
       </div>
@@ -185,17 +186,12 @@ export default function NeighborhoodPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left column: Search and Resident List */}
         <div className="space-y-4 lg:col-span-1 flex flex-col h-[75vh]">
-          {/* Search bar */}
-          <div className="relative shrink-0">
-            <Search className="absolute left-4 top-3.5 h-4 w-4 text-gray-placeholder" />
-            <input
-              type="text"
-              placeholder="Cari nama warga atau nomor rumah..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-gray-card border border-gray-border rounded-2xl text-xs text-gray-heading-main placeholder-gray-placeholder focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-            />
-          </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Cari nama warga atau nomor rumah..."
+            containerClassName="w-full shrink-0"
+          />
 
           {/* Dwellings List */}
           <div className="flex-1 overflow-y-auto space-y-2 border border-gray-border/80 rounded-2xl p-2 bg-gray-sidebar-hover/10 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-border [&::-webkit-scrollbar-thumb]:rounded-full">

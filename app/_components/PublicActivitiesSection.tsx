@@ -1,7 +1,8 @@
 import React from "react";
 import Link from "next/link";
-import { Calendar, MapPin } from "lucide-react";
-import { PublicActivityItem } from "@/db/queries/public-portal";
+import { Calendar, MapPin, Clock } from "lucide-react";
+import { PublicActivityItem } from "@/db/queries/dashboard/public-portal.queries";
+import { formatLocalDate } from "@/lib/date-format";
 
 interface PublicActivitiesSectionProps {
   activities: PublicActivityItem[];
@@ -10,6 +11,10 @@ interface PublicActivitiesSectionProps {
 export const PublicActivitiesSection: React.FC<PublicActivitiesSectionProps> = ({
   activities = [],
 }) => {
+  const [nowTimestamp] = React.useState<number>(() =>
+    typeof window !== "undefined" ? Date.now() : 0
+  );
+
   const hasData = activities && activities.length > 0;
 
   return (
@@ -45,35 +50,73 @@ export const PublicActivitiesSection: React.FC<PublicActivitiesSectionProps> = (
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {activities.slice(0, 2).map((item) => (
-              <div
-                key={item.id}
-                className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex items-center gap-4"
-              >
-                {/* Green Calendar Icon Circle */}
-                <div className="p-3.5 rounded-2xl bg-emerald-100 text-emerald-600 shrink-0">
-                  <Calendar className="w-6 h-6" />
-                </div>
-
-                {/* Info */}
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  <h3 className="text-sm font-extrabold text-slate-900 truncate">
-                    {item.title}
-                  </h3>
-
-                  <div>
-                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px]">
-                      Sedang Berlangsung
-                    </span>
+            {activities.slice(0, 2).map((item) => {
+              const upcoming = item.eventDate && nowTimestamp
+                ? new Date(item.eventDate).getTime() >= nowTimestamp
+                : true;
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex items-center gap-4"
+                >
+                  {/* Green Calendar Icon Circle */}
+                  <div className="p-3.5 rounded-2xl bg-emerald-100 text-emerald-600 shrink-0">
+                    <Calendar className="w-6 h-6" />
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500 pt-0.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-700 shrink-0" />
-                    <span className="truncate">{item.location || "Sekretariat RT"}</span>
+                  {/* Info */}
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <h3 className="text-sm font-extrabold text-slate-900 truncate">
+                      {item.title}
+                    </h3>
+
+                    <div>
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full border font-bold text-[10px] ${
+                          upcoming
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-slate-100 text-slate-600 border-slate-200"
+                        }`}
+                      >
+                        {upcoming ? "Akan Datang" : "Selesai"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 text-[11px] font-medium text-slate-500 pt-0.5">
+                      <div className="flex items-center gap-1.5 text-slate-700 font-semibold truncate">
+                        <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span className="truncate">
+                          {formatLocalDate(
+                            item.eventDate,
+                            { weekday: "long", day: "numeric", month: "long", year: "numeric" },
+                            "Tanggal Belum Ditentukan"
+                          )}
+                        </span>
+                      </div>
+
+                      {item.eventDate && (
+                        <div className="flex items-center gap-1.5 text-slate-500 text-[10px]">
+                          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>
+                            Pukul{" "}
+                            {formatLocalDate(item.eventDate, {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            WIB
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 text-slate-500 truncate">
+                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span className="truncate">{item.location || "Sekretariat RT"}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

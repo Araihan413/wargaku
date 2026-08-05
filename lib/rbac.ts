@@ -2,8 +2,37 @@ import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+import { getUserRoles } from '@/db/queries/auth/user.queries';
+
+/**
+ * Mengambil roleId efektif pengguna dengan memperhitungkan mode active_role_id (Role Switcher).
+ * Memastikan bahwa pengguna hanya dapat beralih ke role yang secara resmi terdaftar di user_roles.
+ * @param session Sesi pengguna dari Better Auth
+ */
+export async function getEffectiveRoleId(session: any): Promise<number> {
+  if (!session?.user?.id) return 6;
+
+  const userAllowedRoles = await getUserRoles(session.user.id);
+  const primaryRoleId = userAllowedRoles[0] || 6;
+
+  try {
+    const reqCookies = await cookies();
+    const activeRoleCookie = reqCookies.get('active_role_id')?.value;
+    if (activeRoleCookie) {
+      const activeRoleId = parseInt(activeRoleCookie, 10);
+      if (!isNaN(activeRoleId) && userAllowedRoles.includes(activeRoleId)) {
+        return activeRoleId;
+      }
+    }
+  } catch {
+    // Abaikan jika dipanggil di luar konteks request HTTP
+  }
+
+  return primaryRoleId;
+}
 
 /**
  * Memeriksa apakah role tertentu memiliki permission slug tertentu.
@@ -41,8 +70,7 @@ export async function requirePermission(permissionSlug: string) {
     redirect('/login');
   }
 
-  // Mengambil roleId dari data user tambahan di sesi Better Auth
-  const roleId = session.user.roleId;
+  const roleId = await getEffectiveRoleId(session);
 
   if (typeof roleId !== 'number') {
     redirect('/unauthorized');

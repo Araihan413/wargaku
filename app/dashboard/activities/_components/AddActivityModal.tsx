@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Calendar, Pin } from "lucide-react";
+import { X, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { MultiAttachmentInput, AttachmentItem } from "@/components/MultiAttachmentInput";
 
 interface AddActivityModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [location, setLocation] = useState("");
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -32,6 +34,44 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      // 1. Upload any pending new files
+      const uploadedAttachments: Array<{ name: string; url: string; type: "image" | "pdf" }> = [];
+
+      for (const item of attachments) {
+        if (item.file) {
+          const formData = new FormData();
+          formData.append("file", item.file);
+          formData.append("folder", "activities");
+
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error(`Gagal mengunggah berkas ${item.name}`);
+          }
+
+          const uploadJson = await uploadRes.json();
+          const uploadedUrl = uploadJson.url || uploadJson.secure_url;
+          uploadedAttachments.push({
+            name: item.name,
+            url: uploadedUrl,
+            type: item.type,
+          });
+        } else if (item.url) {
+          uploadedAttachments.push({
+            name: item.name,
+            url: item.url,
+            type: item.type,
+          });
+        }
+      }
+
+      const finalAttachmentsJson =
+        uploadedAttachments.length > 0 ? JSON.stringify(uploadedAttachments) : null;
+
+      // 2. Post Activity
       const res = await fetch("/api/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,6 +80,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
           description: description.trim(),
           eventDate,
           location: location.trim(),
+          attachments: finalAttachmentsJson,
         }),
       });
 
@@ -53,6 +94,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
       setDescription("");
       setEventDate("");
       setLocation("");
+      setAttachments([]);
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -147,6 +189,14 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
               className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
             />
           </div>
+
+          {/* Multi Attachment Input */}
+          <MultiAttachmentInput
+            label="Lampiran Poster / Surat Edaran Resmi"
+            maxFiles={3}
+            items={attachments}
+            onChange={setAttachments}
+          />
 
           {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-border">
