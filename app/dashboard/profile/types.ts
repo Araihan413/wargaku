@@ -30,6 +30,7 @@ export interface UserProfileData {
   phone: string | null;
   photo: string | null;
   roleId: number;
+  roleIds?: number[];
   roleName: string | null;
   roleSlug: string | null;
   status: "pending" | "active" | "suspended";

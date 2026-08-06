@@ -1,4 +1,4 @@
-export type VerificationStatusType = "draft" | "pending" | "verified" | "rejected" | "unsubmitted";
+export type VerificationStatusType = "draft" | "pending" | "verified" | "rejected" | "changes_pending" | "unsubmitted";
 
 export interface WargaFamilyMember {
   id: number;

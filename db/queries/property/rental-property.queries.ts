@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, or, like, desc, sql } from 'drizzle-orm';
+import { eq, and, like, desc, sql } from 'drizzle-orm';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -156,10 +156,19 @@ export async function getRentalPropertyRooms(propertyId: number, property: { tot
       individualName: schema.rentalContracts.individualName,
       individualNik: schema.rentalContracts.individualNik,
       individualPhone: schema.rentalContracts.individualPhone,
+      individualKtpFile: schema.rentalContracts.individualKtpFile,
       checkInDate: schema.rentalContracts.checkInDate,
+      verificationStatus: schema.rentalContracts.verificationStatus,
+      verificationNote: schema.rentalContracts.verificationNote,
       isActive: schema.rentalContracts.isActive,
+      userName: schema.users.name,
+      userPhone: schema.users.phone,
+      familyNumber: schema.families.familyNumber,
+      familyKkFile: schema.families.kkFile,
     })
     .from(schema.rentalContracts)
+    .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
+    .leftJoin(schema.families, eq(schema.rentalContracts.familyId, schema.families.id))
     .where(and(eq(schema.rentalContracts.rentalPropertyId, propertyId), eq(schema.rentalContracts.isActive, true)));
 
   return rooms.map((roomNum) => {
@@ -169,7 +178,32 @@ export async function getRentalPropertyRooms(propertyId: number, property: { tot
     let status: 'vacant' | 'occupied' | 'sharing' = 'vacant';
     if (roomContracts.length === 1) status = 'occupied';
     else if (roomContracts.length > 1) status = 'sharing';
-    return { roomNumber: roomNum, status, contractsCount: roomContracts.length, contracts: roomContracts };
+
+    const residents = roomContracts.map((c) => {
+      const tenantTypeStr = c.tenantType === 'family' ? ('keluarga' as const) : ('perorangan' as const);
+      return {
+        id: c.id,
+        name: c.individualName || c.userName || 'Penyewa',
+        nik: c.individualNik || c.familyNumber || '-',
+        phone: c.individualPhone || c.userPhone || null,
+        tenantType: tenantTypeStr,
+        roomNumber: c.roomNumber,
+        checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
+        verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
+        verificationNote: c.verificationNote || null,
+        ktpFile: c.individualKtpFile || c.familyKkFile || null,
+        isActive: c.isActive,
+      };
+    });
+
+    return {
+      roomNumber: roomNum,
+      status,
+      residentsCount: roomContracts.length,
+      residents,
+      contractsCount: roomContracts.length,
+      contracts: roomContracts,
+    };
   });
 }
 

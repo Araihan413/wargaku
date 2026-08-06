@@ -177,6 +177,25 @@ export async function createFamilyMember(data: CreateFamilyMemberInput) {
     throw new Error(`NIK ${data.nik} sudah terdaftar di sistem kependudukan.`);
   }
 
+  // Jika hubungan = Kepala_Keluarga, pastikan KK belum punya Kepala Keluarga aktif
+  if (data.relationship === 'Kepala_Keluarga') {
+    const [existingHead] = await db
+      .select({ id: schema.familyMembers.id })
+      .from(schema.familyMembers)
+      .where(
+        and(
+          eq(schema.familyMembers.familyId, data.familyId),
+          eq(schema.familyMembers.relationship, 'Kepala_Keluarga'),
+          eq(schema.familyMembers.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (existingHead) {
+      throw new Error('Kartu Keluarga ini sudah memiliki Kepala Keluarga aktif. Gunakan fitur Ganti Kepala Keluarga.');
+    }
+  }
+
   // Auto-connect: cek apakah NIK ini punya user account
   let linkedUserId: string | null = data.userId ?? null;
   if (!linkedUserId) {
@@ -213,14 +232,32 @@ export async function createFamilyMember(data: CreateFamilyMemberInput) {
  * Perbarui data anggota keluarga.
  */
 export async function updateFamilyMember(id: number, data: UpdateFamilyMemberInput) {
-  // Cek duplikasi NIK jika berubah
-  if (data.nik) {
-    const [existing] = await db
-      .select({ id: schema.familyMembers.id })
+  // Jika hubungan diubah menjadi Kepala_Keluarga, pastikan KK belum memiliki Kepala Keluarga aktif lain
+  if (data.relationship === 'Kepala_Keluarga') {
+    const [targetMember] = await db
+      .select({ familyId: schema.familyMembers.familyId, relationship: schema.familyMembers.relationship })
       .from(schema.familyMembers)
-      .where(and(eq(schema.familyMembers.nik, data.nik), ne(schema.familyMembers.id, id)))
+      .where(eq(schema.familyMembers.id, id))
       .limit(1);
-    if (existing) throw new Error(`NIK ${data.nik} sudah terdaftar untuk anggota lain.`);
+
+    if (targetMember && targetMember.relationship !== 'Kepala_Keluarga') {
+      const [existingHead] = await db
+        .select({ id: schema.familyMembers.id })
+        .from(schema.familyMembers)
+        .where(
+          and(
+            eq(schema.familyMembers.familyId, targetMember.familyId),
+            eq(schema.familyMembers.relationship, 'Kepala_Keluarga'),
+            eq(schema.familyMembers.isActive, true),
+            ne(schema.familyMembers.id, id)
+          )
+        )
+        .limit(1);
+
+      if (existingHead) {
+        throw new Error('Kartu Keluarga ini sudah memiliki Kepala Keluarga aktif. Gunakan fitur Ganti Kepala Keluarga.');
+      }
+    }
   }
 
   const updateData: any = { ...data, updatedAt: new Date() };
@@ -260,6 +297,31 @@ export async function updateFamilyMember(id: number, data: UpdateFamilyMemberInp
  * Soft-delete anggota keluarga.
  */
 export async function deleteFamilyMember(id: number) {
+  const [member] = await db
+    .select()
+    .from(schema.familyMembers)
+    .where(eq(schema.familyMembers.id, id))
+    .limit(1);
+
+  if (!member) throw new Error('Anggota keluarga tidak ditemukan.');
+
+  if (member.relationship === 'Kepala_Keluarga') {
+    const [otherMembers] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.familyMembers)
+      .where(
+        and(
+          eq(schema.familyMembers.familyId, member.familyId),
+          ne(schema.familyMembers.id, id),
+          eq(schema.familyMembers.isActive, true)
+        )
+      );
+
+    if (Number(otherMembers?.count ?? 0) > 0) {
+      throw new Error('Tidak dapat menghapus Kepala Keluarga selama masih ada anggota keluarga lain yang aktif. Lakukan Ganti Kepala Keluarga terlebih dahulu.');
+    }
+  }
+
   await db
     .update(schema.familyMembers)
     .set({ isActive: false, updatedAt: new Date() })

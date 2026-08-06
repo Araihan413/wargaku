@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Info, Search, Calendar, Phone } from "lucide-react";
+import { Search, Calendar, Phone } from "lucide-react";
 import { PropertyDetails, RentalResidentItem } from "../types";
 
 interface ResidentsTabProps {
@@ -17,7 +17,7 @@ interface ResidentsTabProps {
 }
 
 export function ResidentsTab({
-  property,
+  property: _property,
   activeResidents,
   parsedRooms,
   isCoordinator,
@@ -47,14 +47,7 @@ export function ResidentsTab({
 
   return (
     <div className="space-y-6">
-      {!isCoordinator && (
-        <div className="p-3.5 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-start gap-2.5 text-xs text-indigo-900 leading-relaxed shadow-sm">
-          <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-          <p>
-            <strong>Perhatian:</strong> Karena pengelolaan properti ini diserahkan kepada koordinator (<strong>{property.contactPerson || property.coordinator?.name}</strong>), Anda hanya memiliki akses memantau (<strong>Read-Only</strong>). Hak untuk mendaftarkan check-in/out dipegang oleh koordinator penanggung jawab.
-          </p>
-        </div>
-      )}
+    
 
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-gray-card border border-gray-border p-4 rounded-3xl shadow-sm">
@@ -127,7 +120,7 @@ export function ResidentsTab({
             </p>
           </div>
 
-          <div className="max-h-[420px] sm:max-h-[204px] overflow-y-auto pr-1">
+          <div className="max-h-105 sm:max-h-51 overflow-y-auto pr-1">
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
               {parsedRooms.map((roomNum: string) => {
                 const residentsInRoom = activeResidents.filter(r => r.roomNumber === roomNum);

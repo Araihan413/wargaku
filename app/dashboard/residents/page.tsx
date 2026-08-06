@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ResidentsTabNav } from "./_components/ResidentsTabNav";
 import { KKSearchFilter } from "./_components/KKSearchFilter";
 import { KKTable } from "./_components/KKTable";
+import { AddKKModal } from "./_components/AddKKModal";
 import { EditKKModal } from "./_components/EditKKModal";
 import { FamilyItem } from "./types";
 import { CustomSelect } from "@/components/CustomSelect";
@@ -124,6 +125,7 @@ function ResidentsContent() {
   const [isDetailCoordinatorOpen, setIsDetailCoordinatorOpen] = useState(false);
 
   // Disable KK Confirmation states
+  const [isAddKKOpen, setIsAddKKOpen] = useState(false);
   const [isAddWargaOpen, setIsAddWargaOpen] = useState(false);
   const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
   const [selectedFamilyForDisable, setSelectedFamilyForDisable] = useState<FamilyItem | null>(null);
@@ -458,13 +460,22 @@ function ResidentsContent() {
         )}
 
         {canManage && activeTab === "kk" && (
-          <button
-            onClick={() => setIsAddWargaOpen(true)}
-            className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all self-start sm:self-auto"
-          >
-            <Plus className="h-4.5 w-4.5" />
-            Tambah Akun Warga
-          </button>
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <button
+              onClick={() => setIsAddKKOpen(true)}
+              className="flex items-center gap-2 bg-primary hover:bg-primary-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all"
+            >
+              <Plus className="h-4.5 w-4.5" />
+              Daftar KK
+            </button>
+            <button
+              onClick={() => setIsAddWargaOpen(true)}
+              className="flex items-center gap-2 bg-gray-card hover:bg-gray-sidebar-hover text-gray-heading-main border border-gray-border px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all"
+            >
+              <Plus className="h-4.5 w-4.5" />
+              Tambah Akun
+            </button>
+          </div>
         )}
 
         {canManage && activeTab === "penyewa" && (
@@ -987,6 +998,15 @@ function ResidentsContent() {
           setSelectedCoordinatorForDetail(null);
         }}
         coordinator={selectedCoordinatorForDetail}
+      />
+
+      <AddKKModal
+        isOpen={isAddKKOpen}
+        onClose={() => setIsAddKKOpen(false)}
+        onSuccess={() => {
+          setIsAddKKOpen(false);
+          fetchFamilies();
+        }}
       />
 
       <AddUserModal

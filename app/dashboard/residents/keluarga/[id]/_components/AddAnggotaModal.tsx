@@ -189,7 +189,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
                       required={true}
                       value={field.value}
                       onChange={(val) => field.onChange(val)}
-                      options={relationshipOptions}
+                      options={relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")}
                       placeholder="Pilih..."
                     />
                   )}

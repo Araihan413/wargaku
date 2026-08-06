@@ -14,7 +14,6 @@ import {
   Lock,
   Mail,
   Loader2,
-  Home,
   User,
   Phone,
   FileText,
@@ -230,7 +229,7 @@ export default function RegisterPage() {
             toast.success(
               data.accountType === "coordinator"
                 ? "Registrasi Koordinator Kos berhasil! Akun Anda berstatus PENDING menunggu verifikasi Ketua RT."
-                : "Registrasi mandiri berhasil! Akun Anda berstatus PENDING menunggu verifikasi RT."
+                : "Registrasi mandiri Kepala Keluarga berhasil! Akun Anda berstatus PENDING menunggu verifikasi Ketua RT."
             );
             router.push("/login");
           },

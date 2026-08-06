@@ -30,22 +30,21 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
     handleSubmit,
     control,
     reset,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(updateRentalResidentSchema),
   });
 
-  // Populate data when resident changes
+  // Populate data when resident changes or modal opens
   useEffect(() => {
-    if (resident) {
+    if (isOpen && resident) {
       reset({
-        name: resident.name,
-        nik: resident.nik,
+        name: resident.name || "",
+        nik: resident.nik || "",
         phone: resident.phone || "",
-        tenantType: resident.tenantType,
+        tenantType: resident.tenantType || "perorangan",
         roomNumber: resident.roomNumber || "",
-        checkInDate: resident.checkInDate ? new Date(resident.checkInDate) : new Date(),
+        checkInDate: resident.checkInDate ? (typeof resident.checkInDate === "string" ? new Date(resident.checkInDate) : resident.checkInDate) : new Date(),
         occupation: resident.occupation || "",
         educationLevel: resident.educationLevel || "",
         religion: (resident.religion as any) || null,
@@ -53,10 +52,9 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
         ktpFile: resident.ktpFile || "",
       });
     }
-  }, [resident, reset]);
+  }, [isOpen, resident, reset]);
 
   const handleClose = () => {
-    reset();
     onClose();
   };
 
@@ -96,7 +94,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
   if (!isOpen || !resident) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-70 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm cursor-default"

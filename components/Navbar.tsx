@@ -41,7 +41,8 @@ const getPageTitle = (pathname: string): string => {
   if (pathname.startsWith("/dashboard/kas/expense")) return "Catat Pengeluaran Kas";
   if (pathname.startsWith("/dashboard/iuran/manage")) return "Kelola & Setor Iuran";
   if (pathname.startsWith("/dashboard/iuran/tunggakan")) return "Laporan Tunggakan Iuran";
-  if (pathname.startsWith("/dashboard/rentals")) return "Kelola Properti Sewa";
+  if (pathname.startsWith("/dashboard/rentals")) return "Kelola Penyewa Kos";
+  if (pathname.startsWith("/dashboard/my-properties")) return "Aset Properti Sewa";
   if (pathname.startsWith("/dashboard/family/surat")) return "Riwayat & Pengajuan Surat";
   if (pathname.startsWith("/dashboard/family")) return "Kelola Anggota Keluarga";
   

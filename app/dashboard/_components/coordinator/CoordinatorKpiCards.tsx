@@ -41,7 +41,7 @@ export const CoordinatorKpiCards: React.FC<CoordinatorKpiCardsProps> = ({ summar
             </span>
           </div>
           <p className="mt-1 text-xs text-gray-secondary-text">
-            Total Penghuni Sewa Aktif: <span className="font-semibold text-gray-heading-main">{summary.totalActiveResidents} Warga</span>
+            Total Penghuni: <span className="font-semibold text-gray-heading-main">{summary.totalActiveResidents || 0}</span>
           </p>
         </div>
       </div>
@@ -57,7 +57,7 @@ export const CoordinatorKpiCards: React.FC<CoordinatorKpiCardsProps> = ({ summar
         <div className="mt-3">
           <div className="text-2xl font-extrabold text-amber-600">{summary.vacantRooms}</div>
           <p className="mt-1 text-xs text-gray-secondary-text">
-            Unit/Kamar Siap Huni Kosong
+            Unit/Kamar Siap Huni
           </p>
         </div>
       </div>
@@ -73,7 +73,7 @@ export const CoordinatorKpiCards: React.FC<CoordinatorKpiCardsProps> = ({ summar
         <div className="mt-3">
           <div className="text-2xl font-extrabold text-purple-600">{summary.pendingVerifications}</div>
           <p className="mt-1 text-xs text-gray-secondary-text">
-            Penyewa Menunggu Verifikasi RT
+            Menunggu Verifikasi RT
           </p>
         </div>
       </div>

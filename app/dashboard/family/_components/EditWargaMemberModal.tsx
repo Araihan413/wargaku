@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { WargaFamilyMember } from "../types";
-import { X, Loader2, Edit2, Lock } from "lucide-react";
+import { X, Loader2, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
@@ -112,7 +112,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
         try {
           const uploadRes = await uploadFileToCloudinary(ktpFile, "ktp");
           finalKtpUrl = uploadRes.url;
-        } catch (err) {
+        } catch {
           toast.error("Gagal mengunggah berkas KTP.");
           setIsLoading(false);
           return;
@@ -238,7 +238,11 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 required={true}
                 value={relationship}
                 onChange={(val) => setRelationship(val as any)}
-                options={relationshipOptions}
+                options={
+                  member?.relationship === "Kepala_Keluarga"
+                    ? relationshipOptions
+                    : relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")
+                }
                 placeholder="-- Pilih Hubungan --"
                 disabled={isHead || isLocked}
               />

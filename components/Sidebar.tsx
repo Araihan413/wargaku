@@ -137,7 +137,7 @@ const sidebarItems: SidebarItem[] = [
 
   // 7. Modul Properti Sewa (Koordinator Kos / Merangkap)
   {
-    title: "Kelola Properti Sewa",
+    title: "Kelola Penyewa Kos",
     icon: Building2,
     href: "/dashboard/rentals",
     permission: "manage-boarding",
@@ -158,7 +158,7 @@ const sidebarItems: SidebarItem[] = [
     requiresVerification: true,
   },
   {
-    title: "Kelola Properti Pribadi",
+    title: "Aset Properti Sewa",
     icon: Building2,
     href: "/dashboard/my-properties",
     permission: "manage-my-properties",

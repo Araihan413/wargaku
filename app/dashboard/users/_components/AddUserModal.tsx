@@ -346,7 +346,9 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                   <div className="grid grid-cols-2 gap-2">
                     {roles.map((r) => {
                       const isChecked = selectedRoles.includes(r.id);
-                      const isSuperAdminDisabled = isSuperAdminSelected && r.id !== 1;
+                      const isNonAdminSelected = selectedRoles.some((id) => id !== 1);
+                      const isSuperAdminDisabled =
+                        (isSuperAdminSelected && r.id !== 1) || (!isChecked && isNonAdminSelected && r.id === 1);
                       const isOfficerDisabled =
                         !isChecked &&
                         selectedOfficerRole !== undefined &&

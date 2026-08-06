@@ -94,8 +94,17 @@ export async function listUsers(options: ListUsersOptions = {}) {
     if (options.excludeExceptId) {
       headUserIds = headUserIds.filter((id) => id !== options.excludeExceptId);
     }
-    if (headUserIds.length > 0) {
-      conditions.push(notInArray(schema.users.id, headUserIds));
+
+    // Filter out Super Admin (Role 1) accounts from KK head selection
+    const adminUserRoles = await db
+      .select({ userId: schema.userRoles.userId })
+      .from(schema.userRoles)
+      .where(eq(schema.userRoles.roleId, 1));
+    const adminUserIds = adminUserRoles.map((ur) => ur.userId);
+
+    const excludedIds = Array.from(new Set([...headUserIds, ...adminUserIds]));
+    if (excludedIds.length > 0) {
+      conditions.push(notInArray(schema.users.id, excludedIds));
     }
   }
 
@@ -231,29 +240,6 @@ export async function getUserFullProfile(userId: string) {
     .where(and(eq(schema.familyMembers.userId, userId), eq(schema.familyMembers.isActive, true)))
     .limit(1);
 
-  // Jika belum terhubung via userId, coba cari berbasis nomor HP akun & auto-link
-  if (!memberInfo && user.phone) {
-    const [matchedByPhone] = await db
-      .select({
-        id: schema.familyMembers.id,
-        familyId: schema.familyMembers.familyId,
-        relationship: schema.familyMembers.relationship,
-        nik: schema.familyMembers.nik,
-        name: schema.familyMembers.name,
-        phone: schema.familyMembers.phone,
-      })
-      .from(schema.familyMembers)
-      .where(and(eq(schema.familyMembers.phone, user.phone), eq(schema.familyMembers.isActive, true)))
-      .limit(1);
-
-    if (matchedByPhone) {
-      memberInfo = matchedByPhone;
-      await db
-        .update(schema.familyMembers)
-        .set({ userId })
-        .where(eq(schema.familyMembers.id, matchedByPhone.id));
-    }
-  }
 
   // 2. Cari data keluarga & hunian
   let familyData: any = null;
@@ -397,10 +383,14 @@ export async function getPendingCoordInfo(id: string) {
  * Otomatis set user_roles sesuai roleId yang diberikan.
  */
 export async function createUserWithAccount(input: CreateUserInput) {
-  // Tentukan list roleIds (mendukung array roles atau single roleId)
-  const roleIds: number[] = Array.isArray((input as any).roles) && (input as any).roles.length > 0
+  // Tentukan list roleIds (jika menyertakan Super Admin 1, paksa menjadi [1] eksklusif)
+  let roleIds: number[] = Array.isArray((input as any).roles) && (input as any).roles.length > 0
     ? (input as any).roles
     : [input.roleId ?? 6];
+
+  if (roleIds.includes(1)) {
+    roleIds = [1];
+  }
 
   // Cek duplikasi email
   const [existingEmail] = await db
@@ -491,9 +481,53 @@ export async function createUserWithAccount(input: CreateUserInput) {
     // 4. Jika role Warga (6) dan dwellingId diisi, buat data KK & Member
     if (roleIds.includes(6) && input.dwellingId) {
       const familyNo = input.familyNumber && input.familyNumber.trim() !== ''
-        ? input.familyNumber
+        ? input.familyNumber.trim()
         : `${Date.now()}`.slice(0, 16);
       
+      const cleanNik = input.nik ? input.nik.trim() : `${Date.now()}`.slice(0, 16);
+
+      // Cek NIK di family_members jika diisi
+      if (input.nik && input.nik.trim() !== '') {
+        const [existingMember] = await tx
+          .select({
+            id: schema.familyMembers.id,
+            familyId: schema.familyMembers.familyId,
+            userId: schema.familyMembers.userId,
+            relationship: schema.familyMembers.relationship,
+            isActive: schema.familyMembers.isActive,
+          })
+          .from(schema.familyMembers)
+          .where(eq(schema.familyMembers.nik, cleanNik))
+          .limit(1);
+
+        if (existingMember) {
+          if (existingMember.userId) {
+            throw new Error('NIK_ALREADY_LINKED:NIK ini sudah terhubung dengan akun Kepala Keluarga lain.');
+          }
+          if (existingMember.relationship === 'Kepala_Keluarga' && existingMember.isActive) {
+            throw new Error('NIK_ALREADY_EXISTS:NIK ini sudah terdaftar sebagai Kepala Keluarga di KK lain.');
+          }
+          // Jika NIK ditemukan sebagai anggota biasa di KK lama (pecah KK): non-aktifkan di KK lama
+          await tx
+            .update(schema.familyMembers)
+            .set({ isActive: false, updatedAt: new Date() })
+            .where(eq(schema.familyMembers.id, existingMember.id));
+        }
+      }
+
+      // Cek duplikasi Nomor KK
+      if (input.familyNumber && input.familyNumber.trim() !== '') {
+        const [existingFam] = await tx
+          .select({ id: schema.families.id, headUserId: schema.families.headUserId })
+          .from(schema.families)
+          .where(and(eq(schema.families.familyNumber, familyNo), eq(schema.families.isActive, true)))
+          .limit(1);
+
+        if (existingFam && existingFam.headUserId) {
+          throw new Error('FAMILY_NUMBER_EXISTS:Nomor KK ini sudah terdaftar dengan Kepala Keluarga lain.');
+        }
+      }
+
       // Jika dibuat langsung oleh admin (active) -> verified, jika registrasi mandiri (pending) -> draft
       const initialVerification = userStatus === 'active' ? 'verified' : 'draft';
 
@@ -510,7 +544,7 @@ export async function createUserWithAccount(input: CreateUserInput) {
       await tx.insert(schema.familyMembers).values({
         familyId: familyId,
         userId: userId,
-        nik: input.nik && input.nik.trim() !== '' ? input.nik : `${Date.now()}`.slice(0, 16),
+        nik: cleanNik,
         name: input.name,
         gender: input.gender ?? 'L',
         relationship: 'Kepala_Keluarga',
@@ -536,6 +570,122 @@ export async function createUserWithAccount(input: CreateUserInput) {
     generatedPassword: rawPassword,
   };
 }
+
+/**
+ * Memungkinkan pengguna terdaftar (Pengurus/Koor) membuat KK & menjadi Kepala Keluarga
+ * tanpa perlu mendaftar akun baru.
+ */
+export async function claimWargaForExistingUser(
+  userId: string,
+  input: {
+    dwellingId: number;
+    familyNumber: string;
+    nik: string;
+    gender?: 'L' | 'P';
+  }
+) {
+  const [user] = await db
+    .select({ id: schema.users.id, name: schema.users.name, phone: schema.users.phone, status: schema.users.status })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+
+  if (!user) throw new Error('USER_NOT_FOUND');
+
+  const userRoles = await getUserRoles(userId);
+  if (userRoles.includes(1)) {
+    throw new Error('FORBIDDEN_ADMIN_KK:Akun Super Admin tidak dapat mendaftarkan Kartu Keluarga. Gunakan akun Warga terpisah.');
+  }
+
+  const [existingHead] = await db
+    .select({ id: schema.families.id })
+    .from(schema.families)
+    .where(and(eq(schema.families.headUserId, userId), eq(schema.families.isActive, true)))
+    .limit(1);
+  if (existingHead) throw new Error('FAMILY_ALREADY_EXISTS:Akun Anda sudah terdaftar sebagai Kepala Keluarga.');
+
+  const [dwelling] = await db
+    .select({ id: schema.dwellings.id, type: schema.dwellings.type })
+    .from(schema.dwellings)
+    .where(eq(schema.dwellings.id, input.dwellingId))
+    .limit(1);
+  if (!dwelling || dwelling.type === 'homestay') {
+    throw new Error('INVALID_DWELLING:Alamat hunian tidak valid atau bertipe Homestay.');
+  }
+
+  const cleanNik = input.nik.trim();
+  const cleanFamilyNo = input.familyNumber.trim();
+
+  if (cleanNik) {
+    const [existingNikMember] = await db
+      .select({ id: schema.familyMembers.id, userId: schema.familyMembers.userId, relationship: schema.familyMembers.relationship, isActive: schema.familyMembers.isActive })
+      .from(schema.familyMembers)
+      .where(eq(schema.familyMembers.nik, cleanNik))
+      .limit(1);
+
+    if (existingNikMember) {
+      if (existingNikMember.userId && existingNikMember.userId !== userId) {
+        throw new Error('NIK_ALREADY_LINKED:NIK ini sudah terhubung dengan akun Kepala Keluarga lain.');
+      }
+      if (existingNikMember.relationship === 'Kepala_Keluarga' && existingNikMember.isActive) {
+        throw new Error('NIK_ALREADY_EXISTS:NIK ini sudah terdaftar sebagai Kepala Keluarga di KK lain.');
+      }
+      if (!existingNikMember.userId) {
+        await db
+          .update(schema.familyMembers)
+          .set({ isActive: false, updatedAt: new Date() })
+          .where(eq(schema.familyMembers.id, existingNikMember.id));
+      }
+    }
+  }
+
+  const [existingFam] = await db
+    .select({ id: schema.families.id, headUserId: schema.families.headUserId })
+    .from(schema.families)
+    .where(and(eq(schema.families.familyNumber, cleanFamilyNo), eq(schema.families.isActive, true)))
+    .limit(1);
+  if (existingFam && existingFam.headUserId) {
+    throw new Error('FAMILY_NUMBER_EXISTS:Nomor KK ini sudah terdaftar dengan Kepala Keluarga lain.');
+  }
+
+  return await db.transaction(async (tx) => {
+    const currentRoles = await getUserRoles(userId);
+    if (!currentRoles.includes(6)) {
+      const newRoles = [...currentRoles, 6];
+      const primaryRole = currentRoles[0] || 6;
+      for (const rId of newRoles) {
+        await tx.insert(schema.userRoles).values({
+          userId,
+          roleId: rId,
+          isPrimary: rId === primaryRole,
+        }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+      }
+    }
+
+    const [newFamRes] = await tx.insert(schema.families).values({
+      familyNumber: cleanFamilyNo,
+      headUserId: userId,
+      dwellingId: input.dwellingId,
+      verificationStatus: 'verified',
+      isActive: true,
+    });
+    const familyId = newFamRes.insertId;
+
+    await tx.insert(schema.familyMembers).values({
+      familyId,
+      userId,
+      nik: cleanNik,
+      name: user.name,
+      gender: input.gender ?? 'L',
+      relationship: 'Kepala_Keluarga',
+      phone: user.phone ?? null,
+      isActive: true,
+    });
+
+    return { familyId };
+  });
+}
+
 
 /**
  * Perbarui data profil dasar pengguna (nama, email, telepon).
@@ -707,6 +857,26 @@ export async function registerCoord(id: string, email: string, nik: string, pass
 export async function setUserRoles(userId: string, roleIds: number[], primaryRoleId?: number) {
   const validRoleIds = Array.from(new Set(roleIds.filter((id) => id >= 1 && id <= 6)));
   if (validRoleIds.length === 0) validRoleIds.push(6);
+
+  // Ambil role akun saat ini
+  const currentRoles = await getUserRoles(userId);
+  const isCurrentlyAdmin = currentRoles.includes(1);
+  const isTargetingAdmin = validRoleIds.includes(1);
+
+  // Aturan 1: Akun non-admin TIDAK BISA di-upgrade/dipromosikan menjadi Admin
+  if (!isCurrentlyAdmin && isTargetingAdmin) {
+    throw new Error('FORBIDDEN_ADMIN_PROMOTION:Akun Warga/Pengurus/Koordinator tidak dapat diubah menjadi Super Admin. Buat akun Admin baru dari awal.');
+  }
+
+  // Aturan 2: Akun Admin TIDAK BISA didemosi/diubah menjadi non-admin
+  if (isCurrentlyAdmin && !isTargetingAdmin) {
+    throw new Error('FORBIDDEN_ADMIN_DEMOTION:Akun Super Admin tidak dapat diubah menjadi Warga atau Pengurus. Gunakan fitur penangguhan (suspend) jika akun tidak digunakan.');
+  }
+
+  // Aturan 3: Admin adalah Exclusive Single Role [1]
+  if (isTargetingAdmin && validRoleIds.length > 1) {
+    throw new Error('ADMIN_SINGLE_ROLE_EXCLUSIVE:Akun Super Admin bersifat eksklusif dan tidak dapat digabungkan dengan role lain.');
+  }
 
   // Max 1 jabatan pengurus RT
   const officerRolesInInput = validRoleIds.filter((id) => [2, 3, 4].includes(id));

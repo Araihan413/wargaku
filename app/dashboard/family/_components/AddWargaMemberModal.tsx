@@ -155,7 +155,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
                 required={true}
                 value={relationship}
                 onChange={(val) => setRelationship(val as any)}
-                options={relationshipOptions}
+                options={relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")}
                 placeholder="-- Pilih Hubungan --"
               />
             </div>

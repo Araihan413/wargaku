@@ -42,7 +42,7 @@ export const PropertyQrModal: React.FC<PropertyQrModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+    <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
       <div className="w-full max-w-sm rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-border pb-3">
@@ -70,7 +70,7 @@ export const PropertyQrModal: React.FC<PropertyQrModalProps> = ({
 
           <div className="p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
             {qrDataUrl ? (
-              <Image src={qrDataUrl} alt={`QR Code ${property.name}`} className="w-48 h-48 object-contain" />
+              <Image src={qrDataUrl} alt={`QR Code ${property.name}`} width={192} height={192} className="w-48 h-48 object-contain" />
             ) : (
               <div className="w-48 h-48 flex items-center justify-center text-xs text-slate-400">
                 Memuat QR...

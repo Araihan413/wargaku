@@ -84,7 +84,7 @@ async function main() {
     { id: 12, slug: 'manage-announcements', name: 'Kelola Pengumuman', module: 'pengumuman', description: 'Membuat, mengedit, dan menghapus pengumuman warga' },
     { id: 13, slug: 'manage-activities', name: 'Kelola Kegiatan RT', module: 'kegiatan', description: 'Mengelola agenda dan jadwal kegiatan warga RT' },
     { id: 14, slug: 'manage-complaints', name: 'Tanggapan Pengaduan Warga', module: 'laporan', description: 'Merespon dan memperbarui status laporan aduan warga' },
-    { id: 15, slug: 'manage-boarding', name: 'Kelola Properti Sewa (Kos)', module: 'properti', description: 'Mengelola properti sewa dan data penghuni sewa/kos' },
+    { id: 15, slug: 'manage-boarding', name: 'Kelola Penyewa Kos', module: 'properti', description: 'Mengelola kamar, unit, dan data penyewa kos/homestay' },
     { id: 16, slug: 'manage-users', name: 'Manajemen Pengguna (Super Admin)', module: 'pengguna', description: 'CRUD pengguna, reset password, suspend & mutasi peran' },
     { id: 17, slug: 'manage-roles', name: 'Role & Permission (Super Admin)', module: 'pengguna', description: 'Mengatur matriks otorisasi dan hak akses permission role' },
     { id: 18, slug: 'view-audit-logs', name: 'Log Aktivitas Audit (Super Admin)', module: 'pengguna', description: 'Melihat log riwayat aktivitas audit keamanan' },
@@ -92,7 +92,7 @@ async function main() {
     { id: 20, slug: 'manage-system-config', name: 'Konfigurasi Sistem (Super Admin)', module: 'pengguna', description: 'Mengatur konfigurasi sistem & kop surat' },
     { id: 21, slug: 'manage-family-profile', name: 'Kelola Anggota Keluarga & Biodata', module: 'warga', description: 'Mengelola data anggota keluarga & biodata KK' },
     { id: 22, slug: 'view-neighborhood-map', name: 'Peta Hunian & Tetangga', module: 'warga', description: 'Melihat peta hunian dan direktori warga tetangga' },
-    { id: 23, slug: 'manage-my-properties', name: 'Kelola Properti Pribadi', module: 'warga', description: 'Mengelola properti pribadi milik sendiri' },
+    { id: 23, slug: 'manage-my-properties', name: 'Aset Properti Sewa', module: 'warga', description: 'Mengolah pendaftaran aset sewa pribadi dan memantau statusnya' },
   ];
 
   for (const perm of permissionsData) {
@@ -127,8 +127,8 @@ async function main() {
     rolePermissionsData.push({ id: rpId++, roleId: 4, permissionId: p });
   }
 
-  // Koordinator Kost (15, 4, 21, 22, 23)
-  const kostPerms = [15, 4, 21, 22, 23];
+  // Koordinator Kost (15)
+  const kostPerms = [15];
   for (const p of kostPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 5, permissionId: p });
   }

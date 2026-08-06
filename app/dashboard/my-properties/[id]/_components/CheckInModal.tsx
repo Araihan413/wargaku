@@ -170,7 +170,7 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
           />
 
           {/* Name & NIK */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 Nama Lengkap Penyewa <span className="text-red-500 ml-0.5">*</span>
@@ -200,7 +200,7 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
           </div>
 
           {/* Phone & Room Number */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 Nomor HP/WA <span className="text-red-500 ml-0.5">*</span>
@@ -276,7 +276,7 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
 
           {/* Occupation & Education (Perorangan saja) */}
           {tenantType === "perorangan" && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <CustomSelect
                 value={occupation}
                 onChange={setOccupation}

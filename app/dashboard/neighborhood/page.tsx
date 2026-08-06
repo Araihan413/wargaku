@@ -132,25 +132,25 @@ export default function NeighborhoodPage() {
   }
 
   // Filter dwellings based on search query (either house details, resident names, or head names)
-  const filteredDwellings = dwellings.filter((dwelling) => {
+  const filteredDwellings = (dwellings || []).filter((dwelling) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
 
     // Match block or house number
-    const blockMatch = dwelling.blockNumber.toLowerCase().includes(query);
-    const houseMatch = dwelling.houseNumber.toLowerCase().includes(query);
+    const blockMatch = dwelling.blockNumber?.toLowerCase().includes(query) || false;
+    const houseMatch = dwelling.houseNumber?.toLowerCase().includes(query) || false;
     const addressMatch = `blok ${dwelling.blockNumber} no. ${dwelling.houseNumber}`.toLowerCase().includes(query);
 
     // Match family members
-    const familyMatch = dwelling.families.some((fam) => {
-      const headMatch = fam.headName.toLowerCase().includes(query);
-      const memberMatch = fam.members.some((m) => m.name.toLowerCase().includes(query));
+    const familyMatch = (dwelling.families || []).some((fam) => {
+      const headMatch = fam.headName?.toLowerCase().includes(query) || false;
+      const memberMatch = (fam.members || []).some((m) => m.name?.toLowerCase().includes(query) || false);
       return headMatch || memberMatch;
     });
 
     // Match rental residents
-    const rentalMatch = dwelling.rentalProperties.some((prop) => {
-      return prop.residents.some((res) => res.name.toLowerCase().includes(query));
+    const rentalMatch = (dwelling.rentalProperties || []).some((prop) => {
+      return (prop.residents || []).some((res) => res.name?.toLowerCase().includes(query) || false);
     });
 
     return blockMatch || houseMatch || addressMatch || familyMatch || rentalMatch;
@@ -207,14 +207,17 @@ export default function NeighborhoodPage() {
 
                 // Find the main person's name to display as summary
                 let displayResident = "Belum terdaftar";
-                if (dwelling.type === "permanen" && dwelling.families.length > 0) {
-                  displayResident = `KK: ${dwelling.families[0].headName}`;
-                } else if (dwelling.type !== "permanen" && dwelling.rentalProperties.length > 0) {
-                  const activeResidentsCount = dwelling.rentalProperties.reduce(
-                    (sum, p) => sum + p.residents.length,
+                const dwellingFamilies = dwelling.families || [];
+                const dwellingRentals = dwelling.rentalProperties || [];
+
+                if (dwelling.type === "permanen" && dwellingFamilies.length > 0) {
+                  displayResident = `KK: ${dwellingFamilies[0].headName}`;
+                } else if (dwelling.type !== "permanen" && dwellingRentals.length > 0) {
+                  const activeResidentsCount = dwellingRentals.reduce(
+                    (sum, p) => sum + (p.residents?.length || 0),
                     0
                   );
-                  displayResident = `${dwelling.rentalProperties[0].name} (${activeResidentsCount} Penyewa)`;
+                  displayResident = `${dwellingRentals[0].name} (${activeResidentsCount} Penyewa)`;
                 }
 
                 return (
@@ -296,7 +299,7 @@ export default function NeighborhoodPage() {
 
               {selectedDwelling.type === "permanen" ? (
                 <div className="space-y-4">
-                  {selectedDwelling.families.length === 0 ? (
+                  {(!selectedDwelling.families || selectedDwelling.families.length === 0) ? (
                     <div className="text-center py-6 text-xs text-gray-placeholder">
                       Belum ada data warga terdaftar yang mendiami rumah ini.
                     </div>
@@ -312,7 +315,7 @@ export default function NeighborhoodPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-6">
-                          {fam.members.map((member) => (
+                          {(fam.members || []).map((member) => (
                             <div
                               key={member.id}
                               className="p-3 rounded-xl border border-gray-border bg-gray-sidebar-hover/5 space-y-1.5 text-[11px]"
@@ -320,7 +323,7 @@ export default function NeighborhoodPage() {
                               <div className="flex items-center justify-between border-b border-gray-border/40 pb-1">
                                 <span className="font-bold text-gray-heading-main">{member.name}</span>
                                 <span className="text-[9px] font-semibold text-gray-secondary-text px-1.5 py-0.5 rounded bg-gray-sidebar-hover uppercase">
-                                  {member.relationship.replace("_", " ")}
+                                  {(member.relationship || "").replace("_", " ")}
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-y-1 text-gray-secondary-text">
@@ -344,7 +347,7 @@ export default function NeighborhoodPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {selectedDwelling.rentalProperties.length === 0 ? (
+                  {(!selectedDwelling.rentalProperties || selectedDwelling.rentalProperties.length === 0) ? (
                     <div className="text-center py-6 text-xs text-gray-placeholder">
                       Belum ada data unit kos/kontrakan didaftarkan.
                     </div>
@@ -370,7 +373,7 @@ export default function NeighborhoodPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-6">
-                          {prop.residents.length === 0 ? (
+                          {(!prop.residents || prop.residents.length === 0) ? (
                             <div className="col-span-2 text-center py-3 text-xs text-gray-placeholder">
                               Tidak ada penyewa aktif terdaftar.
                             </div>

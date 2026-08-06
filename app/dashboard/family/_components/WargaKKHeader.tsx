@@ -376,6 +376,18 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
         </div>
       )}
 
+      {family.verificationStatus === "changes_pending" && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-amber-900 shadow-sm">
+          <FileText className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-xs leading-relaxed">
+            <span className="font-bold text-amber-800">Status Dokumen: Dalam Pengajuan Perubahan Data</span>
+            <p className="mt-0.5 text-amber-700">
+              Anda sedang membuka permohonan perubahan data KK. Anda dapat menambah atau mengedit biodata anggota keluarga. Setelah selesai, silakan klik tombol <span className="font-bold text-emerald-700">&quot;Kirim Perubahan&quot;</span> di bagian bawah halaman.
+            </p>
+          </div>
+        </div>
+      )}
+
       {family.verificationStatus === "draft" && (
         <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-blue-900 shadow-sm">
           <FileText className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
@@ -383,7 +395,7 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
             <span className="font-bold text-blue-800">Status Dokumen: Draf (Belum Dikirim)</span>
             <p className="mt-0.5 text-blue-700 dark:text-blue-300">
               Anda masih dapat mengelola biodata anggota keluarga dan mengunggah berkas scan KK.
-              Setelah data dirasa lengkap dan benar, silakan klik tombol <span className="font-bold text-emerald-700">&quot;Kirim ke RT&quot;</span> di atas agar berkas masuk ke antrean verifikasi Ketua RT.
+              Setelah data dirasa lengkap dan benar, silakan klik tombol <span className="font-bold text-emerald-700">&quot;Verifikasi Ke RT&quot;</span> di bagian bawah halaman agar berkas masuk ke antrean verifikasi Ketua RT.
             </p>
           </div>
         </div>

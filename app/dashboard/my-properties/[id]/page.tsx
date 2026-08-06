@@ -10,7 +10,6 @@ import {
   Settings,
   History,
   ShieldAlert,
-  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
@@ -193,9 +192,8 @@ export default function PropertyDetailsPage() {
 
   if (!property) return null;
 
-  // Case A check: Is the logged-in owner also the manager (coordinator)?
-  const isCoordinator = property.coordinatorUserId === sessionUserId || property.coordinatorUserId === null;
-
+  // My-properties page is strictly for Property Owner Monitoring (Read-Only)
+  const isCoordinator = false;
 
   return (
     <div className="space-y-6 pb-12">
@@ -218,16 +216,6 @@ export default function PropertyDetailsPage() {
             </p>
           </div>
         </div>
-
-        {isCoordinator && (
-          <button
-            onClick={() => setIsCheckInOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-700 px-4 py-2.5 text-xs font-bold text-white transition-colors cursor-pointer shadow-sm w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Check-In Penyewa Baru</span>
-          </button>
-        )}
       </div>
 
       {/* Tabs Switcher */}

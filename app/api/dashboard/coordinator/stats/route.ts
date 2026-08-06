@@ -23,7 +23,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
-    const stats = await getCoordinatorDashboardStats(session.user.id);
+    const stats = await getCoordinatorDashboardStats(session.user.id, effectiveRoleId);
     return NextResponse.json(stats);
   } catch (error: any) {
     console.error('Error in GET /api/dashboard/coordinator/stats:', error);

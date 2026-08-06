@@ -83,6 +83,7 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
       kkFile: schema.families.kkFile,
       isActive: schema.families.isActive,
       createdAt: schema.families.createdAt,
+      checkInDate: schema.families.createdAt,
       updatedAt: schema.families.updatedAt,
       memberCount: sql<number>`COALESCE(${memberCountSubquery.count}, 0)`.mapWith(Number),
     })
@@ -123,6 +124,7 @@ export async function getFamilyById(id: number) {
       dwellingType: schema.dwellings.type,
       verificationStatus: schema.families.verificationStatus,
       verificationNote: schema.families.verificationNote,
+      draftOpenedAt: schema.families.draftOpenedAt,
       kkFile: schema.families.kkFile,
       isActive: schema.families.isActive,
       createdAt: schema.families.createdAt,
@@ -247,17 +249,39 @@ export async function createFamily(data: CreateFamilyInput) {
 
   if (existing) throw new Error(`FAMILY_NUMBER_EXISTS:${data.familyNumber}`);
 
-  const [result] = await db.insert(schema.families).values({
-    dwellingId: data.dwellingId,
-    familyNumber: data.familyNumber,
-    headUserId: data.headUserId ?? null,
-    kkFile: data.kkFile ?? null,
-    verificationStatus: data.verificationStatus ?? 'draft',
-    verificationNote: data.verificationNote ?? null,
-    isActive: true,
-  });
+  if (data.headUserId) {
+    const [isAdmin] = await db
+      .select({ id: schema.userRoles.id })
+      .from(schema.userRoles)
+      .where(and(eq(schema.userRoles.userId, data.headUserId), eq(schema.userRoles.roleId, 1)))
+      .limit(1);
 
-  return result.insertId;
+    if (isAdmin) {
+      throw new Error('FORBIDDEN_ADMIN_KK:Akun Super Admin bersifat khusus sistem dan tidak dapat dijadikan Kepala Keluarga. Gunakan akun Warga terpisah.');
+    }
+  }
+
+  return await db.transaction(async (tx) => {
+    const [result] = await tx.insert(schema.families).values({
+      dwellingId: data.dwellingId,
+      familyNumber: data.familyNumber,
+      headUserId: data.headUserId ?? null,
+      kkFile: data.kkFile ?? null,
+      verificationStatus: data.verificationStatus ?? 'draft',
+      verificationNote: data.verificationNote ?? null,
+      isActive: true,
+    });
+
+    if (data.headUserId) {
+      await tx.insert(schema.userRoles).values({
+        userId: data.headUserId,
+        roleId: 6,
+        isPrimary: false,
+      }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    }
+
+    return result.insertId;
+  });
 }
 
 /**
@@ -347,7 +371,7 @@ export async function submitFamily(familyId: number, userId: string) {
   if (!family) throw new Error('NOT_FOUND');
   if (family.headUserId !== userId) throw new Error('FORBIDDEN');
   if (!family.kkFile) throw new Error('NO_KK_FILE');
-  if (family.verificationStatus !== 'draft' && family.verificationStatus !== 'rejected') {
+  if (family.verificationStatus !== 'draft' && family.verificationStatus !== 'rejected' && family.verificationStatus !== 'changes_pending') {
     throw new Error('INVALID_STATUS');
   }
 
@@ -381,6 +405,7 @@ export async function verifyFamilyStatus(familyId: number, action: 'approve' | '
       .set({
         verificationStatus: newStatus,
         verificationNote,
+        draftOpenedAt: null,
         updatedAt: new Date(),
       })
       .where(eq(schema.families.id, familyId));
@@ -405,7 +430,7 @@ export async function cancelFamilyChange(familyId: number, userId: string) {
   if (family.headUserId !== userId) throw new Error('FORBIDDEN');
   if (family.verificationStatus !== 'draft' && family.verificationStatus !== 'changes_pending') throw new Error('INVALID_STATUS');
 
-  await db.update(schema.families).set({ verificationStatus: 'verified', verificationNote: null }).where(eq(schema.families.id, familyId));
+  await db.update(schema.families).set({ verificationStatus: 'verified', verificationNote: null, draftOpenedAt: null, updatedAt: new Date() }).where(eq(schema.families.id, familyId));
   return true;
 }
 
@@ -415,7 +440,10 @@ export async function cancelSubmitFamily(familyId: number, userId: string) {
   if (family.headUserId !== userId) throw new Error('FORBIDDEN');
   if (family.verificationStatus !== 'pending') throw new Error('INVALID_STATUS');
 
-  await db.update(schema.families).set({ verificationStatus: 'draft', updatedAt: new Date() }).where(eq(schema.families.id, familyId));
+  // Jika KK memiliki penanda draftOpenedAt, berarti ini adalah pembatalan dari permohonan perubahan data (kembalikan ke 'changes_pending')
+  // Jika tidak ada draftOpenedAt, berarti ini adalah registrasi awal baru (kembalikan ke 'draft')
+  const nextStatus = family.draftOpenedAt ? 'changes_pending' : 'draft';
+  await db.update(schema.families).set({ verificationStatus: nextStatus, updatedAt: new Date() }).where(eq(schema.families.id, familyId));
   return true;
 }
 
@@ -425,13 +453,14 @@ export async function requestFamilyChange(familyId: number, userId: string) {
   if (family.headUserId !== userId) throw new Error('FORBIDDEN');
   if (family.verificationStatus !== 'verified') throw new Error('INVALID_STATUS');
 
-  await db.update(schema.families).set({ verificationStatus: 'changes_pending', updatedAt: new Date() }).where(eq(schema.families.id, familyId));
+  await db.update(schema.families).set({ verificationStatus: 'changes_pending', draftOpenedAt: new Date(), updatedAt: new Date() }).where(eq(schema.families.id, familyId));
   return true;
 }
 
 export async function setupMyFamilyCard(userId: string, input: {
   dwellingId: number;
   familyNumber: string;
+  nik?: string | null;
   kkFile?: string | null;
 }) {
   return await db.transaction(async (tx) => {
@@ -443,17 +472,61 @@ export async function setupMyFamilyCard(userId: string, input: {
 
     if (!user) throw new Error('Pengguna tidak ditemukan.');
 
+    const [isAdmin] = await tx
+      .select({ id: schema.userRoles.id })
+      .from(schema.userRoles)
+      .where(and(eq(schema.userRoles.userId, userId), eq(schema.userRoles.roleId, 1)))
+      .limit(1);
+
+    if (isAdmin) throw new Error('Akun Super Admin bersifat khusus sistem dan tidak dapat mendaftarkan Kartu Keluarga. Gunakan akun Warga terpisah.');
+
     const [existingFamily] = await tx
       .select({ id: schema.families.id })
       .from(schema.families)
-      .where(eq(schema.families.headUserId, userId))
+      .where(and(eq(schema.families.headUserId, userId), eq(schema.families.isActive, true)))
       .limit(1);
 
     if (existingFamily) throw new Error('Akun Anda sudah memiliki Kartu Keluarga yang terdaftar.');
 
+    const cleanFamilyNo = input.familyNumber.trim();
+    const [existingFamilyNo] = await tx
+      .select({ id: schema.families.id, headUserId: schema.families.headUserId })
+      .from(schema.families)
+      .where(and(eq(schema.families.familyNumber, cleanFamilyNo), eq(schema.families.isActive, true)))
+      .limit(1);
+
+    if (existingFamilyNo && existingFamilyNo.headUserId) {
+      throw new Error('Nomor Kartu Keluarga (KK) ini sudah terdaftar dengan Kepala Keluarga lain.');
+    }
+
+    const cleanNik = input.nik && input.nik.trim() !== '' ? input.nik.trim() : `${Date.now()}`.slice(0, 16);
+
+    if (input.nik && input.nik.trim() !== '') {
+      const [existingNikMember] = await tx
+        .select({ id: schema.familyMembers.id, userId: schema.familyMembers.userId, relationship: schema.familyMembers.relationship, isActive: schema.familyMembers.isActive })
+        .from(schema.familyMembers)
+        .where(eq(schema.familyMembers.nik, cleanNik))
+        .limit(1);
+
+      if (existingNikMember) {
+        if (existingNikMember.userId && existingNikMember.userId !== userId) {
+          throw new Error('NIK ini sudah terhubung dengan akun Kepala Keluarga lain.');
+        }
+        if (existingNikMember.relationship === 'Kepala_Keluarga' && existingNikMember.isActive) {
+          throw new Error('NIK ini sudah terdaftar sebagai Kepala Keluarga di KK lain.');
+        }
+        if (!existingNikMember.userId) {
+          await tx
+            .update(schema.familyMembers)
+            .set({ isActive: false, updatedAt: new Date() })
+            .where(eq(schema.familyMembers.id, existingNikMember.id));
+        }
+      }
+    }
+
     const [insertResult] = await tx.insert(schema.families).values({
       dwellingId: input.dwellingId,
-      familyNumber: input.familyNumber,
+      familyNumber: cleanFamilyNo,
       headUserId: userId,
       kkFile: input.kkFile ?? null,
       verificationStatus: 'draft',
@@ -461,6 +534,17 @@ export async function setupMyFamilyCard(userId: string, input: {
     });
 
     const familyId = insertResult.insertId;
+
+    await tx.insert(schema.familyMembers).values({
+      familyId,
+      userId,
+      nik: cleanNik,
+      name: user.name,
+      gender: 'L',
+      relationship: 'Kepala_Keluarga',
+      phone: user.phone ?? null,
+      isActive: true,
+    });
 
     await tx.insert(schema.userRoles).values({
       userId,

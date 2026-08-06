@@ -224,7 +224,11 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                       required={true}
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val)}
-                      options={relationshipOptions}
+                      options={
+                        member?.relationship === "Kepala_Keluarga"
+                          ? relationshipOptions
+                          : relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")
+                      }
                       placeholder="Pilih..."
                       disabled={isLocked}
                     />

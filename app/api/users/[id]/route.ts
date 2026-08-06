@@ -155,6 +155,16 @@ export async function PATCH(
     if (error instanceof ZodError) {
       return NextResponse.json({ error: "Input tidak valid", issues: error.issues }, { status: 400 });
     }
+    if (
+      error?.message?.startsWith("FORBIDDEN_ADMIN_PROMOTION") ||
+      error?.message?.startsWith("FORBIDDEN_ADMIN_DEMOTION") ||
+      error?.message?.startsWith("ADMIN_SINGLE_ROLE_EXCLUSIVE") ||
+      error?.message?.startsWith("SELF_ROLE_CHANGE") ||
+      error?.message?.startsWith("SA_MUTUAL_PROTECTION")
+    ) {
+      const parts = error.message.split(":");
+      return NextResponse.json({ error: parts[1] || parts[0] }, { status: 400 });
+    }
     console.error("PATCH /api/users/[id] error:", error);
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }

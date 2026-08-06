@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { dwellingId, familyNumber, kkFile } = body;
+    const { dwellingId, familyNumber, nik, kkFile } = body;
 
     if (!dwellingId || !familyNumber) {
       return NextResponse.json(
@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     const familyId = await setupMyFamilyCard(session.user.id, {
       dwellingId: Number(dwellingId),
       familyNumber: String(familyNumber).trim(),
+      nik: nik ? String(nik).trim() : null,
       kkFile: kkFile || null,
     });
 

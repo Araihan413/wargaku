@@ -32,8 +32,15 @@ export const ResidencyInfoTab: React.FC<ResidencyInfoTabProps> = ({ profile }) =
         </span>
       </div>
 
-      {/* Conditional: Jika belum terdaftar di KK manapun (bukan Kepala Keluarga & bukan Anggota Keluarga di KK lain) */}
-      {!profile.familyNumber && !profile.familyInfo && !profile.residentInfo ? (
+      {/* Conditional: Jika akun adalah Super Admin (Role 1), tampilkan banner info Admin dan sembunyikan tombol pendaftaran KK */}
+      {profile.roleIds?.includes(1) || profile.roleId === 1 || profile.roleSlug === "super-admin" || profile.roleSlug === "admin" ? (
+        <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex items-center gap-3 text-xs text-amber-900 font-semibold shadow-2xs">
+          <ShieldCheck className="w-4.5 h-4.5 text-amber-600 shrink-0" />
+          <span>
+            Akun Anda adalah <strong>Super Admin (Pengelola Sistem)</strong>. Akun khusus ini tidak terikat dengan data Kartu Keluarga.
+          </span>
+        </div>
+      ) : !profile.familyNumber && !profile.familyInfo && !profile.residentInfo ? (
         <div className="p-5 border border-primary/20 bg-primary/5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
           <div className="space-y-1">
             <h4 className="text-sm font-extrabold text-gray-heading-main">

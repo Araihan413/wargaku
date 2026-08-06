@@ -38,6 +38,7 @@ export async function GET(request: Request) {
     } else if (type === "rental_resident") {
       const result = await listAllTenantContracts({
         query,
+        verificationStatus: status,
         isActive: true,
         limit: 100,
         offset: 0,

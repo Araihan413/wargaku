@@ -7,7 +7,9 @@ interface PendingVerificationQueueProps {
   pendingList: PendingRenterItem[];
 }
 
-export const PendingVerificationQueue: React.FC<PendingVerificationQueueProps> = ({ pendingList }) => {
+export const PendingVerificationQueue: React.FC<PendingVerificationQueueProps> = ({ pendingList = [] }) => {
+  const safePendingList = Array.isArray(pendingList) ? pendingList : [];
+
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString("id-ID", {
@@ -41,7 +43,7 @@ export const PendingVerificationQueue: React.FC<PendingVerificationQueueProps> =
         </Link>
       </div>
 
-      {pendingList.length === 0 ? (
+      {safePendingList.length === 0 ? (
         <div className="py-8 text-center text-xs text-gray-placeholder flex flex-col items-center gap-2">
           <Clock className="h-8 w-8 text-gray-border" />
           <span>Tidak ada antrean penyewa baru yang menunggu verifikasi RT saat ini.</span>
@@ -59,7 +61,7 @@ export const PendingVerificationQueue: React.FC<PendingVerificationQueueProps> =
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-border text-xs text-gray-heading-main">
-              {pendingList.map((r) => (
+              {safePendingList.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-sidebar-hover/30 transition-colors">
                   <td className="py-3 px-4">
                     <div className="font-semibold text-gray-heading-main">{r.name}</div>

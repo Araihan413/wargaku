@@ -15,7 +15,7 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function StandaloneWargaFamilyPage() {
   return (
-    <PermissionGuard requiredRoles={[5, 6]}>
+    <PermissionGuard requiredPermission="manage-family-profile">
       <WargaFamilyContent />
     </PermissionGuard>
   );
@@ -201,19 +201,7 @@ function WargaFamilyContent() {
 
   const isLocked = familyDetail.verificationStatus === "verified" || familyDetail.verificationStatus === "pending";
 
-  const baseTime = familyDetail?.draftOpenedAt
-    ? new Date(familyDetail.draftOpenedAt).getTime()
-    : familyDetail
-    ? new Date(familyDetail.updatedAt).getTime()
-    : 0;
 
-  const hasUnsubmittedChanges = familyDetail
-    ? (familyDetail.members || []).some((member) => {
-        const memberUpdated = new Date(member.updatedAt || "").getTime();
-        const memberCreated = new Date(member.createdAt || "").getTime();
-        return memberUpdated > baseTime + 2000 || memberCreated > baseTime + 2000;
-      }) || new Date(familyDetail.updatedAt).getTime() > baseTime + 2000
-    : false;
 
   return (
     <div className="space-y-6 pb-12">
@@ -323,44 +311,56 @@ function WargaFamilyContent() {
         variant="danger"
       />
 
-      {/* Action Button Section */}
-      {!isLocked && (familyDetail.verificationStatus === "draft" || familyDetail.verificationStatus === "rejected") && (
+      {/* Action Button Section for Editable States (draft, changes_pending, rejected) */}
+      {!isLocked && (familyDetail.verificationStatus === "draft" || familyDetail.verificationStatus === "changes_pending" || familyDetail.verificationStatus === "rejected") && (
         <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-4 border-t border-gray-border/40 mt-6">
-          {/* Batalkan Perubahan (Only shown if draft, already verified, and NO changes) */}
-          {familyDetail.verificationStatus === "draft" && familyDetail.hasVerified && !hasUnsubmittedChanges && (
-            <button
-              type="button"
-              onClick={() => setShowCancelChangeConfirm(true)}
-              disabled={isCancellingChange}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 text-red-800 px-5 py-3 text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-60 duration-150 active:scale-95"
-            >
-              {isCancellingChange ? (
-                <Loader2 className="h-4.5 w-4.5 animate-spin" />
-              ) : (
-                <XCircle className="h-4.5 w-4.5 text-red-700" />
-              )}
-              <span>Batalkan Perubahan</span>
-            </button>
-          )}
-
-          {/* Verifikasi Ke RT (Disabled if no KK file or no changes made after verified) */}
+          {/* Kirim / Verifikasi Ke RT */}
           <button
             type="button"
             onClick={handleConfirmSubmit}
-            disabled={
-              isSubmittingToRT ||
-              !familyDetail.kkFile ||
-              (familyDetail.verificationStatus === "draft" && familyDetail.hasVerified && !hasUnsubmittedChanges)
-            }
+            disabled={isSubmittingToRT || !familyDetail.kkFile}
             title={!familyDetail.kkFile ? "Harap unggah berkas Scan KK terlebih dahulu" : undefined}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-bold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] duration-150 disabled:pointer-events-none disabled:hover:scale-100"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-bold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] duration-150 disabled:hover:scale-100 cursor-pointer"
           >
             {isSubmittingToRT ? (
               <Loader2 className="h-4.5 w-4.5 animate-spin" />
             ) : (
               <Send className="h-4.5 w-4.5" />
             )}
-            <span>Verifikasi Ke RT</span>
+            <span>
+              {familyDetail.verificationStatus === "changes_pending"
+                ? "Kirim Perubahan"
+                : familyDetail.verificationStatus === "rejected"
+                ? "Ajukan Ulang"
+                : "Verifikasi Ke RT"}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Action Button Section for Pending State (Sedang Menunggu Verifikasi RT) */}
+      {familyDetail.verificationStatus === "pending" && (
+        <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-4 border-t border-gray-border/40 mt-6">
+          <button
+            type="button"
+            onClick={() => {
+              // Panggil penanganan batalkan submit
+              const cancelBtn = document.querySelector<HTMLButtonElement>('[data-action="cancel-submit"]');
+              if (cancelBtn) cancelBtn.click();
+              else {
+                fetch(`/api/families/${familyDetail.id}/cancel-submit`, { method: "POST" })
+                  .then((res) => {
+                    if (res.ok) {
+                      toast.success("Pengajuan verifikasi berhasil dibatalkan!");
+                      if (familyId) fetchFamilyDetails(familyId);
+                    }
+                  });
+              }
+            }}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 text-red-800 px-5 py-3 text-sm font-bold transition-all shadow-md cursor-pointer duration-150 active:scale-95"
+          >
+            <XCircle className="h-4.5 w-4.5 text-red-700" />
+            <span>Batalkan Pengajuan Verifikasi</span>
           </button>
         </div>
       )}

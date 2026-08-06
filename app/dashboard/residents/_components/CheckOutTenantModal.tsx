@@ -68,7 +68,7 @@ export const CheckOutTenantModal: React.FC<CheckOutTenantModalProps> = ({
   if (!isOpen || !resident) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-70 flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity"

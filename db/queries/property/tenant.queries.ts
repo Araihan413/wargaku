@@ -41,6 +41,8 @@ export interface UpdateTenantInput {
   individualKtpFile?: string | null;
   checkInDate?: string | Date;
   checkOutDate?: string | Date | null;
+  verificationStatus?: 'pending' | 'verified' | 'rejected';
+  verificationNote?: string | null;
   isActive?: boolean;
   notes?: string | null;
 }
@@ -125,27 +127,37 @@ export async function listAllTenantContracts(options: {
   offset?: number;
   isActive?: boolean;
   tenantType?: 'individual' | 'family';
+  verificationStatus?: 'pending' | 'verified' | 'rejected';
   query?: string;
 }) {
   const limit = options.limit ?? 10;
   const offset = options.offset ?? 0;
 
   const conditions: any[] = [];
-  if (options.isActive !== undefined) conditions.push(eq(schema.rentalContracts.isActive, options.isActive));
-  if (options.tenantType) conditions.push(eq(schema.rentalContracts.tenantType, options.tenantType));
+  if (options.isActive !== undefined) {
+    conditions.push(eq(schema.rentalContracts.isActive, options.isActive));
+  }
+  if (options.tenantType) {
+    conditions.push(eq(schema.rentalContracts.tenantType, options.tenantType));
+  }
+  if (options.verificationStatus) {
+    conditions.push(eq(schema.rentalContracts.verificationStatus, options.verificationStatus));
+  }
   if (options.query) {
+    const v = `%${options.query}%`;
     conditions.push(
       or(
-        like(schema.rentalContracts.individualName, `%${options.query}%`),
-        like(schema.rentalContracts.individualNik, `%${options.query}%`),
-        like(schema.rentalProperties.name, `%${options.query}%`)
+        like(schema.rentalContracts.individualName, v),
+        like(schema.rentalContracts.individualNik, v),
+        like(schema.users.name, v),
+        like(schema.rentalProperties.name, v)
       )
     );
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const data = await db
+  const rawData = await db
     .select({
       id: schema.rentalContracts.id,
       rentalPropertyId: schema.rentalContracts.rentalPropertyId,
@@ -154,26 +166,60 @@ export async function listAllTenantContracts(options: {
       individualName: schema.rentalContracts.individualName,
       individualNik: schema.rentalContracts.individualNik,
       individualPhone: schema.rentalContracts.individualPhone,
+      individualKtpFile: schema.rentalContracts.individualKtpFile,
       checkInDate: schema.rentalContracts.checkInDate,
       checkOutDate: schema.rentalContracts.checkOutDate,
+      verificationStatus: schema.rentalContracts.verificationStatus,
+      verificationNote: schema.rentalContracts.verificationNote,
       isActive: schema.rentalContracts.isActive,
       propertyName: schema.rentalProperties.name,
       blockNumber: schema.dwellings.blockNumber,
       houseNumber: schema.dwellings.houseNumber,
+      userName: schema.users.name,
+      userPhone: schema.users.phone,
+      userStatus: schema.users.status,
+      familyNumber: schema.families.familyNumber,
+      familyKkFile: schema.families.kkFile,
     })
     .from(schema.rentalContracts)
     .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
     .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
+    .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
+    .leftJoin(schema.families, eq(schema.rentalContracts.familyId, schema.families.id))
     .where(whereClause)
     .limit(limit)
     .offset(offset)
     .orderBy(desc(schema.rentalContracts.createdAt));
+
+  const data = rawData.map((c) => {
+    const tenantTypeStr = c.tenantType === 'family' ? ('keluarga' as const) : ('perorangan' as const);
+
+    return {
+      id: c.id,
+      rentalPropertyId: c.rentalPropertyId,
+      roomNumber: c.roomNumber,
+      tenantType: tenantTypeStr,
+      name: c.individualName || c.userName || 'Penyewa',
+      nik: c.individualNik || c.familyNumber || '-',
+      phone: c.individualPhone || c.userPhone || null,
+      ktpFile: c.individualKtpFile || c.familyKkFile || null,
+      checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
+      checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
+      verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
+      verificationNote: c.verificationNote || null,
+      isActive: c.isActive,
+      propertyName: c.propertyName,
+      blockNumber: c.blockNumber,
+      houseNumber: c.houseNumber,
+    };
+  });
 
   const [totalResult] = await db
     .select({ count: sql<number>`count(*)` })
     .from(schema.rentalContracts)
     .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
     .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
+    .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
     .where(whereClause);
 
   return {
@@ -362,6 +408,8 @@ export async function updateTenantContract(id: number, data: UpdateTenantInput) 
   if (data.individualKtpFile !== undefined) payload.individualKtpFile = data.individualKtpFile;
   if (data.checkInDate !== undefined) payload.checkInDate = data.checkInDate instanceof Date ? data.checkInDate : new Date(String(data.checkInDate));
   if (data.checkOutDate !== undefined) payload.checkOutDate = data.checkOutDate ? (data.checkOutDate instanceof Date ? data.checkOutDate : new Date(String(data.checkOutDate))) : null;
+  if (data.verificationStatus !== undefined) payload.verificationStatus = data.verificationStatus;
+  if (data.verificationNote !== undefined) payload.verificationNote = data.verificationNote;
   if (data.isActive !== undefined) payload.isActive = data.isActive;
   if (data.notes !== undefined) payload.notes = data.notes;
 

@@ -104,7 +104,7 @@ function RentalsContent() {
       const res = await fetch(`/api/rentals/${propertyId}/rooms`);
       if (!res.ok) throw new Error("Gagal mengambil data kamar properti");
       const data = await res.json();
-      const fetchedRooms: RoomGridItem[] = data.rooms || [];
+      const fetchedRooms: RoomGridItem[] = Array.isArray(data) ? data : (data.rooms || []);
       setRooms(fetchedRooms);
       // If the drawer is open but the selected room no longer exists, close it
       setSelectedRoomNumber((prev) => {
@@ -133,7 +133,7 @@ function RentalsContent() {
         const res = await fetch(`/api/rentals/${selectedProperty.id}/rooms`);
         if (!res.ok) throw new Error("Gagal mengambil data kamar properti");
         const data = await res.json();
-        const fetchedRooms: RoomGridItem[] = data.rooms || [];
+        const fetchedRooms: RoomGridItem[] = Array.isArray(data) ? data : (data.rooms || []);
         if (!cancelled) {
           setRooms(fetchedRooms);
           setSelectedRoomNumber((prev) => {
@@ -182,24 +182,28 @@ function RentalsContent() {
 
   // Check-In Handlers
   const handleOpenCheckInForRoom = (roomNum?: string) => {
+    handleCloseDrawer();
     setCheckInInitialRoom(roomNum || selectedRoomNumber || "");
     setIsCheckInOpen(true);
   };
 
   // Check-Out Handlers
   const handleOpenCheckOut = (tenant: ActiveTenantInfo) => {
+    handleCloseDrawer();
     setTargetCheckOutTenant(tenant);
     setIsCheckOutOpen(true);
   };
 
   // Edit Handlers
   const handleOpenEdit = (tenant: ActiveTenantInfo) => {
+    handleCloseDrawer();
     setTargetEditTenant(tenant);
     setIsEditOpen(true);
   };
 
   // Reactivate Handlers
   const handleOpenReactivate = (tenantHistory: any) => {
+    handleCloseDrawer();
     setTargetReactivateTenant(tenantHistory);
     setIsReactivateConfirmOpen(true);
   };

@@ -101,7 +101,8 @@ export async function PATCH(
       }
 
       await updateTenantContract(documentId, {
-        notes: note,
+        verificationStatus: status,
+        verificationNote: note,
       });
 
       const ipAddress = await getClientIp(request);

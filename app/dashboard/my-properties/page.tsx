@@ -49,7 +49,7 @@ function formatWhatsAppLink(phone: string, text: string) {
 
 export default function MyPropertiesPage() {
   return (
-    <PermissionGuard requiredPermission="manage-boarding">
+    <PermissionGuard requiredPermission="manage-my-properties">
       <MyPropertiesContent />
     </PermissionGuard>
   );
@@ -282,7 +282,7 @@ function MyPropertiesContent() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-heading-main">
-            Kelola Properti Pribadi
+            Aset Properti Sewa
           </h1>
           <p className="text-xs sm:text-sm text-gray-secondary-text mt-0.5">
             Daftarkan kos, kontrakan, atau homestay milik Anda dan kelola pengelolaannya.

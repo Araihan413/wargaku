@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, Building2 } from "lucide-react";
+import { AlertTriangle} from "lucide-react";
 import { CoordinatorDashboardStats } from "./coordinator/types";
 import { CoordinatorKpiCards } from "./coordinator/CoordinatorKpiCards";
 import { PropertyOccupancySection } from "./coordinator/PropertyOccupancySection";
@@ -69,8 +69,7 @@ export function KoordinatorKosDashboard() {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-border pb-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-gray-heading-main flex items-center gap-2.5">
-            <Building2 className="h-7 w-7 text-primary" />
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main flex items-center gap-2.5">
             <span>Dashboard Pengelola Properti Sewa</span>
           </h1>
           <p className="text-xs text-gray-secondary-text mt-1">

@@ -92,8 +92,10 @@ export const VisualRoomGrid: React.FC<VisualRoomGridProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredRooms.map((room) => {
             const isSelected = selectedRoomNumber === room.roomNumber;
-            const primaryResident = room.residents[0];
-            const hasPending = room.residents.some((r) => r.verificationStatus === "pending");
+            const residentsList = room.residents || [];
+            const primaryResident = residentsList[0];
+            const hasPending = residentsList.some((r) => r.verificationStatus === "pending");
+            const hasRejected = residentsList.some((r) => r.verificationStatus === "rejected");
 
             return (
               <div
@@ -167,9 +169,13 @@ export const VisualRoomGrid: React.FC<VisualRoomGridProps> = ({
                     <span className="flex items-center gap-1 font-semibold text-amber-700">
                       <Clock className="h-3 w-3 animate-spin" /> Pending RT
                     </span>
+                  ) : hasRejected ? (
+                    <span className="flex items-center gap-1 font-semibold text-rose-700">
+                      Ditolak RT
+                    </span>
                   ) : room.status !== "vacant" ? (
                     <span className="flex items-center gap-1 font-medium text-emerald-700">
-                      <CheckCircle2 className="h-3 w-3" /> Verifikasi RT
+                      <CheckCircle2 className="h-3 w-3" /> Terverifikasi RT
                     </span>
                   ) : (
                     <span className="text-gray-placeholder text-[10px]">Belum Ada Penyewa</span>

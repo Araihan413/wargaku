@@ -7,7 +7,9 @@ interface PropertyOccupancySectionProps {
   properties: PropertyOccupancyItem[];
 }
 
-export const PropertyOccupancySection: React.FC<PropertyOccupancySectionProps> = ({ properties }) => {
+export const PropertyOccupancySection: React.FC<PropertyOccupancySectionProps> = ({ properties = [] }) => {
+  const propertyList = Array.isArray(properties) ? properties : [];
+
   return (
     <div className="rounded-2xl border border-gray-border bg-gray-card p-6 shadow-sm">
       <div className="flex items-center justify-between border-b border-gray-border pb-4 mb-5">
@@ -29,13 +31,13 @@ export const PropertyOccupancySection: React.FC<PropertyOccupancySectionProps> =
         </Link>
       </div>
 
-      {properties.length === 0 ? (
+      {propertyList.length === 0 ? (
         <div className="py-12 text-center text-xs text-gray-placeholder">
           Belum ada properti sewa yang ditugaskan kepada Anda.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {properties.map((p) => {
+          {propertyList.map((p) => {
             const isFull = p.vacantRooms === 0 && p.totalRooms > 0;
 
             return (

@@ -133,6 +133,15 @@ export async function POST(request: Request) {
     if (error?.message === "EMAIL_EXISTS") {
       return NextResponse.json({ error: "Email sudah terdaftar di sistem." }, { status: 400 });
     }
+    if (error?.message?.startsWith("NIK_ALREADY_LINKED")) {
+      return NextResponse.json({ error: "NIK ini sudah terhubung dengan akun Kepala Keluarga lain." }, { status: 400 });
+    }
+    if (error?.message?.startsWith("NIK_ALREADY_EXISTS")) {
+      return NextResponse.json({ error: "NIK ini sudah terdaftar sebagai Kepala Keluarga di KK lain." }, { status: 400 });
+    }
+    if (error?.message?.startsWith("FAMILY_NUMBER_EXISTS")) {
+      return NextResponse.json({ error: "Nomor KK ini sudah terdaftar dengan Kepala Keluarga lain." }, { status: 400 });
+    }
     if (error?.message?.startsWith("INVALID_DWELLING")) {
       return NextResponse.json({ error: "Alamat hunian tidak valid atau bertipe Homestay." }, { status: 400 });
     }

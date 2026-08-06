@@ -49,7 +49,7 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-primary-900 transition-all cursor-pointer"
         >
           <UserPlus className="h-4 w-4" />
-          <span>+ Check-In Penyewa Baru</span>
+          <span>Check-In Penyewa Baru</span>
         </button>
       </div>
     );
@@ -127,6 +127,11 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
                   <span>Alamat Asal: <strong className="text-gray-heading-main">{r.originAddress}</strong></span>
                 </div>
               )}
+              {r.verificationStatus === "rejected" && r.verificationNote && (
+                <div className="col-span-1 sm:col-span-2 p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+                  <strong>Alasan Penolakan RT:</strong> {r.verificationNote}
+                </div>
+              )}
               {r.ktpFile && (
                 <div className="col-span-1 sm:col-span-2 flex items-center gap-2 text-gray-secondary-text">
                   <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -137,7 +142,7 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
                     rel="noopener noreferrer"
                     className="text-xs font-semibold text-primary hover:underline"
                   >
-                    Lihat Berkas Scan KTP &rarr;
+                    Lihat Scan KTP
                   </a>
                 </div>
               )}

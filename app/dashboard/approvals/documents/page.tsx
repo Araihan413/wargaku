@@ -236,7 +236,7 @@ function DocumentApprovalsContent() {
                   : "text-gray-secondary-text hover:text-gray-heading-main"
               }`}
             >
-              <span>Kartu Keluarga Warga</span>
+              <span>Data Keluarga</span>
               {familyPendingCount > 0 && (
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -255,7 +255,7 @@ function DocumentApprovalsContent() {
                   : "text-gray-secondary-text hover:text-gray-heading-main"
               }`}
             >
-              <span>KTP Penghuni (Sewa/Kos)</span>
+              <span>Data Penyewa</span>
               {rentalPendingCount > 0 && (
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -427,13 +427,13 @@ function DocumentApprovalsContent() {
                           </div>
                         )}
                       </td>
-                      <td className="py-4 px-5 font-mono text-gray-secondary-text">{ren.nik}</td>
+                      <td className="py-4 px-5 font-mono text-gray-secondary-text font-semibold">{ren.nik}</td>
                       <td className="py-4 px-5">
-                        <span className="font-medium">{ren.propertyName}</span>
+                        <span className="font-semibold">{ren.propertyName}</span>
                       </td>
                       <td className="py-4 px-5">
                         <div className="text-gray-heading-main">
-                          Kamar: <span className="font-semibold">{ren.roomNumber || "-"}</span>
+                          <span className="font-semibold">{ren.roomNumber || "-"}</span>
                         </div>
                         <div className="text-xs text-gray-secondary-text mt-0.5">{addressStr}</div>
                       </td>
@@ -448,7 +448,7 @@ function DocumentApprovalsContent() {
                           {ren.tenantType}
                         </span>
                       </td>
-                      <td className="py-4 px-5 text-center text-gray-secondary-text">
+                      <td className="py-4 px-5 text-center text-gray-secondary-text font-semibold">
                         <span>{formatDate(ren.checkInDate)}</span>
                       </td>
                       <td className="py-4 px-5 text-center">

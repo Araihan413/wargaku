@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, desc, sql, gte } from 'drizzle-orm';
+import { eq, and, desc, sql, gte, inArray } from 'drizzle-orm';
 import { startOfMonth, subMonths, format } from 'date-fns';
 
 // ==========================================
@@ -612,95 +612,158 @@ export async function getTreasurerDashboardStats() {
 }
 
 /**
- * 5. KOORDINATOR KOS DASHBOARD STATS
- * Properti kos & penyewa aktif untuk Koordinator Kos (berdasarkan userId).
+ * 4. SEKRETARIS DASHBOARD STATS
+ * Query pengajuan surat pengantar, arsip surat, & pengumuman.
  */
-export async function getCoordinatorDashboardStats(userId: string) {
-  // Ambil hunian milik owner/koordinator ini
-  const myDwellings = await db
-    .select({ id: schema.dwellings.id })
-    .from(schema.dwellings)
-    .where(and(eq(schema.dwellings.ownerUserId, userId), eq(schema.dwellings.isActive, true)));
+export async function getSekretarisDashboardStats() {
+  const [[totalAnnouncements]] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(schema.announcements),
+  ]);
 
-  if (myDwellings.length === 0) {
-    return {
-      summary: { totalProperties: 0, totalRooms: 0, occupiedRooms: 0, availableRooms: 0, occupancyPercent: 0 },
-      propertiesList: [],
-      recentTenants: [],
-    };
-  }
+  return {
+    pendingLetters: 0,
+    approvedLettersThisMonth: 0,
+    totalAnnouncements: Number(totalAnnouncements?.count || 0),
+    recentLetterRequests: [],
+  };
+}
 
-  const dwellingIds = myDwellings.map((d) => d.id);
+/**
+ * 5. KOORDINATOR KOS DASHBOARD STATS
+ * Properti kos & penyewa aktif untuk Koordinator Kos (berdasarkan userId & roleId).
+ */
+export async function getCoordinatorDashboardStats(userId: string, userRoleId?: number) {
+  const isGlobalAdmin = userRoleId === 1 || userRoleId === 2 || userRoleId === 3;
 
-  const [properties, recentTenants] = await Promise.all([
-    // Daftar Properti Kos milik koordinator
-    db.select({
+  const propertiesWhere = isGlobalAdmin
+    ? eq(schema.rentalProperties.isActive, true)
+    : and(
+        eq(schema.rentalProperties.coordinatorUserId, userId),
+        eq(schema.rentalProperties.isActive, true)
+      );
+
+  const properties = await db
+    .select({
       id: schema.rentalProperties.id,
       name: schema.rentalProperties.name,
-      dwellingId: schema.rentalProperties.dwellingId,
-      contactPerson: schema.rentalProperties.contactPerson,
-      phone: schema.rentalProperties.phone,
       totalRooms: schema.rentalProperties.totalRooms,
       blockNumber: schema.dwellings.blockNumber,
       houseNumber: schema.dwellings.houseNumber,
+      type: schema.dwellings.type,
     })
     .from(schema.rentalProperties)
     .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
-    .where(sql`${schema.rentalProperties.dwellingId} IN ${dwellingIds} AND ${schema.rentalProperties.isActive} = true`),
+    .where(propertiesWhere);
 
-    // Penyewa Terbaru
-    db.select({
+  if (properties.length === 0) {
+    return {
+      summary: {
+        totalProperties: 0,
+        totalRooms: 0,
+        occupiedRooms: 0,
+        vacantRooms: 0,
+        occupancyRate: 0,
+        pendingVerifications: 0,
+        totalActiveResidents: 0,
+      },
+      propertyBreakdown: [],
+      pendingQueue: [],
+    };
+  }
+
+  const propertyIds = properties.map((p) => p.id);
+
+  const activeContracts = await db
+    .select({
       id: schema.rentalContracts.id,
-      name: sql<string>`COALESCE(${schema.rentalContracts.individualName}, ${schema.users.name}, 'Penyewa')`,
-      propertyName: schema.rentalProperties.name,
+      rentalPropertyId: schema.rentalContracts.rentalPropertyId,
       roomNumber: schema.rentalContracts.roomNumber,
+      tenantType: schema.rentalContracts.tenantType,
+      individualName: schema.rentalContracts.individualName,
+      individualNik: schema.rentalContracts.individualNik,
+      individualPhone: schema.rentalContracts.individualPhone,
+      individualKtpFile: schema.rentalContracts.individualKtpFile,
       checkInDate: schema.rentalContracts.checkInDate,
-      phone: sql<string | null>`COALESCE(${schema.rentalContracts.individualPhone}, ${schema.users.phone})`,
+      userStatus: schema.users.status,
+      userName: schema.users.name,
+      propertyName: schema.rentalProperties.name,
     })
     .from(schema.rentalContracts)
     .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
     .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
-    .where(sql`${schema.rentalProperties.dwellingId} IN ${dwellingIds} AND ${schema.rentalContracts.isActive} = true`)
-    .orderBy(desc(schema.rentalContracts.checkInDate))
-    .limit(5),
-  ]);
+    .where(
+      and(
+        inArray(schema.rentalContracts.rentalPropertyId, propertyIds),
+        eq(schema.rentalContracts.isActive, true)
+      )
+    );
 
-  const totalProps = properties.length;
-  let totalRms = 0;
-  properties.forEach((p) => {
-    totalRms += p.totalRooms || 0;
+  const totalProperties = properties.length;
+  const totalRooms = properties.reduce((sum, p) => sum + (p.totalRooms || 0), 0);
+
+  const occupiedRoomSet = new Set<string>();
+  activeContracts.forEach((c) => {
+    if (c.roomNumber) {
+      occupiedRoomSet.add(`${c.rentalPropertyId}-${c.roomNumber}`);
+    }
   });
 
-  const occupiedRms = recentTenants.length;
-  const availRms = Math.max(0, totalRms - occupiedRms);
-  const occPct = totalRms > 0 ? Math.round((occupiedRms / totalRms) * 100) : 0;
+  const occupiedRooms = occupiedRoomSet.size;
+  const vacantRooms = Math.max(0, totalRooms - occupiedRooms);
+  const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+  const totalActiveResidents = activeContracts.length;
+
+  const pendingContracts = activeContracts.filter((c) => c.userStatus === 'pending');
+  const pendingVerifications = pendingContracts.length;
+
+  const propertyBreakdown = properties.map((p) => {
+    const propContracts = activeContracts.filter((c) => c.rentalPropertyId === p.id);
+    const propOccupiedSet = new Set<string>();
+    propContracts.forEach((c) => {
+      if (c.roomNumber) propOccupiedSet.add(c.roomNumber);
+    });
+
+    const propTotalRooms = p.totalRooms || 0;
+    const propOccupiedRooms = propOccupiedSet.size;
+    const propVacantRooms = Math.max(0, propTotalRooms - propOccupiedRooms);
+    const propOccupancyRate = propTotalRooms > 0 ? Math.round((propOccupiedRooms / propTotalRooms) * 100) : 0;
+
+    return {
+      id: p.id,
+      name: p.name,
+      address: `Blok ${p.blockNumber} No. ${p.houseNumber}`,
+      type: p.type || 'kos',
+      totalRooms: propTotalRooms,
+      occupiedRooms: propOccupiedRooms,
+      vacantRooms: propVacantRooms,
+      occupancyRate: propOccupancyRate,
+    };
+  });
+
+  const pendingQueue = pendingContracts.map((c) => ({
+    id: c.id,
+    name: c.individualName || c.userName || 'Penyewa',
+    nik: c.individualNik || '-',
+    tenantType: c.tenantType === 'family' ? ('keluarga' as const) : ('perorangan' as const),
+    roomNumber: c.roomNumber,
+    checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
+    verificationStatus: 'pending' as const,
+    ktpFile: c.individualKtpFile || null,
+    propertyName: c.propertyName,
+  }));
 
   return {
     summary: {
-      totalProperties: totalProps,
-      totalRooms: totalRms,
-      occupiedRooms: occupiedRms,
-      availableRooms: availRms,
-      occupancyPercent: occPct,
+      totalProperties,
+      totalRooms,
+      occupiedRooms,
+      vacantRooms,
+      occupancyRate,
+      pendingVerifications,
+      totalActiveResidents,
     },
-    propertiesList: properties.map((p) => ({
-      id: p.id,
-      name: p.name,
-      blockNumber: p.blockNumber,
-      houseNumber: p.houseNumber,
-      totalRooms: p.totalRooms,
-      occupiedRooms: 0,
-      contactPerson: p.contactPerson,
-      phone: p.phone,
-    })),
-    recentTenants: recentTenants.map((t) => ({
-      id: t.id,
-      name: t.name,
-      propertyName: t.propertyName,
-      roomNumber: t.roomNumber || '-',
-      checkInDate: t.checkInDate ? String(t.checkInDate) : new Date().toISOString(),
-      phone: t.phone || null,
-    })),
+    propertyBreakdown,
+    pendingQueue,
   };
 }
 
