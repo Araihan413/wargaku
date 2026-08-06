@@ -158,6 +158,13 @@ const sidebarItems: SidebarItem[] = [
     requiresVerification: true,
   },
   {
+    title: "Status & Histori Iuran",
+    icon: Wallet,
+    href: "/dashboard/my-fees",
+    permission: "view-my-fees",
+    requiresVerification: true,
+  },
+  {
     title: "Aset Properti Sewa",
     icon: Building2,
     href: "/dashboard/my-properties",

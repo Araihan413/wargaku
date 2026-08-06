@@ -93,6 +93,7 @@ async function main() {
     { id: 21, slug: 'manage-family-profile', name: 'Kelola Anggota Keluarga & Biodata', module: 'warga', description: 'Mengelola data anggota keluarga & biodata KK' },
     { id: 22, slug: 'view-neighborhood-map', name: 'Peta Hunian & Tetangga', module: 'warga', description: 'Melihat peta hunian dan direktori warga tetangga' },
     { id: 23, slug: 'manage-my-properties', name: 'Aset Properti Sewa', module: 'warga', description: 'Mengolah pendaftaran aset sewa pribadi dan memantau statusnya' },
+    { id: 24, slug: 'view-my-fees', name: 'Status & Histori Iuran Saya', module: 'warga', description: 'Memantau status kelunasan dan riwayat pembayaran iuran warga' },
   ];
 
   for (const perm of permissionsData) {
@@ -104,12 +105,12 @@ async function main() {
   const rolePermissionsData: { id: number; roleId: number; permissionId: number }[] = [];
   let rpId = 1;
 
-  // Super Admin (1 - 20)
+  // Super Admin (1 - 20, 24)
   for (let p = 1; p <= 20; p++) {
     rolePermissionsData.push({ id: rpId++, roleId: 1, permissionId: p });
   }
 
-  // Ketua RT (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+  // Ketua RT (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 24)
   const rtPerms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
   for (const p of rtPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 2, permissionId: p });
@@ -121,7 +122,7 @@ async function main() {
     rolePermissionsData.push({ id: rpId++, roleId: 3, permissionId: p });
   }
 
-  // Bendahara (7, 8, 9, 10, 11)
+  // Bendahara (7, 8, 9, 10, 11, 24)
   const bendPerms = [7, 8, 9, 10, 11];
   for (const p of bendPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 4, permissionId: p });
@@ -133,8 +134,8 @@ async function main() {
     rolePermissionsData.push({ id: rpId++, roleId: 5, permissionId: p });
   }
 
-  // Warga (21, 22, 23)
-  const wargaPerms = [21, 22, 23];
+  // Warga (21, 22, 23, 24)
+  const wargaPerms = [21, 22, 23, 24];
   for (const p of wargaPerms) {
     rolePermissionsData.push({ id: rpId++, roleId: 6, permissionId: p });
   }

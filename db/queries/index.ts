@@ -17,6 +17,7 @@ export * from './property/tenant.queries';
 // 4. Modul Keuangan & Iuran
 export * from './finance/cash.queries';
 export * from './finance/fee.queries';
+export * from './finance/warga-fee.queries';
 
 // 5. Modul Komunikasi & Pengaduan
 export * from './communication/announcement.queries';

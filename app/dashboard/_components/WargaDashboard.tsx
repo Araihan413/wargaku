@@ -10,6 +10,7 @@ import { WargaAnnouncementsWidget, AnnouncementItem } from "./warga/WargaAnnounc
 import { WargaActivitiesWidget, ActivityItem } from "./warga/WargaActivitiesWidget";
 import { WargaEmergencyContacts, OfficerContact } from "./warga/WargaEmergencyContacts";
 import { WargaStatsWidget } from "./warga/WargaStatsWidget";
+import { WargaFeeWidget } from "./warga/WargaFeeWidget";
 
 interface WargaDashboardData {
   user: {
@@ -188,6 +189,9 @@ export function WargaDashboard() {
 
       {/* 2. Quick Actions */}
       <WargaQuickActions isVerified={isVerified} />
+
+      {/* 2.2 Status Iuran Warga */}
+      {isVerified && <WargaFeeWidget />}
 
       {/* 2.5 Detail Rumah Tinggal */}
       {isVerified && data.dwelling && (
