@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
-import { listPermissions, createPermission, getRolePermissionMatrix, updateRolePermissions } from '@/db/queries/system/permission.queries';
+import { getRolePermissionMatrix, updateRolePermissions } from '@/db/queries/system/permission.queries';
 
 export async function GET() {
   try {

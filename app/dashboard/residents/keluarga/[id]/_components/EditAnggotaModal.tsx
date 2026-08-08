@@ -38,7 +38,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
     setKtpFile(member ? member.ktpFile || null : null);
   }
 
-  const isLocked = familyVerificationStatus === "verified" || familyVerificationStatus === "pending";
+  const isLocked = false; // RT/Admin has full access to edit everything
 
   const {
     register,
@@ -152,16 +152,6 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
         {/* Content */}
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto pr-1.5 pb-2 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {/* Locked Info Banner */}
-            {isLocked && (
-              <div className="p-4 bg-emerald-50/70 border border-emerald-100 rounded-2xl mb-2 space-y-1 text-left">
-                <span className="text-xs font-bold text-emerald-700 block">Data Keluarga Terverifikasi/Pending RT:</span>
-                <p className="text-xs text-emerald-600 leading-relaxed">
-                  Data identitas utama dikunci. Hubungi RT atau gunakan menu &quot;Ajukan Perubahan Data&quot; di halaman KK untuk membukanya.
-                </p>
-              </div>
-            )}
-
             {/* Name */}
             <FormField
               id="name"
@@ -252,7 +242,6 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                 registerProps={register("birthPlace")}
                 icon={User}
                 error={errors.birthPlace?.message}
-                readOnly={isLocked}
               />
 
               {/* Birth Date */}
@@ -264,7 +253,6 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                 registerProps={register("birthDate")}
                 icon={Calendar}
                 error={errors.birthDate?.message}
-                readOnly={isLocked}
               />
             </div>
 

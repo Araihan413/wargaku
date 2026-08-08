@@ -1,6 +1,7 @@
 import React from "react";
 import { Edit2, Trash2, FileText, ExternalLink, ArrowUpRight } from "lucide-react";
 import { CashTransactionItem } from "../../types";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface IncomeTableProps {
   items: CashTransactionItem[];
@@ -98,16 +99,16 @@ export const IncomeTable: React.FC<IncomeTableProps> = ({
 
                   <td className="py-3.5 px-4 text-center">
                     {item.receiptFile ? (
-                      <a
-                        href={item.receiptFile}
-                        target="_blank"
-                        rel="noreferrer"
+                      <SecureDocumentLink
+                        type="receipt"
+                        recordId={item.id}
+                        mode="view"
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-border bg-white text-[10px] font-bold text-gray-heading-main hover:bg-gray-sidebar-hover transition cursor-pointer"
                       >
                         <FileText className="h-3.5 w-3.5 text-primary" />
                         <span>Bukti</span>
                         <ExternalLink className="h-2.5 w-2.5 text-gray-placeholder" />
-                      </a>
+                      </SecureDocumentLink>
                     ) : (
                       <span className="text-[10px] text-gray-placeholder font-medium">-</span>
                     )}

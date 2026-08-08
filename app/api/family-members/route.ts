@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
-import { listFamilyMembers, createFamilyMember, updateFamilyMember, deleteFamilyMember, getFamilyMemberById } from '@/db/queries/population/family-member.queries';
+import { listFamilyMembers, createFamilyMember } from '@/db/queries/population/family-member.queries';
 import { getFamilyById } from '@/db/queries/population/family.queries';
 import { createWargaSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';

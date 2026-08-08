@@ -130,7 +130,9 @@ export function WargaDashboard() {
 
   const downloadQRCode = async (token: string, block: string, houseNum: string) => {
     try {
-      const url = await QRCode.toDataURL(token, { width: 400, margin: 2 });
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://wargaku.app";
+      const qrUrl = `${origin}/scan-qr?token=${encodeURIComponent(token)}`;
+      const url = await QRCode.toDataURL(qrUrl, { width: 400, margin: 2 });
       const link = document.createElement("a");
       link.href = url;
       link.download = `QR_Rumah_Blok_${block}_No_${houseNum}.png`;

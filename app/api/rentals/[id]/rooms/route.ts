@@ -33,7 +33,6 @@ export async function GET(
 
     const rooms = await getRentalPropertyRooms(propertyId, {
       totalRooms: property.totalRooms,
-      roomList: property.roomList,
     });
 
     return NextResponse.json(rooms);

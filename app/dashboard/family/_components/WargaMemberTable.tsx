@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 import { WargaFamilyMember } from "../types";
 import {
   User,
@@ -13,7 +14,6 @@ import {
   Lock,
   Download,
 } from "lucide-react";
-import { downloadFileAsPdf } from "@/lib/download-pdf-helper";
 
 interface WargaMemberTableProps {
   members: WargaFamilyMember[];
@@ -149,32 +149,29 @@ export const WargaMemberTable: React.FC<WargaMemberTableProps> = ({
                       <td className="py-3.5 px-4">
                         {member.ktpFile ? (
                           <div className="flex items-center gap-1.5">
-                            <a
-                              href={member.ktpFile}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                            <SecureDocumentLink
+                              type="ktp-member"
+                              recordId={member.id}
+                              mode="view"
+                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer"
                               title="Lihat Berkas KTP"
                             >
                               <FileCheck className="h-3.5 w-3.5 text-emerald-600" />
                               <span>KTP</span>
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                downloadFileAsPdf(
-                                  member.ktpFile || "",
-                                  `Scan_KTP_${member.nik}`,
-                                  `SCAN KTP - ${member.name.toUpperCase()}`
-                                )
-                              }
+                            </SecureDocumentLink>
+                            <SecureDocumentLink
+                              type="ktp-member"
+                              recordId={member.id}
+                              mode="download"
+                              downloadFilename={`Scan_KTP_${member.nik}.pdf`}
                               className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
                               title="Unduh KTP sebagai PDF"
                             >
                               <Download className="h-3.5 w-3.5 text-blue-600" />
                               <span>PDF</span>
-                            </button>
+                            </SecureDocumentLink>
                           </div>
+
                         ) : (
                           <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
                             <FileX className="h-3.5 w-3.5 text-amber-600" />

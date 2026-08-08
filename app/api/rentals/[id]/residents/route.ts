@@ -6,7 +6,7 @@ import { getRentalPropertyById } from '@/db/queries/property/rental-property.que
 import {
   listTenantContracts,
   createTenantContract,
-  createFamilyTenantWithUser,
+  createActivationTokenAndSendEmail,
 } from '@/db/queries/property/tenant.queries';
 import { createRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
@@ -97,40 +97,74 @@ export async function POST(
     let contractId: number;
 
     if (validatedData.tenantType === 'keluarga' || validatedData.tenantType === 'family') {
-      if (!validatedData.email) {
-        return NextResponse.json({ error: 'Email Kepala Keluarga wajib diisi untuk tipe sewa keluarga' }, { status: 400 });
-      }
-
-      const requestOrigin = request.headers.get('origin') || undefined;
-      contractId = await createFamilyTenantWithUser(
-        {
+      // === CASE 1: Keluarga Terdaftar (familyId langsung dari Autocomplete) ===
+      if (validatedData.familyId) {
+        contractId = await createTenantContract({
           rentalPropertyId: propertyId,
           roomNumber: validatedData.roomNumber || '',
           tenantType: 'family',
-          name: validatedData.name,
-          email: validatedData.email,
-          nik: validatedData.nik,
-          phone: validatedData.phone,
-          dwellingId: property.dwellingId,
+          familyId: validatedData.familyId,
+          userId: validatedData.userId ?? null,
+          individualName: validatedData.name,
+          individualNik: validatedData.nik,
+          individualPhone: validatedData.phone,
+          individualKtpFile: validatedData.ktpFile,
           checkInDate,
-        },
-        requestOrigin
-      );
-    } else {
+        });
+
+        return NextResponse.json({
+          message: 'Penyewa Keluarga Terdaftar berhasil dihubungkan ke kamar',
+          id: contractId,
+        }, { status: 201 });
+      }
+
+      // === CASE 2: Keluarga Baru (Email Undangan Brevo) ===
+      if (!validatedData.email) {
+        return NextResponse.json({ error: 'Email Kepala Keluarga wajib diisi untuk tipe sewa keluarga baru' }, { status: 400 });
+      }
+
       contractId = await createTenantContract({
         rentalPropertyId: propertyId,
         roomNumber: validatedData.roomNumber || '',
-        tenantType: 'individual',
+        tenantType: 'family',
         individualName: validatedData.name,
         individualNik: validatedData.nik,
-        individualGender: validatedData.gender,
-        individualBirthPlace: validatedData.birthPlace,
-        individualBirthDate: validatedData.birthDate,
         individualPhone: validatedData.phone,
         individualKtpFile: validatedData.ktpFile,
         checkInDate,
       });
+
+      const requestOrigin = request.headers.get('origin') || undefined;
+      await createActivationTokenAndSendEmail({
+        email: validatedData.email,
+        nik: validatedData.nik,
+        rentalContractId: contractId,
+        propertyName: property.name,
+        roomNumber: validatedData.roomNumber,
+        userName: validatedData.name,
+        requestOrigin,
+      });
+
+      return NextResponse.json({
+        message: 'Penyewa Keluarga berhasil didaftarkan! Email undangan aktivasi telah dikirim.',
+        id: contractId,
+      }, { status: 201 });
     }
+
+    // === PERORANGAN (Individu) ===
+    contractId = await createTenantContract({
+      rentalPropertyId: propertyId,
+      roomNumber: validatedData.roomNumber || '',
+      tenantType: 'individual',
+      individualName: validatedData.name,
+      individualNik: validatedData.nik,
+      individualGender: validatedData.gender,
+      individualBirthPlace: validatedData.birthPlace,
+      individualBirthDate: validatedData.birthDate,
+      individualPhone: validatedData.phone,
+      individualKtpFile: validatedData.ktpFile,
+      checkInDate,
+    });
 
     return NextResponse.json({ message: 'Penghuni sewa berhasil didaftarkan', id: contractId }, { status: 201 });
   } catch (error: any) {
@@ -141,3 +175,4 @@ export async function POST(
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
+

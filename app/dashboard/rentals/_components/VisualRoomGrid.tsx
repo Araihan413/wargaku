@@ -175,7 +175,7 @@ export const VisualRoomGrid: React.FC<VisualRoomGridProps> = ({
                     </span>
                   ) : room.status !== "vacant" ? (
                     <span className="flex items-center gap-1 font-medium text-emerald-700">
-                      <CheckCircle2 className="h-3 w-3" /> Terverifikasi RT
+                      <CheckCircle2 className="h-3 w-3" /> Terverifikasi
                     </span>
                   ) : (
                     <span className="text-gray-placeholder text-[10px]">Belum Ada Penyewa</span>

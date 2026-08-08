@@ -1,6 +1,8 @@
 import React from "react";
-import { Phone, Calendar, MapPin, UserPlus, LogOut, Edit, FileText } from "lucide-react";
+import { Phone, Calendar, MapPin, UserPlus, LogOut, Edit, FileText, Mail, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { ActiveTenantInfo } from "../types";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface ActiveTenantsTabProps {
   roomNumber: string;
@@ -8,7 +10,8 @@ interface ActiveTenantsTabProps {
   onOpenCheckIn: () => void;
   onOpenEdit: (resident: ActiveTenantInfo) => void;
   onOpenCheckOut: (resident: ActiveTenantInfo) => void;
-  onOpenReactivate: (resident: ActiveTenantInfo) => void;
+  onOpenResubmit: (resident: ActiveTenantInfo) => void;
+  onOpenDelete: (resident: ActiveTenantInfo) => void;
 }
 
 export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
@@ -17,6 +20,8 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
   onOpenCheckIn,
   onOpenEdit,
   onOpenCheckOut,
+  onOpenResubmit,
+  onOpenDelete,
 }) => {
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "-";
@@ -68,13 +73,13 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white transition-all cursor-pointer"
         >
           <UserPlus className="h-3.5 w-3.5" />
-          <span>+ Tambah Penyewa Kongsi</span>
+          <span>Tambah Penyewa</span>
         </button>
       </div>
 
       {/* Resident Cards */}
       <div className="space-y-4">
-        {residents.map((r, idx) => (
+        {residents.map((r) => (
           <div
             key={r.id}
             className="rounded-2xl border border-gray-border bg-gray-card p-5 space-y-4 shadow-sm relative"
@@ -136,20 +141,49 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
                 <div className="col-span-1 sm:col-span-2 flex items-center gap-2 text-gray-secondary-text">
                   <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
                   <span>KTP: </span>
-                  <a
-                    href={r.ktpFile}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-semibold text-primary hover:underline"
+                  <SecureDocumentLink
+                    type="ktp-tenant"
+                    recordId={r.id}
+                    mode="view"
+                    className="text-xs font-semibold text-primary hover:underline cursor-pointer"
                   >
                     Lihat Scan KTP
-                  </a>
+                  </SecureDocumentLink>
                 </div>
               )}
             </div>
 
             {/* Card Action Buttons */}
-            <div className="pt-3 border-t border-gray-border flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-gray-border flex flex-wrap items-center justify-end gap-2">
+              {r.tenantType === "keluarga" && !r.hasActivated && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const toastId = toast.loading("Mengirim ulang email undangan...");
+                    try {
+                      const res = await fetch("/api/rentals/resend-invitation", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ contractId: r.id }),
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        toast.success(data.message || "Email undangan berhasil dikirim ulang via Brevo.", { id: toastId });
+                      } else {
+                        toast.error(data.error || "Gagal mengirim email undangan.", { id: toastId });
+                      }
+                    } catch (err: any) {
+                      toast.error(err.message || "Terjadi kesalahan koneksi.", { id: toastId });
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                  title="Kirim ulang link aktivasi via Brevo email"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  <span>Kirim Ulang Email</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => onOpenEdit(r)}
@@ -159,10 +193,33 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
                 <span>Edit Data</span>
               </button>
 
+              {r.verificationStatus === 'rejected' && (
+                <button
+                  type="button"
+                  onClick={() => onOpenResubmit(r)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-blue-700 cursor-pointer transition-colors"
+                  title="Kirim ulang verifikasi setelah data diperbaiki"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  <span>Kirim Ulang</span>
+                </button>
+              )}
+
+              {r.verificationStatus !== "verified" && (
+                <button
+                  type="button"
+                  onClick={() => onOpenDelete(r)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Hapus Data</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => onOpenCheckOut(r)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-error-20 text-error border border-red-200 text-xs font-semibold hover:bg-red-100 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors cursor-pointer"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 <span>Check-Out</span>

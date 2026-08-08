@@ -42,6 +42,7 @@ export const CoordinatorSearchSelect: React.FC<CoordinatorSearchSelectProps> = (
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<"bottom" | "top">("bottom");
 
   const [prevSelectedUserId, setPrevSelectedUserId] = useState(selectedUserId);
   const [prevSelectedUserName, setPrevSelectedUserName] = useState(selectedUserName);
@@ -105,6 +106,22 @@ export const CoordinatorSearchSelect: React.FC<CoordinatorSearchSelectProps> = (
     };
   }, [selectedUser, selectedUserId, selectedUserName]);
 
+  // Handle dynamic positioning (top vs bottom)
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const menuHeight = 224; // approx max-h-56 (14rem)
+
+      if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        setMenuPosition("top");
+      } else {
+        setMenuPosition("bottom");
+      }
+    }
+  }, [isOpen]);
+
   const handleSelectOption = (user: UserOption) => {
     onSelect(user);
     setSearchQuery(user.name);
@@ -153,7 +170,11 @@ export const CoordinatorSearchSelect: React.FC<CoordinatorSearchSelectProps> = (
       </div>
 
       {isOpen && !isLoading && (
-        <div className="absolute left-0 z-50 w-full rounded-xl border border-gray-border bg-gray-card p-1.5 shadow-xl max-h-56 overflow-y-auto outline-none animate-in fade-in duration-150 mt-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div 
+          className={`absolute left-0 z-50 w-full rounded-xl border border-gray-border bg-gray-card p-1.5 shadow-xl max-h-56 overflow-y-auto outline-none animate-in fade-in duration-150 ${
+            menuPosition === "top" ? "bottom-full mb-2" : "mt-2"
+          } [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full`}
+        >
           {searchQuery.trim() && (
             <div
               onClick={handleClear}

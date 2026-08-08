@@ -8,6 +8,7 @@ import {
   createTenantContract,
   createFamilyTenantWithUser,
   terminateTenantContract,
+  getTenantContractById,
 } from '@/db/queries/property/tenant.queries';
 import { createRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
@@ -34,6 +35,23 @@ export async function GET(request: Request) {
     }
 
     const propertyId = propertyIdParam ? Number(propertyIdParam) : 0;
+
+    // CEL-04: Validasi kepemilikan / RBAC sebelum kembalikan data penyewa
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isGlobalOfficer = await hasPermission(effectiveRoleId, 'manage-boarding');
+    const hasViewPerm = await hasPermission(effectiveRoleId, 'view-residents');
+
+    if (!isGlobalOfficer && !hasViewPerm && propertyId > 0) {
+      // Warga/koordinator hanya boleh lihat properti miliknya sendiri
+      const property = await getRentalPropertyById(propertyId);
+      const isCoordinator = property?.coordinatorUserId === session.user.id;
+      const isOwner = property?.dwelling?.ownerUserId === session.user.id;
+
+      if (!isCoordinator && !isOwner) {
+        return NextResponse.json({ error: 'Tidak memiliki izin akses ke data penghuni properti ini' }, { status: 403 });
+      }
+    }
+
     const result = await listTenantContracts({
       rentalPropertyId: propertyId,
       limit,
@@ -149,6 +167,26 @@ export async function DELETE(request: Request) {
     }
 
     const contractId = Number(contractIdParam);
+
+    // CEL-05: Validasi kepemilikan sebelum terminate kontrak
+    const contract = await getTenantContractById(contractId);
+    if (!contract) {
+      return NextResponse.json({ error: 'Kontrak sewa tidak ditemukan' }, { status: 404 });
+    }
+
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isGlobalOfficer = await hasPermission(effectiveRoleId, 'manage-boarding');
+
+    if (!isGlobalOfficer) {
+      const property = await getRentalPropertyById(contract.rentalPropertyId);
+      const isCoordinator = property?.coordinatorUserId === session.user.id;
+      const isOwner = property?.dwelling?.ownerUserId === session.user.id;
+
+      if (!isCoordinator && !isOwner) {
+        return NextResponse.json({ error: 'Tidak memiliki izin untuk mengakhiri kontrak sewa ini' }, { status: 403 });
+      }
+    }
+
     await terminateTenantContract(contractId);
 
     return NextResponse.json({ message: 'Kontrak sewa berhasil diakhiri' });

@@ -392,7 +392,7 @@ export default function SmartGroupsPage() {
                       <td className="py-3 px-4 font-bold">{c.gender}</td>
                       <td className="py-3 px-4 font-bold">{c.age !== null ? `${c.age} th` : "-"}</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-1 rounded-lg bg-gray-100 border border-gray-border text-[11px] font-bold text-gray-heading-main">
+                        <span className="font-bold text-gray-heading-main">
                           {c.relationship.replace(/_/g, " ")}
                         </span>
                       </td>

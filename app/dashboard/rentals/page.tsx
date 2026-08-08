@@ -37,16 +37,20 @@ function RentalsContent() {
   // Modals state
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
-  const [checkInInitialRoom, setCheckInInitialRoom] = useState<string>("");
+  const [checkInInitialRoom] = useState<string>("");
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
   const [targetCheckOutTenant, setTargetCheckOutTenant] = useState<ActiveTenantInfo | null>(null);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [targetEditTenant, setTargetEditTenant] = useState<ActiveTenantInfo | null>(null);
 
-  const [isReactivateConfirmOpen, setIsReactivateConfirmOpen] = useState(false);
-  const [targetReactivateTenant, setTargetReactivateTenant] = useState<any | null>(null);
-  const [isReactivating, setIsReactivating] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [targetDeleteTenant, setTargetDeleteTenant] = useState<ActiveTenantInfo | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [isResubmitConfirmOpen, setIsResubmitConfirmOpen] = useState(false);
+  const [targetResubmitTenant, setTargetResubmitTenant] = useState<ActiveTenantInfo | null>(null);
+  const [isResubmitting, setIsResubmitting] = useState(false);
 
   // 1. Fetch managed properties on mount
   useEffect(() => {
@@ -68,10 +72,10 @@ function RentalsContent() {
             id: p.id,
             name: p.name,
             dwellingId: p.dwellingId,
-            blockNumber: p.dwelling?.blockNumber || "-",
-            houseNumber: p.dwelling?.houseNumber || "-",
-            type: p.dwelling?.type || "kos",
-            qrToken: p.dwelling?.qrToken,
+            blockNumber: p.blockNumber || "-",
+            houseNumber: p.houseNumber || "-",
+            type: p.dwellingType || "kos",
+            qrToken: p.qrToken || undefined,
             totalRooms: p.totalRooms || 0,
             contactPerson: p.contactPerson,
             phone: p.phone,
@@ -180,19 +184,12 @@ function RentalsContent() {
     setSelectedRoomNumber(null);
   };
 
-  // Check-In Handlers
-  const handleOpenCheckInForRoom = (roomNum?: string) => {
-    handleCloseDrawer();
-    setCheckInInitialRoom(roomNum || selectedRoomNumber || "");
-    setIsCheckInOpen(true);
-  };
-
   // Check-Out Handlers
-  const handleOpenCheckOut = (tenant: ActiveTenantInfo) => {
+  const handleOpenCheckOut = useCallback((tenant: ActiveTenantInfo) => {
     handleCloseDrawer();
     setTargetCheckOutTenant(tenant);
     setIsCheckOutOpen(true);
-  };
+  }, []);
 
   // Edit Handlers
   const handleOpenEdit = (tenant: ActiveTenantInfo) => {
@@ -201,34 +198,34 @@ function RentalsContent() {
     setIsEditOpen(true);
   };
 
-  // Reactivate Handlers
-  const handleOpenReactivate = (tenantHistory: any) => {
+  // Resubmit Handler
+  const handleOpenResubmit = useCallback((tenant: ActiveTenantInfo) => {
     handleCloseDrawer();
-    setTargetReactivateTenant(tenantHistory);
-    setIsReactivateConfirmOpen(true);
-  };
+    setTargetResubmitTenant(tenant);
+    setIsResubmitConfirmOpen(true);
+  }, []);
 
-  const executeReactivate = async () => {
-    if (!targetReactivateTenant) return;
-    setIsReactivating(true);
+  const executeResubmit = async () => {
+    if (!targetResubmitTenant) return;
+    setIsResubmitting(true);
+    const toastId = toast.loading("Mengirim ulang verifikasi...");
     try {
-      const res = await fetch(`/api/rental-residents/${targetReactivateTenant.id}/reactivate`, {
+      const res = await fetch(`/api/rental-residents/${targetResubmitTenant.id}/resubmit`, {
         method: "POST",
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message || "Penyewa berhasil diaktifkan kembali.");
-        setIsReactivateConfirmOpen(false);
-        setTargetReactivateTenant(null);
-        if (selectedProperty) await fetchRooms(selectedProperty.id);
+        toast.success(data.message || "Verifikasi berhasil diajukan ulang", { id: toastId });
+        setIsResubmitConfirmOpen(false);
+        setTargetResubmitTenant(null);
+        if (selectedProperty) fetchRooms(selectedProperty.id);
       } else {
-        toast.error(data.error || "Gagal mengaktifkan kembali penyewa.");
+        toast.error(data.error || "Gagal mengirim ulang verifikasi", { id: toastId });
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Terjadi kesalahan sistem saat mengembalikan penyewa.");
+    } catch (err: any) {
+      toast.error(err.message || "Terjadi kesalahan koneksi", { id: toastId });
     } finally {
-      setIsReactivating(false);
+      setIsResubmitting(false);
     }
   };
 
@@ -323,10 +320,14 @@ function RentalsContent() {
         onClose={handleCloseDrawer}
         room={selectedRoomObj}
         propertyId={selectedProperty?.id || 0}
-        onOpenCheckIn={() => handleOpenCheckInForRoom()}
+        onOpenCheckIn={() => setIsCheckInOpen(true)}
         onOpenEdit={handleOpenEdit}
         onOpenCheckOut={handleOpenCheckOut}
-        onOpenReactivate={handleOpenReactivate}
+        onOpenResubmit={handleOpenResubmit}
+        onOpenDelete={(res) => {
+          setTargetDeleteTenant(res);
+          setIsDeleteConfirmOpen(true);
+        }}
       />
 
       {/* Modal QR Code Properti */}
@@ -352,45 +353,85 @@ function RentalsContent() {
       )}
 
       {/* Modal Check-Out Penyewa */}
-      <CheckOutModal
-        isOpen={isCheckOutOpen}
-        onClose={() => {
-          setIsCheckOutOpen(false);
-          setTargetCheckOutTenant(null);
-        }}
-        onSuccess={() => {
-          if (selectedProperty) fetchRooms(selectedProperty.id);
-        }}
-        resident={targetCheckOutTenant}
-      />
+      {isCheckOutOpen && (
+        <CheckOutModal
+          isOpen={isCheckOutOpen}
+          onClose={() => {
+            setIsCheckOutOpen(false);
+            setTargetCheckOutTenant(null);
+          }}
+          onSuccess={() => {
+            if (selectedProperty) fetchRooms(selectedProperty.id);
+          }}
+          resident={targetCheckOutTenant}
+        />
+      )}
 
       {/* Modal Edit Data Penyewa */}
-      <EditResidentModal
-        isOpen={isEditOpen}
-        onClose={() => {
-          setIsEditOpen(false);
-          setTargetEditTenant(null);
-        }}
-        onSuccess={() => {
-          if (selectedProperty) fetchRooms(selectedProperty.id);
-        }}
-        resident={targetEditTenant}
-      />
+      {isEditOpen && (
+        <EditResidentModal
+          isOpen={isEditOpen}
+          onClose={() => {
+            setIsEditOpen(false);
+            setTargetEditTenant(null);
+          }}
+          onSuccess={() => {
+            if (selectedProperty) fetchRooms(selectedProperty.id);
+          }}
+          resident={targetEditTenant}
+          roomList={rooms.map((r) => r.roomNumber)}
+        />
+      )}
 
-      {/* Confirm Modal Reactivate Former Renter */}
+      {/* Confirm Modal Resubmit */}
       <ConfirmModal
-        isOpen={isReactivateConfirmOpen}
+        isOpen={isResubmitConfirmOpen}
         onClose={() => {
-          setIsReactivateConfirmOpen(false);
-          setTargetReactivateTenant(null);
+          setIsResubmitConfirmOpen(false);
+          setTargetResubmitTenant(null);
         }}
-        onConfirm={executeReactivate}
-        title="Aktifkan Kembali Penyewa"
-        description={`Apakah Anda yakin ingin mengaktifkan kembali penyewa "${targetReactivateTenant?.name}"? Status kependudukannya akan dikembalikan sebagai penyewa aktif.`}
-        confirmText="Ya, Aktifkan"
+        onConfirm={executeResubmit}
+        title="Kirim Ulang Verifikasi"
+        description={`Apakah Anda yakin ingin mengirim ulang verifikasi untuk "${targetResubmitTenant?.name}" ke RT? Pastikan data penyewa sudah diperbaiki.`}
+        confirmText="Ya, Kirim Ulang"
         cancelText="Batal"
         variant="primary"
-        isLoading={isReactivating}
+        isLoading={isResubmitting}
+      />
+
+      {/* Modal Confirm Delete */}
+      <ConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => {
+          setIsDeleteConfirmOpen(false);
+          setTargetDeleteTenant(null);
+        }}
+        onConfirm={async () => {
+          if (!targetDeleteTenant) return;
+          setIsDeleting(true);
+          const toastId = toast.loading("Menghapus data penyewa...");
+          try {
+            const res = await fetch(`/api/rental-residents/${targetDeleteTenant.id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (res.ok) {
+              toast.success("Data penyewa berhasil dihapus. Kamar kembali kosong.", { id: toastId });
+              setIsDeleteConfirmOpen(false);
+              setTargetDeleteTenant(null);
+              if (selectedProperty) fetchRooms(selectedProperty.id);
+            } else {
+              toast.error(data.error || "Gagal menghapus data penyewa", { id: toastId });
+            }
+          } catch (err: any) {
+            toast.error(err.message || "Terjadi kesalahan koneksi", { id: toastId });
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+        title="Hapus Data Penyewa"
+        description={`Apakah Anda yakin ingin membatalkan/menghapus secara permanen pendaftaran penyewa ${targetDeleteTenant?.name}? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus Permanen"
+        variant="danger"
+        isLoading={isDeleting}
       />
     </div>
   );

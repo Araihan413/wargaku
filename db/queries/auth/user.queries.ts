@@ -17,7 +17,8 @@ export interface ListUsersOptions {
   status?: 'pending' | 'active' | 'suspended';
   query?: string;
   withoutFamily?: boolean;
-  excludeExceptId?: string;
+  excludeExceptId?: string; // Abaikan pengecualian untuk ID tertentu
+  excludeRoleIds?: number[]; // Role ID yang ingin dikecualikan
 }
 
 export interface CreateUserInput {
@@ -70,6 +71,18 @@ export async function listUsers(options: ListUsersOptions = {}) {
       conditions.push(inArray(schema.users.id, matchedUserIds));
     } else {
       conditions.push(sql`1 = 0`); // no match
+    }
+  }
+
+  // Pengecualian berdasarkan role via user_roles
+  if (options.excludeRoleIds && options.excludeRoleIds.length > 0) {
+    const excludedUserRoleSubquery = await db
+      .select({ userId: schema.userRoles.userId })
+      .from(schema.userRoles)
+      .where(inArray(schema.userRoles.roleId, options.excludeRoleIds));
+    const excludedUserIds = excludedUserRoleSubquery.map((ur) => ur.userId);
+    if (excludedUserIds.length > 0) {
+      conditions.push(notInArray(schema.users.id, excludedUserIds));
     }
   }
 

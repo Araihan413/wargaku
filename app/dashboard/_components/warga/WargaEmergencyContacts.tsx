@@ -7,7 +7,7 @@ export interface OfficerContact {
   id: string;
   name: string;
   phone: string;
-  roleTitle: string;
+  role: string;
 }
 
 interface WargaEmergencyContactsProps {
@@ -52,7 +52,7 @@ export function WargaEmergencyContacts({ contacts }: WargaEmergencyContactsProps
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <span className="inline-block rounded-md bg-primary-100 dark:bg-primary-950 px-2 py-0.5 text-[10px] font-bold text-primary">
-                      {officer.roleTitle}
+                      {officer.role}
                     </span>
                     <h4 className="text-sm font-bold text-gray-heading-main mt-1">
                       {officer.name}

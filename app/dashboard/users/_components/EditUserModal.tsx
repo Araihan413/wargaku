@@ -30,7 +30,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   onSuccess,
   user,
   roles,
-  isSelf = false,
+  isSelf: _isSelf = false,
 }) => {
   const {
     register,

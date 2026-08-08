@@ -106,9 +106,6 @@ function ResidentsContent() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEditRenterOpen, setIsEditRenterOpen] = useState(false);
   const [selectedRenter, setSelectedRenter] = useState<RentalResidentItem | null>(null);
-  const [isReactivateRenterModalOpen, setIsReactivateRenterModalOpen] = useState(false);
-  const [selectedRenterForReactivate, setSelectedRenterForReactivate] = useState<RentalResidentItem | null>(null);
-  const [isReactivatingRenter, setIsReactivatingRenter] = useState(false);
 
   // Coordinator states
   const [coordinatorsList, setCoordinatorsList] = useState<CoordinatorItem[]>([]);
@@ -385,30 +382,6 @@ function ResidentsContent() {
     }
   };
 
-  const executeReactivateRenter = async () => {
-    if (!selectedRenterForReactivate) return;
-    setIsReactivatingRenter(true);
-    try {
-      const res = await fetch(`/api/rental-residents/${selectedRenterForReactivate.id}/reactivate`, {
-        method: "POST",
-      });
-
-      if (res.ok) {
-        toast.success("Penyewa berhasil diaktifkan kembali");
-        fetchRenters();
-        setIsReactivateRenterModalOpen(false);
-        setSelectedRenterForReactivate(null);
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Gagal mengaktifkan kembali penyewa");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Terjadi kesalahan sistem saat mengaktifkan kembali penyewa");
-    } finally {
-      setIsReactivatingRenter(false);
-    }
-  };
 
   const filteredCoordinators = useMemo(() => {
     const q = debouncedSearchQuery.trim().toLowerCase();
@@ -613,10 +586,6 @@ function ResidentsContent() {
             onCheckOut={(renter) => {
               setSelectedRenter(renter);
               setIsCheckOutOpen(true);
-            }}
-            onReactivate={(renter) => {
-              setSelectedRenterForReactivate(renter);
-              setIsReactivateRenterModalOpen(true);
             }}
             onEdit={(renter) => {
               setSelectedRenter(renter);
@@ -890,26 +859,6 @@ function ResidentsContent() {
         resident={selectedRenter}
       />
 
-      {/* Modal Dialog: Konfirmasi Aktifkan Kembali Penyewa */}
-      <ConfirmModal
-        isOpen={isReactivateRenterModalOpen}
-        onClose={() => {
-          setIsReactivateRenterModalOpen(false);
-          setSelectedRenterForReactivate(null);
-        }}
-        onConfirm={executeReactivateRenter}
-        title="Aktifkan Kembali Penyewa (Check-In)?"
-        description={
-          <p>
-            Apakah Anda yakin ingin mengaktifkan kembali penyewa <strong>{selectedRenterForReactivate?.name}</strong>?
-            Tindakan ini akan memulihkan status keaktifan penyewa dan akun terkait (jika ada).
-          </p>
-        }
-        confirmText="Ya, Aktifkan Kembali"
-        cancelText="Batal"
-        variant="primary"
-        isLoading={isReactivatingRenter}
-      />
 
       <DwellingDetailModal
         isOpen={isDetailDwellingOpen}

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { X, Loader2, LogOut } from "lucide-react";
 import { toast } from "sonner";
-import { CustomSelect } from "@/components/CustomSelect";
+
 
 interface CheckOutModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ interface CheckOutModalProps {
     id: number;
     name: string;
     roomNumber?: string | null;
+    checkInDate?: string;
   } | null;
 }
 
@@ -24,7 +25,6 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkOutDate, setCheckOutDate] = useState(new Date().toISOString().split("T")[0]);
-  const [inactiveReason, setInactiveReason] = useState<"pindah" | "meninggal">("pindah");
   const [notes, setNotes] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,7 +38,6 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           checkOutDate: new Date(checkOutDate),
-          inactiveReason,
           notes: notes || null,
         }),
       });
@@ -61,7 +60,6 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
 
   const handleClose = () => {
     setCheckOutDate(new Date().toISOString().split("T")[0]);
-    setInactiveReason("pindah");
     setNotes("");
     onClose();
   };
@@ -101,23 +99,12 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
             <input
               type="date"
               value={checkOutDate}
+              min={resident?.checkInDate ? resident.checkInDate.split('T')[0] : undefined}
               onChange={(e) => setCheckOutDate(e.target.value)}
               className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-xs text-gray-heading-main block focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               required
             />
           </div>
-
-          {/* Inactive Reason */}
-          <CustomSelect
-            value={inactiveReason}
-            onChange={(val) => setInactiveReason(val as "pindah" | "meninggal")}
-            options={[
-              { value: "pindah", label: "Selesai Sewa / Pindah" },
-              { value: "meninggal", label: "Meninggal Dunia" },
-            ]}
-            label="Alasan Penonaktifan"
-            required
-          />
 
           {/* Checkout Keterangan */}
           <div className="space-y-1.5">

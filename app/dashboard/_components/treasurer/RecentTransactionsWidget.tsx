@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowUpRight, ArrowDownRight, FileText, ExternalLink, History } from "lucide-react";
 import { RecentTransactionItem } from "./types";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface RecentTransactionsWidgetProps {
   transactions: RecentTransactionItem[];
@@ -103,16 +104,16 @@ export const RecentTransactionsWidget: React.FC<RecentTransactionsWidgetProps> =
 
                     <td className="py-3.5 px-4 text-center">
                       {t.receiptFile ? (
-                        <a
-                          href={t.receiptFile}
-                          target="_blank"
-                          rel="noreferrer"
+                        <SecureDocumentLink
+                          type="receipt"
+                          recordId={Number(t.id)}
+                          mode="view"
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-border bg-white text-[10px] font-bold text-gray-heading-main hover:bg-gray-sidebar-hover transition cursor-pointer"
                         >
                           <FileText className="h-3.5 w-3.5 text-primary" />
                           <span>Nota</span>
                           <ExternalLink className="h-2.5 w-2.5 text-gray-placeholder" />
-                        </a>
+                        </SecureDocumentLink>
                       ) : (
                         <span className="text-[10px] text-gray-placeholder font-medium">-</span>
                       )}

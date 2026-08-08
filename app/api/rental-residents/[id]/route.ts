@@ -7,6 +7,7 @@ import {
   updateTenantContract,
   deleteTenantContract,
 } from '@/db/queries/property/tenant.queries';
+import { getRentalPropertyById } from '@/db/queries/property/rental-property.queries';
 import { updateRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
@@ -70,15 +71,20 @@ export async function PUT(
     const body = await request.json();
     const validatedData: any = updateRentalResidentSchema.parse(body);
 
+    // Jika sudah terverifikasi, hanya boleh edit no kamar, no hp, dan catatan
+    const isVerified = existingContract.verificationStatus === 'verified';
+    
     await updateTenantContract(contractId, {
       roomNumber: validatedData.roomNumber,
-      individualName: validatedData.name,
-      individualNik: validatedData.nik,
-      individualGender: validatedData.gender,
       individualPhone: validatedData.phone,
-      individualKtpFile: validatedData.ktpFile,
-      checkInDate: validatedData.checkInDate,
       notes: validatedData.notes,
+      ...(isVerified ? {} : {
+        individualName: validatedData.name,
+        individualNik: validatedData.nik,
+        individualGender: validatedData.gender,
+        individualKtpFile: validatedData.ktpFile,
+        checkInDate: validatedData.checkInDate,
+      })
     });
 
     return NextResponse.json({ message: 'Data penyewa berhasil diperbarui' });
@@ -104,12 +110,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
-
     const { id } = await params;
     const contractId = Number(id);
 
@@ -120,6 +120,20 @@ export async function DELETE(
     const existingContract = await getTenantContractById(contractId);
     if (!existingContract) {
       return NextResponse.json({ error: 'Kontrak sewa tidak ditemukan' }, { status: 404 });
+    }
+
+    // Otorisasi Akses
+    const property = await getRentalPropertyById(existingContract.rentalPropertyId);
+    if (!property) {
+      return NextResponse.json({ error: 'Properti kos tidak ditemukan' }, { status: 404 });
+    }
+
+    const isCoordinator = session.user.id === property.coordinatorUserId;
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAdmin = await hasPermission(effectiveRoleId, 'manage-residents') || await hasPermission(effectiveRoleId, 'manage-boarding');
+
+    if (!isCoordinator && !isAdmin) {
+      return NextResponse.json({ error: 'Tidak memiliki izin akses untuk menghapus kontrak ini' }, { status: 403 });
     }
 
     await deleteTenantContract(contractId);

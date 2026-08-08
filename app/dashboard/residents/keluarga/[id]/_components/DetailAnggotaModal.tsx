@@ -1,6 +1,7 @@
 import React from "react";
 import { X, User, CreditCard, Calendar, Phone, Briefcase, GraduationCap, Landmark, FileText, Eye, AlertTriangle } from "lucide-react";
 import { FamilyMemberItem } from "../../../types";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface DetailAnggotaModalProps {
   isOpen: boolean;
@@ -246,15 +247,15 @@ export const DetailAnggotaModal: React.FC<DetailAnggotaModalProps> = ({
                     </div>
                   </div>
                   <div className="flex gap-2.5">
-                    <a
-                      href={member.ktpFile}
-                      target="_blank"
-                      rel="noreferrer"
+                    <SecureDocumentLink
+                      type="ktp-member"
+                      recordId={member.id}
+                      mode="view"
                       className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-bold text-gray-heading-main transition-all cursor-pointer shadow-sm"
                     >
                       <Eye className="h-4 w-4 text-gray-secondary-text" />
                       Lihat KTP
-                    </a>
+                    </SecureDocumentLink>
                   </div>
                 </div>
               );

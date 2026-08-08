@@ -17,36 +17,6 @@ interface EditResidentModalProps {
   roomList?: string[];
 }
 
-const educationOptions = [
-  "Tidak/Belum Sekolah",
-  "SD / Sederajat",
-  "SMP / Sederajat",
-  "SMA / SMK / Sederajat",
-  "Diploma I / II",
-  "Akademi / Diploma III (D3)",
-  "Diploma IV / Sarjana (S1)",
-  "Magister (S2)",
-  "Doktor (S3)",
-];
-
-const occupationOptions = [
-  "Belum/Tidak Bekerja",
-  "Mengurus Rumah Tangga",
-  "Pelajar/Mahasiswa",
-  "Pensiunan",
-  "Pegawai Negeri Sipil (PNS)",
-  "Tentara Nasional Indonesia (TNI)",
-  "Kepolisian RI (POLRI)",
-  "Karyawan Swasta",
-  "Karyawan BUMN",
-  "Karyawan BUMD",
-  "Buruh Harian Lepas",
-  "Petani/Pekebun",
-  "Nelayan",
-  "Pedagang",
-  "Wiraswasta",
-];
-
 export const EditResidentModal: React.FC<EditResidentModalProps> = ({
   isOpen,
   onClose,
@@ -60,9 +30,6 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
   const [name, setName] = useState(resident?.name || "");
   const [nik, setNik] = useState(resident?.nik || "");
   const [phone, setPhone] = useState(resident?.phone || "");
-  const [originAddress, setOriginAddress] = useState(resident?.originAddress || "");
-  const [occupation, setOccupation] = useState(resident?.occupation || "");
-  const [educationLevel, setEducationLevel] = useState(resident?.educationLevel || "");
   const [roomNumber, setRoomNumber] = useState(resident?.roomNumber || "");
   const [checkInDate, setCheckInDate] = useState(
     resident?.checkInDate ? resident.checkInDate.split("T")[0] : ""
@@ -102,10 +69,7 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
           name,
           nik,
           phone,
-          originAddress,
-          occupation,
-          educationLevel,
-          roomNumber,
+  roomNumber,
           checkInDate: new Date(checkInDate),
           ktpFile: ktpUrl,
         }),
@@ -253,38 +217,6 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
                 />
               </div>
             )}
-          </div>
-
-          {/* Origin Address */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Alamat Asal KTP <span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <textarea
-              placeholder="Alamat asal luar daerah"
-              value={originAddress}
-              onChange={(e) => setOriginAddress(e.target.value)}
-              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all min-h-15 resize-none"
-              required
-            />
-          </div>
-
-          {/* Occupation & Education */}
-          <div className="grid grid-cols-2 gap-4">
-            <CustomSelect
-              value={occupation}
-              onChange={setOccupation}
-              options={occupationOptions.map((o) => ({ value: o, label: o }))}
-              placeholder="-- Pilih Pekerjaan --"
-              label="Pekerjaan"
-            />
-            <CustomSelect
-              value={educationLevel}
-              onChange={setEducationLevel}
-              options={educationOptions.map((e) => ({ value: e, label: e }))}
-              placeholder="-- Pilih Pendidikan --"
-              label="Pendidikan Terakhir"
-            />
           </div>
 
           {/* Check-In Date */}

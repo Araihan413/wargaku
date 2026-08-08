@@ -69,9 +69,12 @@ export default function DocumentVerificationWorkspacePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Document Viewer states
-  const [activeDocUrl, setActiveDocUrl] = useState<string | null>(null);
+  // Document Viewer states — menyimpan TYPE + RECORD ID, bukan URL mentah Cloudinary
+  type ActiveDocRef = { type: "kk"; recordId: number } | { type: "ktp-member"; recordId: number } | null;
+  const [activeDocRef, setActiveDocRef] = useState<ActiveDocRef>(null);
   const [activeDocTitle, setActiveDocTitle] = useState<string>("");
+  const [signedDocUrl, setSignedDocUrl] = useState<string | null>(null);
+  const [isLoadingDoc, setIsLoadingDoc] = useState(false);
 
   // Tab state for mobile (activeTab: "document" | "data")
   const [activeMobileTab, setActiveMobileTab] = useState<"document" | "data">("data");
@@ -80,6 +83,26 @@ export default function DocumentVerificationWorkspacePage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
 
+  // Fetch signed URL setiap kali activeDocRef berubah
+  const fetchSignedDocUrl = useCallback(async (ref: ActiveDocRef) => {
+    if (!ref) { setSignedDocUrl(null); return; }
+    setIsLoadingDoc(true);
+    try {
+      const res = await fetch(`/api/documents/secure-url?type=${ref.type}&id=${ref.recordId}`);
+      if (res.ok) {
+        const { signedUrl } = await res.json();
+        setSignedDocUrl(signedUrl);
+      } else {
+        setSignedDocUrl(null);
+        toast.error("Gagal memuat pratinjau dokumen.");
+      }
+    } catch {
+      setSignedDocUrl(null);
+    } finally {
+      setIsLoadingDoc(false);
+    }
+  }, []);
+
   const fetchFamilyDetail = useCallback(async (id: number) => {
     setIsLoading(true);
     try {
@@ -87,16 +110,19 @@ export default function DocumentVerificationWorkspacePage() {
       if (res.ok) {
         const data = await res.json();
         setFamily(data);
-        // Default active doc is KK
+        // Default active doc adalah KK — simpan referensi, bukan URL langsung
         if (data.kkFile) {
-          setActiveDocUrl(data.kkFile);
+          const ref: ActiveDocRef = { type: "kk", recordId: data.id };
+          setActiveDocRef(ref);
           setActiveDocTitle("Berkas Kartu Keluarga");
+          fetchSignedDocUrl(ref);
         } else {
-          // Find first member with KTP
           const memberWithKtp = data.members.find((m: FamilyMember) => m.ktpFile);
           if (memberWithKtp) {
-            setActiveDocUrl(memberWithKtp.ktpFile);
+            const ref: ActiveDocRef = { type: "ktp-member", recordId: memberWithKtp.id };
+            setActiveDocRef(ref);
             setActiveDocTitle(`KTP - ${memberWithKtp.name}`);
+            fetchSignedDocUrl(ref);
           }
         }
       } else {
@@ -111,7 +137,7 @@ export default function DocumentVerificationWorkspacePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  }, [router, fetchSignedDocUrl]);
 
   useEffect(() => {
     let active = true;
@@ -233,7 +259,7 @@ export default function DocumentVerificationWorkspacePage() {
 
   if (!family) return null;
 
-  const isPdf = activeDocUrl?.toLowerCase().endsWith(".pdf") || activeDocUrl?.includes("/raw/upload/");
+  const isPdf = signedDocUrl?.toLowerCase().includes(".pdf") || signedDocUrl?.includes("/raw/upload/");
   const isPending = family.verificationStatus === "pending";
   const isUpdate = isUpdateSubmission();
 
@@ -316,11 +342,13 @@ export default function DocumentVerificationWorkspacePage() {
             {family.kkFile && (
               <button
                 onClick={() => {
-                  setActiveDocUrl(family.kkFile);
+                  const ref: ActiveDocRef = { type: "kk", recordId: family.id };
+                  setActiveDocRef(ref);
                   setActiveDocTitle("Berkas Kartu Keluarga");
+                  fetchSignedDocUrl(ref);
                 }}
                 className={`px-3 py-1.5 rounded-xl text-[10px] font-bold shrink-0 transition-all cursor-pointer ${
-                  activeDocUrl === family.kkFile
+                  activeDocRef?.type === "kk" && activeDocRef.recordId === family.id
                     ? "bg-primary text-white shadow-sm"
                     : "bg-gray-sidebar-hover/40 text-gray-secondary-text hover:bg-gray-sidebar-hover"
                 }`}
@@ -332,11 +360,13 @@ export default function DocumentVerificationWorkspacePage() {
               <button
                 key={member.id}
                 onClick={() => {
-                  setActiveDocUrl(member.ktpFile);
+                  const ref: ActiveDocRef = { type: "ktp-member", recordId: member.id };
+                  setActiveDocRef(ref);
                   setActiveDocTitle(`KTP - ${member.name}`);
+                  fetchSignedDocUrl(ref);
                 }}
                 className={`px-3 py-1.5 rounded-xl text-[10px] font-bold shrink-0 transition-all cursor-pointer ${
-                  activeDocUrl === member.ktpFile
+                  activeDocRef?.type === "ktp-member" && activeDocRef.recordId === member.id
                     ? "bg-primary text-white shadow-sm"
                     : "bg-gray-sidebar-hover/40 text-gray-secondary-text hover:bg-gray-sidebar-hover"
                 }`}
@@ -348,10 +378,15 @@ export default function DocumentVerificationWorkspacePage() {
 
           {/* Document Viewer Frame */}
           <div className="flex-1 p-4 flex items-center justify-center bg-gray-950/5 overflow-auto relative">
-            {activeDocUrl ? (
+            {isLoadingDoc ? (
+              <div className="flex flex-col items-center gap-2 text-gray-placeholder">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="text-xs font-medium">Memuat dokumen...</span>
+              </div>
+            ) : signedDocUrl ? (
               isPdf ? (
                 <iframe
-                  src={activeDocUrl}
+                  src={signedDocUrl}
                   title={activeDocTitle}
                   className="w-full h-full border-0 rounded-2xl bg-white shadow-md"
                 />
@@ -359,7 +394,7 @@ export default function DocumentVerificationWorkspacePage() {
                 <div className="max-w-full max-h-full flex items-center justify-center p-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={activeDocUrl}
+                    src={signedDocUrl}
                     alt={activeDocTitle}
                     className="max-w-full max-h-[70vh] lg:max-h-[75vh] object-contain rounded-2xl shadow-md border border-gray-border"
                   />
@@ -521,15 +556,17 @@ export default function DocumentVerificationWorkspacePage() {
                             <button
                               type="button"
                               onClick={() => {
-                                setActiveDocUrl(member.ktpFile);
+                                const ref: ActiveDocRef = { type: "ktp-member", recordId: member.id };
+                                setActiveDocRef(ref);
                                 setActiveDocTitle(`KTP - ${member.name}`);
+                                fetchSignedDocUrl(ref);
                                 // Auto switch to document tab on mobile
                                 if (window.innerWidth < 1024) {
                                   setActiveMobileTab("document");
                                 }
                               }}
                               className={`text-[9px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer inline-flex items-center gap-1 ${
-                                activeDocUrl === member.ktpFile
+                                activeDocRef?.type === "ktp-member" && activeDocRef.recordId === member.id
                                   ? "bg-primary text-white border-primary"
                                   : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
                               }`}

@@ -51,8 +51,6 @@ export const createRentalPropertySchema = z.object({
         : 'Total kamar harus berupa angka',
   }).int().nonnegative('Total kamar tidak boleh negatif').default(0),
   notes: z.string().optional().nullable(),
-  roomPattern: z.string().optional().nullable(),
-  roomList: z.array(z.string()).optional(),
 });
 
 export const updateRentalPropertySchema = createRentalPropertySchema.partial().extend({

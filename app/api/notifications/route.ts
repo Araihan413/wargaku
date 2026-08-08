@@ -67,7 +67,6 @@ export async function GET(request: Request) {
     const category = (searchParams.get('category') as 'personal' | 'dinas' | 'all') || 'personal';
     const paginated = searchParams.get('paginated') === 'true';
     const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
 
     const result = await listNotifications(session.user.id, category === 'all' ? undefined : category);
 

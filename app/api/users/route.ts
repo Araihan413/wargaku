@@ -20,15 +20,17 @@ export async function GET(request: Request) {
     }
 
     const effectiveRoleId = await getEffectiveRoleId(session);
+    const { searchParams } = new URL(request.url);
+    const isPublicSearch = searchParams.get("publicSearch") === "true";
+
     const allowed = 
       await hasPermission(effectiveRoleId, "manage-users") ||
       await hasPermission(effectiveRoleId, "manage-residents") ||
       await hasPermission(effectiveRoleId, "view-residents");
-    if (!allowed) {
+
+    if (!allowed && !isPublicSearch) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
-    const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : 10;
     const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : 0;
     const roleIdParam = searchParams.get("roleId") ? parseInt(searchParams.get("roleId")!, 10) : undefined;
@@ -36,8 +38,11 @@ export async function GET(request: Request) {
     const query = searchParams.get("query") || undefined;
     const withoutFamily = searchParams.get("withoutFamily") === "true";
     const excludeExceptId = searchParams.get("excludeExceptId") || undefined;
+    const excludeRoleIds = searchParams.get("excludeRoleIds") 
+      ? searchParams.get("excludeRoleIds")!.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+      : undefined;
 
-    const usersData = await listUsers({ limit, offset, roleId: roleIdParam, status, query, withoutFamily, excludeExceptId });
+    const usersData = await listUsers({ limit, offset, roleId: roleIdParam, status, query, withoutFamily, excludeExceptId, excludeRoleIds });
     const rolesData = await listRoles();
 
     return NextResponse.json({

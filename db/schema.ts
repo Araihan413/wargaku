@@ -109,7 +109,7 @@ export const dwellings = mysqlTable('dwellings', {
 // 2.2 Families (Unit Keluarga/KK - untuk Warga Tetap & Penyewa Rumah)
 export const families = mysqlTable('families', {
   id: int('id').autoincrement().primaryKey(),
-  dwellingId: int('dwelling_id').notNull().references(() => dwellings.id),
+  dwellingId: int('dwelling_id').references(() => dwellings.id, { onDelete: 'set null' }),
   headUserId: varchar('head_user_id', { length: 255 }).references(() => users.id),
   familyNumber: varchar('family_number', { length: 20 }).notNull().unique(),
   kkFile: varchar('kk_file', { length: 255 }),
@@ -157,14 +157,12 @@ export const rentalProperties = mysqlTable('rental_properties', {
   id: int('id').autoincrement().primaryKey(),
   dwellingId: int('dwelling_id').notNull().references(() => dwellings.id),
   name: varchar('name', { length: 100 }).notNull(),
-  coordinatorUserId: varchar('coordinator_user_id', { length: 255 }).notNull().references(() => users.id),
+  coordinatorUserId: varchar('coordinator_user_id', { length: 255 }).references(() => users.id),
   contactPerson: varchar('contact_person', { length: 100 }),
   phone: varchar('phone', { length: 15 }),
   totalRooms: int('total_rooms').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
   notes: text('notes'),
-  roomPattern: text('room_pattern'),
-  roomList: json('room_list'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => ({
@@ -182,7 +180,7 @@ export const rentalContracts = mysqlTable('rental_contracts', {
   familyId: int('family_id').references(() => families.id, { onDelete: 'set null' }),
   userId: varchar('user_id', { length: 255 }).references(() => users.id, { onDelete: 'set null' }),
   individualName: varchar('individual_name', { length: 100 }),
-  individualNik: varchar('individual_nik', { length: 16 }).unique(),
+  individualNik: varchar('individual_nik', { length: 16 }),
   individualGender: mysqlEnum('individual_gender', ['L', 'P']),
   individualBirthPlace: varchar('individual_birth_place', { length: 50 }),
   individualBirthDate: date('individual_birth_date'),
@@ -190,6 +188,7 @@ export const rentalContracts = mysqlTable('rental_contracts', {
   individualKtpFile: varchar('individual_ktp_file', { length: 255 }),
   checkInDate: date('check_in_date').notNull(),
   checkOutDate: date('check_out_date'),
+  checkOutNote: text('check_out_note'),
   verificationStatus: mysqlEnum('verification_status', ['pending', 'verified', 'rejected']).notNull().default('pending'),
   verificationNote: text('verification_note'),
   isActive: boolean('is_active').notNull().default(true),
@@ -440,4 +439,20 @@ export const verifications = mysqlTable('verifications', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => ({
   identifierIdx: index('verifications_identifier_idx').on(table.identifier),
+}));
+
+export const accountActivationTokens = mysqlTable('activation_tokens', {
+  id: int('id').autoincrement().primaryKey(),
+  token: varchar('token', { length: 100 }).notNull().unique(),
+  email: varchar('email', { length: 100 }).notNull(),
+  nik: varchar('nik', { length: 16 }).notNull(),
+  rentalContractId: int('rental_contract_id').references(() => rentalContracts.id, { onDelete: 'cascade' }),
+  familyId: int('family_id').references(() => families.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at').notNull(),
+  isUsed: boolean('is_used').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  tokenIdx: index('activation_tokens_token_idx').on(table.token),
+  emailIdx: index('activation_tokens_email_idx').on(table.email),
+  nikIdx: index('activation_tokens_nik_idx').on(table.nik),
 }));

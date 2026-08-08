@@ -31,12 +31,21 @@ export async function uploadToCloudinary(
   const folder = `wargaku/${folderName}`;
 
   return new Promise((resolve, reject) => {
+    const SENSITIVE_FOLDERS = ["kk", "ktp", "receipts"];
+    const isSensitive = SENSITIVE_FOLDERS.includes(folderName);
+
     const uploadOptions: Record<string, any> = {
       folder,
       resource_type: "auto",
       use_filename: true,
       unique_filename: true,
     };
+
+    // Berkas sensitif (KK, KTP, Nota) disimpan sebagai 'authenticated' —
+    // tidak dapat diakses via direct URL publik tanpa signed token.
+    if (isSensitive) {
+      uploadOptions.type = "authenticated";
+    }
 
     if (fileName) {
       uploadOptions.filename_override = fileName;
@@ -86,28 +95,40 @@ export { cloudinary };
  * 
  * Returns null if the URL is not a valid Cloudinary URL.
  */
-export function extractPublicIdFromUrl(url: string): string | null {
+export function extractPublicIdFromUrl(url: string, keepExtension = false): string | null {
   if (!url || !url.includes('res.cloudinary.com')) return null;
 
   try {
-    // URL pattern: .../upload/v<version>/<public_id>.<ext>
-    const uploadIndex = url.indexOf('/upload/');
+    let uploadIndex = url.indexOf('/upload/');
+    let typeLength = '/upload/'.length;
+    if (uploadIndex === -1) {
+      uploadIndex = url.indexOf('/authenticated/');
+      typeLength = '/authenticated/'.length;
+    }
+    if (uploadIndex === -1) {
+      uploadIndex = url.indexOf('/private/');
+      typeLength = '/private/'.length;
+    }
     if (uploadIndex === -1) return null;
 
-    // Get everything after /upload/
-    let afterUpload = url.substring(uploadIndex + '/upload/'.length);
+    let afterUpload = url.substring(uploadIndex + typeLength);
 
-    // Remove version prefix if present (e.g., "v1234567890/")
+    // Strip signature prefix if present (e.g. "s--RDnvSXUq--/")
+    if (/^s--[^/]+--\//.test(afterUpload)) {
+      afterUpload = afterUpload.replace(/^s--[^/]+--\//, '');
+    }
+
+    // Strip version prefix if present (e.g. "v1234567890/")
     if (/^v\d+\//.test(afterUpload)) {
       afterUpload = afterUpload.replace(/^v\d+\//, '');
     }
 
-    // Remove file extension
-    const lastDotIndex = afterUpload.lastIndexOf('.');
-    if (lastDotIndex !== -1) {
-      afterUpload = afterUpload.substring(0, lastDotIndex);
+    if (!keepExtension) {
+      const lastDotIndex = afterUpload.lastIndexOf('.');
+      if (lastDotIndex !== -1) {
+        afterUpload = afterUpload.substring(0, lastDotIndex);
+      }
     }
-
     return afterUpload || null;
   } catch {
     return null;
@@ -153,4 +174,31 @@ export async function deleteCloudinaryFileByUrl(url: string): Promise<boolean> {
   // Fallback: try as 'raw' (covers PDF uploaded as raw)
   const rawResult = await deleteFromCloudinary(publicId, 'raw');
   return rawResult;
+}
+
+/**
+ * Generate a time-limited signed URL for a Cloudinary asset.
+ * URL will be valid for `expiresInSeconds` seconds (default: 600 = 10 minutes).
+ *
+ * Use this ONLY on the server side (API routes). Never expose the signed URL
+ * in persistent storage — only deliver it transiently to the browser.
+ *
+ * @param publicId  - The Cloudinary public_id of the asset
+ * @param resourceType - 'image' (default) or 'raw'
+ * @param expiresInSeconds - Validity window in seconds (default 600 = 10 min)
+ * @param deliveryType - 'authenticated' (default) or 'upload' or 'private'
+ */
+export function generateSignedUrl(
+  publicId: string,
+  resourceType: 'image' | 'raw' = 'image',
+  expiresInSeconds = 600,
+  deliveryType: 'upload' | 'authenticated' | 'private' = 'authenticated',
+): string {
+  return cloudinary.url(publicId, {
+    sign_url: true,
+    type: deliveryType,
+    expires_at: Math.floor(Date.now() / 1000) + expiresInSeconds,
+    resource_type: resourceType,
+    secure: true,
+  });
 }

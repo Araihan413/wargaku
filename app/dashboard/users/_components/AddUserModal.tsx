@@ -90,6 +90,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const selectedRoles = watch("roles") || [];
   const isWargaSelected = selectedRoles.includes(6);
   const isCoordSelected = selectedRoles.includes(5);

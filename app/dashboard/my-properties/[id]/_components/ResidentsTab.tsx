@@ -34,9 +34,9 @@ export function ResidentsTab({
   const filteredResidents = useMemo(() => {
     return activeResidents.filter((res) => {
       const matchesSearch =
-        res.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        res.nik.includes(searchQuery) ||
-        (res.roomNumber && res.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()));
+        (res.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (res.nik || "").includes(searchQuery) ||
+        (res.roomNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         filterStatus === "all" || res.verificationStatus === filterStatus;
@@ -137,14 +137,14 @@ export function ResidentsTab({
                     roomStatusText = "Terisi";
                   } else if (res.verificationStatus === "pending") {
                     gridStyle = "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100";
-                    roomStatusText = "Pending RT";
+                    roomStatusText = "Pending";
                   } else if (res.verificationStatus === "rejected") {
                     gridStyle = "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100";
-                    roomStatusText = "Ditolak RT";
+                    roomStatusText = "Ditolak";
                   }
                 } else if (residentsInRoom.length > 1) {
                   gridStyle = "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100";
-                  roomStatusText = `${residentsInRoom.length} Warga`;
+                  roomStatusText = `${residentsInRoom.length} Orang`;
                   residentsName = residentsInRoom.map(r => r.name).join(", ");
                 }
 

@@ -14,8 +14,6 @@ export interface CreateRentalPropertyInput {
   phone?: string | null;
   totalRooms: number;
   notes?: string | null;
-  roomPattern?: string | null;
-  roomList?: string[] | null;
 }
 
 export interface UpdateRentalPropertyInput {
@@ -25,8 +23,6 @@ export interface UpdateRentalPropertyInput {
   phone?: string | null;
   totalRooms?: number;
   notes?: string | null;
-  roomPattern?: string | null;
-  roomList?: string[] | null;
   isActive?: boolean;
 }
 
@@ -41,6 +37,7 @@ export async function listRentalProperties(options: {
   coordinatorUserId?: string;
   ownerUserId?: string;
   isActive?: boolean;
+  dwellingType?: string;
 } = {}) {
   const limit = options.limit ?? 10;
   const offset = options.offset ?? 0;
@@ -49,6 +46,7 @@ export async function listRentalProperties(options: {
   if (options.isActive !== undefined) conditions.push(eq(schema.rentalProperties.isActive, options.isActive));
   if (options.coordinatorUserId) conditions.push(eq(schema.rentalProperties.coordinatorUserId, options.coordinatorUserId));
   if (options.ownerUserId) conditions.push(eq(schema.dwellings.ownerUserId, options.ownerUserId));
+  if (options.dwellingType) conditions.push(eq(schema.dwellings.type, options.dwellingType as any));
   if (options.query) conditions.push(like(schema.rentalProperties.name, `%${options.query}%`));
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -75,8 +73,6 @@ export async function listRentalProperties(options: {
       totalRooms: schema.rentalProperties.totalRooms,
       isActive: schema.rentalProperties.isActive,
       notes: schema.rentalProperties.notes,
-      roomPattern: schema.rentalProperties.roomPattern,
-      roomList: schema.rentalProperties.roomList,
       createdAt: schema.rentalProperties.createdAt,
       updatedAt: schema.rentalProperties.updatedAt,
       blockNumber: schema.dwellings.blockNumber,
@@ -128,24 +124,44 @@ export async function getRentalPropertyById(id: number) {
     .from(schema.rentalContracts)
     .where(and(eq(schema.rentalContracts.rentalPropertyId, id), eq(schema.rentalContracts.isActive, true)));
 
+  const maxActiveRoomNumber = await getMaxActiveRoomNumber(id);
+
   return {
     ...property,
     dwelling: dwelling ?? null,
     activeContracts: Number(activeContractsRes?.count ?? 0),
+    maxActiveRoomNumber,
   };
+}
+
+export async function getMaxActiveRoomNumber(propertyId: number): Promise<number> {
+  const contracts = await db
+    .select({ roomNumber: schema.rentalContracts.roomNumber })
+    .from(schema.rentalContracts)
+    .where(
+      and(
+        eq(schema.rentalContracts.rentalPropertyId, propertyId),
+        eq(schema.rentalContracts.isActive, true)
+      )
+    );
+  
+  let max = 0;
+  for (const c of contracts) {
+    const num = parseInt(c.roomNumber, 10);
+    if (!isNaN(num) && num > max) {
+      max = num;
+    }
+  }
+  return max;
 }
 
 /**
  * Status kamar dan daftar kontrak aktif per kamar.
  */
-export async function getRentalPropertyRooms(propertyId: number, property: { totalRooms: number; roomList: any }) {
-  let rooms: string[] = [];
-  if (Array.isArray(property.roomList) && property.roomList.length > 0) {
-    rooms = property.roomList as string[];
-  } else {
-    for (let i = 1; i <= (property.totalRooms || 0); i++) {
-      rooms.push(i.toString().padStart(2, '0'));
-    }
+export async function getRentalPropertyRooms(propertyId: number, property: { totalRooms: number }) {
+  const rooms: string[] = [];
+  for (let i = 1; i <= (property.totalRooms || 0); i++) {
+    rooms.push(i.toString().padStart(2, '0'));
   }
 
   const activeContracts = await db
@@ -193,6 +209,7 @@ export async function getRentalPropertyRooms(propertyId: number, property: { tot
         verificationNote: c.verificationNote || null,
         ktpFile: c.individualKtpFile || c.familyKkFile || null,
         isActive: c.isActive,
+        hasActivated: c.tenantType === 'family' ? !!c.familyNumber : true,
       };
     });
 
@@ -233,7 +250,10 @@ export async function checkExistingActiveRental(dwellingId: number) {
 export async function createRentalProperty(data: CreateRentalPropertyInput) {
   const hasExisting = await checkExistingActiveRental(data.dwellingId);
   if (hasExisting) throw new Error('Properti sewa aktif sudah terdaftar untuk hunian ini.');
-  if (!data.coordinatorUserId) throw new Error('ID Koordinator wajib diisi.');
+  const [dwelling] = await db.select({ type: schema.dwellings.type }).from(schema.dwellings).where(eq(schema.dwellings.id, data.dwellingId)).limit(1);
+  if (dwelling?.type === 'kos' && !data.coordinatorUserId) {
+    throw new Error('ID Koordinator wajib diisi untuk kos.');
+  }
 
   const [result] = await db.insert(schema.rentalProperties).values({
     dwellingId: data.dwellingId,
@@ -244,8 +264,6 @@ export async function createRentalProperty(data: CreateRentalPropertyInput) {
     totalRooms: data.totalRooms,
     isActive: true,
     notes: data.notes ?? null,
-    roomPattern: data.roomPattern ?? null,
-    roomList: data.roomList ?? null,
   });
 
   return result.insertId;
@@ -254,13 +272,11 @@ export async function createRentalProperty(data: CreateRentalPropertyInput) {
 export async function updateRentalProperty(id: number, data: UpdateRentalPropertyInput) {
   const payload: Record<string, any> = { updatedAt: new Date() };
   if (data.name !== undefined) payload.name = data.name;
-  if (data.coordinatorUserId !== undefined && data.coordinatorUserId !== null) payload.coordinatorUserId = data.coordinatorUserId;
+  if (data.coordinatorUserId !== undefined) payload.coordinatorUserId = data.coordinatorUserId;
   if (data.contactPerson !== undefined) payload.contactPerson = data.contactPerson;
   if (data.phone !== undefined) payload.phone = data.phone;
   if (data.totalRooms !== undefined) payload.totalRooms = data.totalRooms;
   if (data.notes !== undefined) payload.notes = data.notes;
-  if (data.roomPattern !== undefined) payload.roomPattern = data.roomPattern;
-  if (data.roomList !== undefined) payload.roomList = data.roomList;
   if (data.isActive !== undefined) payload.isActive = data.isActive;
 
   await db.update(schema.rentalProperties).set(payload).where(eq(schema.rentalProperties.id, id));

@@ -3,7 +3,7 @@ import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
 import { randomUUID } from 'crypto';
-import { sendEmail } from '@/lib/mail';
+import { sendEmail, sendAccountActivationEmail } from '@/lib/mail';
 import { getTenantFamilyWelcomeEmail } from '@/lib/emails/templates';
 
 // ==========================================
@@ -77,7 +77,7 @@ export async function listTenantContracts(options: {
 
   const whereClause = and(...conditions);
 
-  const data = await db
+  const rawData = await db
     .select({
       id: schema.rentalContracts.id,
       rentalPropertyId: schema.rentalContracts.rentalPropertyId,
@@ -89,16 +89,20 @@ export async function listTenantContracts(options: {
       individualNik: schema.rentalContracts.individualNik,
       individualGender: schema.rentalContracts.individualGender,
       individualBirthPlace: schema.rentalContracts.individualBirthPlace,
+      individualBirthDate: schema.rentalContracts.individualBirthDate,
       individualPhone: schema.rentalContracts.individualPhone,
       individualKtpFile: schema.rentalContracts.individualKtpFile,
       checkInDate: schema.rentalContracts.checkInDate,
       checkOutDate: schema.rentalContracts.checkOutDate,
+      verificationStatus: schema.rentalContracts.verificationStatus,
+      verificationNote: schema.rentalContracts.verificationNote,
       isActive: schema.rentalContracts.isActive,
       createdAt: schema.rentalContracts.createdAt,
       // Join info
       familyNumber: schema.families.familyNumber,
       familyVerificationStatus: schema.families.verificationStatus,
       userName: schema.users.name,
+      userPhone: schema.users.phone,
     })
     .from(schema.rentalContracts)
     .leftJoin(schema.families, eq(schema.rentalContracts.familyId, schema.families.id))
@@ -108,13 +112,36 @@ export async function listTenantContracts(options: {
     .offset(offset)
     .orderBy(desc(schema.rentalContracts.createdAt));
 
+  const mappedData = rawData.map((c) => {
+    const tenantTypeStr = c.tenantType === 'family' ? 'keluarga' as const : 'perorangan' as const;
+    return {
+      id: c.id,
+      rentalPropertyId: c.rentalPropertyId,
+      roomNumber: c.roomNumber,
+      tenantType: tenantTypeStr,
+      name: c.individualName || c.userName || 'Penyewa',
+      nik: c.individualNik || c.familyNumber || '-',
+      phone: c.individualPhone || c.userPhone || null,
+      gender: c.individualGender || null,
+      birthPlace: c.individualBirthPlace || null,
+      birthDate: c.individualBirthDate ? (typeof c.individualBirthDate === 'string' ? c.individualBirthDate : (c.individualBirthDate as Date).toISOString()) : null,
+      ktpFile: c.individualKtpFile || null,
+      checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
+      checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
+      verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
+      verificationNote: c.verificationNote || null,
+      isActive: c.isActive,
+      createdAt: c.createdAt,
+    };
+  });
+
   const [totalResult] = await db
     .select({ count: sql<number>`count(*)` })
     .from(schema.rentalContracts)
     .where(whereClause);
 
   return {
-    data,
+    data: mappedData,
     metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
   };
 }
@@ -167,6 +194,9 @@ export async function listAllTenantContracts(options: {
       individualNik: schema.rentalContracts.individualNik,
       individualPhone: schema.rentalContracts.individualPhone,
       individualKtpFile: schema.rentalContracts.individualKtpFile,
+      individualGender: schema.rentalContracts.individualGender,
+      individualBirthPlace: schema.rentalContracts.individualBirthPlace,
+      individualBirthDate: schema.rentalContracts.individualBirthDate,
       checkInDate: schema.rentalContracts.checkInDate,
       checkOutDate: schema.rentalContracts.checkOutDate,
       verificationStatus: schema.rentalContracts.verificationStatus,
@@ -203,6 +233,9 @@ export async function listAllTenantContracts(options: {
       nik: c.individualNik || c.familyNumber || '-',
       phone: c.individualPhone || c.userPhone || null,
       ktpFile: c.individualKtpFile || c.familyKkFile || null,
+      gender: c.individualGender || null,
+      birthPlace: c.individualBirthPlace || null,
+      birthDate: c.individualBirthDate ? (typeof c.individualBirthDate === 'string' ? c.individualBirthDate : (c.individualBirthDate as Date).toISOString()) : null,
       checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
       checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
       verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
@@ -241,7 +274,7 @@ export async function getTenantContractById(id: number) {
  * Riwayat kontrak non-aktif untuk kamar tertentu.
  */
 export async function getRoomContractHistory(propertyId: number, roomNumber: string) {
-  return db
+  const rawData = await db
     .select()
     .from(schema.rentalContracts)
     .where(
@@ -252,6 +285,16 @@ export async function getRoomContractHistory(propertyId: number, roomNumber: str
       )
     )
     .orderBy(desc(schema.rentalContracts.checkOutDate), desc(schema.rentalContracts.createdAt));
+
+  return rawData.map((c) => ({
+    id: c.id,
+    name: c.individualName || 'Penyewa',
+    nik: c.individualNik || '-',
+    tenantType: c.tenantType,
+    checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
+    checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
+    checkOutNote: c.checkOutNote || null,
+  }));
 }
 
 // ==========================================
@@ -436,22 +479,21 @@ export async function checkOutTenant(
 
     await tx
       .update(schema.rentalContracts)
-      .set({ isActive: false, checkOutDate: data.checkOutDate, updatedAt: new Date() })
+      .set({ 
+        isActive: false, 
+        checkOutDate: data.checkOutDate, 
+        checkOutNote: data.notes || null,
+        updatedAt: new Date() 
+      })
       .where(eq(schema.rentalContracts.id, contractId));
 
-    // Jika family tenant, nonaktifkan KK dan user
+    // Jika family tenant, cabut domisili (dwellingId: null) agar tidak lagi menghuni kos ini.
+    // Dilarang melakukan suspend/inactive KK karena KK masih valid secara administratif.
     if (contract.tenantType === 'family' && contract.familyId) {
       await tx
         .update(schema.families)
-        .set({ isActive: false, updatedAt: new Date() })
+        .set({ dwellingId: null, updatedAt: new Date() })
         .where(eq(schema.families.id, contract.familyId));
-
-      if (contract.userId) {
-        await tx
-          .update(schema.users)
-          .set({ status: 'suspended', updatedAt: new Date() })
-          .where(eq(schema.users.id, contract.userId));
-      }
     }
   });
 }
@@ -471,15 +513,13 @@ export async function deleteTenantContract(contractId: number) {
 
     await tx.delete(schema.rentalContracts).where(eq(schema.rentalContracts.id, contractId));
 
-    // Jika family tenant, hapus KK, family_members, user
+    // Jika family tenant, cabut domisili (dwellingId: null). 
+    // Dilarang keras melakukan hard-delete pada data keluarga dan user!
     if (contract.tenantType === 'family' && contract.familyId) {
-      await tx.delete(schema.familyMembers).where(eq(schema.familyMembers.familyId, contract.familyId));
-      await tx.delete(schema.families).where(eq(schema.families.id, contract.familyId));
-      if (contract.userId) {
-        await tx.delete(schema.accounts).where(eq(schema.accounts.userId, contract.userId));
-        await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, contract.userId));
-        await tx.delete(schema.users).where(eq(schema.users.id, contract.userId));
-      }
+      await tx
+        .update(schema.families)
+        .set({ dwellingId: null, updatedAt: new Date() })
+        .where(eq(schema.families.id, contract.familyId));
     }
   });
 }
@@ -518,3 +558,142 @@ export async function terminateTenantContract(id: number) {
     .where(eq(schema.rentalContracts.id, id));
   return true;
 }
+
+/**
+ * Menerbitkan token aktivasi akun baru, meng-invalidasi token lama, dan mengirim email via Brevo.
+ */
+export async function createActivationTokenAndSendEmail({
+  email,
+  nik,
+  rentalContractId,
+  familyId,
+  propertyName,
+  roomNumber,
+  userName,
+  requestOrigin,
+}: {
+  email: string;
+  nik: string;
+  rentalContractId?: number;
+  familyId?: number;
+  propertyName: string;
+  roomNumber?: string;
+  userName: string;
+  requestOrigin?: string;
+}) {
+  // 1. Invalidate any existing unused tokens for this email or NIK
+  await db
+    .update(schema.accountActivationTokens)
+    .set({ isUsed: true })
+    .where(
+      and(
+        or(
+          eq(schema.accountActivationTokens.email, email),
+          eq(schema.accountActivationTokens.nik, nik)
+        ),
+        eq(schema.accountActivationTokens.isUsed, false)
+      )
+    );
+
+  // 2. Generate new secure random token
+  const token = randomUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  await db.insert(schema.accountActivationTokens).values({
+    token,
+    email,
+    nik,
+    rentalContractId: rentalContractId ?? null,
+    familyId: familyId ?? null,
+    expiresAt,
+    isUsed: false,
+  });
+
+  // 3. Build activation URL
+  const origin = requestOrigin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const activationUrl = `${origin}/activate-account?token=${token}`;
+
+  // 4. Send Brevo email
+  await sendAccountActivationEmail({
+    toEmail: email,
+    userName,
+    propertyName,
+    roomNumber,
+    activationUrl,
+  });
+
+  return { token, activationUrl };
+}
+
+/**
+ * Auto-Link kontrak sewa aktif yang masih gantung (familyId IS NULL) ke data keluarga/user
+ * yang baru terbentuk dari registrasi mandiri penyewa.
+ * Juga mematikan token aktivasi yang sudah tidak relevan.
+ */
+export async function autoLinkTenantContractToFamily({
+  familyId,
+  userId,
+  nik,
+  email,
+  dwellingId,
+}: {
+  familyId: number;
+  userId: string;
+  nik?: string;
+  email?: string;
+  dwellingId?: number;
+}) {
+  const conditions: any[] = [
+    eq(schema.rentalContracts.isActive, true),
+    eq(schema.rentalContracts.tenantType, 'family'),
+  ];
+
+  // Cari kontrak sewa aktif yang NIK-nya cocok dan familyId masih null
+  if (nik) {
+    conditions.push(eq(schema.rentalContracts.individualNik, nik));
+  }
+
+  const [contract] = await db
+    .select({ id: schema.rentalContracts.id, rentalPropertyId: schema.rentalContracts.rentalPropertyId })
+    .from(schema.rentalContracts)
+    .where(and(...conditions, sql`${schema.rentalContracts.familyId} IS NULL`))
+    .limit(1);
+
+  if (!contract) return null;
+
+  await db.transaction(async (tx) => {
+    // Sambungkan kontrak sewa ke family & user yang baru terbentuk
+    await tx
+      .update(schema.rentalContracts)
+      .set({ familyId, userId })
+      .where(eq(schema.rentalContracts.id, contract.id));
+
+    // Auto-Sync Dwelling ID jika disediakan
+    if (dwellingId) {
+      await tx
+        .update(schema.families)
+        .set({ dwellingId })
+        .where(eq(schema.families.id, familyId));
+    }
+
+    // Matikan token aktivasi gantung yang terkait (berdasarkan email atau NIK)
+    if (email || nik) {
+      await tx
+        .update(schema.accountActivationTokens)
+        .set({ isUsed: true })
+        .where(
+          and(
+            or(
+              email ? eq(schema.accountActivationTokens.email, email) : undefined,
+              nik ? eq(schema.accountActivationTokens.nik, nik) : undefined,
+            ),
+            eq(schema.accountActivationTokens.isUsed, false),
+            eq(schema.accountActivationTokens.rentalContractId, contract.id)
+          )
+        );
+    }
+  });
+
+  return contract;
+}
+

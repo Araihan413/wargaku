@@ -121,12 +121,36 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Simpan halaman terakhir yang diakses untuk role yang sedang aktif
+  useEffect(() => {
+    if (activeRoleId && pathname.startsWith("/dashboard")) {
+      try {
+        localStorage.setItem(`last_path_role_${activeRoleId}`, pathname);
+      } catch (e) {
+        // Abaikan error jika storage penuh
+      }
+    }
+  }, [pathname, activeRoleId]);
+
   // Handle Switch Role
   const handleSwitchRole = (roleId: number) => {
     if (roleId === activeRoleId) return;
     setActiveRoleId(roleId);
     setIsProfileOpen(false);
     toast.success(`Beralih ke Mode ${getRoleLabel(roleId)}`);
+    
+    // Redirect ke halaman terakhir role tersebut jika ada
+    try {
+      const lastPath = localStorage.getItem(`last_path_role_${roleId}`);
+      if (lastPath && lastPath.startsWith("/dashboard")) {
+        router.push(lastPath);
+        return;
+      }
+    } catch (e) {
+      // Abaikan jika storage error
+    }
+    
+    // Fallback ke dashboard utama jika belum ada riwayat
     router.push("/dashboard");
   };
 

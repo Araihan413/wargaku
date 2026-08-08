@@ -107,17 +107,13 @@ export default function PropertyDetailsPage() {
   };
 
   const parsedRooms = useMemo(() => {
-    if (!property?.roomList) return [];
-    if (property.roomList.length > 0) {
-      return property.roomList;
-    }
     const rooms: string[] = [];
-    const total = property.totalRooms || 0;
+    const total = property?.totalRooms || 0;
     for (let i = 1; i <= total; i++) {
       rooms.push(i.toString().padStart(2, "0"));
     }
     return rooms;
-  }, [property]);
+  }, [property?.totalRooms]);
 
   const fetchProperty = useCallback(async () => {
     try {
@@ -125,6 +121,9 @@ export default function PropertyDetailsPage() {
       if (res.ok) {
         const json = await res.json();
         setProperty(json);
+        if (json.dwelling?.type === "homestay") {
+          setActiveTab("business");
+        }
       } else {
         toast.error("Gagal memuat detail properti");
         router.push("/dashboard/my-properties");
@@ -220,17 +219,19 @@ export default function PropertyDetailsPage() {
 
       {/* Tabs Switcher */}
       <div className="flex border-b border-gray-border gap-6">
-        <button
-          onClick={() => setActiveTab("residents")}
-          className={`pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
-            activeTab === "residents"
-              ? "border-primary text-primary"
-              : "border-transparent text-gray-secondary-text hover:text-gray-heading-main"
-          }`}
-        >
-          <Users className="h-4 w-4" />
-          <span>Kamar & Penghuni ({activeResidents.length})</span>
-        </button>
+        {property.dwelling.type !== "homestay" && (
+          <button
+            onClick={() => setActiveTab("residents")}
+            className={`pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === "residents"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-secondary-text hover:text-gray-heading-main"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            <span>Kamar & Penghuni ({activeResidents.length})</span>
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("business")}
           className={`pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -242,17 +243,19 @@ export default function PropertyDetailsPage() {
           <Settings className="h-4 w-4" />
           <span>Pengaturan Bisnis</span>
         </button>
-        <button
-          onClick={() => setActiveTab("history")}
-          className={`pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
-            activeTab === "history"
-              ? "border-primary text-primary"
-              : "border-transparent text-gray-secondary-text hover:text-gray-heading-main"
-          }`}
-        >
-          <History className="h-4 w-4" />
-          <span>Riwayat Sewa ({inactiveResidents.length})</span>
-        </button>
+        {property.dwelling.type !== "homestay" && (
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === "history"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-secondary-text hover:text-gray-heading-main"
+            }`}
+          >
+            <History className="h-4 w-4" />
+            <span>Riwayat Sewa ({inactiveResidents.length})</span>
+          </button>
+        )}
       </div>
 
       {/* TAB 1: KAMAR & PENGHUNI */}
@@ -324,17 +327,18 @@ export default function PropertyDetailsPage() {
         resident={selectedResidentForCheckOut}
       />
 
-      <EditResidentModal
-        key={selectedResidentForEdit?.id}
-        isOpen={isEditOpen}
-        onClose={() => {
-          setIsEditOpen(false);
-          setSelectedResidentForEdit(null);
-        }}
-        onSuccess={fetchResidents}
-        resident={selectedResidentForEdit}
-        roomList={parsedRooms}
-      />
+      {isEditOpen && (
+        <EditResidentModal
+          isOpen={isEditOpen}
+          onClose={() => {
+            setIsEditOpen(false);
+            setSelectedResidentForEdit(null);
+          }}
+          onSuccess={fetchResidents}
+          resident={selectedResidentForEdit}
+          roomList={parsedRooms}
+        />
+      )}
 
       <DetailResidentModal
         key={selectedResidentForDetail?.id}

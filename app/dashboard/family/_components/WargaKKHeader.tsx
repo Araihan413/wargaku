@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 import { WargaFamilyDetail } from "../types";
 import {
   ShieldCheck,
@@ -18,7 +19,6 @@ import {
 import { toast } from "sonner";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { FileUploadModal } from "@/components/FileUploadModal";
-import { downloadFileAsPdf } from "@/lib/download-pdf-helper";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface WargaKKHeaderProps {
@@ -265,31 +265,27 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({ family, onRefresh 
             {/* KK File Button */}
             {family.kkFile ? (
               <>
-                <a
-                  href={family.kkFile}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-border bg-gray-sidebar-hover hover:bg-gray-divider px-4 py-2.5 text-xs font-bold text-gray-heading-main transition-colors shadow-sm"
+                <SecureDocumentLink
+                  type="kk"
+                  recordId={family.id}
+                  mode="view"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-border bg-gray-sidebar-hover hover:bg-gray-divider px-4 py-2.5 text-xs font-bold text-gray-heading-main transition-colors shadow-sm cursor-pointer"
                 >
                   <FileText className="h-4 w-4 text-primary" />
                   <span>Lihat Scan KK</span>
                   <ExternalLink className="h-3.5 w-3.5 text-gray-placeholder" />
-                </a>
+                </SecureDocumentLink>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    downloadFileAsPdf(
-                      family.kkFile || "",
-                      `Scan_KK_${family.familyNumber}`,
-                      `KARTU KELUARGA - ${family.headName.toUpperCase()}`
-                    )
-                  }
+                <SecureDocumentLink
+                  type="kk"
+                  recordId={family.id}
+                  mode="download"
+                  downloadFilename={`Scan_KK_${family.familyNumber}.pdf`}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-4 py-2.5 text-xs font-bold text-emerald-800 transition-colors shadow-sm cursor-pointer"
                 >
                   <Download className="h-4 w-4 text-emerald-600" />
                   <span>Unduh PDF</span>
-                </button>
+                </SecureDocumentLink>
               </>
             ) : null}
 

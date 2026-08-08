@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Clock, LogIn, RefreshCw } from "lucide-react";
+import { Clock, RefreshCw } from "lucide-react";
 import { RoomHistoryItem } from "../types";
 
 interface RoomHistoryTimelineTabProps {
   propertyId: number;
   roomNumber: string;
-  onOpenReactivate?: (historyItem: any) => void;
 }
 
 export const RoomHistoryTimelineTab: React.FC<RoomHistoryTimelineTabProps> = ({
   propertyId,
   roomNumber,
-  onOpenReactivate,
 }) => {
   const [history, setHistory] = useState<RoomHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,8 +76,8 @@ export const RoomHistoryTimelineTab: React.FC<RoomHistoryTimelineTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <h4 className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
-        Runut Waktu Former Tenants ({history.length})
+      <h4 className="text-xs font-bold text-gray-secondary-text tracking-wider">
+        Runut Waktu Penyewa ({history.length})
       </h4>
 
       <div className="relative border-l-2 border-gray-border ml-3 space-y-6">
@@ -96,18 +94,6 @@ export const RoomHistoryTimelineTab: React.FC<RoomHistoryTimelineTabProps> = ({
                   <div className="font-bold text-sm text-gray-heading-main">{item.name}</div>
                   <div className="text-[10px] font-mono text-gray-placeholder">NIK: {item.nik}</div>
                 </div>
-
-                {onOpenReactivate && (
-                  <button
-                    type="button"
-                    onClick={() => onOpenReactivate(item)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
-                    title="Kembalikan / Reactivate Penyewa"
-                  >
-                    <LogIn className="h-3 w-3" />
-                    <span>Aktifkan</span>
-                  </button>
-                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-secondary-text pt-2 border-t border-gray-border/50">
@@ -116,8 +102,8 @@ export const RoomHistoryTimelineTab: React.FC<RoomHistoryTimelineTabProps> = ({
                   <span className="capitalize font-semibold text-gray-heading-main">{item.tenantType}</span>
                 </div>
                 <div>
-                  <span className="text-gray-placeholder block text-[9px] uppercase font-semibold">Alasan Keluar</span>
-                  <span className="capitalize font-semibold text-amber-700">{item.inactiveReason || "Check-Out"}</span>
+                  <span className="text-gray-placeholder block text-[9px] uppercase font-semibold">Catatan</span>
+                  <span className="capitalize font-semibold text-amber-700">{item.checkOutNote || "-"}</span>
                 </div>
                 <div>
                   <span className="text-gray-placeholder block text-[9px] uppercase font-semibold">Check-In</span>

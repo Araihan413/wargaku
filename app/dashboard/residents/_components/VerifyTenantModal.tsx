@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, Loader2, CheckCircle2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { RentalResidentItem } from "./RentalTable";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface VerifyTenantModalProps {
   isOpen: boolean;
@@ -151,14 +152,14 @@ export const VerifyTenantModal: React.FC<VerifyTenantModalProps> = ({
                     <span className="text-[10px] text-gray-placeholder mt-0.5 block">Dokumen KTP Utama</span>
                   </div>
                   {resident.ktpFile && (
-                    <a
-                      href={resident.ktpFile}
-                      target="_blank"
-                      rel="noreferrer"
+                    <SecureDocumentLink
+                      type="ktp-tenant"
+                      recordId={resident.id}
+                      mode="view"
                       className="text-xs font-bold text-primary hover:underline cursor-pointer"
                     >
                       Lihat Berkas KTP
-                    </a>
+                    </SecureDocumentLink>
                   )}
                 </div>
               );

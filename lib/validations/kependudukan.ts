@@ -137,8 +137,8 @@ export const createWargaSchema = z.object({
         : 'Hubungan keluarga tidak valid',
   }),
   
-  occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable().transform((val) => val ? toTitleCase(val) : val),
-  educationLevel: z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable().transform((val) => val ? toTitleCase(val) : val),
+  occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable(),
+  educationLevel: z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable(),
   religion: z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']).optional().nullable(),
   
   phone: z.string()

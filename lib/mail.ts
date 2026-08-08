@@ -143,3 +143,93 @@ export async function sendPasswordResetEmail({
   });
 }
 
+/**
+ * Mengirim email undangan aktivasi akun untuk penyewa/keluarga baru.
+ * Didesain responsif & selaras dengan tema Portal Wargaku.
+ */
+export async function sendAccountActivationEmail({
+  toEmail,
+  userName,
+  propertyName,
+  roomNumber,
+  activationUrl,
+}: {
+  toEmail: string;
+  userName: string;
+  propertyName: string;
+  roomNumber?: string;
+  activationUrl: string;
+}) {
+  const subject = `[Wargaku] Undangan Aktivasi Akun - ${propertyName}`;
+  const roomText = roomNumber ? ` (Kamar ${roomNumber})` : "";
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 500px; margin: 16px auto; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+    <!-- Header -->
+    <tr>
+      <td style="padding: 24px; background-color: #0f172a; text-align: center;">
+        <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em;">PORTAL WARGAKU</h1>
+        <p style="margin: 4px 0 0; font-size: 12px; color: #94a3b8;">Sistem Informasi & Pengelolaan Lingkungan RT</p>
+      </td>
+    </tr>
+
+    <!-- Body Utama -->
+    <tr>
+      <td style="padding: 28px 24px; text-align: center;">
+        <div style="display: inline-block; padding: 8px 14px; background-color: #e0f2fe; color: #0369a1; border-radius: 50px; font-size: 12px; font-weight: 700; margin-bottom: 16px;">
+          Undangan Aktivasi Akun
+        </div>
+
+        <h2 style="margin: 0 0 12px; font-size: 18px; font-weight: 700; color: #0f172a;">Selamat Datang, ${userName}!</h2>
+        <p style="margin: 0 0 20px; font-size: 13px; color: #475569; line-height: 1.6;">
+          Anda telah didaftarkan sebagai penyewa di <strong>${propertyName}</strong>${roomText}.
+          Silakan selesaikan pendaftaran akun Anda untuk mengakses fitur WargaKu (QR Hunian, laporan iuran, dan informasi lingkungan RT).
+        </p>
+
+        <!-- Card Informasi Ringkas -->
+        <div style="margin: 20px 0; padding: 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; text-align: left;">
+          <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Penerima Undangan:</div>
+          <div style="font-size: 13px; font-weight: 700; color: #0f172a;">${userName}</div>
+          <div style="font-size: 12px; color: #0284c7; margin-top: 2px;">${toEmail}</div>
+        </div>
+
+        <!-- Tombol Akses Aktivasi -->
+        <div style="margin: 24px 0 16px;">
+          <a href="${activationUrl}" style="display: inline-block; width: 85%; max-width: 280px; padding: 14px 20px; background-color: #0284c7; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);">
+            Selesaikan Pendaftaran Akun &rarr;
+          </a>
+        </div>
+
+        <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+          Atau salin tautan berikut ke browser Anda:<br>
+          <span style="font-size: 10px; color: #0284c7; word-break: break-all;">${activationUrl}</span>
+        </p>
+      </td>
+    </tr>
+
+    <!-- Footer Ringkas -->
+    <tr>
+      <td style="padding: 16px 24px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.5;">
+        Email ini dikirim otomatis oleh Pengelola Kos via Sistem Wargaku.<br>
+        Tautan aktivasi berlaku selama 7 hari.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  return sendEmail({
+    to: { email: toEmail, name: userName },
+    subject,
+    htmlContent,
+    senderName: "Wargaku",
+  });
+}
+

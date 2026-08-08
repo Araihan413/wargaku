@@ -16,7 +16,7 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function KelolaManagedPage() {
   return (
-    <PermissionGuard requiredPermission="manage-finance">
+    <PermissionGuard requiredPermission="manage-iuran">
       <KelolaManagedContent />
     </PermissionGuard>
   );

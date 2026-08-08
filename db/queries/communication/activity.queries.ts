@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, desc, asc, gte, lt, like, or, ne, sql } from "drizzle-orm";
+import { eq, and, desc, asc, gte, lt, like, or, ne } from "drizzle-orm";
 import { deleteCloudinaryFileByUrl } from "@/lib/cloudinary";
 
 export interface ListActivitiesOptions {

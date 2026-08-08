@@ -1,6 +1,7 @@
 import React from "react";
 import { X, User, Phone, MapPin, Calendar, Briefcase, FileText, AlertTriangle, GraduationCap, Download, Eye } from "lucide-react";
 import { RentalResidentItem } from "./RentalTable";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface TenantDetailModalProps {
   isOpen: boolean;
@@ -13,22 +14,6 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
   onClose,
   resident,
 }) => {
-  const downloadFile = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch {
-      window.open(url, "_blank");
-    }
-  };
 
   if (!isOpen || !resident) return null;
 
@@ -259,23 +244,25 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                   </div>
                 </div>
                 <div className="flex gap-2.5">
-                  <a
-                    href={resident.ktpFile}
-                    target="_blank"
-                    rel="noreferrer"
+                  <SecureDocumentLink
+                    type="ktp-tenant"
+                    recordId={resident.id}
+                    mode="view"
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-bold text-gray-heading-main transition-all cursor-pointer shadow-sm"
                   >
                     <Eye className="h-4 w-4 text-gray-secondary-text" />
                     Lihat KTP
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => downloadFile(resident.ktpFile!, `KTP_${resident.name.replace(/\s+/g, "_")}.pdf`)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                  </SecureDocumentLink>
+                  <SecureDocumentLink
+                    type="ktp-tenant"
+                    recordId={resident.id}
+                    mode="download"
+                    downloadFilename={`KTP_${resident.name.replace(/\s+/g, "_")}.pdf`}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm px-4 py-2"
                   >
                     <Download className="h-4 w-4" />
                     Unduh KTP
-                  </button>
+                  </SecureDocumentLink>
                 </div>
               </div>
             ) : (

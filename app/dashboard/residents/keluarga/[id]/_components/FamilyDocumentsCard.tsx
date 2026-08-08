@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { FileText, Download, Eye, AlertTriangle, UserCheck, ShieldAlert, Upload } from "lucide-react";
+import { FileText, AlertTriangle, UserCheck, ShieldAlert, Upload } from "lucide-react";
 import { FamilyDetail } from "../../../types";
 import { toast } from "sonner";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { FileUploadModal } from "@/components/FileUploadModal";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface FamilyDocumentsCardProps {
   familyDetail: FamilyDetail;
@@ -21,23 +22,6 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({
   const [showKtpUploadForm, setShowKtpUploadForm] = useState(false);
   const [isUploadingKtp, setIsUploadingKtp] = useState(false);
   const [selectedMemberForKtp, setSelectedMemberForKtp] = useState<any>(null);
-
-  const downloadFile = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch {
-      window.open(url, "_blank");
-    }
-  };
 
   const saveKKFileToDB = async (url: string) => {
     setIsUploadingKK(true);
@@ -177,23 +161,25 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({
             {familyDetail.kkFile ? (
               <>
                 <div className="flex gap-2">
-                  <a
-                    href={familyDetail.kkFile}
-                    target="_blank"
-                    rel="noreferrer"
+                  <SecureDocumentLink
+                    type="kk"
+                    recordId={familyDetail.id}
+                    mode="view"
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-xs font-bold text-gray-heading-main transition-all cursor-pointer bg-white"
                   >
-                    <Eye className="h-4 w-4 text-gray-secondary-text" />
+                    <FileText className="h-4 w-4 text-gray-secondary-text" />
                     Buka
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => downloadFile(familyDetail.kkFile!, `KK_${familyDetail.familyNumber}.jpg`)}
+                  </SecureDocumentLink>
+                  <SecureDocumentLink
+                    type="kk"
+                    recordId={familyDetail.id}
+                    mode="download"
+                    downloadFilename={`KK_${familyDetail.familyNumber}.pdf`}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
-                    <Download className="h-4 w-4" />
+                    <FileText className="h-4 w-4" />
                     Unduh KK
-                  </button>
+                  </SecureDocumentLink>
                 </div>
                 {!isReadOnly && (
                   <button
@@ -248,25 +234,27 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({
                   <div className="flex items-center gap-2 self-end sm:self-auto">
                     {m.ktpFile ? (
                       <>
-                        <a
-                          href={m.ktpFile}
-                          target="_blank"
-                          rel="noreferrer"
+                        <SecureDocumentLink
+                          type="ktp-member"
+                          recordId={m.id}
+                          mode="view"
                           className="inline-flex items-center justify-center gap-1 px-3 py-1.5 border border-gray-border rounded-lg hover:bg-gray-sidebar-hover text-[10px] font-bold text-gray-heading-main transition-all cursor-pointer bg-white"
                           title="Buka Scan KTP"
                         >
-                          <Eye className="h-3.5 w-3.5" />
+                          <FileText className="h-3.5 w-3.5" />
                           Buka
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => downloadFile(m.ktpFile!, `KTP_${m.name.replace(/\s+/g, "_")}.jpg`)}
+                        </SecureDocumentLink>
+                        <SecureDocumentLink
+                          type="ktp-member"
+                          recordId={m.id}
+                          mode="download"
+                          downloadFilename={`KTP_${m.name.replace(/\s+/g, "_")}.pdf`}
                           className="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary rounded-lg text-[10px] font-bold transition-all cursor-pointer"
                           title="Unduh KTP"
                         >
-                          <Download className="h-3.5 w-3.5" />
+                          <FileText className="h-3.5 w-3.5" />
                           Unduh
-                        </button>
+                        </SecureDocumentLink>
                         {!isReadOnly && (
                           <button
                             type="button"

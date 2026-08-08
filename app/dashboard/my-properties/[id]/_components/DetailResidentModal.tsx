@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { X, Calendar, User, Phone, MapPin, Briefcase, GraduationCap, FileText, Download } from "lucide-react";
+import { X, Calendar, User, Phone, MapPin, FileText, Download } from "lucide-react";
 import { RentalResidentItem } from "../types";
-import { downloadFileAsPdf } from "@/lib/download-pdf-helper";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface DetailResidentModalProps {
   isOpen: boolean;
@@ -117,44 +117,36 @@ export const DetailResidentModal: React.FC<DetailResidentModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex gap-2.5 items-start sm:col-span-2">
-                <MapPin className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
+              <div className="flex gap-2.5 items-start">
+                <User className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[10px] text-gray-secondary-text block">Alamat Asal</span>
-                  <span className="text-sm font-semibold text-gray-heading-main leading-relaxed">
-                    {resident.originAddress || "-"}
+                  <span className="text-[10px] text-gray-secondary-text block">Jenis Kelamin</span>
+                  <span className="text-sm font-semibold text-gray-heading-main">
+                    {resident.gender === "L" ? "Laki-Laki" : resident.gender === "P" ? "Perempuan" : "-"}
                   </span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Section 2: Pekerjaan & Pendidikan */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider border-b border-gray-border pb-1">
-              Pekerjaan & Pendidikan
-            </h4>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="flex gap-2.5 items-start">
-                <Briefcase className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
+                <MapPin className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[10px] text-gray-secondary-text block">Pekerjaan</span>
-                  <span className="text-sm font-semibold text-gray-heading-main">{resident.occupation || "-"}</span>
+                  <span className="text-[10px] text-gray-secondary-text block">Tempat Lahir</span>
+                  <span className="text-sm font-semibold text-gray-heading-main">{resident.birthPlace || "-"}</span>
                 </div>
               </div>
 
               <div className="flex gap-2.5 items-start">
-                <GraduationCap className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
+                <Calendar className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[10px] text-gray-secondary-text block">Pendidikan Terakhir</span>
-                  <span className="text-sm font-semibold text-gray-heading-main">{resident.educationLevel || "-"}</span>
+                  <span className="text-[10px] text-gray-secondary-text block">Tanggal Lahir</span>
+                  <span className="text-sm font-semibold text-gray-heading-main">{formatDate(resident.birthDate)}</span>
                 </div>
               </div>
+
             </div>
           </div>
 
-          {/* Section 3: Berkas KTP */}
+          {/* Section 2: Berkas KTP */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider border-b border-gray-border pb-1">
               Berkas Identitas (KTP)
@@ -187,28 +179,24 @@ export const DetailResidentModal: React.FC<DetailResidentModalProps> = ({
                     </div>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
-                    <a
-                      href={resident.ktpFile}
-                      target="_blank"
-                      rel="noreferrer"
+                    <SecureDocumentLink
+                      type="ktp-tenant"
+                      recordId={resident.id}
+                      mode="view"
                       className="flex-1 sm:flex-initial text-center px-3 py-1.5 border border-gray-border bg-white hover:bg-gray-sidebar-hover text-gray-heading-main rounded-xl text-xs font-bold transition-all cursor-pointer"
                     >
                       Lihat KTP
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        downloadFileAsPdf(
-                          resident.ktpFile || "",
-                          `Scan_KTP_${resident.nik}`,
-                          `SCAN KTP PENYEWA - ${resident.name.toUpperCase()}`
-                        )
-                      }
+                    </SecureDocumentLink>
+                    <SecureDocumentLink
+                      type="ktp-tenant"
+                      recordId={resident.id}
+                      mode="download"
+                      downloadFilename={`Scan_KTP_${resident.nik}.pdf`}
                       className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
                     >
                       <Download className="h-3.5 w-3.5" />
                       <span>PDF</span>
-                    </button>
+                    </SecureDocumentLink>
                   </div>
                 </div>
               );
@@ -221,18 +209,6 @@ export const DetailResidentModal: React.FC<DetailResidentModalProps> = ({
               </div>
             )}
           </div>
-
-          {/* Section 4: Catatan Tambahan */}
-          {resident.notes && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider border-b border-gray-border pb-1">
-                Catatan Tambahan
-              </h4>
-              <p className="text-xs text-gray-heading-main bg-gray-sidebar-hover/10 border border-gray-border rounded-xl p-3 leading-relaxed whitespace-pre-wrap">
-                {resident.notes}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Footer */}

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, desc, like, or, ne, sql } from "drizzle-orm";
+import { eq, and, desc, like, or, ne } from "drizzle-orm";
 import { deleteCloudinaryFileByUrl } from "@/lib/cloudinary";
 
 export interface ListAnnouncementsOptions {

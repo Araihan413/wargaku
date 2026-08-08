@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
 
     const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = (await hasPermission(effectiveRoleId, 'view-tunggakan')) || (await hasPermission(effectiveRoleId, 'manage-iuran'));
+    const allowed = (await hasPermission(effectiveRoleId, 'view-arrears')) || (await hasPermission(effectiveRoleId, 'manage-iuran'));
     if (!allowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }

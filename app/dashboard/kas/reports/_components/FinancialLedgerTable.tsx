@@ -3,6 +3,7 @@ import { LedgerItem } from "../types";
 import { FileText, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { SearchInput } from "@/components/SearchInput";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 interface FinancialLedgerTableProps {
   items: LedgerItem[];
@@ -156,16 +157,16 @@ export const FinancialLedgerTable: React.FC<FinancialLedgerTableProps> = ({ item
                     </td>
                     <td className="py-3 px-3.5 text-center print:hidden">
                       {item.receiptFile ? (
-                        <a
-                          href={item.receiptFile}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <SecureDocumentLink
+                          type="receipt"
+                          recordId={Number(item.id)}
+                          mode="view"
                           className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-semibold"
                           title="Lihat Bukti Nota"
                         >
                           <FileText className="w-3.5 h-3.5" />
                           <span>Nota</span>
-                        </a>
+                        </SecureDocumentLink>
                       ) : (
                         <span className="text-[11px] text-gray-placeholder">-</span>
                       )}

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X, Loader2, LogOut, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+
 import { RentalResidentItem } from "./RentalTable";
 
 interface CheckOutTenantModalProps {
@@ -11,10 +11,7 @@ interface CheckOutTenantModalProps {
   resident: RentalResidentItem | null;
 }
 
-const inactiveReasonOptions: SelectOption[] = [
-  { value: "pindah", label: "Pindah / Selesai Sewa" },
-  { value: "meninggal", label: "Meninggal Dunia" },
-];
+
 
 export const CheckOutTenantModal: React.FC<CheckOutTenantModalProps> = ({
   isOpen,
@@ -26,7 +23,7 @@ export const CheckOutTenantModal: React.FC<CheckOutTenantModalProps> = ({
   const [checkOutDate, setCheckOutDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [inactiveReason, setInactiveReason] = useState<"pindah" | "meninggal">("pindah");
+  const [notes, setNotes] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +36,7 @@ export const CheckOutTenantModal: React.FC<CheckOutTenantModalProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           checkOutDate: new Date(checkOutDate),
-          inactiveReason,
+          notes: notes || null,
         }),
       });
 
@@ -61,7 +58,7 @@ export const CheckOutTenantModal: React.FC<CheckOutTenantModalProps> = ({
 
   const handleClose = () => {
     setCheckOutDate(new Date().toISOString().split("T")[0]);
-    setInactiveReason("pindah");
+    setNotes("");
     onClose();
   };
 
@@ -113,6 +110,7 @@ export const CheckOutTenantModal: React.FC<CheckOutTenantModalProps> = ({
                   type="date"
                   id="checkOutDate"
                   value={checkOutDate}
+                  min={resident?.checkInDate ? resident.checkInDate.split('T')[0] : undefined}
                   onChange={(e) => setCheckOutDate(e.target.value)}
                   className="w-full text-xs bg-gray-sidebar-hover/30 border border-gray-border rounded-xl pl-10 pr-4 py-3 text-gray-heading-main focus:outline-none focus:border-primary transition-all cursor-pointer"
                   required
@@ -121,16 +119,17 @@ export const CheckOutTenantModal: React.FC<CheckOutTenantModalProps> = ({
               </div>
             </div>
 
-            {/* Inactive Reason */}
+            {/* Checkout Keterangan */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-gray-heading-main">
-                Alasan Penonaktifan
+                Keterangan
               </label>
-              <CustomSelect
-                value={inactiveReason}
-                onChange={(val: any) => setInactiveReason(val)}
-                options={inactiveReasonOptions}
-                placeholder="-- Pilih Alasan --"
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Catatan tambahan mengenai check-out (opsional)"
+                className="w-full bg-gray-sidebar-hover/30 border border-gray-border rounded-xl px-4 py-3 text-xs text-gray-heading-main focus:outline-none focus:border-primary transition-all resize-none"
+                rows={3}
               />
             </div>
           </div>

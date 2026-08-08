@@ -684,6 +684,7 @@ export async function getCoordinatorDashboardStats(userId: string, userRoleId?: 
       individualPhone: schema.rentalContracts.individualPhone,
       individualKtpFile: schema.rentalContracts.individualKtpFile,
       checkInDate: schema.rentalContracts.checkInDate,
+      verificationStatus: schema.rentalContracts.verificationStatus,
       userStatus: schema.users.status,
       userName: schema.users.name,
       propertyName: schema.rentalProperties.name,
@@ -713,7 +714,7 @@ export async function getCoordinatorDashboardStats(userId: string, userRoleId?: 
   const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
   const totalActiveResidents = activeContracts.length;
 
-  const pendingContracts = activeContracts.filter((c) => c.userStatus === 'pending');
+  const pendingContracts = activeContracts.filter((c) => c.verificationStatus === 'pending');
   const pendingVerifications = pendingContracts.length;
 
   const propertyBreakdown = properties.map((p) => {

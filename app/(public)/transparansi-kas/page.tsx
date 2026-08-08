@@ -6,7 +6,6 @@ import {
   TrendingUp,
   TrendingDown,
   Calendar,
-  Search,
   ChevronRight,
   AlertCircle,
   ArrowUpRight,

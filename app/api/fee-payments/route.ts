@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
 
     const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = (await hasPermission(effectiveRoleId, 'manage-iuran')) || (await hasPermission(effectiveRoleId, 'view-tunggakan'));
+    const allowed = (await hasPermission(effectiveRoleId, 'manage-iuran')) || (await hasPermission(effectiveRoleId, 'view-arrears'));
     if (!allowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { paymentId, status, notes } = body;
+    const { paymentId, status } = body;
 
     if (!paymentId || !status) {
       return NextResponse.json({ error: 'Data paymentId dan status wajib diisi' }, { status: 400 });

@@ -10,11 +10,12 @@ export interface RentalResidentItem {
   verificationStatus: "draft" | "pending" | "verified" | "rejected";
   verificationNote?: string | null;
   isActive: boolean;
-  notes?: string | null;
-  inactiveReason?: "pindah" | "meninggal" | null;
-  originAddress?: string | null;
-  occupation?: string | null;
-  educationLevel?: string | null;
+  propertyName?: string;
+  blockNumber?: string;
+  houseNumber?: string;
+  gender?: "L" | "P" | null;
+  birthPlace?: string | null;
+  birthDate?: string | null;
   ktpFile?: string | null;
 }
 
@@ -43,6 +44,5 @@ export interface PropertyDetails {
     status: string;
   } | null;
   notes?: string | null;
-  roomPattern?: string | null;
-  roomList?: string[] | null;
+  maxActiveRoomNumber?: number;
 }

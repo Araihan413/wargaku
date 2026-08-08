@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
-import { getRentalPropertyById, updateRentalProperty, deleteRentalProperty, cleanupOldCoordinatorRole } from '@/db/queries/property/rental-property.queries';
+import { getRentalPropertyById, updateRentalProperty, deleteRentalProperty, cleanupOldCoordinatorRole, getMaxActiveRoomNumber } from '@/db/queries/property/rental-property.queries';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
-import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
 import { ZodError } from 'zod';
 
 export async function GET(
@@ -89,17 +88,10 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateRentalPropertySchema.parse(body);
 
-    let finalRoomList = validatedData.roomList;
-    if (validatedData.roomPattern) {
-      const parsed = validateAndParseRoomPattern(validatedData.roomPattern);
-      if (parsed?.rooms) {
-        finalRoomList = parsed.rooms;
-      }
-    }
-
-    if (!finalRoomList || finalRoomList.length === 0) {
-      if (validatedData.totalRooms && validatedData.totalRooms > 0) {
-        finalRoomList = generateDefaultRooms(validatedData.totalRooms);
+    if (validatedData.totalRooms !== undefined) {
+      const maxActiveRoom = await getMaxActiveRoomNumber(propertyId);
+      if (validatedData.totalRooms < maxActiveRoom) {
+        return NextResponse.json({ error: `Tidak dapat mengurangi jumlah kamar menjadi ${validatedData.totalRooms}, karena kamar nomor ${maxActiveRoom.toString().padStart(2, '0')} masih memiliki penyewa aktif.` }, { status: 400 });
       }
     }
 
@@ -112,8 +104,6 @@ export async function PUT(
       phone: validatedData.phone,
       totalRooms: validatedData.totalRooms,
       notes: validatedData.notes || undefined,
-      roomPattern: validatedData.roomPattern,
-      roomList: finalRoomList,
       isActive: validatedData.isActive,
     });
 
@@ -160,6 +150,10 @@ export async function DELETE(
     const existingProperty = await getRentalPropertyById(propertyId);
     if (!existingProperty) {
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
+    }
+
+    if (existingProperty.activeContracts > 0) {
+      return NextResponse.json({ error: 'Gagal menonaktifkan properti. Harap proses check-out seluruh penghuni yang masih aktif terlebih dahulu.' }, { status: 400 });
     }
 
     await deleteRentalProperty(propertyId);

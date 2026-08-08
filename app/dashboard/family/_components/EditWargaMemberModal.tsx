@@ -281,10 +281,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 value={birthPlace}
                 onChange={(e) => setBirthPlace(e.target.value)}
                 placeholder="Contoh: Bandung"
-                disabled={isLocked}
-                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
-                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
-                }`}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
@@ -295,10 +292,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                disabled={isLocked}
-                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
-                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
-                }`}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 

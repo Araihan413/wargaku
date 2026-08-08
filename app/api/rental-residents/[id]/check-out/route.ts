@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { checkOutTenant, getTenantContractById } from '@/db/queries/property/tenant.queries';
+import { getRentalPropertyById } from '@/db/queries/property/rental-property.queries';
+import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 
 export async function POST(
   request: Request,
@@ -28,8 +30,38 @@ export async function POST(
       return NextResponse.json({ error: 'Kontrak sewa tidak ditemukan' }, { status: 404 });
     }
 
+    if (!contract.isActive) {
+      return NextResponse.json({ error: 'Penyewa ini sudah berstatus keluar (check-out).' }, { status: 400 });
+    }
+
+    // Otorisasi Akses
+    const property = await getRentalPropertyById(contract.rentalPropertyId);
+    if (!property) {
+      return NextResponse.json({ error: 'Properti kos tidak ditemukan' }, { status: 404 });
+    }
+
+    const isCoordinator = session.user.id === property.coordinatorUserId;
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isAdmin = await hasPermission(effectiveRoleId, 'manage-residents') || await hasPermission(effectiveRoleId, 'manage-boarding');
+    
+    if (!isCoordinator && !isAdmin) {
+      return NextResponse.json({ error: 'Akses ditolak. Anda tidak berhak melakukan operasi ini.' }, { status: 403 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const checkOutDate = body.checkOutDate ? new Date(body.checkOutDate) : new Date();
+
+    if (contract.checkInDate) {
+      const contractCheckIn = new Date(contract.checkInDate);
+      contractCheckIn.setHours(0, 0, 0, 0);
+      
+      const requestedCheckOut = new Date(checkOutDate);
+      requestedCheckOut.setHours(0, 0, 0, 0);
+
+      if (requestedCheckOut < contractCheckIn) {
+        return NextResponse.json({ error: 'Tanggal keluar tidak boleh sebelum tanggal check-in' }, { status: 400 });
+      }
+    }
 
     await checkOutTenant(contractId, {
       checkOutDate,

@@ -12,7 +12,8 @@ interface RoomDetailDrawerProps {
   onOpenCheckIn: () => void;
   onOpenEdit: (resident: ActiveTenantInfo) => void;
   onOpenCheckOut: (resident: ActiveTenantInfo) => void;
-  onOpenReactivate: (item: any) => void;
+  onOpenResubmit: (resident: ActiveTenantInfo) => void;
+  onOpenDelete: (item: any) => void;
 }
 
 export const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
@@ -23,7 +24,8 @@ export const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
   onOpenCheckIn,
   onOpenEdit,
   onOpenCheckOut,
-  onOpenReactivate,
+  onOpenResubmit,
+  onOpenDelete,
 }) => {
   const [activeTab, setActiveTab] = useState<"tenants" | "history">("tenants");
   const [isVisible, setIsVisible] = useState(false);
@@ -137,13 +139,13 @@ export const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
               onOpenCheckIn={onOpenCheckIn}
               onOpenEdit={onOpenEdit}
               onOpenCheckOut={onOpenCheckOut}
-              onOpenReactivate={onOpenReactivate}
+              onOpenResubmit={onOpenResubmit}
+              onOpenDelete={onOpenDelete}
             />
           ) : (
             <RoomHistoryTimelineTab
               propertyId={propertyId}
               roomNumber={activeRoom.roomNumber}
-              onOpenReactivate={onOpenReactivate}
             />
           )}
         </div>

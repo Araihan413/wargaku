@@ -10,11 +10,11 @@ import {
   updateRentalProperty,
   deleteRentalProperty,
   isPropertyOwner,
+  getMaxActiveRoomNumber,
 } from '@/db/queries/property/rental-property.queries';
 import { findOrCreatePendingCoordinatorByPhone, getUserFullProfile } from '@/db/queries/auth/user.queries';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
-import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
 
 export async function GET(
   request: Request,
@@ -95,23 +95,13 @@ export async function PUT(
     const body = await request.json();
     const validated = updateRentalPropertySchema.parse(body);
 
-    if ('roomPattern' in body || 'totalRooms' in body) {
-      let finalRoomList: string[] = [];
-      const pattern = 'roomPattern' in body ? validated.roomPattern : property.roomPattern;
-      
-      if (pattern) {
-        const parsed = validateAndParseRoomPattern(pattern);
-        if (!parsed.isValid) {
-          return NextResponse.json({ error: parsed.error }, { status: 400 });
-        }
-        finalRoomList = parsed.rooms;
-        validated.totalRooms = finalRoomList.length;
-      } else {
-        const total = 'totalRooms' in body ? (validated.totalRooms ?? 0) : (property.totalRooms ?? 0);
-        finalRoomList = generateDefaultRooms(total);
+    if (validated.totalRooms !== undefined) {
+      const maxActiveRoom = await getMaxActiveRoomNumber(propertyId);
+      if (validated.totalRooms < maxActiveRoom) {
+        return NextResponse.json({ error: `Tidak dapat mengurangi jumlah kamar menjadi ${validated.totalRooms}, karena kamar nomor ${maxActiveRoom.toString().padStart(2, '0')} masih memiliki penyewa aktif.` }, { status: 400 });
       }
-      validated.roomList = finalRoomList;
     }
+
 
     const oldCoordinatorId = property.coordinatorUserId;
     let newCoordinatorId = validated.coordinatorUserId ? String(validated.coordinatorUserId) : null;
@@ -195,6 +185,14 @@ export async function DELETE(
     const isOwner = await isPropertyOwner(propertyId, session.user.id);
     if (!isOwner) {
       return NextResponse.json({ error: 'Anda tidak memiliki hak akses untuk properti ini' }, { status: 403 });
+    }
+    const property = await getRentalPropertyById(propertyId);
+    if (!property) {
+      return NextResponse.json({ error: 'Properti tidak ditemukan' }, { status: 404 });
+    }
+
+    if (property.activeContracts > 0) {
+      return NextResponse.json({ error: 'Gagal menonaktifkan properti. Harap proses check-out seluruh penghuni yang masih aktif terlebih dahulu.' }, { status: 400 });
     }
 
     await deleteRentalProperty(propertyId);

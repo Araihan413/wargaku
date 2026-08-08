@@ -9,7 +9,6 @@ import {
 } from '@/db/queries/property/rental-property.queries';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
-import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
 
 export async function GET(request: Request) {
   try {
@@ -46,6 +45,7 @@ export async function GET(request: Request) {
       query,
       isActive,
       coordinatorUserId,
+      dwellingType: 'kos',
     });
 
     return NextResponse.json(result);
@@ -82,20 +82,6 @@ export async function POST(request: Request) {
       );
     }
 
-    let finalRoomList = validatedData.roomList;
-    if (validatedData.roomPattern) {
-      const parsed = validateAndParseRoomPattern(validatedData.roomPattern);
-      if (parsed?.rooms) {
-        finalRoomList = parsed.rooms;
-      }
-    }
-
-    if (!finalRoomList || finalRoomList.length === 0) {
-      if (validatedData.totalRooms && validatedData.totalRooms > 0) {
-        finalRoomList = generateDefaultRooms(validatedData.totalRooms);
-      }
-    }
-
     const propertyId = await createRentalProperty({
       dwellingId: validatedData.dwellingId,
       name: validatedData.name,
@@ -104,8 +90,6 @@ export async function POST(request: Request) {
       phone: validatedData.phone,
       totalRooms: validatedData.totalRooms,
       notes: validatedData.notes,
-      roomPattern: validatedData.roomPattern,
-      roomList: finalRoomList,
     });
 
     return NextResponse.json(

@@ -80,7 +80,7 @@ async function main() {
     { id: 8, slug: 'manage-expense', name: 'Catat Pengeluaran Kas', module: 'kas_rt', description: 'Mencatat transaksi pengeluaran kas RT' },
     { id: 9, slug: 'view-finance', name: 'Laporan Keuangan Kas RT', module: 'kas_rt', description: 'Melihat laporan transaksi kas dan saldo RT' },
     { id: 10, slug: 'manage-iuran', name: 'Kelola & Setor Iuran', module: 'iuran_warga', description: 'Mengatur tarif, inisialisasi, dan menginput setoran iuran warga' },
-    { id: 11, slug: 'view-tunggakan', name: 'Laporan Tunggakan Iuran', module: 'iuran_warga', description: 'Melihat rekapitulasi tunggakan iuran warga' },
+    { id: 11, slug: 'view-arrears', name: 'Laporan Tunggakan Iuran', module: 'iuran_warga', description: 'Melihat rekapitulasi tunggakan iuran warga' },
     { id: 12, slug: 'manage-announcements', name: 'Kelola Pengumuman', module: 'pengumuman', description: 'Membuat, mengedit, dan menghapus pengumuman warga' },
     { id: 13, slug: 'manage-activities', name: 'Kelola Kegiatan RT', module: 'kegiatan', description: 'Mengelola agenda dan jadwal kegiatan warga RT' },
     { id: 14, slug: 'manage-complaints', name: 'Tanggapan Pengaduan Warga', module: 'laporan', description: 'Merespon dan memperbarui status laporan aduan warga' },

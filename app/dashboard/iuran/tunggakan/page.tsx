@@ -11,7 +11,7 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function LaporanTunggakanPage() {
   return (
-    <PermissionGuard requiredPermission="manage-finance">
+    <PermissionGuard requiredPermission="view-arrears">
       <LaporanTunggakanContent />
     </PermissionGuard>
   );

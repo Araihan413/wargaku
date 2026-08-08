@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import logo from '@/public/logo/logo.webp';
@@ -17,6 +17,7 @@ import {
   LifeBuoy,
   Clock,
   Wallet,
+  CircleDollarSign,
   Megaphone,
   Search,
   Building2,
@@ -117,10 +118,10 @@ const sidebarItems: SidebarItem[] = [
   // 5. Modul Iuran Warga (Dynamic Permitted)
   {
     title: "Iuran Warga",
-    icon: Wallet,
+    icon: CircleDollarSign,
     subItems: [
       { title: "Kelola & Setor Iuran", href: "/dashboard/iuran/manage", permission: "manage-iuran" },
-      { title: "Laporan Tunggakan Iuran", href: "/dashboard/iuran/tunggakan", permission: "view-tunggakan" },
+      { title: "Laporan Tunggakan Iuran", href: "/dashboard/iuran/tunggakan", permission: "view-arrears" },
     ],
   },
 
@@ -192,6 +193,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const pathname = usePathname();
   const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+
+  // State untuk floating popover
+  const [hoveredItem, setHoveredItem] = useState<{
+    item: SidebarItem;
+    top: number;
+  } | null>(null);
+  const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = (item: SidebarItem, e: React.MouseEvent) => {
+    if (!isCollapsed) return;
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setHoveredItem({ item, top: rect.top });
+  };
+
+  const handleMouseLeave = () => {
+    if (!isCollapsed) return;
+    hoverTimeout.current = setTimeout(() => {
+      setHoveredItem(null);
+    }, 150);
+  };
 
   const { activeRoleId } = useRoleStore();
   const currentRoleId = activeRoleId ?? 6;
@@ -421,9 +443,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Scrollable Navigation Area */}
-        <nav className={`flex-1 px-3 py-4 space-y-1.5 scrollbar-thin ${
-          isCollapsed ? "overflow-y-auto lg:overflow-visible lg:overflow-y-visible" : "overflow-y-auto"
-        }`}>
+        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
           {filteredItems.map((item, index) => {
             const Icon = item.icon;
             const hasSub = !!item.subItems;
@@ -445,7 +465,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`;
 
             return (
-              <div key={`${item.title}-${index}`} className="relative group">
+              <div 
+                key={`${item.title}-${index}`} 
+                className="relative"
+                onMouseEnter={(e) => handleMouseEnter(item, e)}
+                onMouseLeave={handleMouseLeave}
+              >
                 {/* Accordion / Direct Link Button */}
                 {hasSub ? (
                   <button
@@ -573,69 +598,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     })}
                   </div>
                 )}
-
-                {/* Floating Tooltip showing Menu Name (Desktop Collapsed Mode) */}
-                {isCollapsed && (
-                  <div className="absolute left-full top-2 ml-3 z-50 bg-[#1E293B] text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow-lg opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 whitespace-nowrap">
-                    {item.title}
-                  </div>
-                )}
-
-                {/* Floating Popover Submenu Panel (Desktop Collapsed Mode) */}
-                {hasSub && isCollapsed && (
-                  <div className="absolute left-full top-10 -ml-4 z-50 w-56 rounded-xl border border-gray-border bg-gray-card/95 backdrop-blur-xl p-2.5 shadow-2xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 origin-top-left">
-                    <div>
-                      {item.subItems!.map((sub, idx) => {
-                        const isSubActive = isActive(sub.href);
-                        const isLast = idx === item.subItems!.length - 1;
-                        const isSubLocked = isLocked(sub.requiresVerification);
-                        return (
-                          <div key={sub.href} className="relative pl-7 text-left"> 
-                            <div className="pb-1">
-                              {/* Vertical Connector Path */}
-                              <div
-                                className={`absolute left-4 top-0 w-0.5 bg-gray-divider ${
-                                isLast ? "h-0" : "bottom-0"
-                              }`}
-                              />
-                              {/* Horizontal Branch Lengkung Path */}
-                              <div className="absolute left-4 top-0 w-3 h-4.25 rounded-bl-md border-l-2 border-b-2 border-gray-divider" /> 
-
-                              <Link
-                                href={sub.href}
-                                onClick={(e) => {
-                                  if (isSubLocked) {
-                                    e.preventDefault();
-                                    toast.error("Menu ini terkunci. Unggah scan KK dan tunggu verifikasi Ketua RT.");
-                                    return;
-                                  }
-                                  onCloseMobile();
-                                }}
-                                className={`flex items-center justify-between rounded-lg py-2 px-3 text-xs font-semibold transition-colors ${
-                                  isSubLocked
-                                    ? "text-gray-secondary-text/60 cursor-not-allowed"
-                                    : isSubActive
-                                    ? "bg-primary/10 text-primary font-bold"
-                                    : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
-                                }`}
-                              >
-                               <span className="flex items-center gap-2">
-                                 {sub.title}
-                                 {getBadgeCount(sub.href) > 0 && (
-                                   <span className="inline-flex items-center justify-center px-1 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
-                                     {getBadgeCount(sub.href)}
-                                   </span>
-                                 )}
-                               </span>
-                               {isSubLocked && <Lock className="h-3 w-3 text-amber-500 shrink-0 ml-1.5" />}
-                             </Link>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -703,6 +665,78 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       </aside>
+
+      {/* Floating Tooltip / Popover (Desktop Collapsed Mode) */}
+      {isCollapsed && hoveredItem && (
+        <div
+          className="fixed left-20 z-100"
+          style={{ top: hoveredItem.top }}
+          onMouseEnter={() => {
+            if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+          }}
+          onMouseLeave={handleMouseLeave}
+        >
+          {hoveredItem.item.subItems ? (
+            /* Popover Submenu */
+            <div className="ml-1 mt-1 w-56 rounded-xl border border-gray-border bg-gray-card/95 backdrop-blur-xl p-2.5 shadow-2xl origin-top-left animate-in fade-in zoom-in-95 duration-200">
+              <div className="mb-1.5 px-3 pb-1.5 border-b border-gray-border/50">
+                <span className="text-xs font-bold text-gray-heading-main">
+                  {hoveredItem.item.title}
+                </span>
+              </div>
+              <div>
+                {hoveredItem.item.subItems.map((sub, idx) => {
+                  const isSubActive = isActive(sub.href);
+                  const isLast = idx === hoveredItem.item.subItems!.length - 1;
+                  const isSubLocked = isLocked(sub.requiresVerification);
+                  return (
+                    <div key={sub.href} className="relative pl-7 text-left">
+                      <div className="pb-1">
+                        <div className={`absolute left-4 top-0 w-0.5 bg-gray-divider ${isLast ? "h-0" : "bottom-0"}`} />
+                        <div className="absolute left-4 top-0 w-3 h-4.25 rounded-bl-md border-l-2 border-b-2 border-gray-divider" />
+                        <Link
+                          href={sub.href}
+                          onClick={(e) => {
+                            if (isSubLocked) {
+                              e.preventDefault();
+                              toast.error("Menu ini terkunci. Unggah scan KK dan tunggu verifikasi Ketua RT.");
+                              return;
+                            }
+                            setHoveredItem(null);
+                            onCloseMobile();
+                          }}
+                          className={`flex items-center justify-between rounded-lg py-2 px-3 text-xs font-semibold transition-colors ${
+                            isSubLocked
+                              ? "text-gray-secondary-text/60 cursor-not-allowed"
+                              : isSubActive
+                              ? "bg-primary/10 text-primary font-bold"
+                              : "text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            {sub.title}
+                            {getBadgeCount(sub.href) > 0 && (
+                              <span className="inline-flex items-center justify-center px-1 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
+                                {getBadgeCount(sub.href)}
+                              </span>
+                            )}
+                          </span>
+                          {isSubLocked && <Lock className="h-3 w-3 text-amber-500 shrink-0 ml-1.5" />}
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* Standard Tooltip */
+            <div className="ml-3 mt-1.5 bg-[#1E293B] text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow-lg whitespace-nowrap animate-in fade-in zoom-in-95 duration-200">
+              {hoveredItem.item.title}
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 };

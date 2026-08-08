@@ -10,7 +10,6 @@ import { getDwellingOwner, claimDwellingOwner } from '@/db/queries/population/dw
 import { findOrCreatePendingCoordinatorByPhone } from '@/db/queries/auth/user.queries';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
-import { validateAndParseRoomPattern, generateDefaultRooms } from '@/lib/room-helper';
 
 export async function GET(request: Request) {
   try {
@@ -83,31 +82,25 @@ export async function POST(request: Request) {
       coordinatorId = await findOrCreatePendingCoordinatorByPhone(body.coordinatorName, body.coordinatorPhone);
     }
 
-    let finalRoomList: string[] = [];
-    if (validated.roomPattern) {
-      const parsed = validateAndParseRoomPattern(validated.roomPattern);
-      if (!parsed.isValid) {
-        return NextResponse.json({ error: parsed.error }, { status: 400 });
-      }
-      finalRoomList = parsed.rooms;
-      validated.totalRooms = finalRoomList.length;
+    let finalCoordinatorId: string | null = null;
+    if (dwelling.type === 'kos') {
+      finalCoordinatorId = coordinatorId || session.user.id;
     } else {
-      finalRoomList = generateDefaultRooms(validated.totalRooms);
+      finalCoordinatorId = coordinatorId || null;
     }
 
-    const finalCoordinatorId = coordinatorId || session.user.id;
-
-    // Auto-assign Role 5 (Koordinator Kost) to coordinator
-    await db.insert(schema.userRoles).values({
-      userId: finalCoordinatorId,
-      roleId: 5,
-      isPrimary: false,
-    }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    if (finalCoordinatorId) {
+      // Auto-assign Role 5 (Koordinator Kost) to coordinator
+      await db.insert(schema.userRoles).values({
+        userId: finalCoordinatorId,
+        roleId: 5,
+        isPrimary: false,
+      }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    }
 
     const propertyId = await createRentalProperty({
       ...validated,
       coordinatorUserId: finalCoordinatorId,
-      roomList: finalRoomList,
     });
 
     return NextResponse.json({

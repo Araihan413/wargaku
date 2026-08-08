@@ -20,18 +20,16 @@ export function HistoryTab({ inactiveResidents, onViewDetail }: HistoryTabProps)
           </p>
         </div>
       ) : (
-        <div className="rounded-3xl border border-gray-border bg-gray-card overflow-hidden shadow-sm">
+        <div className="border border-gray-border rounded-2xl bg-gray-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-gray-border bg-gray-sidebar-hover/20 text-gray-heading-main font-bold">
+                <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
                   <th className="py-4 px-5">Nama Penyewa</th>
                   <th className="py-4 px-5">Kamar</th>
-                  <th className="py-4 px-5 font-mono">NIK</th>
+                  <th className="py-4 px-5 font-mono">NIK / Kontak</th>
                   <th className="py-4 px-5">Tanggal Masuk</th>
                   <th className="py-4 px-5">Tanggal Keluar</th>
-                  <th className="py-4 px-5">Keterangan</th>
-                  <th className="py-4 px-5">Status</th>
                   <th className="py-4 px-5 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -44,7 +42,10 @@ export function HistoryTab({ inactiveResidents, onViewDetail }: HistoryTabProps)
                         {res.roomNumber || "No Room"}
                       </span>
                     </td>
-                    <td className="py-4 px-5 font-mono">{res.nik}</td>
+                    <td className="py-4 px-5 font-mono">
+                      <div>{res.nik}</div>
+                      {res.phone && <div className="text-[10px] text-gray-placeholder mt-0.5">{res.phone}</div>}
+                    </td>
                     <td className="py-4 px-5">
                       {new Date(res.checkInDate).toLocaleDateString("id-ID", {
                         day: "numeric",
@@ -52,7 +53,7 @@ export function HistoryTab({ inactiveResidents, onViewDetail }: HistoryTabProps)
                         year: "numeric",
                       })}
                     </td>
-                    <td className="py-4 px-5">
+                    <td className="py-4 px-5 font-semibold text-rose-600">
                       {res.checkOutDate ? (
                         new Date(res.checkOutDate).toLocaleDateString("id-ID", {
                           day: "numeric",
@@ -62,37 +63,6 @@ export function HistoryTab({ inactiveResidents, onViewDetail }: HistoryTabProps)
                       ) : (
                         "-"
                       )}
-                    </td>
-                    <td className="py-4 px-5">
-                      {res.notes ? (
-                        <span>
-                          {res.inactiveReason && (
-                            <span className={`mr-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                              res.inactiveReason === "pindah"
-                                ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
-                            }`}>
-                              {res.inactiveReason}
-                            </span>
-                          )}
-                          {res.notes}
-                        </span>
-                      ) : (
-                        res.inactiveReason ? (
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                            res.inactiveReason === "pindah"
-                              ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                              : "bg-rose-50 text-rose-600 border border-rose-100"
-                          }`}>
-                            {res.inactiveReason}
-                          </span>
-                        ) : "-"
-                      )}
-                    </td>
-                    <td className="py-4 px-5">
-                      <span className="px-1.5 py-0.5 rounded bg-gray-sidebar-hover text-[9px] font-bold uppercase tracking-wider text-gray-placeholder">
-                        Inactive
-                      </span>
                     </td>
                     <td className="py-4 px-5 text-right">
                       <button

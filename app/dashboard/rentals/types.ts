@@ -12,6 +12,7 @@ export interface ActiveTenantInfo {
   checkInDate: string;
   verificationStatus: VerificationStatus;
   verificationNote?: string | null;
+  hasActivated?: boolean;
   ktpFile?: string | null;
   originAddress?: string | null;
   occupation?: string | null;
@@ -53,7 +54,7 @@ export interface RoomHistoryItem {
   tenantType: TenantType;
   checkInDate: string;
   checkOutDate?: string | null;
-  inactiveReason?: string | null;
+  checkOutNote?: string | null;
   verificationStatus: VerificationStatus;
   notes?: string | null;
   createdAt: string;

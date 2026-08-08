@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, count, desc, like, or, gte, sql } from "drizzle-orm";
+import { eq, and, count, desc, like, or, gte } from "drizzle-orm";
 
 export interface ListComplaintsOptions {
   status?: string | null;

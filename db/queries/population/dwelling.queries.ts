@@ -249,7 +249,7 @@ export async function listActiveDwellingsPublic() {
  */
 export async function getDwellingOwner(dwellingId: number) {
   const [dwelling] = await db
-    .select({ ownerUserId: schema.dwellings.ownerUserId })
+    .select({ ownerUserId: schema.dwellings.ownerUserId, type: schema.dwellings.type })
     .from(schema.dwellings)
     .where(eq(schema.dwellings.id, dwellingId))
     .limit(1);
