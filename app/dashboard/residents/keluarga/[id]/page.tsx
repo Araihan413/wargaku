@@ -88,10 +88,10 @@ export default function FamilyDetailPage({ params }: PageProps) {
 
   const handleReactivateMember = async (member: FamilyMemberItem) => {
     try {
-      const res = await fetch(`/api/warga/${member.id}`, {
+      const res = await fetch(`/api/family-members/${member.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: true, inactiveReason: null }),
+        body: JSON.stringify({ isActive: true, inactiveNote: null }),
       });
 
       if (res.ok) {

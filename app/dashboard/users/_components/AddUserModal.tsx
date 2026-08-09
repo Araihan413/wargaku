@@ -440,7 +440,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                 />
                 <FormField
                   id="phone"
-                  label="Nomor Telepon / WhatsApp"
+                  label="Nomor Telepon"
                   type="text"
                   required={false}
                   maxLength={15}

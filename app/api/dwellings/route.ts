@@ -67,8 +67,10 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
       }
       const effectiveRoleId = await getEffectiveRoleId(session);
-      const isAllowed = await hasPermission(effectiveRoleId, 'view-residents');
-      if (!isAllowed) {
+      const isGlobalAdmin = await hasPermission(effectiveRoleId, 'view-residents');
+      const isCoordinatorAdmin = await hasPermission(effectiveRoleId, 'manage-boarding');
+      
+      if (!isGlobalAdmin && !isCoordinatorAdmin) {
         return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
       }
 
@@ -88,6 +90,7 @@ export async function GET(request: Request) {
         query,
         type,
         isActive,
+        coordinatorUserId: isGlobalAdmin ? undefined : session.user.id,
       });
 
       return NextResponse.json(result);

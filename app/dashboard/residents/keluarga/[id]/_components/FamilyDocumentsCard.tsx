@@ -63,7 +63,7 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({
   const saveKtpFileToDB = async (memberId: number, url: string) => {
     setIsUploadingKtp(true);
     try {
-      const res = await fetch(`/api/warga/${memberId}`, {
+      const res = await fetch(`/api/family-members/${memberId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ktpFile: url }),

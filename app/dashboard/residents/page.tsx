@@ -26,6 +26,8 @@ import { useDebounce } from "@/lib/hooks/use-debounce";
 import { CoordinatorTable, CoordinatorItem } from "./_components/CoordinatorTable";
 import { EditCoordinatorModal } from "./_components/EditCoordinatorModal";
 import { CoordinatorDetailModal } from "./_components/CoordinatorDetailModal";
+import { DeactivateCoordinatorModal } from "./_components/DeactivateCoordinatorModal";
+import { CreateResidentAccountModal } from "./_components/CreateResidentAccountModal";
 import { AddUserModal } from "../users/_components/AddUserModal";
 import { authClient } from "@/lib/auth-client";
 import { useRoleStore } from "@/lib/store/use-role-store";
@@ -113,7 +115,6 @@ function ResidentsContent() {
   const [isAddCoordinatorOpen, setIsAddCoordinatorOpen] = useState(false);
   const [isDeactivateCoordOpen, setIsDeactivateCoordOpen] = useState(false);
   const [selectedCoordForDeactivate, setSelectedCoordForDeactivate] = useState<CoordinatorItem | null>(null);
-  const [isDeactivatingCoord, setIsDeactivatingCoord] = useState(false);
   const [selectedCoordinatorStatus, setSelectedCoordinatorStatus] = useState("");
   const [coordinatorsCurrentPage, setCoordinatorsCurrentPage] = useState(1);
   const [selectedCoordinatorForEdit, setSelectedCoordinatorForEdit] = useState<CoordinatorItem | null>(null);
@@ -310,32 +311,6 @@ function ResidentsContent() {
     }
   }, [activeTab, fetchCoordinators]);
 
-  const handleDeactivateCoordinator = async () => {
-    if (!selectedCoordForDeactivate) return;
-    setIsDeactivatingCoord(true);
-    try {
-      const res = await fetch(`/api/coordinators/${selectedCoordForDeactivate.id}`, {
-        method: "PUT",
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        toast.success(result.message || "Akun koordinator berhasil dinonaktifkan");
-        setIsDeactivateCoordOpen(false);
-        setSelectedCoordForDeactivate(null);
-        fetchCoordinators();
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Gagal menonaktifkan koordinator");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Terjadi kesalahan sistem");
-    } finally {
-      setIsDeactivatingCoord(false);
-    }
-  };
-
   const handleDisableKK = async () => {
     if (!selectedFamilyForDisable) return;
     setIsDisabling(true);
@@ -389,7 +364,6 @@ function ResidentsContent() {
       const matchesSearch =
         !q ||
         c.name.toLowerCase().includes(q) ||
-        (c.nik && c.nik.toLowerCase().includes(q)) ||
         (c.email && c.email.toLowerCase().includes(q)) ||
         (c.phone && c.phone.toLowerCase().includes(q));
 
@@ -891,28 +865,18 @@ function ResidentsContent() {
       />
 
       {/* Modal Dialog: Konfirmasi Copot Jabatan Koordinator */}
-      <ConfirmModal
+      <DeactivateCoordinatorModal
         isOpen={isDeactivateCoordOpen}
         onClose={() => {
           setIsDeactivateCoordOpen(false);
           setSelectedCoordForDeactivate(null);
         }}
-        onConfirm={handleDeactivateCoordinator}
-        title="Copot Jabatan Koordinator?"
-        description={
-          <div className="space-y-2 text-xs leading-relaxed text-gray-secondary-text">
-            <p>
-              Apakah Anda yakin ingin mencopot jabatan dan menonaktifkan akun koordinator untuk <strong>{selectedCoordForDeactivate?.name}</strong>?
-            </p>
-            <p className="font-semibold text-amber-600">
-              ! PENTING: Tindakan ini otomatis mengalihkan seluruh properti sewa yang dikelolanya kembali ke Pemilik Properti masing-masing.
-            </p>
-          </div>
-        }
-        confirmText="Ya, Copot Jabatan"
-        cancelText="Batal"
-        variant="danger"
-        isLoading={isDeactivatingCoord}
+        onSuccess={() => {
+          setIsDeactivateCoordOpen(false);
+          setSelectedCoordForDeactivate(null);
+          fetchCoordinators();
+        }}
+        coordinator={selectedCoordForDeactivate}
       />
 
       <AddUserModal
@@ -958,15 +922,13 @@ function ResidentsContent() {
         }}
       />
 
-      <AddUserModal
+      <CreateResidentAccountModal
         isOpen={isAddWargaOpen}
         onClose={() => setIsAddWargaOpen(false)}
         onSuccess={() => {
           setIsAddWargaOpen(false);
           fetchFamilies();
         }}
-        roles={[]}
-        fixedRoleId={6}
       />
     </div>
   );

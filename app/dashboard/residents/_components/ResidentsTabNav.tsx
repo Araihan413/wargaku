@@ -18,7 +18,7 @@ export const ResidentsTabNav: React.FC<ResidentsTabNavProps> = ({
     },
     {
       id: "penyewa" as const,
-      label: "Penyewa (Pendatang)",
+      label: "Penyewa Kos",
       icon: UserCheck,
     },
     {

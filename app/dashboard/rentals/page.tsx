@@ -320,11 +320,15 @@ function RentalsContent() {
         onClose={handleCloseDrawer}
         room={selectedRoomObj}
         propertyId={selectedProperty?.id || 0}
-        onOpenCheckIn={() => setIsCheckInOpen(true)}
+        onOpenCheckIn={() => {
+          handleCloseDrawer();
+          setIsCheckInOpen(true);
+        }}
         onOpenEdit={handleOpenEdit}
         onOpenCheckOut={handleOpenCheckOut}
         onOpenResubmit={handleOpenResubmit}
         onOpenDelete={(res) => {
+          handleCloseDrawer();
           setTargetDeleteTenant(res);
           setIsDeleteConfirmOpen(true);
         }}

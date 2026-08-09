@@ -17,9 +17,6 @@ export interface CreateTenantInput {
   // Untuk individual tenant
   individualName?: string;
   individualNik?: string;
-  individualGender?: 'L' | 'P';
-  individualBirthPlace?: string | null;
-  individualBirthDate?: string | null;
   individualPhone?: string | null;
   individualKtpFile?: string | null;
   // Untuk family tenant
@@ -36,7 +33,6 @@ export interface UpdateTenantInput {
   tenantType?: 'individual' | 'family';
   individualName?: string | null;
   individualNik?: string | null;
-  individualGender?: 'L' | 'P' | null;
   individualPhone?: string | null;
   individualKtpFile?: string | null;
   checkInDate?: string | Date;
@@ -87,9 +83,6 @@ export async function listTenantContracts(options: {
       userId: schema.rentalContracts.userId,
       individualName: schema.rentalContracts.individualName,
       individualNik: schema.rentalContracts.individualNik,
-      individualGender: schema.rentalContracts.individualGender,
-      individualBirthPlace: schema.rentalContracts.individualBirthPlace,
-      individualBirthDate: schema.rentalContracts.individualBirthDate,
       individualPhone: schema.rentalContracts.individualPhone,
       individualKtpFile: schema.rentalContracts.individualKtpFile,
       checkInDate: schema.rentalContracts.checkInDate,
@@ -122,9 +115,6 @@ export async function listTenantContracts(options: {
       name: c.individualName || c.userName || 'Penyewa',
       nik: c.individualNik || c.familyNumber || '-',
       phone: c.individualPhone || c.userPhone || null,
-      gender: c.individualGender || null,
-      birthPlace: c.individualBirthPlace || null,
-      birthDate: c.individualBirthDate ? (typeof c.individualBirthDate === 'string' ? c.individualBirthDate : (c.individualBirthDate as Date).toISOString()) : null,
       ktpFile: c.individualKtpFile || null,
       checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
       checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
@@ -156,6 +146,7 @@ export async function listAllTenantContracts(options: {
   tenantType?: 'individual' | 'family';
   verificationStatus?: 'pending' | 'verified' | 'rejected';
   query?: string;
+  coordinatorUserId?: string;
 }) {
   const limit = options.limit ?? 10;
   const offset = options.offset ?? 0;
@@ -181,6 +172,9 @@ export async function listAllTenantContracts(options: {
       )
     );
   }
+  if (options.coordinatorUserId) {
+    conditions.push(eq(schema.rentalProperties.coordinatorUserId, options.coordinatorUserId));
+  }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -194,9 +188,6 @@ export async function listAllTenantContracts(options: {
       individualNik: schema.rentalContracts.individualNik,
       individualPhone: schema.rentalContracts.individualPhone,
       individualKtpFile: schema.rentalContracts.individualKtpFile,
-      individualGender: schema.rentalContracts.individualGender,
-      individualBirthPlace: schema.rentalContracts.individualBirthPlace,
-      individualBirthDate: schema.rentalContracts.individualBirthDate,
       checkInDate: schema.rentalContracts.checkInDate,
       checkOutDate: schema.rentalContracts.checkOutDate,
       verificationStatus: schema.rentalContracts.verificationStatus,
@@ -233,9 +224,6 @@ export async function listAllTenantContracts(options: {
       nik: c.individualNik || c.familyNumber || '-',
       phone: c.individualPhone || c.userPhone || null,
       ktpFile: c.individualKtpFile || c.familyKkFile || null,
-      gender: c.individualGender || null,
-      birthPlace: c.individualBirthPlace || null,
-      birthDate: c.individualBirthDate ? (typeof c.individualBirthDate === 'string' ? c.individualBirthDate : (c.individualBirthDate as Date).toISOString()) : null,
       checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
       checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
       verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
@@ -325,9 +313,6 @@ export async function createTenantContract(data: CreateTenantInput) {
     userId: data.userId ?? null,
     individualName: data.individualName ?? null,
     individualNik: data.individualNik ?? null,
-    individualGender: data.individualGender ?? null,
-    individualBirthPlace: data.individualBirthPlace ?? null,
-    individualBirthDate: data.individualBirthDate ? new Date(data.individualBirthDate) : null,
     individualPhone: data.individualPhone ?? null,
     individualKtpFile: data.individualKtpFile ?? null,
     checkInDate,
@@ -446,7 +431,6 @@ export async function updateTenantContract(id: number, data: UpdateTenantInput) 
   if (data.roomNumber !== undefined) payload.roomNumber = data.roomNumber;
   if (data.individualName !== undefined) payload.individualName = data.individualName;
   if (data.individualNik !== undefined) payload.individualNik = data.individualNik;
-  if (data.individualGender !== undefined) payload.individualGender = data.individualGender;
   if (data.individualPhone !== undefined) payload.individualPhone = data.individualPhone;
   if (data.individualKtpFile !== undefined) payload.individualKtpFile = data.individualKtpFile;
   if (data.checkInDate !== undefined) payload.checkInDate = data.checkInDate instanceof Date ? data.checkInDate : new Date(String(data.checkInDate));

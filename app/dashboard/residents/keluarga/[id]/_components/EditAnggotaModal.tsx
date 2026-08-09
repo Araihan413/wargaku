@@ -220,7 +220,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                           : relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")
                       }
                       placeholder="Pilih..."
-                      disabled={isLocked}
+                      disabled={isLocked || member?.relationship === "Kepala_Keluarga"}
                     />
                   )}
                 />

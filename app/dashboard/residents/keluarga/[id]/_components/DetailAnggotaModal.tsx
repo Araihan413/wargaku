@@ -76,7 +76,7 @@ export const DetailAnggotaModal: React.FC<DetailAnggotaModalProps> = ({
               ) : (
                 <div className="flex flex-col items-end gap-0.5">
                   <span className="inline-flex items-center gap-1 rounded-full bg-error/10 border border-error/20 px-3 py-1 text-xs font-bold text-error">
-                    Nonaktif ({member.inactiveReason || "pindah"})
+                    Nonaktif
                   </span>
                   {member.updatedAt && (
                     <span className="text-[10px] text-gray-secondary-text">
@@ -108,7 +108,7 @@ export const DetailAnggotaModal: React.FC<DetailAnggotaModalProps> = ({
               <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
                 <span className="text-[11px] font-bold text-gray-placeholder uppercase tracking-wider block">
-                  NIK (No. Induk Kependudukan)
+                  NIK
                 </span>
                 <span className="text-sm font-mono font-semibold text-gray-heading-main block mt-0.5">
                   {member.nik}
@@ -206,6 +206,21 @@ export const DetailAnggotaModal: React.FC<DetailAnggotaModalProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Catatan Penonaktifan (Khusus Nonaktif) */}
+            {!member.isActive && (
+              <div className="flex items-start gap-3 p-3 border border-gray-border/50 rounded-xl bg-gray-card md:col-span-2">
+                <AlertTriangle className="h-5 w-5 text-error shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[11px] font-bold text-gray-placeholder uppercase tracking-wider block">
+                    Catatan Penonaktifan
+                  </span>
+                  <span className="text-sm font-semibold text-gray-heading-main block mt-0.5">
+                    {member.inactiveNote || "-"}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Dokumen Scan KTP */}

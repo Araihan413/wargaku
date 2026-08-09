@@ -116,13 +116,13 @@ export const updateUserSchema = z.object({
     error: (issue) => issue.input === undefined ? "Role wajib dipilih" : "Role harus berupa angka"
   }).int().positive(),
 }).superRefine((data, ctx) => {
-  // Jika perannya bukan Super Admin (roleId != 1), maka NIK wajib diisi dan harus tepat 16 digit angka
-  if (data.roleId !== 1) {
+  // Jika perannya bukan Super Admin (1) dan bukan Koordinator Kos (5), maka NIK wajib diisi dan harus tepat 16 digit angka
+  if (data.roleId !== 1 && data.roleId !== 5) {
     if (!data.nik || data.nik.trim() === "") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["nik"],
-        message: "NIK wajib diisi untuk peran selain Super Admin",
+        message: "NIK wajib diisi untuk peran ini",
       });
     } else if (!nikRegex.test(data.nik)) {
       ctx.addIssue({
@@ -132,7 +132,7 @@ export const updateUserSchema = z.object({
       });
     }
   } else {
-    // Untuk Super Admin, jika NIK diisi, tetap harus valid 16 digit
+    // Untuk Super Admin atau Koordinator, jika NIK diisi, tetap harus valid 16 digit
     if (data.nik && data.nik.trim() !== "" && !nikRegex.test(data.nik)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

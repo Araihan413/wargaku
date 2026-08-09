@@ -205,7 +205,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         <div
           ref={optionsRef}
           role="listbox"
-          className={`absolute left-0 z-9999 w-full rounded-xl border border-gray-border bg-gray-card/95 backdrop-blur-xl p-1.5 shadow-xl max-h-40 overflow-y-auto outline-none animate-in fade-in duration-150 scrollbar-none ${
+          className={`absolute left-0 z-9999 w-full rounded-xl border border-gray-border bg-gray-card/95 backdrop-blur-xl p-1.5 shadow-xl max-h-30 overflow-y-auto outline-none animate-in fade-in duration-150 scrollbar-none ${
             openUpward
               ? "bottom-full mb-1 slide-in-from-bottom-2"
               : "top-full mt-1 slide-in-from-top-2"

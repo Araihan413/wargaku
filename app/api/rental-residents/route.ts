@@ -35,8 +35,24 @@ export async function GET(request: Request) {
       isActive = searchParams.get('isActive') === 'true';
     }
 
+    const effectiveRoleId = await getEffectiveRoleId(session);
+    const isGlobalAdmin = await hasPermission(effectiveRoleId, 'view-residents');
+    const isCoordinatorAdmin = await hasPermission(effectiveRoleId, 'manage-boarding');
+    
+    if (!isGlobalAdmin && !isCoordinatorAdmin) {
+      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
+    }
+
     if (propertyIdParam) {
       const propertyId = Number(propertyIdParam);
+
+      if (!isGlobalAdmin) {
+        const property = await getRentalPropertyById(propertyId);
+        if (property?.coordinatorUserId !== session.user.id) {
+          return NextResponse.json({ error: 'Tidak memiliki izin akses ke data kos ini' }, { status: 403 });
+        }
+      }
+
       const result = await listTenantContracts({
         rentalPropertyId: propertyId,
         limit,
@@ -52,6 +68,7 @@ export async function GET(request: Request) {
         isActive,
         tenantType,
         query,
+        coordinatorUserId: isGlobalAdmin ? undefined : session.user.id,
       });
       return NextResponse.json(result);
     }
@@ -119,9 +136,6 @@ export async function POST(request: Request) {
         tenantType: 'individual',
         individualName: validatedData.name,
         individualNik: validatedData.nik,
-        individualGender: validatedData.gender,
-        individualBirthPlace: validatedData.birthPlace,
-        individualBirthDate: validatedData.birthDate,
         individualPhone: validatedData.phone,
         individualKtpFile: validatedData.ktpFile,
         checkInDate,

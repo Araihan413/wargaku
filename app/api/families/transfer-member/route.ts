@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
-import { getFamilyById } from '@/db/queries/population/family.queries';
-import { getFamilyMemberById, transferFamilyMember } from '@/db/queries/population/family-member.queries';
+import { getFamilyById, createFamily, deleteFamily } from '@/db/queries/population/family.queries';
+import { getFamilyMemberById, transferFamilyMember, getFamilyMembersByFamilyId } from '@/db/queries/population/family-member.queries';
 import { transferFamilyMemberSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 import { notifyUser } from '@/lib/notifications';
@@ -31,11 +31,53 @@ export async function POST(request: Request) {
     const sourceFamilyId = member?.familyId;
     const sourceFamily = sourceFamilyId ? await getFamilyById(sourceFamilyId).catch(() => null) : null;
 
+    if (member?.relationship === 'Kepala_Keluarga') {
+      // Periksa apakah masih ada anggota aktif lain di KK ini
+      const allMembers = await getFamilyMembersByFamilyId(sourceFamilyId!);
+      const otherActiveMembers = allMembers.filter(m => m.isActive && m.id !== member.id);
+      
+      if (otherActiveMembers.length > 0) {
+        return NextResponse.json(
+          { error: 'Kepala Keluarga tidak bisa pindah KK karena masih ada anggota aktif lain. Lakukan Ganti Kepala Keluarga terlebih dahulu.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    let finalTargetFamilyId = validated.targetFamilyId;
+
+    // Logika Pecah KK (Buat KK Baru)
+    if (validated.createNewFamily) {
+      if (!validated.familyNumber || !validated.dwellingId) {
+        return NextResponse.json({ error: 'Nomor KK dan Alamat Hunian wajib diisi untuk membuat KK baru' }, { status: 400 });
+      }
+
+      finalTargetFamilyId = await createFamily({
+        familyNumber: validated.familyNumber,
+        dwellingId: validated.dwellingId,
+        headUserId: member?.userId || null,
+        verificationStatus: 'verified', // Karena dibuat oleh admin/pengurus
+      });
+    }
+
+    if (!finalTargetFamilyId) {
+      return NextResponse.json({ error: 'KK Tujuan tidak valid' }, { status: 400 });
+    }
+
     const newFamilyId = await transferFamilyMember({
       memberId: validated.memberId,
-      targetFamilyId: validated.targetFamilyId || 0,
+      targetFamilyId: finalTargetFamilyId,
       relationship: validated.relationship,
     });
+
+    // Otomatis nonaktifkan KK lama jika sekarang menjadi kosong
+    if (sourceFamilyId) {
+      const remainingMembers = await getFamilyMembersByFamilyId(sourceFamilyId);
+      const activeRemaining = remainingMembers.filter(m => m.isActive);
+      if (activeRemaining.length === 0) {
+        await deleteFamily(sourceFamilyId);
+      }
+    }
 
     if (sourceFamily?.headUserId) {
       notifyUser(sourceFamily.headUserId, {

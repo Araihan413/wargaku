@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
-import { listFamilies, createFamily } from '@/db/queries';
+import { listFamilies, createFamilyWithHeadMember } from '@/db/queries';
 
 export async function GET(request: Request) {
   try {
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const familyId = await createFamily(body);
+    const familyId = await createFamilyWithHeadMember(body);
 
     return NextResponse.json({ id: familyId, message: 'Kartu Keluarga berhasil dibuat' }, { status: 201 });
   } catch (error: any) {

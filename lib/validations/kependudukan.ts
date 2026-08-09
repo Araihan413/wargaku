@@ -130,7 +130,7 @@ export const createWargaSchema = z.object({
         : 'Jenis kelamin tidak valid',
   }),
   
-  relationship: z.enum(['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Lainnya'], {
+  relationship: z.enum(['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Mertua', 'Sepupu', 'Lainnya'], {
     error: (issue) =>
       issue.input === undefined
         ? 'Hubungan keluarga wajib diisi'
@@ -153,7 +153,7 @@ export const createWargaSchema = z.object({
 
 export const updateWargaSchema = createWargaSchema.partial().extend({
   isActive: z.boolean().optional(),
-  inactiveReason: z.enum(['pindah', 'meninggal']).optional().nullable(),
+  inactiveNote: z.string().optional().nullable(),
 });
 
 export const transferFamilyMemberSchema = z.object({
@@ -163,7 +163,7 @@ export const transferFamilyMemberSchema = z.object({
         ? 'ID Anggota wajib diisi'
         : 'ID Anggota harus berupa angka',
   }).int().positive(),
-  relationship: z.enum(['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Lainnya'], {
+  relationship: z.enum(['Kepala_Keluarga', 'Suami', 'Istri', 'Anak', 'Orang_Tua', 'Mertua', 'Sepupu', 'Lainnya'], {
     error: (issue) =>
       issue.input === undefined
         ? 'Hubungan keluarga baru wajib diisi'
@@ -193,12 +193,7 @@ export const changeFamilyHeadSchema = z.object({
         ? 'ID Kepala Keluarga baru wajib diisi'
         : 'ID Kepala Keluarga baru harus berupa angka',
   }).int().positive(),
-  oldHeadAction: z.enum(['suspend', 'pindah', 'none'], {
-    error: (issue) =>
-      issue.input === undefined
-        ? 'Tindakan untuk Kepala Keluarga lama wajib diisi'
-        : 'Tindakan untuk Kepala Keluarga lama tidak valid',
-  }),
-  newHeadEmail: z.string().email('Email tidak valid').optional().nullable().or(z.literal('')),
 });
+
+export type ChangeFamilyHeadInput = z.infer<typeof changeFamilyHeadSchema>;
 

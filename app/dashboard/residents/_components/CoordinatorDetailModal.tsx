@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X, User, Phone, Mail, CreditCard, Home } from "lucide-react";
+import { X, User, Phone, Mail, Home } from "lucide-react";
 import { CoordinatorItem } from "./CoordinatorTable";
 
 interface CoordinatorDetailModalProps {
@@ -88,14 +88,6 @@ export const CoordinatorDetailModal: React.FC<CoordinatorDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* NIK */}
-              <div className="flex items-start gap-2.5">
-                <CreditCard className="h-4 w-4 text-gray-placeholder mt-0.5" />
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-gray-placeholder font-medium block">NIK (Nomor Induk Kependudukan)</span>
-                  <span className="text-xs font-semibold text-gray-heading-main font-mono">{coordinator.nik || "-"}</span>
-                </div>
-              </div>
 
               {/* Email */}
               <div className="flex items-start gap-2.5">

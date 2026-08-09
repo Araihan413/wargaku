@@ -68,7 +68,7 @@ export function RegisterMyFamilyModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!userNik && (!nik || nik.trim().length < 16)) {
+    if (!nik || nik.trim().length < 16) {
       toast.error("NIK Kepala Keluarga wajib 16 digit.");
       return;
     }
@@ -145,28 +145,22 @@ export function RegisterMyFamilyModal({
                 <span className="font-semibold text-gray-secondary-text">Kepala Keluarga:</span>
                 <span className="font-bold text-gray-heading-main">{userName || "Akun Anda"}</span>
               </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-semibold text-gray-secondary-text">NIK Terdaftar:</span>
-                <span className="font-mono font-bold text-primary">{userNik || "-"}</span>
-              </div>
             </div>
 
-            {/* Field NIK Kepala Keluarga (Hanya jika NIK di akun belum ada) */}
-            {!userNik && (
-              <FormField
-                id="nik"
-                label="NIK Kepala Keluarga"
-                type="text"
-                required={true}
-                maxLength={16}
-                placeholder="16 digit NIK Kepala Keluarga"
-                registerProps={{
-                  value: nik,
-                  onChange: (e: any) => setNik(e.target.value.replace(/\D/g, "")),
-                }}
-                icon={User}
-              />
-            )}
+            {/* Field NIK Kepala Keluarga */}
+            <FormField
+              id="nik"
+              label="NIK Kepala Keluarga"
+              type="text"
+              required={true}
+              maxLength={16}
+              placeholder="16 digit NIK Kepala Keluarga"
+              registerProps={{
+                value: nik,
+                onChange: (e: any) => setNik(e.target.value.replace(/\D/g, "")),
+              }}
+              icon={User}
+            />
 
             {/* Field Nomor Kartu Keluarga (KK) */}
             <FormField

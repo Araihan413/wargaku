@@ -15,7 +15,7 @@ export interface DwellingItem {
   ownerName?: string | null;
   ownerPhone?: string | null;
   totalRooms?: number | null;
-  occupiedRooms?: number | null;
+  tenantCount?: number | null;
 }
 
 interface DwellingTableProps {
@@ -94,7 +94,7 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
                         </span>
                         {d.type === 'kos' && d.totalRooms !== undefined && d.totalRooms !== null && (
                           <span className="text-[11px] font-semibold text-amber-600">
-                            {d.occupiedRooms ?? 0} / {d.totalRooms} Kamar Terisi
+                            {d.tenantCount ?? 0} / {d.totalRooms} Kamar Terisi
                           </span>
                         )}
                       </div>

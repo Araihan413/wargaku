@@ -842,7 +842,7 @@ export async function getWargaDashboard(userId: string) {
           qrToken: schema.dwellings.qrToken,
         })
         .from(schema.dwellings)
-        .where(eq(schema.dwellings.id, familyData.dwellingId))
+        .where(eq(schema.dwellings.id, familyData.dwellingId!))
         .limit(1),
 
       db

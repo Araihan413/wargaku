@@ -1,11 +1,10 @@
 import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, ShieldAlert, Mail, Loader2 } from "lucide-react";
+import { X, Loader2, Info } from "lucide-react";
 
 import { toast } from "sonner";
-import { changeFamilyHeadSchema } from "@/lib/validations/kependudukan";
-import { FormField } from "@/components/FormField";
+import { changeFamilyHeadSchema, ChangeFamilyHeadInput } from "@/lib/validations/kependudukan";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 
 interface GantiKepalaKeluargaModalProps {
@@ -26,50 +25,44 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
   currentHeadName,
 }) => {
   const {
-    register,
     handleSubmit,
     control,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<ChangeFamilyHeadInput>({
     resolver: zodResolver(changeFamilyHeadSchema),
     defaultValues: {
       newHeadMemberId: undefined as any,
-      oldHeadAction: "none" as any,
-      newHeadEmail: "",
     },
   });
 
   const handleClose = () => {
-    reset();
+    reset({
+      newHeadMemberId: undefined as any,
+    });
     onClose();
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: ChangeFamilyHeadInput) => {
     try {
-      const payload = {
-        newHeadMemberId: Number(data.newHeadMemberId),
-        oldHeadAction: data.oldHeadAction,
-        newHeadEmail: data.newHeadEmail || null,
-      };
-
-      const res = await fetch(`/api/families/${familyId}/change-head`, {
+      const response = await fetch(`/api/families/${familyId}/change-head`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
 
-      if (res.ok) {
-        toast.success("Kepala Keluarga berhasil diubah.");
-        reset();
-        onSuccess();
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Gagal mengubah Kepala Keluarga.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Gagal mengubah Kepala Keluarga");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Terjadi kesalahan sistem saat memproses perubahan Kepala Keluarga.");
+
+      toast.success("Kepala Keluarga berhasil diubah. Jabatan kepala lama diubah menjadi Anggota (Lainnya).");
+      onSuccess();
+      handleClose();
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
@@ -85,17 +78,11 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
     label: `${m.name} (${m.relationship}) - NIK: ${m.nik}`,
   }));
 
-  const actionOptions: SelectOption[] = [
-    { value: "none", label: "Tetap Tinggal di KK Ini (Turun Jabatan Menjadi Anggota)" },
-    { value: "pindah", label: "Pindah KK / Keluar Wilayah RT (Pindah)" },
-    { value: "suspend", label: "Dinonaktifkan Secara Absolut (Meninggal Dunia)" },
-  ];
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-6 transition-all animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl p-0 transition-all animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-border pb-3 mb-4 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-border shrink-0">
           <div>
             <h3 className="text-lg font-bold text-gray-heading-main">
               Ganti Kepala Keluarga
@@ -112,18 +99,24 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
           </button>
         </div>
 
-        {/* Warning Callout */}
-        <div className="bg-error/5 border border-error/20 rounded-2xl p-4 flex gap-3 text-xs text-error leading-relaxed font-semibold mb-4">
-          <ShieldAlert className="h-5 w-5 shrink-0" />
-          <p>
-            <strong>Pemberitahuan Keamanan:</strong> Mengganti Kepala Keluarga akan mereset status verifikasi KK menjadi <strong>Pending</strong>.
-            Akses login Kepala Keluarga lama ({currentHeadName}) akan dicabut atau disesuaikan berdasarkan pilihan tindakan di bawah.
-          </p>
-        </div>
-
         {/* Content */}
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto pr-1.5 pb-2 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col flex-1 overflow-hidden p-6 gap-6"
+        >
+          <div className="flex-1 overflow-y-auto space-y-6 px-1 py-1 custom-scrollbar">
+            {/* Warning Callout */}
+            <div className="bg-error/10 border border-error/20 p-4 rounded-xl flex items-start gap-3 text-sm text-error">
+              <Info className="h-5 w-5 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold block mb-1">
+                  Pemberitahuan Keamanan:
+                </span>
+                Mengganti Kepala Keluarga akan mereset status verifikasi KK menjadi{" "}
+                <span className="font-bold">Pending</span>. Jabatan Kepala Keluarga lama ({currentHeadName}) akan otomatis diubah menjadi Anggota (Lainnya). Akses login dari Kepala Keluarga lama (jika ada) ke data KK ini akan dicabut sepenuhnya.
+              </div>
+            </div>
+
             {/* New Head Selection */}
             <div className="space-y-1.5">
               {memberOptions.length === 0 ? (
@@ -155,41 +148,6 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
               )}
             </div>
 
-            {/* Old Head Action Selection */}
-            <div className="space-y-1.5">
-              <Controller
-                name="oldHeadAction"
-                control={control}
-                render={({ field }) => (
-                  <div>
-                    <CustomSelect
-                      label={`Tindakan Terhadap Kepala Keluarga Lama (${currentHeadName})`}
-                      required={true}
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={actionOptions}
-                      placeholder="-- Pilih Tindakan --"
-                    />
-                    {errors.oldHeadAction && (
-                      <p className="text-xs text-error font-semibold mt-1">
-                        {errors.oldHeadAction.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-              />
-            </div>
-
-            {/* Email input for New Head of Family */}
-            <FormField
-              id="newHeadEmail"
-              label="Email untuk Akun Login Kepala Keluarga Baru (Opsional jika sudah memiliki akun)"
-              type="email"
-              placeholder="Contoh: kepala.baru@email.com"
-              registerProps={register("newHeadEmail")}
-              icon={Mail}
-              error={errors.newHeadEmail?.message}
-            />
           </div>
 
           {/* Footer */}

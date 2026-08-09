@@ -491,42 +491,55 @@ export async function createUserWithAccount(input: CreateUserInput) {
       password: hashedPassword,
     });
 
-    // 4. Jika role Warga (6) dan dwellingId diisi, buat data KK & Member
-    if (roleIds.includes(6) && input.dwellingId) {
-      const familyNo = input.familyNumber && input.familyNumber.trim() !== ''
-        ? input.familyNumber.trim()
-        : `${Date.now()}`.slice(0, 16);
-      
-      const cleanNik = input.nik ? input.nik.trim() : `${Date.now()}`.slice(0, 16);
+    // 4. Auto-Link jika role Warga (6) dan input.nik ada
+    let isAutoLinked = false;
+    if (roleIds.includes(6) && input.nik && input.nik.trim() !== '') {
+      const cleanNik = input.nik.trim();
+      const [existingMember] = await tx
+        .select({
+          id: schema.familyMembers.id,
+          familyId: schema.familyMembers.familyId,
+          userId: schema.familyMembers.userId,
+          relationship: schema.familyMembers.relationship,
+          isActive: schema.familyMembers.isActive,
+        })
+        .from(schema.familyMembers)
+        .where(eq(schema.familyMembers.nik, cleanNik))
+        .limit(1);
 
-      // Cek NIK di family_members jika diisi
-      if (input.nik && input.nik.trim() !== '') {
-        const [existingMember] = await tx
-          .select({
-            id: schema.familyMembers.id,
-            familyId: schema.familyMembers.familyId,
-            userId: schema.familyMembers.userId,
-            relationship: schema.familyMembers.relationship,
-            isActive: schema.familyMembers.isActive,
-          })
-          .from(schema.familyMembers)
-          .where(eq(schema.familyMembers.nik, cleanNik))
-          .limit(1);
+      if (existingMember) {
+        if (existingMember.userId) {
+          throw new Error('NIK_ALREADY_LINKED:NIK ini sudah terhubung dengan akun lain.');
+        }
 
-        if (existingMember) {
-          if (existingMember.userId) {
-            throw new Error('NIK_ALREADY_LINKED:NIK ini sudah terhubung dengan akun Kepala Keluarga lain.');
-          }
-          if (existingMember.relationship === 'Kepala_Keluarga' && existingMember.isActive) {
-            throw new Error('NIK_ALREADY_EXISTS:NIK ini sudah terdaftar sebagai Kepala Keluarga di KK lain.');
-          }
-          // Jika NIK ditemukan sebagai anggota biasa di KK lama (pecah KK): non-aktifkan di KK lama
+        // Tautkan akun baru ini ke member
+        await tx.update(schema.familyMembers)
+          .set({ userId, updatedAt: new Date() })
+          .where(eq(schema.familyMembers.id, existingMember.id));
+
+        if (existingMember.relationship === 'Kepala_Keluarga' && existingMember.isActive) {
+          // Tautkan juga sebagai owner KK
+          await tx.update(schema.families)
+            .set({ headUserId: userId, updatedAt: new Date() })
+            .where(eq(schema.families.id, existingMember.familyId));
+          isAutoLinked = true; // Sudah ditautkan ke KK yang ada
+        } else {
+          // Jika dia bukan kepala keluarga di tempat lama (pecah KK), non-aktifkan di tempat lama
           await tx
             .update(schema.familyMembers)
             .set({ isActive: false, updatedAt: new Date() })
             .where(eq(schema.familyMembers.id, existingMember.id));
         }
       }
+    }
+
+    // 5. Jika role Warga (6), BELUM tertaut ke KK, dan dwellingId diisi -> Buat data KK baru (Fast Track Admin)
+    if (roleIds.includes(6) && !isAutoLinked && input.dwellingId) {
+      const familyNo = input.familyNumber && input.familyNumber.trim() !== ''
+        ? input.familyNumber.trim()
+        : `${Date.now()}`.slice(0, 16);
+      
+      const cleanNik = input.nik ? input.nik.trim() : `${Date.now()}`.slice(0, 16);
 
       // Cek duplikasi Nomor KK
       if (input.familyNumber && input.familyNumber.trim() !== '') {
@@ -565,7 +578,7 @@ export async function createUserWithAccount(input: CreateUserInput) {
       });
     }
 
-    // 5. Jika role Koordinator Kos (5) dan rentalPropertyId diisi & status active -> update property
+    // 6. Jika role Koordinator Kos (5) dan rentalPropertyId diisi & status active -> update property
     if (roleIds.includes(5) && (input as any).rentalPropertyId && userStatus === 'active') {
       await tx
         .update(schema.rentalProperties)
@@ -629,39 +642,8 @@ export async function claimWargaForExistingUser(
   const cleanNik = input.nik.trim();
   const cleanFamilyNo = input.familyNumber.trim();
 
-  if (cleanNik) {
-    const [existingNikMember] = await db
-      .select({ id: schema.familyMembers.id, userId: schema.familyMembers.userId, relationship: schema.familyMembers.relationship, isActive: schema.familyMembers.isActive })
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.nik, cleanNik))
-      .limit(1);
-
-    if (existingNikMember) {
-      if (existingNikMember.userId && existingNikMember.userId !== userId) {
-        throw new Error('NIK_ALREADY_LINKED:NIK ini sudah terhubung dengan akun Kepala Keluarga lain.');
-      }
-      if (existingNikMember.relationship === 'Kepala_Keluarga' && existingNikMember.isActive) {
-        throw new Error('NIK_ALREADY_EXISTS:NIK ini sudah terdaftar sebagai Kepala Keluarga di KK lain.');
-      }
-      if (!existingNikMember.userId) {
-        await db
-          .update(schema.familyMembers)
-          .set({ isActive: false, updatedAt: new Date() })
-          .where(eq(schema.familyMembers.id, existingNikMember.id));
-      }
-    }
-  }
-
-  const [existingFam] = await db
-    .select({ id: schema.families.id, headUserId: schema.families.headUserId })
-    .from(schema.families)
-    .where(and(eq(schema.families.familyNumber, cleanFamilyNo), eq(schema.families.isActive, true)))
-    .limit(1);
-  if (existingFam && existingFam.headUserId) {
-    throw new Error('FAMILY_NUMBER_EXISTS:Nomor KK ini sudah terdaftar dengan Kepala Keluarga lain.');
-  }
-
   return await db.transaction(async (tx) => {
+    // 1. Pastikan user memiliki Role Warga (6)
     const currentRoles = await getUserRoles(userId);
     if (!currentRoles.includes(6)) {
       const newRoles = [...currentRoles, 6];
@@ -675,11 +657,50 @@ export async function claimWargaForExistingUser(
       }
     }
 
+    // 2. Auto-Link jika NIK sudah ada di sistem fisik (Dibuat Pak RT)
+    if (cleanNik) {
+      const [existingNikMember] = await tx
+        .select({ id: schema.familyMembers.id, familyId: schema.familyMembers.familyId, userId: schema.familyMembers.userId, relationship: schema.familyMembers.relationship, isActive: schema.familyMembers.isActive })
+        .from(schema.familyMembers)
+        .where(eq(schema.familyMembers.nik, cleanNik))
+        .limit(1);
+
+      if (existingNikMember) {
+        if (existingNikMember.userId && existingNikMember.userId !== userId) {
+          throw new Error('NIK_ALREADY_LINKED:NIK ini sudah terhubung dengan akun Kepala Keluarga lain.');
+        }
+
+        // Tautkan akun ke member fisik ini
+        await tx.update(schema.familyMembers).set({ userId, updatedAt: new Date() }).where(eq(schema.familyMembers.id, existingNikMember.id));
+
+        if (existingNikMember.relationship === 'Kepala_Keluarga' && existingNikMember.isActive) {
+           // Tautkan juga sebagai kepala keluarga di tabel families
+           await tx.update(schema.families).set({ headUserId: userId, updatedAt: new Date() }).where(eq(schema.families.id, existingNikMember.familyId));
+           return { familyId: existingNikMember.familyId }; // Langsung kembalikan sukses, tidak perlu buat baru
+        } else {
+           // Jika dia bukan kepala keluarga di tempat lama (pecah KK mandiri), non-aktifkan di tempat lama dan lanjut buat KK baru
+           await tx.update(schema.familyMembers).set({ isActive: false, updatedAt: new Date() }).where(eq(schema.familyMembers.id, existingNikMember.id));
+        }
+      }
+    }
+
+    // 3. Jika NIK tidak ditemukan atau bukan Kepala Keluarga, buat KK Baru
+    const [existingFam] = await tx
+      .select({ id: schema.families.id, headUserId: schema.families.headUserId })
+      .from(schema.families)
+      .where(and(eq(schema.families.familyNumber, cleanFamilyNo), eq(schema.families.isActive, true)))
+      .limit(1);
+      
+    if (existingFam && existingFam.headUserId) {
+      throw new Error('FAMILY_NUMBER_EXISTS:Nomor KK ini sudah terdaftar dengan Kepala Keluarga lain.');
+    }
+
+    // Buat keluarga baru secara mandiri, status wajib DRAFT
     const [newFamRes] = await tx.insert(schema.families).values({
       familyNumber: cleanFamilyNo,
       headUserId: userId,
       dwellingId: input.dwellingId,
-      verificationStatus: 'verified',
+      verificationStatus: 'draft',
       isActive: true,
     });
     const familyId = newFamRes.insertId;
@@ -725,6 +746,12 @@ export async function updateUserProfile(
       .update(schema.accounts)
       .set({ accountId: data.email })
       .where(eq(schema.accounts.userId, id));
+      
+    // Sinkronisasi data ke tabel Warga (family_members)
+    await tx
+      .update(schema.familyMembers)
+      .set({ name: data.name, phone: data.phone ?? null, updatedAt: new Date() })
+      .where(eq(schema.familyMembers.userId, id));
   });
 }
 
@@ -745,11 +772,15 @@ export async function updateUserProfileData(
 
   await db.update(schema.users).set(payload).where(eq(schema.users.id, userId));
 
-  // Sync nomor telepon ke family_members jika terhubung
-  if (data.phone !== undefined) {
+  // Sync nomor telepon dan nama ke family_members jika terhubung
+  if (data.phone !== undefined || data.name !== undefined) {
+    const familyPayload: Record<string, any> = { updatedAt: new Date() };
+    if (data.phone !== undefined) familyPayload.phone = data.phone;
+    if (data.name !== undefined) familyPayload.name = data.name;
+
     await db
       .update(schema.familyMembers)
-      .set({ phone: data.phone, updatedAt: new Date() })
+      .set(familyPayload)
       .where(eq(schema.familyMembers.userId, userId));
   }
 
@@ -1000,13 +1031,42 @@ export async function listCoordinators() {
       name: schema.users.name,
       email: schema.users.email,
       phone: schema.users.phone,
+      status: schema.users.status,
       createdAt: schema.users.createdAt,
     })
     .from(schema.users)
     .innerJoin(schema.userRoles, eq(schema.users.id, schema.userRoles.userId))
     .where(eq(schema.userRoles.roleId, 5));
 
-  return coordUsers;
+  // For each coordinator, fetch their properties
+  const results = await Promise.all(
+    coordUsers.map(async (user) => {
+      // Get properties assigned to this coordinator, joining with dwellings to get owner
+      const properties = await db
+        .select({
+          id: schema.rentalProperties.id,
+          name: schema.rentalProperties.name,
+          ownerUserId: schema.dwellings.ownerUserId,
+        })
+        .from(schema.rentalProperties)
+        .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
+        .where(eq(schema.rentalProperties.coordinatorUserId, user.id));
+
+      const propertiesWithOwnership = properties.map((prop) => ({
+        id: prop.id,
+        name: prop.name,
+        isOwnedByCoordinator: prop.ownerUserId === user.id,
+      }));
+
+      return {
+        ...user,
+        properties: propertiesWithOwnership,
+        propertiesCount: properties.length,
+      };
+    })
+  );
+
+  return results;
 }
 
 export async function createCoordinator(input: { name: string; email: string; phone?: string | null; dwellingId: number }) {
@@ -1059,16 +1119,60 @@ export async function createCoordinator(input: { name: string; email: string; ph
   };
 }
 
-export async function suspendCoordinator(coordinatorUserId: string) {
-  const properties = await db
+export async function revokeCoordinatorFromProperties(coordinatorUserId: string, propertyIds: number[]) {
+  if (!propertyIds || propertyIds.length === 0) return 0;
+
+  // 1. Fetch properties and their owners
+  const propertiesToRevoke = await db
+    .select({
+      id: schema.rentalProperties.id,
+      ownerUserId: schema.dwellings.ownerUserId,
+    })
+    .from(schema.rentalProperties)
+    .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
+    .where(inArray(schema.rentalProperties.id, propertyIds));
+
+  // 2. Set coordinatorUserId = ownerUserId for these properties
+  for (const prop of propertiesToRevoke) {
+    if (prop.ownerUserId) {
+      await db
+        .update(schema.rentalProperties)
+        .set({ coordinatorUserId: prop.ownerUserId })
+        .where(eq(schema.rentalProperties.id, prop.id));
+
+      // 3. Ensure the owner has the Coordinator role (roleId: 5)
+      await db.insert(schema.userRoles).values({
+        userId: prop.ownerUserId,
+        roleId: 5,
+        isPrimary: false,
+      }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    } else {
+      // If no owner found, just nullify
+      await db
+        .update(schema.rentalProperties)
+        .set({ coordinatorUserId: sql`NULL` })
+        .where(eq(schema.rentalProperties.id, prop.id));
+    }
+  }
+
+  // 4. Check if the original coordinator still manages any properties
+  const remainingProperties = await db
     .select({ id: schema.rentalProperties.id })
     .from(schema.rentalProperties)
-    .where(eq(schema.rentalProperties.coordinatorUserId, coordinatorUserId));
+    .where(eq(schema.rentalProperties.coordinatorUserId, coordinatorUserId))
+    .limit(1);
 
-  await db
-    .update(schema.rentalProperties)
-    .set({ coordinatorUserId: sql`NULL` })
-    .where(eq(schema.rentalProperties.coordinatorUserId, coordinatorUserId));
+  // If they don't manage any more properties, revoke their Coordinator role
+  if (remainingProperties.length === 0) {
+    await db
+      .delete(schema.userRoles)
+      .where(
+        and(
+          eq(schema.userRoles.userId, coordinatorUserId),
+          eq(schema.userRoles.roleId, 5)
+        )
+      );
+  }
 
-  return properties.length;
+  return propertiesToRevoke.length;
 }

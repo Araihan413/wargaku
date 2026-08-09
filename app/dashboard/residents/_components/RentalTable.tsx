@@ -14,10 +14,9 @@ export interface RentalResidentItem {
   isActive: boolean;
   verificationNote?: string | null;
   ktpFile?: string | null;
-  originAddress?: string | null;
-  occupation?: string | null;
-  educationLevel?: string | null;
-  religion?: string | null;
+  gender?: "L" | "P" | null;
+  birthPlace?: string | null;
+  birthDate?: string | null;
   propertyName: string;
   rentalPropertyId: number;
   blockNumber: string;

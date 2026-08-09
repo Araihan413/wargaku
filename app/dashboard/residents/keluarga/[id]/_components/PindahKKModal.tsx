@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Search, CreditCard, Calendar, Home, Loader2, Info } from "lucide-react";
+import { X, Search, CreditCard, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { transferFamilyMemberSchema } from "@/lib/validations/kependudukan";
 import { FormField } from "@/components/FormField";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { DwellingOption } from "../../../types";
+import { relationshipOptions } from "@/lib/constants";
 
 interface PindahKKModalProps {
   isOpen: boolean;
@@ -30,7 +32,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
   const [activeMode, setActiveMode] = useState<"existing" | "new">("existing");
   const [dwellings, setDwellings] = useState<DwellingOption[]>([]);
   const [families, setFamilies] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFamilyString, setSelectedFamilyString] = useState("");
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
   const {
@@ -107,6 +109,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
   const handleClose = () => {
     reset();
     setActiveMode("existing");
+    setSelectedFamilyString("");
     onClose();
   };
 
@@ -149,24 +152,11 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
     label: `${d.streetName} No. ${d.houseNumber} ${d.blockNumber ? `Blok ${d.blockNumber}` : ""}`,
   }));
 
-  const filteredFamilies = families.filter(
-    (f: any) =>
-      f.familyNumber.includes(searchQuery) ||
-      f.headName.toLowerCase().includes(searchQuery.toLowerCase())
+  const familySuggestions = families.map(
+    (f: any) => `KK ${f.familyNumber} - K.Keluarga: ${f.headName}`
   );
 
-  const familySelectOptions: SelectOption[] = filteredFamilies.map((f: any) => ({
-    value: f.id.toString(),
-    label: `KK ${f.familyNumber} - K.Keluarga: ${f.headName}`,
-  }));
-
-  const relationshipOptions: SelectOption[] = [
-    { value: "Suami", label: "Suami" },
-    { value: "Istri", label: "Istri" },
-    { value: "Anak", label: "Anak" },
-    { value: "Orang_Tua", label: "Orang Tua" },
-    { value: "Lainnya", label: "Anggota Keluarga Lain" },
-  ];
+  const pindahRelationshipOptions = relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -200,7 +190,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                 : "text-gray-secondary-text hover:text-gray-heading-main"
             }`}
           >
-            Masuk KK yang Sudah Ada
+            Masuk KK Lain
           </button>
           <button
             type="button"
@@ -211,28 +201,18 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                 : "text-gray-secondary-text hover:text-gray-heading-main"
             }`}
           >
-            Buat KK Baru (Pecah KK)
+            Buat KK Baru
           </button>
         </div>
 
         {/* Content */}
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto pr-1.5 pb-2 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="flex-1 overflow-y-auto pr-1.5 pb-32 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
             
             {activeMode === "existing" ? (
               <>
                 {/* Search Target Family */}
                 <div>
-                  <div className="relative mb-2">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-placeholder" />
-                    <input
-                      type="text"
-                      placeholder="Cari nomor KK atau nama kepala keluarga..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-gray-card pl-9 pr-4 py-2.5 border border-gray-border rounded-xl text-sm placeholder-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                    />
-                  </div>
                   {isLoadingOptions ? (
                     <div className="flex justify-center py-4">
                       <Loader2 className="h-5 w-5 text-primary animate-spin" />
@@ -243,13 +223,21 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                       control={control}
                       render={({ field }) => (
                         <div>
-                          <CustomSelect
-                            label="Pilih Kartu Keluarga Tujuan"
+                          <AutocompleteInput
+                            label="Cari Kartu Keluarga Tujuan"
                             required={true}
-                            value={field.value ? field.value.toString() : ""}
-                            onChange={(val) => field.onChange(val ? Number(val) : null)}
-                            options={familySelectOptions}
-                            placeholder="-- Pilih Kartu Keluarga --"
+                            value={selectedFamilyString}
+                            onChange={(val) => {
+                              setSelectedFamilyString(val);
+                              // Temukan ID family berdasarkan string yang dipilih
+                              const found = families.find(
+                                (f: any) => `KK ${f.familyNumber} - K.Keluarga: ${f.headName}` === val
+                              );
+                              field.onChange(found ? found.id : null);
+                            }}
+                            suggestions={familySuggestions}
+                            placeholder="Ketik nomor KK atau nama..."
+                            icon={Search}
                           />
                           {errors.targetFamilyId && (
                             <p className="text-xs text-error font-semibold mt-1">
@@ -274,7 +262,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                           required={true}
                           value={field.value}
                           onChange={field.onChange}
-                          options={relationshipOptions}
+                          options={pindahRelationshipOptions}
                           placeholder="-- Pilih Hubungan --"
                         />
                         {errors.relationship && (
@@ -294,7 +282,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                   <Info className="h-5 w-5 shrink-0" />
                   <p>
                     Membuat KK baru otomatis akan menobatkan {memberName} sebagai Kepala Keluarga baru.
-                    Akun login warga baru otomatis dibuatkan atau ditautkan ke NIK {memberNik}.
+                    Data akun login (jika ada) akan otomatis terbawa, namun jika belum memiliki akun, silakan buatkan secara terpisah melalui tombol <strong>Tambah Akun</strong> di halaman Warga & Hunian.
                   </p>
                 </div>
 
@@ -332,27 +320,6 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                     )}
                   />
                 </div>
-
-                <FormField
-                  id="unitNumber"
-                  label="Nomor Pintu / Unit"
-                  type="text"
-                  placeholder="Contoh: Kamar A-1, Pintu 3"
-                  registerProps={register("unitNumber")}
-                  icon={Home}
-                  error={errors.unitNumber?.message}
-                />
-
-                <FormField
-                  id="checkInDate"
-                  label="Tanggal Mulai Tinggal di Hunian Baru"
-                  type="date"
-                  required={true}
-                  placeholder="Pilih tanggal"
-                  registerProps={register("checkInDate")}
-                  icon={Calendar}
-                  error={errors.checkInDate?.message}
-                />
               </>
             )}
           </div>

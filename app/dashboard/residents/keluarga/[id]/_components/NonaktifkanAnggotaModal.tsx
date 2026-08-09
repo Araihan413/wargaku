@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { FamilyMemberItem } from "../../../types";
 
 interface NonaktifkanAnggotaModalProps {
@@ -17,11 +16,11 @@ export const NonaktifkanAnggotaModal: React.FC<NonaktifkanAnggotaModalProps> = (
   onSuccess,
   member,
 }) => {
-  const [inactiveReason, setInactiveReason] = useState<"pindah" | "meninggal">("pindah");
+  const [inactiveNote, setInactiveNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => {
-    setInactiveReason("pindah");
+    setInactiveNote("");
     onClose();
   };
 
@@ -32,7 +31,7 @@ export const NonaktifkanAnggotaModal: React.FC<NonaktifkanAnggotaModalProps> = (
       const res = await fetch(`/api/family-members/${member.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inactiveReason }),
+        body: JSON.stringify({ inactiveNote }),
       });
 
       if (res.ok) {
@@ -52,10 +51,7 @@ export const NonaktifkanAnggotaModal: React.FC<NonaktifkanAnggotaModalProps> = (
 
   if (!isOpen || !member) return null;
 
-  const reasonOptions: SelectOption[] = [
-    { value: "pindah", label: "Pindah Domisili / Alamat" },
-    { value: "meninggal", label: "Meninggal Dunia" },
-  ];
+  if (!isOpen || !member) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -76,19 +72,19 @@ export const NonaktifkanAnggotaModal: React.FC<NonaktifkanAnggotaModalProps> = (
             Apakah Anda yakin ingin menonaktifkan status kependudukan warga bernama{" "}
             <strong className="text-gray-heading-main font-semibold">
               {member.name}
-            </strong>{" "}
-            (NIK: {member.nik})?
+            </strong>{" "}?
           </p>
 
           <div className="space-y-1">
             <label className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider block">
-              Alasan Penonaktifan
+              Catatan Penonaktifan
             </label>
-            <CustomSelect
-              value={inactiveReason}
-              onChange={(val) => setInactiveReason(val as any)}
-              options={reasonOptions}
-              placeholder="Pilih Alasan..."
+            <textarea
+              value={inactiveNote}
+              onChange={(e) => setInactiveNote(e.target.value)}
+              placeholder="Contoh: Pindah ke luar kota, dll (opsional)"
+              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+              rows={3}
             />
           </div>
 

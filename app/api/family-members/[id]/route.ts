@@ -103,6 +103,13 @@ export async function PUT(
       religion: validatedData.religion,
     };
 
+    if (validatedData.isActive !== undefined) {
+      updatePayload.isActive = validatedData.isActive;
+    }
+    if (validatedData.inactiveNote !== undefined) {
+      updatePayload.inactiveNote = validatedData.inactiveNote;
+    }
+
     if (!isLocked) {
       updatePayload = {
         ...updatePayload,
@@ -174,7 +181,8 @@ export async function DELETE(
       }
     }
 
-    await deleteFamilyMember(memberId);
+    const body = await request.json().catch(() => ({}));
+    await deleteFamilyMember(memberId, body.inactiveNote);
 
     return NextResponse.json({ message: 'Anggota keluarga berhasil dinonaktifkan' });
   } catch (error: any) {

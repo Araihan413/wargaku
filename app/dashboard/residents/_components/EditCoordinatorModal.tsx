@@ -11,7 +11,6 @@ import { CoordinatorItem } from "./CoordinatorTable";
 const editCoordinatorSchema = z.object({
   name: z.string().min(2, "Nama minimal 2 karakter").max(100),
   email: z.string().email("Format email tidak valid").max(100),
-  nik: z.string().regex(/^\d{16}$/, "NIK harus 16 digit angka"),
   phone: z.string().min(10, "Nomor HP minimal 10 digit").max(15).optional().nullable().or(z.literal("")),
 });
 
@@ -40,7 +39,6 @@ export const EditCoordinatorModal: React.FC<EditCoordinatorModalProps> = ({
     defaultValues: {
       name: "",
       email: "",
-      nik: "",
       phone: "",
     },
   });
@@ -51,7 +49,6 @@ export const EditCoordinatorModal: React.FC<EditCoordinatorModalProps> = ({
       reset({
         name: coordinator.name,
         email: coordinator.email,
-        nik: coordinator.nik || "",
         phone: coordinator.phone || "",
       });
     }
@@ -134,35 +131,18 @@ export const EditCoordinatorModal: React.FC<EditCoordinatorModalProps> = ({
                 {errors.name && <p className="text-[10px] text-red-500 font-semibold">{errors.name.message}</p>}
               </div>
 
-              {/* NIK */}
-              <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  NIK (16 Digit) <span className="text-red-500 ml-0.5">*</span>
-                </label>
-                <input
-                  type="text"
-                  maxLength={16}
-                  disabled={isSubmitting}
-                  {...register("nik")}
-                  placeholder="Masukkan NIK"
-                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main font-mono focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
-                />
-                {errors.nik && <p className="text-[10px] text-red-500 font-semibold">{errors.nik.message}</p>}
-              </div>
 
               {/* Email */}
-              <div className="space-y-1.5">
+              <div>
                 <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  Email <span className="text-red-500 ml-0.5">*</span>
+                  Email
                 </label>
                 <input
                   type="email"
-                  disabled={isSubmitting}
                   {...register("email")}
-                  placeholder="contoh@wargaku.com"
-                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
+                  readOnly
+                  className={`w-full bg-gray-sidebar-hover border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-placeholder focus:outline-none transition-all cursor-not-allowed`}
                 />
-                {errors.email && <p className="text-[10px] text-red-500 font-semibold">{errors.email.message}</p>}
               </div>
 
               {/* Phone */}

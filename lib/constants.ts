@@ -46,6 +46,8 @@ export const relationshipOptions: SelectOption[] = [
   { value: "Suami", label: "Suami" },
   { value: "Anak", label: "Anak" },
   { value: "Orang_Tua", label: "Orang Tua" },
+  { value: "Mertua", label: "Mertua" },
+  { value: "Sepupu", label: "Sepupu" },
   { value: "Lainnya", label: "Lainnya" },
 ];
 

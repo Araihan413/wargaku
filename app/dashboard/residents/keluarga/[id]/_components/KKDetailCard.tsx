@@ -96,9 +96,7 @@ export const KKDetailCard: React.FC<KKDetailCardProps> = ({
             <span className="text-sm font-extrabold text-gray-heading-main block mt-1">
               {familyDetail.headName}
             </span>
-            <span className="text-xs text-gray-placeholder block mt-0.5">
-              ID User: {familyDetail.headUserId}
-            </span>
+
             {!isReadOnly && onChangeHead && familyDetail.isActive && (
               <button
                 type="button"

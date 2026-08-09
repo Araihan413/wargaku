@@ -98,10 +98,7 @@ export const createRentalResidentBaseSchema = z.object({
     z.string().email('Format email tidak valid').optional().nullable()
   ),
     
-  originAddress: z.preprocess((val) => (val === '' ? null : val), z.string().optional().nullable()),
-  occupation: z.preprocess((val) => (val === '' ? null : val), z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable()),
-  educationLevel: z.preprocess((val) => (val === '' ? null : val), z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable()),
-  religion: z.preprocess((val) => (val === '' ? null : val), z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']).optional().nullable()),
+
   roomNumber: z.preprocess((val) => (val === '' ? null : val), z.string().max(10, 'Nomor kamar maksimal 10 karakter').optional().nullable()),
   
   checkInDate: z.preprocess((arg) => {
@@ -138,7 +135,17 @@ export const createRentalResidentSchema = createRentalResidentBaseSchema
     path: ['email'],
   });
 
-export const updateRentalResidentSchema = createRentalResidentBaseSchema.partial().extend({
+export const updateRentalResidentSchema = z.object({
+  name: z.string().min(1, 'Nama lengkap wajib diisi').max(100).optional().nullable(),
+  nik: z.string().length(16, 'NIK harus 16 digit angka').optional().nullable(),
+  phone: z.string().optional().nullable(),
+  roomNumber: z.string().optional().nullable(),
+  ktpFile: z.string().optional().nullable(),
+  checkInDate: z.preprocess((arg) => {
+    if (arg === '' || arg === null || arg === undefined) return null;
+    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+    return arg;
+  }, z.date().optional().nullable()),
   verificationStatus: z.enum(['pending', 'verified', 'rejected']).optional(),
   verificationNote: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
@@ -148,6 +155,7 @@ export const updateRentalResidentSchema = createRentalResidentBaseSchema.partial
     if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
     return arg;
   }, z.date().optional().nullable()),
+  notes: z.string().optional().nullable(),
 });
 
 export const checkOutResidentSchema = z.object({

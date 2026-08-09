@@ -36,7 +36,7 @@ export interface FamilyMemberItem {
   phone?: string | null;
   ktpFile?: string | null;
   isActive: boolean;
-  inactiveReason?: "pindah" | "meninggal" | null;
+  inactiveNote?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { X, User, Phone, MapPin, Calendar, Briefcase, FileText, AlertTriangle, GraduationCap, Download, Eye } from "lucide-react";
+import { X, User, MapPin, Calendar, FileText, Phone, Eye, Download, AlertTriangle } from "lucide-react";
 import { RentalResidentItem } from "./RentalTable";
 import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
@@ -146,29 +146,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex gap-3 items-start">
-                <GraduationCap className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Pendidikan</span>
-                  <span className="text-xs font-semibold text-gray-heading-main">{resident.educationLevel || "-"}</span>
-                </div>
-              </div>
 
-              <div className="flex gap-3 items-start">
-                <Briefcase className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Pekerjaan</span>
-                  <span className="text-xs font-semibold text-gray-heading-main">{resident.occupation || "-"}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
-                <Calendar className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Agama</span>
-                  <span className="text-xs font-semibold text-gray-heading-main">{resident.religion || "-"}</span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -212,16 +190,6 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                   </span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <hr className="border-gray-border" />
-
-          {/* Origin Address */}
-          <div className="space-y-2">
-            <span className="text-xs text-gray-placeholder block font-bold uppercase tracking-wider">Alamat Asal</span>
-            <div className="text-xs text-gray-heading-main bg-gray-sidebar-hover/10 p-3 rounded-xl border border-gray-border leading-relaxed">
-              {resident.originAddress || "-"}
             </div>
           </div>
 

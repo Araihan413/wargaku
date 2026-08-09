@@ -76,7 +76,7 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text uppercase tracking-wider">
+            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text tracking-wider">
               <th className="py-4 px-5">Nama Lengkap</th>
               <th className="py-4 px-5">NIK</th>
               <th className="py-4 px-5">Hubungan</th>
@@ -143,9 +143,9 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
                         <div className="flex flex-col gap-0.5">
                           <span
                             className="inline-flex items-center gap-1 rounded-full bg-error/10 border border-error/20 px-2.5 py-0.5 text-xs font-bold text-error self-start"
-                            title={`Alasan: ${m.inactiveReason || "pindah"}`}
+                            title={`Catatan: ${m.inactiveNote || "-"}`}
                           >
-                            Nonaktif ({m.inactiveReason || "pindah"})
+                            Nonaktif
                           </span>
                           {m.updatedAt && (
                             <span className="text-[10px] text-gray-secondary-text">

@@ -136,6 +136,7 @@ export async function listFamilyMembers(options: ListFamilyMembersOptions = {}) 
       educationLevel: schema.familyMembers.educationLevel,
       religion: schema.familyMembers.religion,
       ktpFile: schema.familyMembers.ktpFile,
+      inactiveNote: schema.familyMembers.inactiveNote,
       isActive: schema.familyMembers.isActive,
       createdAt: schema.familyMembers.createdAt,
       familyNumber: schema.families.familyNumber,
@@ -159,6 +160,28 @@ export async function listFamilyMembers(options: ListFamilyMembersOptions = {}) 
     data,
     metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
   };
+}
+
+/**
+ * Daftar Kepala Keluarga yang belum memiliki akun.
+ * Berguna untuk form Tambah Akun di Menu Warga.
+ */
+export async function listFamilyMembersWithoutAccount() {
+  return db
+    .select({
+      id: schema.familyMembers.id,
+      name: schema.familyMembers.name,
+      nik: schema.familyMembers.nik,
+    })
+    .from(schema.familyMembers)
+    .where(
+      and(
+        eq(schema.familyMembers.relationship, 'Kepala_Keluarga'),
+        sql`${schema.familyMembers.userId} IS NULL`,
+        eq(schema.familyMembers.isActive, true)
+      )
+    )
+    .orderBy(schema.familyMembers.name);
 }
 
 // ==========================================
@@ -296,7 +319,7 @@ export async function updateFamilyMember(id: number, data: UpdateFamilyMemberInp
 /**
  * Soft-delete anggota keluarga.
  */
-export async function deleteFamilyMember(id: number) {
+export async function deleteFamilyMember(id: number, note?: string) {
   const [member] = await db
     .select()
     .from(schema.familyMembers)
@@ -324,7 +347,7 @@ export async function deleteFamilyMember(id: number) {
 
   await db
     .update(schema.familyMembers)
-    .set({ isActive: false, updatedAt: new Date() })
+    .set({ isActive: false, inactiveNote: note ?? null, updatedAt: new Date() })
     .where(eq(schema.familyMembers.id, id));
   return true;
 }
@@ -371,7 +394,6 @@ export async function transferFamilyMember(data: {
 export async function changeFamilyHead(data: {
   familyId: number;
   newHeadMemberId: number;
-  oldHeadAction: 'suspend' | 'pindah' | 'none';
 }) {
   return await db.transaction(async (tx) => {
     const [family] = await tx
@@ -390,6 +412,7 @@ export async function changeFamilyHead(data: {
 
     if (!newHeadMember) throw new Error(`Anggota ID ${data.newHeadMemberId} tidak ditemukan.`);
     if (newHeadMember.familyId !== data.familyId) throw new Error('Anggota tidak berada dalam KK ini.');
+    if (!newHeadMember.isActive) throw new Error('Anggota yang dipilih sudah tidak aktif dan tidak dapat dijadikan Kepala Keluarga.');
 
     // Proses kepala lama
     const [oldHeadMember] = await tx
@@ -398,26 +421,19 @@ export async function changeFamilyHead(data: {
       .where(and(eq(schema.familyMembers.familyId, data.familyId), eq(schema.familyMembers.relationship, 'Kepala_Keluarga')))
       .limit(1);
 
-    if (data.oldHeadAction === 'suspend' && family.headUserId) {
-      await tx
-        .update(schema.users)
-        .set({ status: 'suspended', updatedAt: new Date() })
-        .where(eq(schema.users.id, family.headUserId));
-      if (oldHeadMember) {
-        await tx.update(schema.familyMembers).set({ isActive: false, updatedAt: new Date() }).where(eq(schema.familyMembers.id, oldHeadMember.id));
-      }
-    } else if (data.oldHeadAction === 'pindah' && oldHeadMember) {
-      await tx.update(schema.familyMembers).set({ isActive: false, updatedAt: new Date() }).where(eq(schema.familyMembers.id, oldHeadMember.id));
-    } else if (data.oldHeadAction === 'none' && oldHeadMember) {
+    // Proses kepala lama: turunkan otomatis menjadi 'Lainnya'
+    if (oldHeadMember) {
       await tx.update(schema.familyMembers).set({ relationship: 'Lainnya', updatedAt: new Date() }).where(eq(schema.familyMembers.id, oldHeadMember.id));
     }
 
     // Set kepala baru
     await tx.update(schema.familyMembers).set({ relationship: 'Kepala_Keluarga', updatedAt: new Date() }).where(eq(schema.familyMembers.id, data.newHeadMemberId));
+    
+    // Perbarui kepemilikan KK: Pastikan ownership jatuh ke user baru, atau dicabut jika tidak punya akun (null)
     await tx
       .update(schema.families)
       .set({
-        headUserId: newHeadMember.userId ?? family.headUserId,
+        headUserId: newHeadMember.userId, // Jika newHead tidak punya akun, ini akan menjadi null, sehingga akses kepala lama tercabut tuntas
         verificationStatus: 'pending',
         updatedAt: new Date(),
       })

@@ -8,6 +8,7 @@ import {
   suspendToggleUser,
   resetUserPassword,
   getUserFullProfile,
+  revokeCoordinatorFromProperties,
 } from "@/db/queries/auth/user.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
@@ -31,10 +32,8 @@ export async function PATCH(
     }
 
     const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, "manage-users");
-    if (!allowed) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const hasManageUsers = await hasPermission(effectiveRoleId, "manage-users");
+    const hasManageResidents = await hasPermission(effectiveRoleId, "manage-residents");
 
     const { id } = await params;
     const body = await request.json();
@@ -42,6 +41,31 @@ export async function PATCH(
 
     if (!action) {
       return NextResponse.json({ error: "Action is required" }, { status: 400 });
+    }
+
+    // Check if user is allowed to perform this action
+    let isAllowed = hasManageUsers;
+
+    // Allow users with manage-residents permission to manage coordinators (roleId = 5)
+    if (!isAllowed && hasManageResidents) {
+      // If action is update_profile or suspend_toggle or mutate_role, check if they are acting on a coordinator
+      // (For mutate_role, we only allow it if the target role is coordinator or they are stripping a coordinator role. 
+      //  To be safe, we allow it if payload.roleId === 5 or payload.officerRoleId === 5)
+      const targetRole = payload?.roleId || payload?.officerRoleId;
+      
+      // We can also allow it if we're just updating profile/status for a coordinator
+      if (
+        (action === "update_profile" && targetRole === 5) ||
+        (action === "suspend_toggle" && payload?.roleId === 5) || 
+        (action === "mutate_role" && (targetRole === 5 || targetRole === null)) ||
+        (action === "revoke_coordinator")
+      ) {
+        isAllowed = true;
+      }
+    }
+
+    if (!isAllowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (action === "update_profile") {
@@ -108,6 +132,30 @@ export async function PATCH(
       return NextResponse.json({
         success: true,
         message: status === "suspended" ? "Akun berhasil ditangguhkan" : "Akun berhasil diaktifkan",
+      });
+    }
+
+    if (action === "revoke_coordinator") {
+      const { propertyIds } = payload;
+      if (!Array.isArray(propertyIds)) {
+        return NextResponse.json({ error: "propertyIds must be an array" }, { status: 400 });
+      }
+
+      const revokedCount = await revokeCoordinatorFromProperties(id, propertyIds);
+
+      const targetUser = await getUserFullProfile(id);
+      const ipAddress = await getClientIp(request);
+      await createAuditLog({
+        userId: session.user.id,
+        action: "REVOKE_COORDINATOR",
+        module: "pengguna",
+        description: `Mencabut jabatan koordinator untuk pengguna ${targetUser?.name || id} dari ${revokedCount} properti.`,
+        ipAddress,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Jabatan koordinator berhasil dicabut secara parsial",
       });
     }
 

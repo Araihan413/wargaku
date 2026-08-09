@@ -38,6 +38,7 @@ export interface ListDwellingsOptions {
   query?: string;
   type?: 'permanen' | 'kos' | 'homestay';
   isActive?: boolean;
+  coordinatorUserId?: string;
 }
 
 // ==========================================
@@ -58,6 +59,9 @@ export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
   if (options.query) {
     const v = `%${options.query}%`;
     conditions.push(or(like(schema.dwellings.blockNumber, v), like(schema.dwellings.houseNumber, v), like(schema.dwellings.notes, v)));
+  }
+  if (options.coordinatorUserId) {
+    conditions.push(eq(schema.rentalProperties.coordinatorUserId, options.coordinatorUserId));
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -115,10 +119,16 @@ export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
     .offset(offset)
     .orderBy(desc(schema.dwellings.createdAt));
 
-  const [totalResult] = await db
+  let totalCountQuery = db
     .select({ count: sql<number>`count(*)` })
     .from(schema.dwellings)
-    .where(whereClause);
+    .$dynamic();
+
+  if (options.coordinatorUserId) {
+    totalCountQuery = totalCountQuery.leftJoin(schema.rentalProperties, and(eq(schema.dwellings.id, schema.rentalProperties.dwellingId), eq(schema.rentalProperties.isActive, true)));
+  }
+
+  const [totalResult] = await totalCountQuery.where(whereClause);
 
   return {
     data,

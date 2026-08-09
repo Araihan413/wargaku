@@ -177,10 +177,12 @@ export async function getFamilyById(id: number) {
       relationship: schema.familyMembers.relationship,
       birthPlace: schema.familyMembers.birthPlace,
       birthDate: schema.familyMembers.birthDate,
+      religion: schema.familyMembers.religion,
       phone: schema.familyMembers.phone,
       occupation: schema.familyMembers.occupation,
       educationLevel: schema.familyMembers.educationLevel,
       ktpFile: schema.familyMembers.ktpFile,
+      inactiveNote: schema.familyMembers.inactiveNote,
       isActive: schema.familyMembers.isActive,
     })
     .from(schema.familyMembers)

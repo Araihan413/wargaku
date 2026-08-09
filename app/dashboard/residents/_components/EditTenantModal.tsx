@@ -1,15 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, FileText, Phone, User, Calendar, MapPin, Briefcase, Home, GraduationCap } from "lucide-react";
+import { X, Loader2, FileText, Phone, User, Calendar, Home } from "lucide-react";
 import { FormField } from "@/components/FormField";
 import { CustomSelect } from "@/components/CustomSelect";
 import { updateRentalResidentSchema } from "@/lib/validations/rental";
 import { executeWithFileUpload } from "@/lib/upload-helper";
 import { KtpUploadInput } from "@/components/KtpUploadInput";
-import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { RentalResidentItem } from "./RentalTable";
-import { commonOccupations, commonEducations, religionOptions, tenantTypeOptions } from "@/lib/constants";
 
 interface EditTenantModalProps {
   isOpen: boolean;
@@ -35,6 +33,9 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
     resolver: zodResolver(updateRentalResidentSchema),
   });
 
+  const [availableRooms, setAvailableRooms] = useState<{ value: string; label: string }[]>([]);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+
   // Populate data when resident changes or modal opens
   useEffect(() => {
     if (isOpen && resident) {
@@ -42,15 +43,36 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
         name: resident.name || "",
         nik: resident.nik || "",
         phone: resident.phone || "",
-        tenantType: resident.tenantType || "perorangan",
         roomNumber: resident.roomNumber || "",
         checkInDate: resident.checkInDate ? (typeof resident.checkInDate === "string" ? new Date(resident.checkInDate) : resident.checkInDate) : new Date(),
-        occupation: resident.occupation || "",
-        educationLevel: resident.educationLevel || "",
-        religion: (resident.religion as any) || null,
-        originAddress: resident.originAddress || "",
         ktpFile: resident.ktpFile || "",
       });
+
+      // Fetch available rooms for the rental property
+      const fetchRooms = async () => {
+        setIsLoadingRooms(true);
+        try {
+          const res = await fetch(`/api/rentals/${resident.rentalPropertyId}/rooms`);
+          if (res.ok) {
+            const roomsData = await res.json();
+            const validRooms = roomsData
+              .filter((r: any) => r.status === "vacant" || r.status === "sharing" || r.roomNumber === resident.roomNumber)
+              .map((r: any) => ({
+                value: r.roomNumber,
+                label: `Kamar ${r.roomNumber} (${
+                  r.roomNumber === resident.roomNumber ? "Kamar Saat Ini" : r.status === "sharing" ? "Sharing" : "Kosong"
+                })`,
+              }));
+            setAvailableRooms(validRooms);
+          }
+        } catch (error) {
+          console.error("Gagal memuat daftar kamar", error);
+        } finally {
+          setIsLoadingRooms(false);
+        }
+      };
+      
+      fetchRooms();
     }
   }, [isOpen, resident, reset]);
 
@@ -94,7 +116,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
   if (!isOpen || !resident) return null;
 
   return (
-    <div className="fixed inset-0 z-70 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm cursor-default"
@@ -136,39 +158,34 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Tenant Type */}
+              {/* Tenant Type (Read Only) */}
               <div className="space-y-1.5">
-                <Controller
-                  name="tenantType"
-                  control={control}
-                  render={({ field }) => (
-                    <CustomSelect
-                      label="Tipe Penyewa"
-                      required={true}
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      options={tenantTypeOptions}
-                      placeholder="-- Tipe --"
-                    />
-                  )}
-                />
-                {errors.tenantType && (
-                  <p className="text-xs text-error font-semibold mt-1">
-                    {errors.tenantType.message as string}
-                  </p>
-                )}
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tipe Penyewa</label>
+                <div className="w-full rounded-xl border border-gray-border bg-gray-sidebar-hover py-2.5 px-3 text-gray-secondary-text text-sm cursor-not-allowed">
+                  {resident.tenantType === "keluarga" ? "Keluarga (Satu KK)" : "Perorangan (Individu)"}
+                </div>
               </div>
 
               {/* Room/Kamar Number */}
-              <FormField
-                id="roomNumber"
-                label="Nomor Kamar / Unit"
-                type="text"
-                required={true}
-                placeholder="Contoh: B1, Kamar 04"
-                registerProps={register("roomNumber")}
-                icon={Home}
-                error={errors.roomNumber?.message}
+              <Controller
+                control={control}
+                name="roomNumber"
+                render={({ field }) => (
+                  <div className="relative">
+                    <CustomSelect
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      options={availableRooms}
+                      placeholder={isLoadingRooms ? "Memuat kamar..." : "Pilih Kamar"}
+                      label="Nomor Kamar / Unit"
+                      required={true}
+                      disabled={isLoadingRooms}
+                    />
+                    {errors.roomNumber?.message && (
+                      <p className="text-xs text-red-500 mt-1">{errors.roomNumber.message as string}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
@@ -238,96 +255,6 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
                   <p className="text-xs text-error font-semibold mt-1">{errors.checkInDate.message as string}</p>
                 )}
               </div>
-            </div>
-
-            <hr className="border-gray-border" />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Occupation */}
-              <div className="space-y-1.5">
-                <Controller
-                  name="occupation"
-                  control={control}
-                  render={({ field }) => (
-                    <AutocompleteInput
-                      label="Pekerjaan"
-                      value={(field.value as string) || ""}
-                      onChange={field.onChange}
-                      suggestions={commonOccupations}
-                      placeholder="Pekerjaan utama"
-                      icon={Briefcase}
-                    />
-                  )}
-                />
-                {errors.occupation && (
-                  <p className="text-xs text-error font-semibold mt-1">{errors.occupation.message}</p>
-                )}
-              </div>
-
-              {/* Education Level */}
-              <div className="space-y-1.5">
-                <Controller
-                  name="educationLevel"
-                  control={control}
-                  render={({ field }) => (
-                    <AutocompleteInput
-                      label="Pendidikan Terakhir"
-                      value={(field.value as string) || ""}
-                      onChange={field.onChange}
-                      suggestions={commonEducations}
-                      placeholder="Contoh: S1 / SMA"
-                      icon={GraduationCap}
-                    />
-                  )}
-                />
-                {errors.educationLevel && (
-                  <p className="text-xs text-error font-semibold mt-1">{errors.educationLevel.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Religion */}
-              <div className="space-y-1.5">
-                <Controller
-                  name="religion"
-                  control={control}
-                  render={({ field }) => (
-                    <CustomSelect
-                      label="Agama"
-                      value={(field.value as string) || ""}
-                      onChange={field.onChange}
-                      options={religionOptions}
-                      placeholder="-- Pilih Agama --"
-                    />
-                  )}
-                />
-                {errors.religion && (
-                  <p className="text-xs text-error font-semibold mt-1">
-                    {errors.religion.message as string}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Origin Address */}
-            <div className="space-y-1.5">
-              <label htmlFor="originAddress" className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                Alamat Asal / KTP
-              </label>
-              <div className="relative">
-                <textarea
-                  id="originAddress"
-                  placeholder="Alamat asal sesuai KTP"
-                  rows={2}
-                  {...register("originAddress")}
-                  className="w-full rounded-xl border border-gray-border bg-gray-card py-2.5 pl-10 pr-3.5 text-gray-heading-main placeholder-gray-placeholder text-sm outline-none transition-all resize-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-                <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-gray-placeholder" />
-              </div>
-              {errors.originAddress && (
-                <p className="text-xs text-error font-semibold mt-1">{errors.originAddress.message}</p>
-              )}
             </div>
 
             {/* Scan KTP File Upload */}

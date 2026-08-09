@@ -146,6 +146,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Hunian tidak ditemukan' }, { status: 404 });
     }
 
+    // Pengecekan penghuni aktif sebelum menonaktifkan hunian
+    if (currentDwelling.type === 'permanen' && 'families' in currentDwelling && currentDwelling.families && currentDwelling.families.length > 0) {
+      return NextResponse.json({ error: 'Gagal menonaktifkan hunian. Masih terdapat Kartu Keluarga aktif yang terdaftar di hunian ini. Harap pindahkan atau nonaktifkan KK terlebih dahulu.' }, { status: 400 });
+    }
+
+    if ((currentDwelling.type === 'kos' || currentDwelling.type === 'homestay') && 'property' in currentDwelling && currentDwelling.property && currentDwelling.property.activeTenants > 0) {
+      return NextResponse.json({ error: 'Gagal menonaktifkan hunian. Masih terdapat penghuni sewa yang aktif. Harap proses check-out seluruh penyewa terlebih dahulu.' }, { status: 400 });
+    }
+
     await deleteDwelling(dwellingId);
 
     const ipAddress = await getClientIp(request);

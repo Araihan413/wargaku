@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Loader2, Home, MapPin, ClipboardList, Info, Users, CreditCard, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { ChangeCoordinatorModal } from "./ChangeCoordinatorModal";
-
 
 interface DwellingDetailModalProps {
   isOpen: boolean;
@@ -40,7 +38,7 @@ interface DwellingDetailData {
     contactPerson?: string | null;
     phone?: string | null;
     totalRooms: number;
-    activeResidentsCount: number;
+    activeTenants: number;
     vacantRooms: number;
     coordinator?: {
       id: string;
@@ -58,8 +56,6 @@ export const DwellingDetailModal: React.FC<DwellingDetailModalProps> = ({
 }) => {
   const [data, setData] = useState<DwellingDetailData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isChangeCoordOpen, setIsChangeCoordOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (isOpen && dwellingId) {
@@ -87,7 +83,7 @@ export const DwellingDetailModal: React.FC<DwellingDetailModalProps> = ({
         setData(null);
       });
     }
-  }, [isOpen, dwellingId, onClose, refreshTrigger]);
+  }, [isOpen, dwellingId, onClose]);
 
   if (!isOpen) return null;
 
@@ -226,18 +222,12 @@ export const DwellingDetailModal: React.FC<DwellingDetailModalProps> = ({
                       </div>
 
                       {/* Koordinator Akun */}
-                      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-xs space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-primary font-bold">Koordinator Pengelola</span>
-                          <button
-                            type="button"
-                            onClick={() => setIsChangeCoordOpen(true)}
-                            className="px-2.5 py-1 bg-white hover:bg-gray-sidebar-hover border border-gray-border rounded-lg text-[10px] font-bold text-gray-heading-main transition-all cursor-pointer shadow-sm"
-                          >
-                            Ganti Koordinator
-                          </button>
-                        </div>
-                        {data.property.coordinator ? (
+                      {data.type !== 'homestay' && (
+                        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-xs space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-primary font-bold">Koordinator Pengelola</span>
+                          </div>
+                          {data.property.coordinator ? (
                           <div className="grid grid-cols-2 gap-3 text-gray-heading-main">
                             <div>
                               <span className="text-gray-placeholder block text-[10px]">Nama Akun</span>
@@ -253,26 +243,27 @@ export const DwellingDetailModal: React.FC<DwellingDetailModalProps> = ({
                             Dikelola oleh Pemilik Hunian ({data.ownerName || "-"})
                           </div>
                         )}
-                      </div>
+                        </div>
+                      )}
 
                       {/* STATISTIK OKUPANSI KAMAR (Sesuai Request User) */}
                       <div className="grid grid-cols-3 gap-3">
                         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
                           <span className="text-[10px] text-emerald-800 font-semibold block uppercase">Orang Ngekos</span>
                           <span className="text-xl font-bold text-emerald-900 mt-1 block">
-                            {data.property.activeResidentsCount}
+                            {data.property.activeTenants || 0}
                           </span>
                         </div>
                         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-center">
                           <span className="text-[10px] text-amber-800 font-semibold block uppercase">Kamar Kosong</span>
                           <span className="text-xl font-bold text-amber-900 mt-1 block">
-                            {data.property.vacantRooms}
+                            {data.property.vacantRooms || 0}
                           </span>
                         </div>
                         <div className="bg-gray-sidebar-hover/30 border border-gray-border rounded-2xl p-4 text-center">
                           <span className="text-[10px] text-gray-placeholder font-semibold block uppercase">Total Kamar</span>
                           <span className="text-xl font-bold text-gray-heading-main mt-1 block">
-                            {data.property.totalRooms}
+                            {data.property.totalRooms || 0}
                           </span>
                         </div>
                       </div>
@@ -356,18 +347,6 @@ export const DwellingDetailModal: React.FC<DwellingDetailModalProps> = ({
           </button>
         </div>
       </div>
-
-      {isChangeCoordOpen && data?.property && (
-        <ChangeCoordinatorModal
-          isOpen={isChangeCoordOpen}
-          onClose={() => setIsChangeCoordOpen(false)}
-          onSuccess={() => setRefreshTrigger(prev => prev + 1)}
-          propertyId={data.property.id}
-          currentCoordinatorId={data.property.coordinator?.id}
-          ownerUserId={data.ownerUserId}
-          ownerName={data.ownerName}
-        />
-      )}
     </div>
   );
 };

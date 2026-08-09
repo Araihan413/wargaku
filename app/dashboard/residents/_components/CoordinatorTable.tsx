@@ -1,16 +1,22 @@
 "use client";
 
 import React from "react";
-import { UserX, Home, UserCheck, Phone, Mail, Eye, Pencil, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { UserX, Home, Phone, Mail, Eye, Pencil, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+
+export interface CoordinatorProperty {
+  id: number;
+  name: string;
+  isOwnedByCoordinator?: boolean;
+}
 
 export interface CoordinatorItem {
   id: string;
   name: string;
   email: string;
   phone?: string | null;
-  nik?: string | null;
   status: "active" | "pending" | "suspended";
   propertiesCount: number;
+  properties?: CoordinatorProperty[];
 }
 
 interface CoordinatorTableProps {
@@ -44,9 +50,9 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
-              <th className="py-4 px-5">Nama & NIK</th>
+              <th className="py-4 px-5 min-w-50">Nama Koordinator</th>
               <th className="py-4 px-5">Kontak</th>
-              <th className="py-4 px-5 text-center">Kelola Properti</th>
+              <th className="py-4 px-5 min-w-45">Kos yang Dikelola</th>
               <th className="py-4 px-5">Status</th>
               <th className="py-4 px-5 text-right">Aksi</th>
             </tr>
@@ -66,21 +72,11 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
             ) : coordinators.length > 0 ? (
               coordinators.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-sidebar-hover/20 transition-all">
-                  {/* Nama & NIK */}
+                  {/* Nama Koordinator */}
                   <td className="py-4 px-5">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/5 text-primary">
-                        <UserCheck className="h-4.5 w-4.5" />
-                      </div>
-                      <div>
-                        <span className="font-bold text-gray-heading-main block text-sm">
-                          {c.name}
-                        </span>
-                        <span className="text-[10px] font-mono text-gray-secondary-text block mt-0.5">
-                          NIK: {c.nik || "Tidak diisi"}
-                        </span>
-                      </div>
-                    </div>
+                    <span className="font-bold text-gray-heading-main block text-sm">
+                      {c.name}
+                    </span>
                   </td>
 
                   {/* Kontak */}
@@ -99,12 +95,20 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
                     </div>
                   </td>
 
-                  {/* Jumlah Kos */}
-                  <td className="py-4 px-5 text-center">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-sidebar-hover text-xs font-semibold text-gray-heading-main">
-                      <Home className="h-3.5 w-3.5 text-gray-secondary-text" />
-                      <span>{c.propertiesCount} Properti Kos</span>
-                    </div>
+                  {/* Kos yang Dikelola */}
+                  <td className="py-4 px-5">
+                    {c.properties && c.properties.length > 0 ? (
+                      <div className="flex flex-col gap-1.5 justify-center">
+                        {c.properties.map((p) => (
+                          <div key={p.id} className="inline-flex items-center gap-2 text-xs font-semibold text-gray-heading-main">
+                            <Home className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span>{p.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-placeholder italic">Belum ada kos</span>
+                    )}
                   </td>
 
                   {/* Status Akun */}
