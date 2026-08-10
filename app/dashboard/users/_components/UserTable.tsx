@@ -49,9 +49,8 @@ export const UserTable: React.FC<UserTableProps> = ({
           <thead>
             <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
               <th className="py-4 px-5">Nama & Email</th>
-              <th className="py-4 px-5">NIK</th>
               <th className="py-4 px-5">Telepon</th>
-              <th className="py-4 px-5">Peran</th>
+              <th className="py-4 px-5 text-center">Peran</th>
               <th className="py-4 px-5">Status</th>
               <th className="py-4 px-5 text-right">Aksi</th>
             </tr>
@@ -59,7 +58,7 @@ export const UserTable: React.FC<UserTableProps> = ({
           <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="py-16 text-center">
+                <td colSpan={5} className="py-16 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <span className="text-xs text-gray-placeholder">
@@ -101,9 +100,6 @@ export const UserTable: React.FC<UserTableProps> = ({
                         {u.email}
                       </span>
                     </div>
-                  </td>
-                  <td className="py-4 px-5 font-mono text-xs text-gray-body-text-btn">
-                    {u.nik || "-"}
                   </td>
                   <td className="py-4 px-5 text-gray-body-text-btn">
                     {u.phone || "-"}
@@ -258,7 +254,7 @@ export const UserTable: React.FC<UserTableProps> = ({
               })
             ) : (
               <tr>
-                <td colSpan={6} className="py-16 text-center">
+                <td colSpan={5} className="py-16 text-center">
                   <span className="text-sm text-gray-placeholder">
                     Tidak ditemukan pengguna yang cocok dengan kriteria
                     pencarian.

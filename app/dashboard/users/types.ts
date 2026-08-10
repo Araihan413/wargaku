@@ -2,7 +2,6 @@ export interface UserItem {
   id: string;
   name: string;
   email: string;
-  nik: string | null;
   phone: string | null;
   photo: string | null;
   status: "pending" | "active" | "suspended";

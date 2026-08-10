@@ -103,10 +103,6 @@ export const updateUserSchema = z.object({
     error: (issue) => issue.input === undefined ? "Email wajib diisi" : "Email harus berupa teks"
   }).email("Format email tidak valid").max(100, "Email maksimal 100 karakter"),
   
-  nik: z.string()
-    .optional()
-    .or(z.literal("")),
-  
   phone: z.string()
     .regex(indonesianPhoneRegex, "Nomor telepon tidak valid")
     .optional()
@@ -115,32 +111,6 @@ export const updateUserSchema = z.object({
   roleId: z.number({
     error: (issue) => issue.input === undefined ? "Role wajib dipilih" : "Role harus berupa angka"
   }).int().positive(),
-}).superRefine((data, ctx) => {
-  // Jika perannya bukan Super Admin (1) dan bukan Koordinator Kos (5), maka NIK wajib diisi dan harus tepat 16 digit angka
-  if (data.roleId !== 1 && data.roleId !== 5) {
-    if (!data.nik || data.nik.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["nik"],
-        message: "NIK wajib diisi untuk peran ini",
-      });
-    } else if (!nikRegex.test(data.nik)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["nik"],
-        message: "NIK harus terdiri dari 16 digit angka",
-      });
-    }
-  } else {
-    // Untuk Super Admin atau Koordinator, jika NIK diisi, tetap harus valid 16 digit
-    if (data.nik && data.nik.trim() !== "" && !nikRegex.test(data.nik)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["nik"],
-        message: "NIK harus terdiri dari 16 digit angka jika diisi",
-      });
-    }
-  }
 });
 
 export type UpdateUserType = z.infer<typeof updateUserSchema>;

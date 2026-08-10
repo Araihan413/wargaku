@@ -1,5 +1,5 @@
 import React from "react";
-import { X, User, Mail, CreditCard, Phone, Shield, Calendar, Activity } from "lucide-react";
+import { X, User, Mail, Phone, Shield, Calendar, Activity } from "lucide-react";
 import { UserItem } from "../types";
 
 interface UserDetailModalProps {
@@ -81,20 +81,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </div>
             </div>
 
-            {/* NIK */}
-            <div className="flex items-start gap-3">
-              <div className="p-1.5 bg-gray-sidebar-hover rounded-lg border border-gray-border text-gray-placeholder">
-                <CreditCard className="h-4 w-4" />
-              </div>
-              <div>
-                <span className="block text-[10px] font-bold text-gray-secondary-text uppercase tracking-wider">
-                  Nomor Induk Kependudukan (NIK)
-                </span>
-                <span className="text-sm font-semibold font-mono text-gray-heading-main">
-                  {user.nik || "-"}
-                </span>
-              </div>
-            </div>
+
 
             {/* Telepon */}
             <div className="flex items-start gap-3">

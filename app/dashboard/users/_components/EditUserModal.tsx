@@ -5,7 +5,6 @@ import {
   X,
   User,
   Mail,
-  CreditCard,
   Phone,
   Loader2,
 } from "lucide-react";
@@ -43,7 +42,6 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     defaultValues: {
       name: "",
       email: "",
-      nik: "",
       phone: "",
       roleId: 6,
     },
@@ -55,7 +53,6 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       reset({
         name: user.name,
         email: user.email,
-        nik: user.nik || "",
         phone: user.phone || "",
         roleId: user.roleId,
       });
@@ -134,28 +131,18 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               registerProps={register("email")}
               icon={Mail}
               error={errors.email?.message}
+              readOnly={true}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                id="nik"
-                label="NIK (Opsional)"
-                type="text"
-                placeholder="16 digit NIK"
-                registerProps={register("nik")}
-                icon={CreditCard}
-                error={errors.nik?.message}
-              />
-              <FormField
-                id="phone"
-                label="Telepon (Opsional)"
-                type="text"
-                placeholder="Contoh: 081234567890"
-                registerProps={register("phone")}
-                icon={Phone}
-                error={errors.phone?.message}
-              />
-            </div>
+            <FormField
+              id="phone"
+              label="Telepon (Opsional)"
+              type="text"
+              placeholder="Contoh: 081234567890"
+              registerProps={register("phone")}
+              icon={Phone}
+              error={errors.phone?.message}
+            />
 
             {/* Pilihan Peran (Read-Only) */}
             <div>
