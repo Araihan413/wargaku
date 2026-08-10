@@ -65,6 +65,17 @@ export async function listPendingRegistrations() {
 
   const familyMap = new Map(linkedFamilies.map((f) => [f.headUserId, f]));
 
+  // Ambil data NIK dari family_members
+  const linkedMembers = await db
+    .select({
+      userId: schema.familyMembers.userId,
+      nik: schema.familyMembers.nik,
+    })
+    .from(schema.familyMembers)
+    .where(inArray(schema.familyMembers.userId, userIds));
+
+  const memberMap = new Map(linkedMembers.map((m) => [m.userId, m]));
+
   return pendingUsers
     .map((user) => {
       const role = roleMap.get(user.id);
@@ -81,6 +92,7 @@ export async function listPendingRegistrations() {
         roleId: role.roleId,
         roleName: role.roleName,
         roleSlug: role.roleSlug,
+        nik: memberMap.get(user.id)?.nik ?? null,
         familyNumber: family?.familyNumber ?? null,
         dwellingId: family?.dwellingId ?? null,
         blockNumber: family?.blockNumber ?? null,
@@ -128,14 +140,7 @@ export async function processRegistrationApproval(
   if (action === 'approve') {
     await db.transaction(async (tx) => {
       await tx.update(schema.users).set({ status: 'active', updatedAt: new Date() }).where(eq(schema.users.id, userId));
-
-      // Untuk warga (role 6): Ubah status verifikasi KK dari draft ke verified
-      if (roleId === 6) {
-        await tx
-          .update(schema.families)
-          .set({ verificationStatus: 'verified', updatedAt: new Date() })
-          .where(eq(schema.families.headUserId, userId));
-      }
+      // Kita biarkan verificationStatus KK tetap 'draft' agar warga mengisi datanya sendiri nanti.
     });
 
     const origin = requestOrigin ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -201,6 +206,18 @@ export async function processRegistrationApproval(
             await tx.update(schema.rentalProperties).set({ coordinatorUserId: p.ownerUserId }).where(eq(schema.rentalProperties.id, p.id));
           }
         }
+      }
+
+      // Hapus data kependudukan draft jika pendaftar adalah warga
+      if (roleId === 6) {
+        await tx
+          .delete(schema.families)
+          .where(
+            and(
+              eq(schema.families.headUserId, userId),
+              eq(schema.families.verificationStatus, 'draft')
+            )
+          );
       }
 
       await tx.delete(schema.accounts).where(eq(schema.accounts.userId, userId));

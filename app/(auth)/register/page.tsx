@@ -136,23 +136,23 @@ export default function RegisterPage() {
       registerProps: register("name"),
       error: errors.name?.message,
     },
-    {
-      id: "nik",
-      label: accountType === "coordinator" ? "NIK Koordinator / Pengelola" : "NIK Kepala Keluarga",
-      type: "text",
-      required: true,
-      placeholder: "16 digit NIK",
-      icon: FileText,
-      maxLength: 16,
-      registerProps: register("nik", {
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-          setValue("nik", e.target.value.replace(/\D/g, ""));
-        },
-      }),
-      error: errors.nik?.message,
-    },
     ...(accountType === "warga"
       ? [
+          {
+            id: "nik",
+            label: "NIK Kepala Keluarga",
+            type: "text",
+            required: true,
+            placeholder: "16 digit NIK",
+            icon: FileText,
+            maxLength: 16,
+            registerProps: register("nik", {
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                setValue("nik", e.target.value.replace(/\D/g, ""));
+              },
+            }),
+            error: errors.nik?.message,
+          },
           {
             id: "familyNumber",
             label: "Nomor Kartu Keluarga (KK)",
@@ -224,6 +224,31 @@ export default function RegisterPage() {
             setIsLoading(true);
           },
           onSuccess: async () => {
+            if (data.accountType === "warga") {
+              try {
+                const res = await fetch("/api/auth/complete-registration", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    nik: data.nik,
+                    familyNumber: data.familyNumber,
+                    dwellingId: data.dwellingId ? Number(data.dwellingId) : null,
+                  }),
+                });
+                
+                if (!res.ok) {
+                  const errData = await res.json();
+                  toast.error(errData.error || "Gagal menyimpan data kependudukan.");
+                  // Akan tetap lanjut signout karena user account sudah terbuat
+                }
+              } catch (err) {
+                console.error("Error completing registration", err);
+                toast.error("Gagal menyimpan data kependudukan.");
+              }
+            }
+
             await authClient.signOut();
             setIsLoading(false);
             toast.success(

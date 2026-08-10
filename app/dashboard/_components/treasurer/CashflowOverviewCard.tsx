@@ -116,7 +116,7 @@ export const CashflowOverviewCard: React.FC<CashflowOverviewCardProps> = ({ stat
               <span className="font-mono">{stats.duesStats.paidFamiliesCount} KK</span>
             </div>
             <div className="flex justify-between items-center p-2.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">
-              <span>KK Belum Bayar</span>
+              <span>KK Belum Lunas</span>
               <span className="font-mono">{stats.duesStats.unpaidFamiliesCount} KK</span>
             </div>
           </div>

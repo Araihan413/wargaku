@@ -62,20 +62,24 @@ export default function DashboardLayout({
   const user = session?.user;
 
   React.useEffect(() => {
-    if (!isPending && user) {
-      const userStatus = (user as any).status;
-      if (userStatus === "pending" || userStatus === "suspended") {
-        useRoleStore.getState().resetRole();
-        authClient.signOut().then(() => {
-          if (userStatus === "pending") {
-            toast.error(
-              "Akun Anda berstatus PENDING (menunggu verifikasi RT). Akses dashboard belum diizinkan."
-            );
-          } else {
-            toast.error("Akun Anda ditangguhkan.");
-          }
-          router.push("/login");
-        });
+    if (!isPending) {
+      if (!user) {
+        router.push("/login");
+      } else {
+        const userStatus = (user as any).status;
+        if (userStatus === "pending" || userStatus === "suspended") {
+          useRoleStore.getState().resetRole();
+          authClient.signOut().then(() => {
+            if (userStatus === "pending") {
+              toast.error(
+                "Akun Anda berstatus PENDING (menunggu verifikasi RT). Akses dashboard belum diizinkan."
+              );
+            } else {
+              toast.error("Akun Anda ditangguhkan.");
+            }
+            router.push("/login");
+          });
+        }
       }
     }
   }, [user, isPending, router]);

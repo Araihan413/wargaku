@@ -21,10 +21,7 @@ export const registerSchema = z.object({
 
   // Step 2: Kependudukan
   name: z.string().min(1, "Nama Lengkap wajib diisi"),
-  nik: z
-    .string()
-    .min(1, "NIK wajib diisi")
-    .regex(/^\d{16}$/, "NIK harus terdiri dari 16 digit angka"),
+  nik: z.string().optional(),
   familyNumber: z
     .string()
     .optional(),
@@ -41,6 +38,13 @@ export const registerSchema = z.object({
 
   // Pengecekan data kependudukan jika tipe akun Warga
   if (data.accountType === "warga") {
+    if (!data.nik || !/^\d{16}$/.test(data.nik)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "NIK harus terdiri dari 16 digit angka",
+        path: ["nik"],
+      });
+    }
     if (!data.familyNumber || !/^\d{16}$/.test(data.familyNumber)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

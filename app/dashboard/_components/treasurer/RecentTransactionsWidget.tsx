@@ -50,7 +50,7 @@ export const RecentTransactionsWidget: React.FC<RecentTransactionsWidgetProps> =
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover/30 text-gray-secondary-text font-bold uppercase tracking-wider">
+            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-gray-secondary-text font-bold tracking-wider">
               <th className="py-3 px-4">Tipe & Transaksi</th>
               <th className="py-3 px-4">Kategori</th>
               <th className="py-3 px-4">Tanggal</th>
@@ -78,9 +78,6 @@ export const RecentTransactionsWidget: React.FC<RecentTransactionsWidgetProps> =
                         <div>
                           <span className="font-extrabold text-gray-heading-main block">
                             {t.title}
-                          </span>
-                          <span className="text-[10px] text-gray-placeholder block mt-0.5">
-                            ID: {t.id}
                           </span>
                         </div>
                       </div>
