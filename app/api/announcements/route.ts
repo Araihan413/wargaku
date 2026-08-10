@@ -5,7 +5,41 @@ import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { listAnnouncements, createAnnouncement } from '@/db/queries';
 import { notifyAllWarga } from '@/lib/notifications';
 
-// GET /api/announcements - Fetch list of announcements
+/**
+ * @openapi
+ * /api/announcements:
+ *   get:
+ *     summary: Mendapatkan daftar pengumuman
+ *     description: Mengambil daftar pengumuman RT dengan dukungan pencarian, filter berdasarkan kategori, dan status disematkan (pinned).
+ *     tags:
+ *       - Pengumuman & Informasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Kata kunci pencarian judul atau isi
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [umum, penting, mendesak]
+ *         description: Filter berdasarkan kategori pengumuman
+ *       - in: query
+ *         name: isPinned
+ *         schema:
+ *           type: boolean
+ *         description: Filter pengumuman yang disematkan
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar pengumuman
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -37,7 +71,51 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/announcements - Create new announcement
+/**
+ * @openapi
+ * /api/announcements:
+ *   post:
+ *     summary: Membuat pengumuman baru
+ *     description: |
+ *       Membuat pengumuman RT baru dan secara otomatis mengirim notifikasi "dinas" ke seluruh warga terdaftar. 
+ *       Hanya pengguna dengan izin manage-announcements (biasanya pengurus RT/RW) yang dapat mengakses ini.
+ *     tags:
+ *       - Pengumuman & Informasi
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - content
+ *               - category
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [umum, penting, mendesak]
+ *               attachments:
+ *                 type: string
+ *                 description: URL lampiran file (opsional)
+ *     responses:
+ *       201:
+ *         description: Pengumuman berhasil dibuat dan dinotifikasikan
+ *       400:
+ *         description: Data tidak lengkap atau kategori tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

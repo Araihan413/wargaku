@@ -8,16 +8,50 @@ import { eq } from "drizzle-orm";
 import { generateSignedUrl, extractPublicIdFromUrl } from "@/lib/cloudinary";
 
 /**
- * GET /api/documents/secure-url?type=<type>&id=<recordId>
- *
- * Generates a time-limited Cloudinary signed URL for a sensitive document.
- * Enforces authentication + RBAC ownership before returning the signed URL.
- *
- * Supported types:
- *   - "kk"          → families.kk_file          (needs view-residents OR own KK)
- *   - "ktp-member"  → family_members.ktp_file   (needs view-residents OR own family head)
- *   - "ktp-tenant"  → rental_contracts.individual_ktp_file (needs manage-boarding OR view-residents)
- *   - "receipt"     → cash_transactions.receipt_file (any authenticated user — transparansi kas RT)
+ * @openapi
+ * /api/documents/secure-url:
+ *   get:
+ *     summary: Mendapatkan URL aman (Signed URL) untuk dokumen sensitif
+ *     description: |
+ *       Menghasilkan Cloudinary Signed URL yang berlaku sementara (10 menit) untuk mengakses file sensitif.
+ *       Endpoint ini memverifikasi autentikasi dan hak akses (RBAC) kepemilikan sebelum mengembalikan URL.
+ *       
+ *       Supported types:
+ *       - `kk`: file KK keluarga (butuh view-residents atau merupakan KK sendiri)
+ *       - `ktp-member`: file KTP anggota keluarga (butuh view-residents atau kepala keluarga sendiri)
+ *       - `ktp-tenant`: file KTP penyewa (butuh manage-boarding atau view-residents)
+ *       - `receipt`: bukti kas RT (dapat diakses oleh semua pengguna terautentikasi untuk transparansi)
+ *     tags:
+ *       - Dokumen
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [kk, ktp-member, ktp-tenant, receipt]
+ *         description: Jenis dokumen yang diminta
+ *       - in: query
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID record yang terkait (id family, id family_member, id kontrak sewa, atau id transaksi)
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan Signed URL
+ *       400:
+ *         description: Parameter tidak valid atau tipe dokumen tidak dikenali
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Data atau berkas tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
  */
 export async function GET(request: Request) {
   try {

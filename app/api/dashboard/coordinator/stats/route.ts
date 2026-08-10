@@ -4,6 +4,26 @@ import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 import { getCoordinatorDashboardStats } from '@/db/queries';
 
+/**
+ * @openapi
+ * /api/dashboard/coordinator/stats:
+ *   get:
+ *     summary: Mendapatkan statistik dashboard Koordinator
+ *     description: Mengambil data statistik untuk dashboard Koordinator (mengelola kost/kontrakan).
+ *     tags:
+ *       - Dashboard & Statistik
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan statistik koordinator
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

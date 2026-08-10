@@ -3,6 +3,37 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { cancelSubmitFamily } from '@/db/queries/population/family.queries';
 
+/**
+ * @openapi
+ * /api/families/{id}/cancel-submit:
+ *   post:
+ *     summary: Membatalkan pengajuan verifikasi Kartu Keluarga (Kembali ke Draf)
+ *     description: Membatalkan pengajuan KK yang sedang berstatus "pending" (menunggu verifikasi RT) dan mengembalikannya ke status "draft". Hanya Kepala Keluarga yang dapat membatalkan pengajuan ini.
+ *     tags:
+ *       - Kepala Keluarga
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID Kartu Keluarga
+ *     responses:
+ *       200:
+ *         description: Pengajuan verifikasi Kartu Keluarga berhasil dibatalkan
+ *       400:
+ *         description: Invalid status (bukan pending) atau ID KK tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Hanya Kepala Keluarga yang berhak membatalkan
+ *       404:
+ *         description: Kartu Keluarga tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

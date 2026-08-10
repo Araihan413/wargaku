@@ -1,6 +1,44 @@
 import { NextResponse } from "next/server";
 import { getPaginatedPublicActivities } from "@/db/queries/dashboard/public-portal.queries";
 
+/**
+ * @openapi
+ * /api/public/activities:
+ *   get:
+ *     summary: Mendapatkan daftar kegiatan publik
+ *     description: Mengambil daftar kegiatan RT/RW yang dipublikasikan, mendukung paginasi dan pencarian.
+ *     tags:
+ *       - Publik
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Halaman yang ingin diambil
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 6
+ *         description: Jumlah data per halaman
+ *       - in: query
+ *         name: filter
+ *         schema:
+ *           type: string
+ *           default: "semua"
+ *         description: Filter kategori kegiatan
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Kata kunci pencarian kegiatan
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar kegiatan
+ *       500:
+ *         description: Kesalahan internal server
+ */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);

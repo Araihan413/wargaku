@@ -4,6 +4,37 @@ import { headers } from 'next/headers';
 import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { generateTagihanForRule } from '@/db/queries/finance/fee.queries';
 
+/**
+ * @openapi
+ * /api/fee-rules/{id}/generate:
+ *   post:
+ *     summary: Melakukan generate tagihan manual untuk suatu aturan iuran
+ *     description: Menghasilkan tagihan baru (untuk periode bulan berjalan) bagi semua KK aktif yang belum memiliki tagihan untuk aturan iuran ini.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID aturan iuran
+ *     responses:
+ *       200:
+ *         description: Tagihan berhasil dibuat (mengembalikan jumlah tagihan baru dan yang di-skip)
+ *       400:
+ *         description: ID tidak valid atau aturan iuran sudah tidak aktif
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Aturan iuran tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

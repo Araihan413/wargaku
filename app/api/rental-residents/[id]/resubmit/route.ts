@@ -3,6 +3,34 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getTenantContractById, updateTenantContract } from '@/db/queries/property/tenant.queries';
 
+/**
+ * @openapi
+ * /api/rental-residents/{id}/resubmit:
+ *   post:
+ *     summary: Mengajukan ulang verifikasi data penyewa yang ditolak
+ *     description: Mengubah status verifikasi data penyewa (kontrak) dari rejected menjadi pending kembali.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Verifikasi berhasil diajukan ulang
+ *       400:
+ *         description: ID tidak valid atau status bukan rejected
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Kontrak sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

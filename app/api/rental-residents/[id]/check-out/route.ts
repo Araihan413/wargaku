@@ -5,6 +5,48 @@ import { checkOutTenant, getTenantContractById } from '@/db/queries/property/ten
 import { getRentalPropertyById } from '@/db/queries/property/rental-property.queries';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 
+/**
+ * @openapi
+ * /api/rental-residents/{id}/check-out:
+ *   post:
+ *     summary: Proses Check-Out Penghuni Kos/Kontrakan
+ *     description: Mengakhiri masa sewa penghuni pada properti. Mengubah status isActive menjadi false dan mencatat checkOutDate.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               checkOutDate:
+ *                 type: string
+ *                 format: date
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Penyewa berhasil diajukan check-out
+ *       400:
+ *         description: Penyewa sudah check-out atau tanggal check-out tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Kontrak sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

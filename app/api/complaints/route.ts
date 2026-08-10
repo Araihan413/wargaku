@@ -5,6 +5,44 @@ import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 import { listComplaints, createComplaint, checkIpRateLimit } from '@/db/queries';
 import { notifyRoles } from '@/lib/notifications';
 
+/**
+ * @openapi
+ * /api/complaints:
+ *   get:
+ *     summary: Mendapatkan daftar pengaduan warga
+ *     description: Mengambil seluruh laporan pengaduan yang diajukan warga. Dapat difilter berdasarkan status atau kategori. Membutuhkan izin kelola (Ketua RT/Sekretaris atau manage-complaints).
+ *     tags:
+ *       - Pengaduan & Aspirasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [menunggu, proses, selesai, ditolak]
+ *         description: Filter berdasarkan status
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [Infrastruktur, Kebersihan, Keamanan, Sosial, Lainnya]
+ *         description: Filter berdasarkan kategori
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Cari berdasarkan kode tiket, nama pelapor, atau deskripsi
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar pengaduan
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -43,6 +81,53 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/complaints:
+ *   post:
+ *     summary: Mengirim laporan pengaduan (Publik)
+ *     description: |
+ *       Mengirim laporan pengaduan baru dari warga (bersifat publik, tidak wajib login).
+ *       Dilengkapi dengan pembatasan limit (maks 4 laporan per jam per IP Address) 
+ *       serta notifikasi langsung ke pengurus RT (Ketua & Sekretaris).
+ *     tags:
+ *       - Pengaduan & Aspirasi
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reporterName
+ *               - category
+ *               - description
+ *             properties:
+ *               reporterName:
+ *                 type: string
+ *               reporterPhone:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [Infrastruktur, Kebersihan, Keamanan, Sosial, Lainnya]
+ *               description:
+ *                 type: string
+ *               photoPath:
+ *                 type: string
+ *                 description: URL foto bukti
+ *               dwellingId:
+ *                 type: integer
+ *                 description: ID hunian (jika ada kaitannya dengan lokasi)
+ *     responses:
+ *       201:
+ *         description: Laporan pengaduan berhasil dikirim (mengembalikan ID dan Kode Tiket)
+ *       400:
+ *         description: Input tidak valid
+ *       429:
+ *         description: Terlalu banyak percobaan (Rate Limit)
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const reqHeaders = await headers();

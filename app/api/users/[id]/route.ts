@@ -18,6 +18,53 @@ import { ZodError } from "zod";
 import { getAppBaseUrl, generateTemporaryPassword } from "@/lib/config";
 import { sendPasswordResetEmail } from "@/lib/mail";
 
+/**
+ * @openapi
+ * /api/users/{id}:
+ *   patch:
+ *     summary: Melakukan aksi terhadap pengguna tertentu
+ *     description: Mengizinkan admin (atau role dengan izin yang sesuai) untuk melakukan aksi terhadap pengguna seperti memperbarui profil, mengubah role/jabatan, menangguhkan/mengaktifkan akun, mereset password, atau mencabut peran koordinator.
+ *     tags:
+ *       - Pengguna
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID Pengguna
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - action
+ *             properties:
+ *               action:
+ *                 type: string
+ *                 enum: [update_profile, mutate_role, suspend_toggle, revoke_coordinator, reset_password]
+ *                 description: Aksi yang akan dilakukan terhadap pengguna
+ *               payload:
+ *                 type: object
+ *                 description: Data yang diperlukan untuk aksi yang dipilih
+ *     responses:
+ *       200:
+ *         description: Aksi berhasil dilakukan
+ *       400:
+ *         description: Permintaan tidak valid atau payload tidak sesuai
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Pengguna tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

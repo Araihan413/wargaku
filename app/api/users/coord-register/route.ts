@@ -4,6 +4,49 @@ import { hashPassword } from 'better-auth/crypto';
 
 const nikRegex = /^[0-9]{16}$/;
 
+/**
+ * @openapi
+ * /api/users/coord-register:
+ *   post:
+ *     summary: Menyelesaikan pendaftaran koordinator (Publik)
+ *     description: Mendaftarkan akun koordinator kos/homestay menggunakan ID sementara, email, NIK, dan password. Endpoint ini bersifat publik dan dipanggil dari form registrasi koordinator.
+ *     tags:
+ *       - Pengguna
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *               - email
+ *               - nik
+ *               - password
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: ID sementara calon koordinator
+ *               email:
+ *                 type: string
+ *               nik:
+ *                 type: string
+ *                 description: 16 digit NIK
+ *               password:
+ *                 type: string
+ *                 description: Minimal 6 karakter
+ *     responses:
+ *       200:
+ *         description: Registrasi koordinator berhasil diselesaikan
+ *       400:
+ *         description: Input tidak valid
+ *       404:
+ *         description: Calon koordinator tidak ditemukan atau sudah terregistrasi
+ *       409:
+ *         description: Email atau NIK sudah terdaftar
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

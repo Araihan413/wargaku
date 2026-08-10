@@ -10,6 +10,43 @@ import {
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/rentals:
+ *   get:
+ *     summary: Mendapatkan daftar semua properti sewa Kos
+ *     description: Mengambil daftar properti kos (dwellingType: kos). Membutuhkan izin manage-boarding. Koordinator Kos (Role 5) hanya akan melihat properti yang ia kelola.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar properti kos
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -55,6 +92,52 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/rentals:
+ *   post:
+ *     summary: Mendaftarkan properti sewa Kos baru (oleh Pengurus)
+ *     description: Mendaftarkan hunian menjadi properti sewa. Sama seperti endpoint /api/rental-properties.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - dwellingId
+ *               - name
+ *             properties:
+ *               dwellingId:
+ *                 type: integer
+ *               name:
+ *                 type: string
+ *               coordinatorUserId:
+ *                 type: string
+ *               contactPerson:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               totalRooms:
+ *                 type: integer
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Properti kos berhasil didaftarkan
+ *       400:
+ *         description: Validasi gagal atau properti aktif sudah ada di hunian ini
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

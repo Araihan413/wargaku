@@ -6,9 +6,31 @@ import * as schema from '@/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 /**
- * GET /api/families/search?kk=...
- * Memverifikasi No. KK secara persis (exact match 16 digit).
- * Menggantikan sistem autocomplete (LIKE) untuk keamanan privasi agar orang tidak bisa menebak data warga.
+ * @openapi
+ * /api/families/search:
+ *   get:
+ *     summary: Mencari data Kepala Keluarga
+ *     description: Mencari data Kepala Keluarga berdasarkan Nomor KK yang persis cocok (16 digit) untuk mencegah pencarian acak/tebak-tebakan.
+ *     tags:
+ *       - Kepala Keluarga
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: kk
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Nomor Kartu Keluarga (16 digit angka)
+ *     responses:
+ *       200:
+ *         description: Berhasil mencari (mengembalikan objek status found true/false dan data ter-mask)
+ *       400:
+ *         description: Format nomor KK tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
  */
 export async function GET(request: Request) {
   try {

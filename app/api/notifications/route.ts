@@ -8,7 +8,9 @@ import { listNotifications, markNotificationsRead, deleteNotifications } from '@
  * /api/notifications:
  *   get:
  *     summary: Mendapatkan daftar notifikasi pengguna
- *     tags: [Notifikasi]
+ *     description: Mengambil notifikasi milik pengguna yang sedang login berdasarkan kategori (personal/dinas/all) dan paginasi.
+ *     tags:
+ *       - Notifikasi
  *     security:
  *       - cookieAuth: []
  *     parameters:
@@ -16,8 +18,19 @@ import { listNotifications, markNotificationsRead, deleteNotifications } from '@
  *         name: category
  *         schema:
  *           type: string
- *           enum: [personal, dinas]
- *         description: 'Kategori notifikasi (default: personal)'
+ *           enum: [personal, dinas, all]
+ *           default: personal
+ *         description: Kategori notifikasi
+ *       - in: query
+ *         name: paginated
+ *         schema:
+ *           type: boolean
+ *         description: Jika true, mengembalikan format { data, hasMore }
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
  *     responses:
  *       200:
  *         description: Daftar notifikasi berhasil diambil
@@ -27,7 +40,9 @@ import { listNotifications, markNotificationsRead, deleteNotifications } from '@
  *         description: Kesalahan server internal
  *   patch:
  *     summary: Menandai notifikasi sebagai telah dibaca
- *     tags: [Notifikasi]
+ *     description: Mengubah status isRead menjadi true pada satu notifikasi spesifik atau seluruh notifikasi pengguna.
+ *     tags:
+ *       - Notifikasi
  *     security:
  *       - cookieAuth: []
  *     requestBody:
@@ -39,14 +54,30 @@ import { listNotifications, markNotificationsRead, deleteNotifications } from '@
  *             properties:
  *               id:
  *                 type: integer
- *                 description: ID spesifik notifikasi (jika kosong, tandai semua)
- *               category:
- *                 type: string
- *                 enum: [personal, dinas]
- *                 description: Kategori notifikasi (wajib jika menandai semua)
+ *                 description: ID spesifik notifikasi (jika kosong, tandai semua notifikasi pengguna sebagai dibaca)
  *     responses:
  *       200:
  *         description: Berhasil menandai notifikasi
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ *   delete:
+ *     summary: Menghapus notifikasi
+ *     description: Menghapus notifikasi spesifik atau semua notifikasi milik pengguna yang login.
+ *     tags:
+ *       - Notifikasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         description: ID notifikasi (jika kosong, hapus semua notifikasi pengguna)
+ *     responses:
+ *       200:
+ *         description: Berhasil menghapus notifikasi
  *       401:
  *         description: Belum terautentikasi
  *       500:

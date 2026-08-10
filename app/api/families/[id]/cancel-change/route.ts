@@ -3,6 +3,37 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { cancelFamilyChange } from '@/db/queries/population/family.queries';
 
+/**
+ * @openapi
+ * /api/families/{id}/cancel-change:
+ *   post:
+ *     summary: Membatalkan perubahan Kartu Keluarga (Kembali ke status Terverifikasi)
+ *     description: Membatalkan mode "draft" yang dibuat untuk perubahan data KK dan mengembalikannya ke status terverifikasi. Hanya Kepala Keluarga yang dapat melakukan ini.
+ *     tags:
+ *       - Kepala Keluarga
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID Kartu Keluarga
+ *     responses:
+ *       200:
+ *         description: Perubahan berhasil dibatalkan dan status dikembalikan
+ *       400:
+ *         description: Invalid status (bukan draft) atau ID KK tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Hanya Kepala Keluarga yang berhak membatalkan
+ *       404:
+ *         description: Kartu Keluarga tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

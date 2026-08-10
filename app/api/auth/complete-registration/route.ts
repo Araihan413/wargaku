@@ -5,6 +5,46 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+/**
+ * @openapi
+ * /api/auth/complete-registration:
+ *   post:
+ *     summary: Menyelesaikan pendaftaran data kependudukan (Warga)
+ *     description: Endpoint untuk pengguna (warga) yang baru pertama kali login agar mereka bisa mengisi NIK, No. KK, dan memilih hunian mereka. Data keluarga akan masuk ke status "draft".
+ *     tags:
+ *       - Autentikasi
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - nik
+ *               - familyNumber
+ *               - dwellingId
+ *             properties:
+ *               nik:
+ *                 type: string
+ *                 description: 16 digit NIK Kepala Keluarga
+ *               familyNumber:
+ *                 type: string
+ *                 description: 16 digit Nomor KK
+ *               dwellingId:
+ *                 type: integer
+ *                 description: ID hunian (rumah)
+ *     responses:
+ *       200:
+ *         description: Pendaftaran data kependudukan berhasil diselesaikan
+ *       400:
+ *         description: Data kependudukan tidak lengkap, Nomor KK sudah terdaftar, atau NIK sudah terdaftar
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

@@ -65,6 +65,24 @@ export default function Dashboard() {
     }
   }, [session, isRolesLoaded, initialize, allowedRoles]);
 
+  // Efek untuk mengembalikan pengguna ke menu terakhir yang dibuka saat sesi baru dimulai
+  useEffect(() => {
+    if (session?.user && activeRoleId !== null && typeof window !== "undefined") {
+      const hasRedirected = sessionStorage.getItem("has_initial_redirected");
+      if (!hasRedirected) {
+        sessionStorage.setItem("has_initial_redirected", "true");
+        try {
+          const lastPath = localStorage.getItem(`last_path_role_${activeRoleId}`);
+          if (lastPath && lastPath.startsWith("/dashboard") && lastPath !== "/dashboard") {
+            router.push(lastPath);
+          }
+        } catch {
+          // Abaikan jika storage bermasalah
+        }
+      }
+    }
+  }, [session?.user, activeRoleId, router]);
+
   if (isPending || !isRolesLoaded) {
     return (
       <div className="flex h-96 items-center justify-center">

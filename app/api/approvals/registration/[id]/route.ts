@@ -6,6 +6,52 @@ import { processRegistrationApproval } from "@/db/queries/system/approval.querie
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
 
+/**
+ * @openapi
+ * /api/approvals/registration/{id}:
+ *   patch:
+ *     summary: Memproses persetujuan atau penolakan registrasi pengguna
+ *     description: Mengubah status pengguna yang mendaftar dari 'pending' menjadi 'active' (approve) atau 'rejected' (reject). Jika ditolak, akan mengirimkan email penolakan. Hanya dapat diakses oleh pengguna dengan izin verify-registrations.
+ *     tags:
+ *       - Verifikasi & Persetujuan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID user yang mendaftar
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - action
+ *             properties:
+ *               action:
+ *                 type: string
+ *                 enum: [approve, reject]
+ *               rejectReason:
+ *                 type: string
+ *                 description: Alasan penolakan (opsional, akan disertakan dalam email jika ditolak)
+ *     responses:
+ *       200:
+ *         description: Pendaftaran berhasil diproses
+ *       400:
+ *         description: Aksi tidak valid atau pengguna sudah diproses sebelumnya
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Pengguna tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -124,10 +124,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
   // Simpan halaman terakhir yang diakses untuk role yang sedang aktif
   useEffect(() => {
     if (activeRoleId && pathname.startsWith("/dashboard")) {
-      try {
-        localStorage.setItem(`last_path_role_${activeRoleId}`, pathname);
-      } catch (e) {
-        // Abaikan error jika storage penuh
+      if (typeof window !== "undefined") {
+        const hasRedirected = sessionStorage.getItem("has_initial_redirected");
+        // Jika belum redirect awal dan kita sedang di dashboard utama, jangan overwrite localStorage
+        // Biarkan page.tsx yang menangani redirect ke menu terakhir
+        if (pathname === "/dashboard" && !hasRedirected) {
+          return;
+        }
+        try {
+          localStorage.setItem(`last_path_role_${activeRoleId}`, pathname);
+        } catch {
+          // Abaikan error jika storage penuh
+        }
       }
     }
   }, [pathname, activeRoleId]);
@@ -146,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
         router.push(lastPath);
         return;
       }
-    } catch (e) {
+    } catch {
       // Abaikan jika storage error
     }
     

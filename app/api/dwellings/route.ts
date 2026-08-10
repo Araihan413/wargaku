@@ -53,6 +53,58 @@ const createDwellingSchema = z.object({
   }
 });
 
+/**
+ * @openapi
+ * /api/dwellings:
+ *   get:
+ *     summary: Mendapatkan daftar hunian
+ *     description: Mengambil daftar hunian. Jika diakses oleh Admin, mendukung pencarian, paginasi, dan filter. Jika diakses tanpa parameter admin, mengambil daftar hunian publik.
+ *     tags:
+ *       - Hunian
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: admin
+ *         schema:
+ *           type: boolean
+ *         description: Mode admin (true/false)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Jumlah data per halaman (khusus admin)
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *         description: Offset data (khusus admin)
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Kata kunci pencarian (khusus admin)
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [permanen, kos, homestay]
+ *         description: Filter tipe hunian (khusus admin)
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter status aktif (khusus admin)
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar hunian
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -107,6 +159,70 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/dwellings:
+ *   post:
+ *     summary: Membuat hunian baru
+ *     description: Menambahkan data hunian baru ke dalam sistem, baik secara tunggal (single) maupun massal (bulk).
+ *     tags:
+ *       - Hunian
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - mode
+ *               - blockNumber
+ *               - type
+ *             properties:
+ *               mode:
+ *                 type: string
+ *                 enum: [single, bulk]
+ *                 description: Mode pembuatan hunian
+ *               blockNumber:
+ *                 type: string
+ *                 description: Nomor blok hunian
+ *               houseNumber:
+ *                 type: string
+ *                 description: Nomor rumah (wajib jika mode single)
+ *               type:
+ *                 type: string
+ *                 enum: [permanen, kos, homestay]
+ *               notes:
+ *                 type: string
+ *               latitude:
+ *                 type: string
+ *               longitude:
+ *                 type: string
+ *               ownerUserId:
+ *                 type: string
+ *               ownerName:
+ *                 type: string
+ *               ownerPhone:
+ *                 type: string
+ *               startNumber:
+ *                 type: integer
+ *                 description: Nomor awal untuk bulk (wajib jika mode bulk)
+ *               endNumber:
+ *                 type: integer
+ *                 description: Nomor akhir untuk bulk (wajib jika mode bulk)
+ *     responses:
+ *       201:
+ *         description: Hunian berhasil ditambahkan
+ *       400:
+ *         description: Input tidak valid atau alamat sudah terdaftar
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

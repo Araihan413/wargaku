@@ -4,6 +4,26 @@ import { headers } from "next/headers";
 import { getUserFullProfile, updateUserProfileData } from "@/db/queries/auth/user.queries";
 import { uploadAndExecuteWithRollback } from "@/lib/file-processor/server";
 
+/**
+ * @openapi
+ * /api/user/profile:
+ *   get:
+ *     summary: Mendapatkan profil pengguna
+ *     description: Mengambil data profil lengkap dari pengguna yang sedang login beserta status perannya (Kepala Keluarga, Anggota, Kost, dll).
+ *     tags:
+ *       - Pengguna & Profil
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan profil pengguna
+ *       401:
+ *         description: Tidak terautentikasi
+ *       404:
+ *         description: Profil tidak ditemukan
+ *       500:
+ *         description: Gagal mengambil data profil
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({
@@ -26,6 +46,41 @@ export async function GET() {
   }
 }
 
+/**
+ * @openapi
+ * /api/user/profile:
+ *   patch:
+ *     summary: Memperbarui profil pengguna
+ *     description: Mengubah data profil pengguna (nama, telepon, foto profil). Mendukung upload file gambar secara langsung menggunakan multipart/form-data.
+ *     tags:
+ *       - Pengguna & Profil
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: File foto profil maksimal 2MB
+ *     responses:
+ *       200:
+ *         description: Profil berhasil diperbarui
+ *       400:
+ *         description: Ukuran foto profil terlalu besar (maksimal 2MB)
+ *       401:
+ *         description: Tidak terautentikasi
+ *       500:
+ *         description: Gagal memperbarui profil
+ */
 export async function PATCH(req: NextRequest) {
   try {
     const session = await auth.api.getSession({

@@ -1,6 +1,44 @@
 import { NextResponse } from "next/server";
 import { getPaginatedPublicAnnouncements } from "@/db/queries/dashboard/public-portal.queries";
 
+/**
+ * @openapi
+ * /api/public/announcements:
+ *   get:
+ *     summary: Mendapatkan daftar pengumuman publik
+ *     description: Mengambil daftar pengumuman RT/RW yang dipublikasikan, mendukung paginasi dan pencarian.
+ *     tags:
+ *       - Publik
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Halaman yang ingin diambil
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 6
+ *         description: Jumlah data per halaman
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           default: "semua"
+ *         description: Filter berdasarkan kategori pengumuman
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Kata kunci pencarian pengumuman
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar pengumuman
+ *       500:
+ *         description: Kesalahan internal server
+ */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);

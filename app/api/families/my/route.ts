@@ -3,6 +3,26 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getMyFamily } from '@/db/queries/population/family.queries';
 
+/**
+ * @openapi
+ * /api/families/my:
+ *   get:
+ *     summary: Mendapatkan data Kartu Keluarga milik user saat ini
+ *     description: Mengambil data ringkasan Kartu Keluarga di mana user yang sedang login terdaftar (baik sebagai Kepala Keluarga maupun anggota).
+ *     tags:
+ *       - Kepala Keluarga
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan data keluarga user
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Kartu Keluarga Anda belum terdaftar di sistem
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

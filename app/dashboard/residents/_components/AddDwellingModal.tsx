@@ -16,6 +16,7 @@ const addDwellingSchema = z.object({
   notes: z.string().optional().nullable(),
   latitude: z.string().optional().nullable(),
   longitude: z.string().optional().nullable(),
+  coordinates: z.string().optional().nullable(),
   ownerUserId: z.string().optional().nullable(),
   ownerName: z.string().optional().nullable(),
   ownerPhone: z.string().optional().nullable(),
@@ -102,6 +103,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
       notes: "",
       latitude: "",
       longitude: "",
+      coordinates: "",
       ownerUserId: "",
       ownerName: "-",
       ownerPhone: "-",
@@ -173,6 +175,16 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
 
   const onSubmit = async (data: any) => {
     try {
+      // Split coordinates into latitude and longitude if provided
+      if (data.coordinates && data.coordinates.trim() !== "") {
+        const parts = data.coordinates.split(",");
+        if (parts.length >= 2) {
+          data.latitude = parts[0].trim();
+          data.longitude = parts[1].trim();
+        }
+      }
+      delete data.coordinates;
+
       const response = await fetch("/api/dwellings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -325,25 +337,16 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
                   )}
                 </div>
 
-                {/* Latitude & Longitude (Single) */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Koordinat (Single) */}
+                <div className="space-y-4">
                   <FormField
-                    id="latitude"
-                    label="Latitude"
+                    id="coordinates"
+                    label="Koordinat Peta (Lat, Lng)"
                     type="text"
-                    placeholder="Contoh: -6.200000"
-                    registerProps={register("latitude")}
+                    placeholder="Contoh: -6.200000, 106.816666"
+                    registerProps={register("coordinates")}
                     icon={MapPin}
-                    error={errors.latitude?.message}
-                  />
-                  <FormField
-                    id="longitude"
-                    label="Longitude"
-                    type="text"
-                    placeholder="Contoh: 106.816666"
-                    registerProps={register("longitude")}
-                    icon={MapPin}
-                    error={errors.longitude?.message}
+                    error={errors.coordinates?.message}
                   />
                 </div>
                 <p className="text-[10px] text-gray-placeholder -mt-2">

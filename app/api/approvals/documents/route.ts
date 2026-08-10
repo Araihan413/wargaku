@@ -5,6 +5,48 @@ import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { listFamilies } from "@/db/queries/population/family.queries";
 import { listAllTenantContracts } from "@/db/queries/property/tenant.queries";
 
+/**
+ * @openapi
+ * /api/approvals/documents:
+ *   get:
+ *     summary: Mendapatkan daftar dokumen penduduk yang perlu diverifikasi
+ *     description: Mengambil daftar Kartu Keluarga (KK) atau Bukti Domisili/Sewa (untuk Warga Sewa) yang sedang menunggu persetujuan RT. Membutuhkan izin verify-documents.
+ *     tags:
+ *       - Verifikasi & Persetujuan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [family, rental_resident]
+ *           default: family
+ *         description: Tipe dokumen (Kartu Keluarga atau Kontrak Sewa)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, verified, rejected]
+ *           default: pending
+ *         description: Status verifikasi
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Pencarian berdasarkan nama/KK
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar dokumen
+ *       400:
+ *         description: Tipe dokumen tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({

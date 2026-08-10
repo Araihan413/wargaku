@@ -9,6 +9,55 @@ import { sendEmail } from "@/lib/mail";
 import { getAdminCreatedUserCredentialsEmail } from "@/lib/emails/templates";
 import { ZodError } from "zod";
 
+/**
+ * @openapi
+ * /api/users:
+ *   get:
+ *     summary: Mendapatkan daftar pengguna
+ *     description: Mengambil daftar pengguna berdasarkan filter. Membutuhkan akses admin (kecuali pencarian publik).
+ *     tags:
+ *       - Pengguna
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: publicSearch
+ *         schema:
+ *           type: boolean
+ *         description: Mode pencarian publik (bisa diakses tanpa akses admin penuh)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: roleId
+ *         schema:
+ *           type: integer
+ *         description: Filter berdasarkan ID peran (role)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, active, suspended]
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Kata kunci pencarian nama/email pengguna
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar pengguna
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -56,6 +105,57 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/users:
+ *   post:
+ *     summary: Membuat akun pengguna baru (Admin)
+ *     description: Menambahkan pengguna baru ke dalam sistem dan mengirimkan email kredensial.
+ *     tags:
+ *       - Pengguna
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - roles
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               roles:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *               familyNumber:
+ *                 type: string
+ *               headNik:
+ *                 type: string
+ *               addressDetail:
+ *                 type: string
+ *               dwellingId:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Akun berhasil dibuat
+ *       400:
+ *         description: Validasi input gagal, email sudah digunakan, atau pelanggaran logika bisnis lainnya
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

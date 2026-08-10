@@ -4,6 +4,26 @@ import { headers } from "next/headers";
 import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { getTreasurerDashboardStats } from "@/db/queries";
 
+/**
+ * @openapi
+ * /api/dashboard/treasurer/stats:
+ *   get:
+ *     summary: Mendapatkan statistik dashboard Bendahara
+ *     description: Mengambil data keuangan untuk dashboard Bendahara (misal saldo kas, total iuran bulan ini). Dapat diakses oleh Admin, Ketua RT, Bendahara, atau role dengan izin keuangan.
+ *     tags:
+ *       - Dashboard & Statistik
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan statistik bendahara
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses keuangan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

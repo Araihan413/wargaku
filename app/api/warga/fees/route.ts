@@ -4,6 +4,26 @@ import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 import { getMyFamilyFees } from '@/db/queries';
 
+/**
+ * @openapi
+ * /api/warga/fees:
+ *   get:
+ *     summary: Mendapatkan data iuran keluarga saya
+ *     description: Mengambil data tagihan iuran bulanan untuk keluarga pengguna yang sedang login. Membutuhkan izin view-my-fees (biasanya Kepala Keluarga).
+ *     tags:
+ *       - Kependudukan
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan data iuran keluarga
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

@@ -7,6 +7,53 @@ import { getFamilyById } from '@/db/queries/population/family.queries';
 import { createWargaSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/family-members:
+ *   get:
+ *     summary: Mendapatkan daftar anggota keluarga (Warga)
+ *     description: Mengambil seluruh daftar anggota keluarga (warga). Memerlukan izin view-residents.
+ *     tags:
+ *       - Kependudukan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Pencarian berdasarkan NIK atau Nama
+ *       - in: query
+ *         name: gender
+ *         schema:
+ *           type: string
+ *           enum: [L, P]
+ *       - in: query
+ *         name: relationship
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar anggota keluarga
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -51,6 +98,67 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/family-members:
+ *   post:
+ *     summary: Menambahkan anggota keluarga baru
+ *     description: Menambahkan data warga ke dalam Kartu Keluarga. Hanya dapat dilakukan oleh Kepala Keluarga (jika status KK belum diajukan/verifikasi) atau oleh Admin/RT dengan izin manage-residents.
+ *     tags:
+ *       - Kependudukan
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - familyId
+ *               - nik
+ *               - name
+ *               - gender
+ *               - relationship
+ *             properties:
+ *               familyId:
+ *                 type: integer
+ *               nik:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *                 enum: [L, P]
+ *               relationship:
+ *                 type: string
+ *               birthPlace:
+ *                 type: string
+ *               birthDate:
+ *                 type: string
+ *                 format: date
+ *               phone:
+ *                 type: string
+ *               occupation:
+ *                 type: string
+ *               educationLevel:
+ *                 type: string
+ *               ktpFile:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Anggota keluarga berhasil ditambahkan
+ *       400:
+ *         description: Validasi input gagal, atau Kartu Keluarga sedang diverifikasi sehingga tidak dapat diubah
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Kartu Keluarga tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

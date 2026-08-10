@@ -62,10 +62,14 @@ export const useRoleStore = create<RoleState>((set) => ({
         return { activeRoleId: candidateRoleId };
       }
 
-      // 3. Fallback ke role utama pengguna (defaultRoleId) atau role terdaftar pertama
+      // 3. Fallback logic saat pertama kali masuk (tidak ada history)
       if (allowedRoles.length > 0) {
-        const fallback = allowedRoles.includes(defaultRoleId) ? defaultRoleId : allowedRoles[0];
-        return { activeRoleId: fallback };
+        if (allowedRoles.includes(6)) {
+          return { activeRoleId: 6 };
+        }
+        // Jika tidak ada role Warga (6), ambil role dengan ID terkecil
+        const sorted = [...allowedRoles].sort((a, b) => a - b);
+        return { activeRoleId: sorted[0] };
       }
 
       // 4. Idle State (tidak ada role aktif)

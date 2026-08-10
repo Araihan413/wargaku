@@ -3,6 +3,24 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getWargaDashboard } from "@/db/queries/dashboard/internal-dashboard.queries";
 
+/**
+ * @openapi
+ * /api/dashboard/warga:
+ *   get:
+ *     summary: Mendapatkan data dashboard Warga
+ *     description: Mengambil data untuk dashboard personal warga (informasi keluarga/hunian, tagihan iuran terbaru, aktivitas dll) berdasarkan user yang sedang login.
+ *     tags:
+ *       - Dashboard & Statistik
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan data dashboard warga
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

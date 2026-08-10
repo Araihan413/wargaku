@@ -12,6 +12,26 @@ const createFeeRuleSchema = z.object({
   isMandatory: z.boolean().default(true),
 });
 
+/**
+ * @openapi
+ * /api/fee-rules:
+ *   get:
+ *     summary: Mendapatkan daftar aturan iuran
+ *     description: Mengambil semua daftar aturan iuran (seperti Uang Sampah, Keamanan, dll) yang aktif di sistem. Membutuhkan hak akses manage-iuran atau view-arrears.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar aturan iuran
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -31,6 +51,48 @@ export async function GET() {
   }
 }
 
+/**
+ * @openapi
+ * /api/fee-rules:
+ *   post:
+ *     summary: Membuat aturan iuran baru dan tagihan massal
+ *     description: Membuat aturan iuran baru (contoh: Iuran Agustus) dan langsung men-generate tagihan (bills) ke seluruh KK yang aktif pada periode berjalan, serta mengirim notifikasi.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - amount
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nama iuran (misal, Iuran Kebersihan)
+ *               amount:
+ *                 type: number
+ *                 description: Nominal iuran (lebih dari 0)
+ *               isMandatory:
+ *                 type: boolean
+ *                 description: Apakah iuran ini wajib
+ *                 default: true
+ *     responses:
+ *       201:
+ *         description: Aturan iuran berhasil dibuat dan tagihan diterbitkan
+ *       400:
+ *         description: Data input tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin untuk membuat aturan iuran
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });

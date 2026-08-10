@@ -1,6 +1,56 @@
 import { NextResponse } from "next/server";
 import { getPublicScanDwelling } from "@/db/queries/dashboard/public-portal.queries";
 
+/**
+ * @openapi
+ * /api/public/scan:
+ *   get:
+ *     summary: Mendapatkan informasi publik hunian
+ *     description: Mengambil data profil publik suatu hunian berdasarkan token QR Code atau blok/nomor rumah. Data yang dikembalikan tidak memuat informasi pribadi (privasi dijaga).
+ *     tags:
+ *       - Publik
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Token QR unik dari stiker rumah atau format manual (cth. A1-12)
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan data hunian publik
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     blockNumber:
+ *                       type: string
+ *                     houseNumber:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     ownerName:
+ *                       type: string
+ *                       nullable: true
+ *                     propertyName:
+ *                       type: string
+ *                       nullable: true
+ *       400:
+ *         description: Token tidak diberikan
+ *       404:
+ *         description: Hunian tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -26,7 +76,7 @@ export async function GET(req: Request) {
       { success: true, data: dwelling },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+          'Cache-Control': 'no-store',
         },
       }
     );

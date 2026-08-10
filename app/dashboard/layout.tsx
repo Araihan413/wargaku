@@ -46,6 +46,20 @@ export default function DashboardLayout({
 
   const handleLogout = async () => {
     useRoleStore.getState().resetRole();
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("has_initial_redirected");
+      // Bersihkan juga history path di localStorage agar tidak nyangkut jika login akun lain
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("last_path_role_")) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch {
+        // Abaikan
+      }
+    }
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {

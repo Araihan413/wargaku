@@ -11,6 +11,42 @@ import { findOrCreatePendingCoordinatorByPhone } from '@/db/queries/auth/user.qu
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/my-properties:
+ *   get:
+ *     summary: Mendapatkan daftar properti pribadi pengguna
+ *     description: Mengambil daftar properti (kos/kontrakan) yang dimiliki oleh pengguna yang sedang login.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Pencarian berdasarkan nama properti
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar properti pribadi
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -46,6 +82,70 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/my-properties:
+ *   post:
+ *     summary: Mendaftarkan properti pribadi baru
+ *     description: |
+ *       Mendaftarkan tempat tinggal (dwelling) sebagai properti sewa (kos/kontrakan) milik pengguna yang sedang login.
+ *       Jika dwelling belum ada owner-nya, pengguna ini akan di-set sebagai owner.
+ *       Otomatis mengatur hak akses Koordinator (Role 5) jika ada koordinator yang ditentukan.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - dwellingId
+ *               - name
+ *               - type
+ *               - status
+ *             properties:
+ *               dwellingId:
+ *                 type: integer
+ *               name:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [kos, kontrakan, unit_komersial, lainnya]
+ *               status:
+ *                 type: string
+ *                 enum: [aktif, renovasi, tidak_disewakan]
+ *               totalRooms:
+ *                 type: integer
+ *               facilities:
+ *                 type: string
+ *                 description: JSON array string of facilities
+ *               rules:
+ *                 type: string
+ *                 description: JSON array string of rules
+ *               coordinatorUserId:
+ *                 type: string
+ *                 description: User ID koordinator (opsional)
+ *               coordinatorName:
+ *                 type: string
+ *               coordinatorPhone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Properti berhasil didaftarkan
+ *       400:
+ *         description: Validasi gagal atau properti aktif sudah ada di hunian ini
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tempat tinggal (dwelling) sudah dimiliki warga lain
+ *       404:
+ *         description: Tempat tinggal (dwelling) tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

@@ -3,6 +3,34 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { reactivateTenantContract, getTenantContractById } from '@/db/queries/property/tenant.queries';
 
+/**
+ * @openapi
+ * /api/rental-residents/{id}/reactivate:
+ *   post:
+ *     summary: Mengaktifkan kembali kontrak sewa yang sudah check-out
+ *     description: Mengubah status isActive kontrak sewa kembali menjadi true.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Kontrak penyewa berhasil diaktifkan kembali
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Kontrak sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

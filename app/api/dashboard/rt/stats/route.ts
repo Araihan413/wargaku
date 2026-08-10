@@ -4,6 +4,26 @@ import { headers } from "next/headers";
 import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { getRtDashboardStats } from "@/db/queries";
 
+/**
+ * @openapi
+ * /api/dashboard/rt/stats:
+ *   get:
+ *     summary: Mendapatkan statistik dashboard Ketua RT
+ *     description: Mengambil data statistik untuk dashboard Ketua RT. Membutuhkan izin view-residents.
+ *     tags:
+ *       - Dashboard & Statistik
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan statistik RT
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

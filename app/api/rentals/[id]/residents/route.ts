@@ -11,6 +11,48 @@ import {
 import { createRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/rentals/{id}/residents:
+ *   get:
+ *     summary: Mendapatkan daftar penghuni Kos di satu properti
+ *     description: Mengambil daftar kontrak/penghuni yang ada di dalam sebuah properti Kos.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar penghuni
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -56,6 +98,72 @@ export async function GET(
   }
 }
 
+/**
+ * @openapi
+ * /api/rentals/{id}/residents:
+ *   post:
+ *     summary: Mendaftarkan penghuni (kontrak sewa) baru di Kos
+ *     description: Menambahkan penghuni ke dalam properti kos. Tipe keluarga bisa diundang (via email) atau dihubungkan jika keluarga sudah terdaftar.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tenantType
+ *               - name
+ *               - nik
+ *               - checkInDate
+ *             properties:
+ *               roomNumber:
+ *                 type: string
+ *               tenantType:
+ *                 type: string
+ *                 enum: [individual, keluarga, family]
+ *               name:
+ *                 type: string
+ *               nik:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               ktpFile:
+ *                 type: string
+ *               checkInDate:
+ *                 type: string
+ *                 format: date
+ *               familyId:
+ *                 type: integer
+ *                 description: ID keluarga jika tipe keluarga dan sudah terdaftar (Opsional)
+ *               userId:
+ *                 type: string
+ *                 description: User ID kepala keluarga (Opsional)
+ *     responses:
+ *       201:
+ *         description: Penghuni sewa berhasil didaftarkan
+ *       400:
+ *         description: Validasi gagal atau email tidak diisi untuk tipe keluarga
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -6,6 +6,36 @@ import { getRentalPropertyById, updateRentalProperty, deleteRentalProperty, clea
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/rental-properties/{id}:
+ *   get:
+ *     summary: Mendapatkan detail properti sewa
+ *     description: Mengambil data detail properti sewa (kos/kontrakan) beserta informasi pengelolanya berdasarkan ID. Koordinator (Role 5) hanya dapat melihat properti yang dikelolanya.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail properti sewa
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses ke properti ini
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -49,6 +79,57 @@ export async function GET(
   }
 }
 
+/**
+ * @openapi
+ * /api/rental-properties/{id}:
+ *   put:
+ *     summary: Memperbarui data properti sewa
+ *     description: Mengubah data properti sewa (nama, kontak, total kamar, status aktif). Hanya dapat diubah oleh Admin/RT atau Koordinator yang mengelola properti tersebut.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               coordinatorUserId:
+ *                 type: string
+ *               contactPerson:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               totalRooms:
+ *                 type: integer
+ *               notes:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Properti sewa berhasil diperbarui
+ *       400:
+ *         description: Validasi gagal atau mencoba mengurangi kamar yang masih aktif
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -121,6 +202,36 @@ export async function PUT(
   }
 }
 
+/**
+ * @openapi
+ * /api/rental-properties/{id}:
+ *   delete:
+ *     summary: Menghapus (Nonaktifkan) properti sewa
+ *     description: Menonaktifkan properti sewa (ubah isActive = false). Tidak dapat dilakukan jika masih ada penyewa/penghuni aktif.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Properti sewa berhasil dinonaktifkan
+ *       400:
+ *         description: ID tidak valid atau masih ada penyewa aktif
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

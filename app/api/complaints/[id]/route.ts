@@ -8,6 +8,35 @@ import {
   deleteComplaint,
 } from '@/db/queries/communication/complaint.queries';
 
+/**
+ * @openapi
+ * /api/complaints/{id}:
+ *   get:
+ *     summary: Mendapatkan detail pengaduan
+ *     description: Mengambil data detail pelaporan warga beserta lampirannya (berdasarkan ID internal). Butuh izin kelola (Ketua RT/Sekretaris atau manage-complaints).
+ *     tags:
+ *       - Pengaduan & Aspirasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pengaduan
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil detail pengaduan
+ *       400:
+ *         description: ID pengaduan tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Data pengaduan tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -44,6 +73,51 @@ export async function GET(
   }
 }
 
+/**
+ * @openapi
+ * /api/complaints/{id}:
+ *   patch:
+ *     summary: Memperbarui status pengaduan warga
+ *     description: |
+ *       Memperbarui status laporan (menunggu, proses, selesai, ditolak) dan memberikan 
+ *       catatan respons dari pengurus RT. Hanya pengguna dengan izin kelola pengaduan yang dapat mengubah ini.
+ *     tags:
+ *       - Pengaduan & Aspirasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pengaduan
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [menunggu, proses, selesai, ditolak]
+ *               responseNote:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Status pengaduan berhasil diperbarui
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Data pengaduan tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -90,6 +164,37 @@ export async function PATCH(
   }
 }
 
+/**
+ * @openapi
+ * /api/complaints/{id}:
+ *   delete:
+ *     summary: Menghapus laporan pengaduan
+ *     description: Menghapus laporan warga dari sistem secara permanen. Hanya pengguna dengan izin manage-complaints yang dapat mengakses ini.
+ *     tags:
+ *       - Pengaduan & Aspirasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pengaduan
+ *     responses:
+ *       200:
+ *         description: Pengaduan berhasil dihapus
+ *       400:
+ *         description: ID pengaduan tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Data pengaduan tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

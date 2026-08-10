@@ -12,6 +12,34 @@ import {
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/rentals/{id}:
+ *   get:
+ *     summary: Mendapatkan detail properti Kos
+ *     description: Mengambil data detail properti kos.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail properti
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -44,6 +72,57 @@ export async function GET(
   }
 }
 
+/**
+ * @openapi
+ * /api/rentals/{id}:
+ *   put:
+ *     summary: Memperbarui data properti Kos
+ *     description: Memperbarui detail properti Kos. Sama seperti /api/rental-properties/{id}.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               coordinatorUserId:
+ *                 type: string
+ *               contactPerson:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               totalRooms:
+ *                 type: integer
+ *               notes:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Properti Kos berhasil diperbarui
+ *       400:
+ *         description: Validasi gagal
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -115,6 +194,36 @@ export async function PUT(
   }
 }
 
+/**
+ * @openapi
+ * /api/rentals/{id}:
+ *   delete:
+ *     summary: Menghapus (Nonaktifkan) properti Kos
+ *     description: Menonaktifkan properti Kos (ubah isActive = false). Tidak dapat dilakukan jika masih ada penyewa/penghuni aktif.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Properti Kos berhasil dinonaktifkan
+ *       400:
+ *         description: ID tidak valid atau masih ada penyewa aktif
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

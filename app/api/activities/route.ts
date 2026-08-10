@@ -5,7 +5,42 @@ import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { listActivities, createActivity } from '@/db/queries/communication/activity.queries';
 import { notifyAllWarga } from '@/lib/notifications';
 
-// GET /api/activities - Fetch list of RT activities
+/**
+ * @openapi
+ * /api/activities:
+ *   get:
+ *     summary: Mendapatkan daftar kegiatan RT
+ *     description: Mengambil daftar agenda atau kegiatan RT. Dapat difilter berdasarkan status (akan datang/lalu) dan pencarian.
+ *     tags:
+ *       - Kegiatan & Agenda
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Kata kunci pencarian judul atau deskripsi kegiatan
+ *       - in: query
+ *         name: filter
+ *         schema:
+ *           type: string
+ *           enum: [all, upcoming, past]
+ *           default: all
+ *         description: Filter waktu kegiatan
+ *       - in: query
+ *         name: isPinned
+ *         schema:
+ *           type: boolean
+ *         description: Filter kegiatan yang disematkan
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar kegiatan
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -37,7 +72,52 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/activities - Create new activity
+/**
+ * @openapi
+ * /api/activities:
+ *   post:
+ *     summary: Membuat jadwal kegiatan RT baru
+ *     description: |
+ *       Membuat agenda/kegiatan RT baru dan secara otomatis mengirim notifikasi "dinas" ke seluruh warga terdaftar. 
+ *       Hanya pengguna dengan izin manage-activities yang dapat mengakses ini.
+ *     tags:
+ *       - Kegiatan & Agenda
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - eventDate
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               eventDate:
+ *                 type: string
+ *                 format: date-time
+ *               location:
+ *                 type: string
+ *               attachments:
+ *                 type: string
+ *                 description: URL lampiran file (opsional)
+ *     responses:
+ *       201:
+ *         description: Kegiatan RT berhasil ditambahkan dan dinotifikasikan
+ *       400:
+ *         description: Data tidak lengkap (judul dan eventDate wajib)
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

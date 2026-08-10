@@ -9,6 +9,63 @@ import {
   getActivitiesReportList,
 } from "@/db/queries/reports";
 
+/**
+ * @openapi
+ * /api/complaints-report:
+ *   get:
+ *     summary: Mendapatkan laporan agregat (Pengaduan, Pengumuman, Kegiatan)
+ *     description: Mengambil data ringkasan dan daftar laporan untuk pengaduan, pengumuman, atau kegiatan (tergantung parameter `type`). Hanya dapat diakses oleh Super Admin.
+ *     tags:
+ *       - Pengaduan & Aspirasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [complaints, announcements, activities]
+ *           default: complaints
+ *         description: Jenis laporan yang ingin diambil
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 15
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter status (khusus type complaints)
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter kategori (khusus complaints/announcements)
+ *       - in: query
+ *         name: filter
+ *         schema:
+ *           type: string
+ *         description: Filter waktu (khusus type activities, misal all, upcoming, past)
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan laporan dan ringkasan
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Akses khusus Super Admin
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(req: Request) {
   try {
     const session = await auth.api.getSession({

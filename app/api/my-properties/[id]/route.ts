@@ -16,6 +16,36 @@ import { findOrCreatePendingCoordinatorByPhone, getUserFullProfile } from '@/db/
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/my-properties/{id}:
+ *   get:
+ *     summary: Mendapatkan detail properti pribadi
+ *     description: Mengambil data detail properti milik pengguna (termasuk data koordinator) berdasarkan ID properti. Hanya bisa diakses oleh pemilik properti.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail properti
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki hak akses (bukan pemilik)
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -62,6 +92,63 @@ export async function GET(
   }
 }
 
+/**
+ * @openapi
+ * /api/my-properties/{id}:
+ *   put:
+ *     summary: Memperbarui data properti pribadi
+ *     description: Memperbarui informasi kos/kontrakan (fasilitas, aturan, koordinator, jumlah kamar). Akan otomatis mengubah Role 5 jika koordinator diganti.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [kos, kontrakan, unit_komersial, lainnya]
+ *               status:
+ *                 type: string
+ *                 enum: [aktif, renovasi, tidak_disewakan]
+ *               totalRooms:
+ *                 type: integer
+ *               facilities:
+ *                 type: string
+ *               rules:
+ *                 type: string
+ *               coordinatorUserId:
+ *                 type: string
+ *               coordinatorName:
+ *                 type: string
+ *               coordinatorPhone:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Properti berhasil diperbarui
+ *       400:
+ *         description: Validasi gagal atau tidak dapat mengurangi jumlah kamar yang masih aktif
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki hak akses
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -162,6 +249,36 @@ export async function PUT(
   }
 }
 
+/**
+ * @openapi
+ * /api/my-properties/{id}:
+ *   delete:
+ *     summary: Menghapus (Nonaktifkan) properti pribadi
+ *     description: Menonaktifkan properti (isActive = false). Tidak dapat dilakukan jika masih ada penyewa/kontrak yang aktif di dalam properti tersebut.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Properti berhasil dinonaktifkan
+ *       400:
+ *         description: ID tidak valid atau masih ada penyewa aktif
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki hak akses
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

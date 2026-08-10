@@ -6,7 +6,7 @@ import { ChevronDown, Loader2 } from "lucide-react";
 export interface UserOption {
   id: string;
   name: string;
-  nik?: string | null;
+  email?: string | null;
   phone?: string | null;
 }
 
@@ -67,7 +67,8 @@ export const OwnerSearchSelect: React.FC<OwnerSearchSelectProps> = ({
     return users.filter(
       (u) =>
         u.name.toLowerCase().includes(query) ||
-        (u.nik && u.nik.toLowerCase().includes(query))
+        (u.email && u.email.toLowerCase().includes(query)) ||
+        (u.phone && u.phone.toLowerCase().includes(query))
     );
   }, [searchQuery, users]);
 
@@ -172,7 +173,7 @@ export const OwnerSearchSelect: React.FC<OwnerSearchSelectProps> = ({
                 >
                   <span className="font-medium text-gray-heading-main">{u.name}</span>
                   <span className="text-[10px] text-gray-placeholder">
-                    NIK: {u.nik || "Tidak ada NIK"} {u.phone ? `| WA/Telp: ${u.phone}` : ""}
+                    {u.phone ? `WA/Telp: ${u.phone}` : u.email ? `Email: ${u.email}` : "Tidak ada detail kontak"}
                   </span>
                 </div>
               );

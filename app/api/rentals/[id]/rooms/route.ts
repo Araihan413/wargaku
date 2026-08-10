@@ -6,6 +6,34 @@ import {
   getRentalPropertyRooms,
 } from '@/db/queries/property/rental-property.queries';
 
+/**
+ * @openapi
+ * /api/rentals/{id}/rooms:
+ *   get:
+ *     summary: Mendapatkan status kamar di properti Kos
+ *     description: Mengembalikan daftar kamar (berdasarkan totalRooms) beserta statusnya (terisi/kosong) dan data penyewa jika ada.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan status kamar
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Properti sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

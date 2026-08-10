@@ -6,6 +6,42 @@ import { rentalContracts, rentalProperties, accountActivationTokens } from "@/db
 import { eq } from "drizzle-orm";
 import { createActivationTokenAndSendEmail } from "@/db/queries/property/tenant.queries";
 
+/**
+ * @openapi
+ * /api/rentals/resend-invitation:
+ *   post:
+ *     summary: Kirim Ulang Email Undangan (Keluarga)
+ *     description: Mengirim ulang email undangan untuk aktivasi akun pengguna kepada penyewa tipe keluarga.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - contractId
+ *             properties:
+ *               contractId:
+ *                 type: integer
+ *               email:
+ *                 type: string
+ *                 description: Email tujuan jika ingin di-override
+ *     responses:
+ *       200:
+ *         description: Email undangan berhasil dikirim ulang
+ *       400:
+ *         description: ID Kontrak tidak valid atau email kosong
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Kontrak sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });

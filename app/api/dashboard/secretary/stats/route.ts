@@ -4,6 +4,26 @@ import { headers } from 'next/headers';
 import { getEffectiveRoleId } from '@/lib/rbac';
 import { getSecretaryDashboardStats } from '@/db/queries';
 
+/**
+ * @openapi
+ * /api/dashboard/secretary/stats:
+ *   get:
+ *     summary: Mendapatkan statistik dashboard Sekretaris
+ *     description: Mengambil data statistik untuk dashboard Sekretaris (misal total penduduk, keluarga, persetujuan tertunda). Dapat diakses oleh Admin, Ketua RT, dan Sekretaris (Role ID 1, 2, 3).
+ *     tags:
+ *       - Dashboard & Statistik
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan statistik sekretaris
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

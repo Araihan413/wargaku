@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   QrCode,
@@ -16,6 +16,7 @@ import { LiveCameraScanner } from "./_components/LiveCameraScanner";
 import { ScanResultCard } from "./_components/ScanResultCard";
 import { DwellingNotFoundState } from "./_components/DwellingNotFoundState";
 import { authClient } from "@/lib/auth-client";
+import { useRoleStore } from "@/lib/store/use-role-store";
 
 function PublicScanQrContent() {
   const searchParams = useSearchParams();
@@ -24,6 +25,7 @@ function PublicScanQrContent() {
   const initialToken = searchParams.get("token") || searchParams.get("code") || "";
 
   const { data: session, isPending: isSessionPending } = authClient.useSession();
+  const { activeRoleId } = useRoleStore();
 
   const [activeTab, setActiveTab] = useState<"kamera" | "manual">("kamera");
   const [inputToken, setInputToken] = useState(initialToken);
@@ -31,20 +33,25 @@ function PublicScanQrContent() {
   const [scanResult, setScanResult] = useState<PublicScanResultData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Token yang sedang diproses (ref untuk hindari race condition)
+  const activeTokenRef = useRef<string>(initialToken);
+
   // State untuk post-scan (ownership check + detail data)
   const [isCheckingOwnership, setIsCheckingOwnership] = useState(false);
-  const [scanMode, setScanMode] = useState<"publik" | "warga-login">("publik");
+  const [scanMode, setScanMode] = useState<"publik" | "warga-login" | "officer" | "tamu-login">("publik");
   const [detailData, setDetailData] = useState<DetailedScanResultData | null>(null);
 
   const executeFetch = useCallback((query: string) => {
     if (!query.trim()) return;
+    const trimmed = query.trim();
+    activeTokenRef.current = trimmed; // Simpan token yang aktif sekarang
     setIsSearching(true);
     setErrorMessage(null);
     setScanResult(null);
     setDetailData(null);
     setScanMode("publik");
 
-    fetch(`/api/public/scan?token=${encodeURIComponent(query.trim())}`)
+    fetch(`/api/public/scan?token=${encodeURIComponent(trimmed)}`)
       .then(async (res) => {
         if (res.ok) {
           const json = await res.json();
@@ -70,6 +77,7 @@ function PublicScanQrContent() {
     if (!token) return;
 
     let isCancelled = false;
+    activeTokenRef.current = token;
 
     async function doInitialFetch() {
       setIsSearching(true);
@@ -103,47 +111,64 @@ function PublicScanQrContent() {
   }, [initialToken]);
 
   // Post-scan logic: Cek session & ownership setelah scanResult berhasil dimuat
-  const activeToken = inputToken || initialToken;
-
   useEffect(() => {
     if (!scanResult || isSessionPending || !session?.user) return;
 
     let isCancelled = false;
+    const tokenToCheck = activeTokenRef.current; // Gunakan ref, bukan variabel render
 
     async function checkOwnershipAndDetail() {
       setIsCheckingOwnership(true);
       try {
+        // Kirim activeRoleId ke API agar bisa menentukan mode officer vs tamu
+        const roleParam = activeRoleId !== null ? `&roleId=${activeRoleId}` : "";
         const ownerRes = await fetch(
-          `/api/public/scan/ownership?token=${encodeURIComponent(activeToken)}`
+          `/api/public/scan/ownership?token=${encodeURIComponent(tokenToCheck)}${roleParam}`
         );
         if (isCancelled) return;
 
         if (!ownerRes.ok) {
-          setScanMode("warga-login");
+          setScanMode("tamu-login");
           return;
         }
 
         const ownerData = await ownerRes.json();
         const { ownershipStatus, redirectTarget } = ownerData;
 
-        if (ownershipStatus !== "non-owner" && redirectTarget) {
-          toast.success(
-            ownershipStatus === "warga-permanen"
-              ? "Selamat datang! Mengarahkan ke dashboard Anda..."
-              : ownershipStatus === "koordinator-kos"
-              ? "Properti kos Anda ditemukan! Mengarahkan ke kelola kamar..."
-              : "Properti homestay Anda ditemukan! Mengarahkan ke kelola properti...",
-            { duration: 2000 }
-          );
+        // Status yang langsung redirect
+        const redirectStatuses = [
+          "pemilik-permanen",
+          "pemilik-kos",
+          "kepala-keluarga-permanen",
+          "kepala-keluarga-kos",
+          "koordinator-kos",
+        ];
+
+        if (redirectStatuses.includes(ownershipStatus) && redirectTarget) {
+          const statusMessages: Record<string, string> = {
+            "pemilik-permanen": "Selamat datang! Mengarahkan ke dashboard Anda...",
+            "pemilik-kos": "Properti Anda ditemukan! Mengarahkan ke kelola properti...",
+            "kepala-keluarga-permanen": "Rumah Anda ditemukan! Mengarahkan ke data keluarga...",
+            "kepala-keluarga-kos": "Lokasi kos Anda ditemukan! Mengarahkan ke data keluarga...",
+            "koordinator-kos": "Properti kos Anda ditemukan! Mengarahkan ke kelola kamar...",
+          };
+          toast.success(statusMessages[ownershipStatus] || "Mengarahkan...", { duration: 2000 });
           setTimeout(() => {
             router.push(redirectTarget);
           }, 800);
           return;
         }
 
-        setScanMode("warga-login");
+        // Mode officer: tampilkan kartu publik dengan banner khusus
+        if (ownershipStatus === "officer") {
+          setScanMode("officer");
+          return;
+        }
+
+        // Tamu login: ambil data detail (agregat)
+        setScanMode("tamu-login");
         const detailRes = await fetch(
-          `/api/public/scan/detail?token=${encodeURIComponent(activeToken)}`
+          `/api/public/scan/detail?token=${encodeURIComponent(tokenToCheck)}`
         );
         if (isCancelled) return;
 
@@ -153,7 +178,7 @@ function PublicScanQrContent() {
         }
       } catch (error) {
         console.error("Error during post-scan ownership check:", error);
-        if (!isCancelled) setScanMode("warga-login");
+        if (!isCancelled) setScanMode("tamu-login");
       } finally {
         if (!isCancelled) setIsCheckingOwnership(false);
       }
@@ -164,7 +189,7 @@ function PublicScanQrContent() {
     return () => {
       isCancelled = true;
     };
-  }, [scanResult, session, isSessionPending, activeToken, router]);
+  }, [scanResult, session, isSessionPending, activeRoleId, router]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,6 +312,21 @@ function PublicScanQrContent() {
           />
         )}
 
+        {/* Loading state saat session baru dimuat setelah scan berhasil */}
+        {scanResult && !isSearching && isSessionPending && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex items-center gap-4">
+            <div className="p-3 rounded-full bg-blue-50">
+              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">Memverifikasi akses...</p>
+              <p className="text-xs text-slate-500 font-medium">
+                Mengecek apakah hunian ini terhubung dengan akun Anda.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Ownership check loading overlay */}
         {isCheckingOwnership && (
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex items-center gap-4">
@@ -303,13 +343,19 @@ function PublicScanQrContent() {
         )}
 
         {/* RESULT PROFILE CARD COMPONENT */}
-        {scanResult && !isCheckingOwnership && scanMode === "publik" && (
+        {scanResult && !isCheckingOwnership && !isSessionPending && scanMode === "publik" && (
           <ScanResultCard
             mode="publik"
             scanResult={scanResult}
           />
         )}
-        {scanResult && !isCheckingOwnership && scanMode === "warga-login" && (
+        {scanResult && !isCheckingOwnership && !isSessionPending && scanMode === "officer" && (
+          <ScanResultCard
+            mode="officer"
+            scanResult={scanResult}
+          />
+        )}
+        {scanResult && !isCheckingOwnership && !isSessionPending && scanMode === "tamu-login" && (
           <ScanResultCard
             mode="warga-login"
             scanResult={scanResult}
@@ -327,6 +373,7 @@ function PublicScanQrContent() {
               occupiedRooms: scanResult.occupiedRooms,
               availableRooms: scanResult.availableRooms,
               activeResidents: [],
+              activeKkCount: 0,
               rtName: scanResult.rtName,
               rwName: scanResult.rwName,
               villageName: scanResult.villageName,
@@ -339,11 +386,12 @@ function PublicScanQrContent() {
   );
 }
 
+
 export default function PublicScanQrPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex min-h-100 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       }

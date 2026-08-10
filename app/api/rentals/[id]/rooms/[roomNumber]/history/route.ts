@@ -3,6 +3,37 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getRoomContractHistory } from '@/db/queries/property/tenant.queries';
 
+/**
+ * @openapi
+ * /api/rentals/{id}/rooms/{roomNumber}/history:
+ *   get:
+ *     summary: Mendapatkan riwayat penghuni kamar
+ *     description: Mengambil data riwayat penyewa (kontrak sewa) untuk nomor kamar tertentu pada properti Kos.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: roomNumber
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan riwayat kamar
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string; roomNumber: string }> }

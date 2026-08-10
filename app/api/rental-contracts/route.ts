@@ -14,6 +14,44 @@ import { createRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 import { notifyRoles } from '@/lib/notifications';
 
+/**
+ * @openapi
+ * /api/rental-contracts:
+ *   get:
+ *     summary: Mendapatkan daftar kontrak sewa (penghuni sewa)
+ *     description: Mengambil daftar penghuni (tenant contracts) berdasarkan properti sewa. Membutuhkan izin view-residents atau menjadi Koordinator/Pemilik properti tersebut.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: rentalPropertyId
+ *         schema:
+ *           type: integer
+ *         description: ID Properti Sewa
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar penghuni sewa
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses ke data penghuni properti ini
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -66,6 +104,64 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/rental-contracts:
+ *   post:
+ *     summary: Mendaftarkan penghuni (kontrak sewa) baru
+ *     description: Menambahkan penghuni baru ke dalam properti sewa. Jika tipe sewa adalah keluarga, maka akan otomatis membuat akun user dan keluarga baru.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rentalPropertyId
+ *               - tenantType
+ *               - name
+ *               - nik
+ *               - checkInDate
+ *             properties:
+ *               rentalPropertyId:
+ *                 type: integer
+ *               roomNumber:
+ *                 type: string
+ *               tenantType:
+ *                 type: string
+ *                 enum: [individual, keluarga, family]
+ *               name:
+ *                 type: string
+ *               nik:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 description: Wajib untuk tipe sewa keluarga
+ *               ktpFile:
+ *                 type: string
+ *               checkInDate:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       201:
+ *         description: Penghuni sewa berhasil didaftarkan
+ *       400:
+ *         description: Validasi gagal atau email kepala keluarga tidak diisi
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses untuk menambah penghuni di properti ini
+ *       404:
+ *         description: Properti sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -149,6 +245,37 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/rental-contracts:
+ *   delete:
+ *     summary: Mengakhiri kontrak sewa penghuni (Check-Out)
+ *     description: Mengakhiri masa sewa penghuni pada properti. Jika tipe keluarga, status rumah akan dikembalikan menjadi kosong.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID Kontrak Sewa (Tenant Contract ID)
+ *     responses:
+ *       200:
+ *         description: Kontrak sewa berhasil diakhiri
+ *       400:
+ *         description: ID Kontrak wajib diisi
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin untuk mengakhiri kontrak sewa ini
+ *       404:
+ *         description: Kontrak sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(request: Request) {
   try {
     const session = await auth.api.getSession({

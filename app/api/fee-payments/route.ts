@@ -4,6 +4,47 @@ import { headers } from 'next/headers';
 import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { listPayments, recordPayment } from '@/db/queries/finance/fee.queries';
 
+/**
+ * @openapi
+ * /api/fee-payments:
+ *   get:
+ *     summary: Mendapatkan daftar tagihan pembayaran iuran
+ *     description: Mengambil daftar tagihan berdasarkan ID aturan iuran (ruleId), periode, dan query pencarian. Membutuhkan hak akses manage-iuran atau view-arrears.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID aturan iuran
+ *       - in: query
+ *         name: period
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Periode tagihan (contoh 2026-08)
+ *       - in: query
+ *         name: query
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Pencarian berdasarkan nama KK
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar tagihan
+ *       400:
+ *         description: Parameter ruleId tidak valid atau tidak ada
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -32,6 +73,45 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/fee-payments:
+ *   post:
+ *     summary: Mencatat atau memperbarui status pembayaran iuran
+ *     description: Mengubah status pembayaran (misal dari unpaid menjadi paid) dan mencatat user pengurus yang merekam pembayaran. Membutuhkan hak akses manage-iuran.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentId
+ *               - status
+ *             properties:
+ *               paymentId:
+ *                 type: integer
+ *                 description: ID record pembayaran
+ *               status:
+ *                 type: string
+ *                 enum: [unpaid, partially_paid, paid]
+ *                 description: Status pembayaran
+ *     responses:
+ *       200:
+ *         description: Pembayaran iuran berhasil diperbarui
+ *       400:
+ *         description: Data input tidak valid (paymentId atau status kosong)
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });

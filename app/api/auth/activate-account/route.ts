@@ -15,8 +15,27 @@ import { hashPassword } from "better-auth/crypto";
 import { randomUUID } from "crypto";
 
 /**
- * GET /api/auth/activate-account?token=...
- * Validasi token aktivasi dan kembalikan ringkasan data penyewa.
+ * @openapi
+ * /api/auth/activate-account:
+ *   get:
+ *     summary: Validasi token aktivasi akun penyewa
+ *     description: Memvalidasi token aktivasi akun yang dikirimkan via email untuk penyewa kos dan mengembalikan ringkasan data penyewa.
+ *     tags:
+ *       - Autentikasi
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Token aktivasi
+ *     responses:
+ *       200:
+ *         description: Token valid dan mengembalikan data penyewa
+ *       400:
+ *         description: Token tidak ditemukan, tidak valid, atau kedaluwarsa
+ *       500:
+ *         description: Kesalahan server internal
  */
 export async function GET(request: Request) {
   try {
@@ -93,11 +112,46 @@ export async function GET(request: Request) {
 }
 
 /**
- * POST /api/auth/activate-account
- * Eksekusi aktivasi akun mandiri oleh penyewa/kepala keluarga.
- *
- * Menggunakan DB UNIQUE Constraint sebagai satu-satunya proteksi duplikasi KK & NIK.
- * Jika ada duplikat → MySQL ER_DUP_ENTRY → FULL ROLLBACK otomatis → Pesan error ramah.
+ * @openapi
+ * /api/auth/activate-account:
+ *   post:
+ *     summary: Eksekusi aktivasi akun mandiri (Penyewa)
+ *     description: Mengaktifkan akun penyewa/kepala keluarga menggunakan token valid dan membuat data user, role, account, family (KK status draft), dan family_member.
+ *     tags:
+ *       - Autentikasi
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - familyNumber
+ *               - password
+ *             properties:
+ *               token:
+ *                 type: string
+ *               familyNumber:
+ *                 type: string
+ *                 description: 16 digit angka Nomor KK
+ *               kkFile:
+ *                 type: string
+ *                 description: URL file KK (opsional)
+ *               password:
+ *                 type: string
+ *                 description: Password akun (minimal 8 karakter)
+ *     responses:
+ *       200:
+ *         description: Akun dan data keluarga berhasil diaktifkan
+ *       400:
+ *         description: Input tidak valid, token kedaluwarsa, atau kontrak sewa tidak aktif
+ *       404:
+ *         description: Data kontrak sewa tidak ditemukan
+ *       409:
+ *         description: Email, NIK, atau Nomor KK sudah terdaftar (Konflik duplikasi data)
+ *       500:
+ *         description: Gagal mengaktifkan akun (Kesalahan server)
  */
 export async function POST(request: Request) {
   try {

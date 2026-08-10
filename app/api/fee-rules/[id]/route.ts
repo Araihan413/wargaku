@@ -11,6 +11,53 @@ const updateFeeRuleSchema = z.object({
   isMandatory: z.boolean().default(true),
 });
 
+/**
+ * @openapi
+ * /api/fee-rules/{id}:
+ *   put:
+ *     summary: Memperbarui aturan iuran
+ *     description: Memperbarui nama atau nominal dari aturan iuran (contoh Uang Kebersihan). Membutuhkan izin manage-iuran.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID aturan iuran
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - amount
+ *             properties:
+ *               name:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               isMandatory:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Aturan iuran berhasil diperbarui
+ *       400:
+ *         description: Data input tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin untuk mengedit
+ *       404:
+ *         description: Aturan iuran tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -48,6 +95,37 @@ export async function PUT(
   }
 }
 
+/**
+ * @openapi
+ * /api/fee-rules/{id}:
+ *   delete:
+ *     summary: Menghapus atau menonaktifkan aturan iuran
+ *     description: Menghapus aturan iuran jika belum pernah dibayarkan. Jika sudah ada history pembayaran, aturan akan dinonaktifkan (soft delete).
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID aturan iuran
+ *     responses:
+ *       200:
+ *         description: Aturan iuran berhasil dihapus atau dinonaktifkan
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Aturan iuran tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

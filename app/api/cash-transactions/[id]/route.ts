@@ -14,6 +14,33 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+/**
+ * @openapi
+ * /api/cash-transactions/{id}:
+ *   get:
+ *     summary: Mendapatkan detail transaksi kas RT berdasarkan ID
+ *     description: Mengambil data detail transaksi kas. Bisa diakses oleh pengguna yang login.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID transaksi kas
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail transaksi
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Transaksi tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request, { params }: RouteParams) {
   try {
     const session = await auth.api.getSession({
@@ -39,6 +66,55 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 }
 
+/**
+ * @openapi
+ * /api/cash-transactions/{id}:
+ *   put:
+ *     summary: Memperbarui data transaksi kas RT
+ *     description: Mengubah data transaksi kas. Membutuhkan hak akses manage-income (jika transaksi income) atau manage-expense (jika transaksi expense).
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID transaksi kas
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *               transactionDate:
+ *                 type: string
+ *                 format: date
+ *               category:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               receiptFile:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Transaksi berhasil diperbarui
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Transaksi tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
     const session = await auth.api.getSession({
@@ -84,6 +160,35 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
+/**
+ * @openapi
+ * /api/cash-transactions/{id}:
+ *   delete:
+ *     summary: Menghapus data transaksi kas RT
+ *     description: Menghapus transaksi dari buku kas. Membutuhkan hak akses manage-income atau manage-expense sesuai jenis transaksinya.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID transaksi kas
+ *     responses:
+ *       200:
+ *         description: Transaksi berhasil dihapus
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Transaksi tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const session = await auth.api.getSession({

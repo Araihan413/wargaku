@@ -4,12 +4,59 @@ import { headers } from "next/headers";
 import { getDetailedScanDwelling } from "@/db/queries/dashboard/public-portal.queries";
 
 /**
- * GET /api/public/scan/detail?token=xxx
- *
- * Mengambil data detail hunian untuk user yang login namun bukan pemilik/koordinator.
- * Data ini lebih lengkap dari mode publik — menampilkan daftar penghuni aktif.
- *
- * Auth required: harus ada session aktif.
+ * @openapi
+ * /api/public/scan/detail:
+ *   get:
+ *     summary: Mendapatkan detail data hunian (Memerlukan Login)
+ *     description: Mengambil data detail hunian untuk pengguna yang sedang login (sebagai tamu, bukan pemilik). Menampilkan data informasi tambahan seperti agregat jumlah Kepala Keluarga aktif atau jumlah ketersediaan kamar, tanpa menampilkan nama individu.
+ *     tags:
+ *       - Publik
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Token QR unik atau nomor rumah
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail data hunian
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     blockNumber:
+ *                       type: string
+ *                     houseNumber:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     ownerName:
+ *                       type: string
+ *                     activeKkCount:
+ *                       type: integer
+ *                       description: Jumlah agregat Kepala Keluarga yang aktif di hunian ini
+ *                     availableRooms:
+ *                       type: integer
+ *                       description: Jumlah kamar kos/homestay yang masih kosong
+ *       400:
+ *         description: Token tidak diberikan
+ *       401:
+ *         description: Pengguna belum login (Tidak ada sesi aktif)
+ *       404:
+ *         description: Hunian tidak ditemukan
+ *       500:
+ *         description: Kesalahan internal server
  */
 export async function GET(req: Request) {
   try {

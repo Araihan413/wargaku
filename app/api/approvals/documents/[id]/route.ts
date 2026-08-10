@@ -8,6 +8,57 @@ import { createNotification } from "@/db/queries/system/notification.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
 
+/**
+ * @openapi
+ * /api/approvals/documents/{id}:
+ *   patch:
+ *     summary: Memproses verifikasi dokumen kependudukan
+ *     description: Memproses persetujuan (approve) atau penolakan (reject) berkas Kartu Keluarga atau Bukti Domisili Sewa. Akan mengirimkan notifikasi kepada pemilik dokumen jika disetujui/ditolak. Membutuhkan izin verify-documents.
+ *     tags:
+ *       - Verifikasi & Persetujuan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID Kartu Keluarga (jika type=family) atau ID Tenant Contract (jika type=rental_resident)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - type
+ *               - action
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [family, rental_resident]
+ *                 description: Jenis dokumen yang diverifikasi
+ *               action:
+ *                 type: string
+ *                 enum: [approve, reject]
+ *               rejectReason:
+ *                 type: string
+ *                 description: Alasan penolakan (wajib jika action = reject)
+ *     responses:
+ *       200:
+ *         description: Dokumen berhasil diproses
+ *       400:
+ *         description: Parameter/Input tidak valid atau alasan penolakan kosong
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Data (KK/Penghuni Sewa) tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

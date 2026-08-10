@@ -12,6 +12,54 @@ import { getRentalPropertyById } from '@/db/queries/property/rental-property.que
 import { createRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/rental-residents:
+ *   get:
+ *     summary: Mendapatkan daftar semua penghuni kos/kontrakan
+ *     description: Mengambil data daftar penghuni (tenant contracts) secara global atau berdasarkan satu properti. Dapat difilter berdasarkan tipe penyewa (perorangan/keluarga).
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: rentalPropertyId
+ *         schema:
+ *           type: integer
+ *         description: (Opsional) Filter berdasarkan properti sewa tertentu
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Pencarian nama/NIK
+ *       - in: query
+ *         name: tenantType
+ *         schema:
+ *           type: string
+ *           enum: [perorangan, keluarga]
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar penghuni sewa
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -78,6 +126,63 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/rental-residents:
+ *   post:
+ *     summary: Mendaftarkan penghuni (kontrak sewa) baru
+ *     description: Mendaftarkan penghuni ke dalam properti kos/kontrakan. Hampir sama dengan POST /api/rental-contracts.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rentalPropertyId
+ *               - tenantType
+ *               - name
+ *               - nik
+ *               - checkInDate
+ *             properties:
+ *               rentalPropertyId:
+ *                 type: integer
+ *               roomNumber:
+ *                 type: string
+ *               tenantType:
+ *                 type: string
+ *                 enum: [individual, keluarga, family]
+ *               name:
+ *                 type: string
+ *               nik:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               ktpFile:
+ *                 type: string
+ *               checkInDate:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       201:
+ *         description: Penghuni sewa berhasil didaftarkan
+ *       400:
+ *         description: Validasi gagal atau email kepala keluarga tidak diisi
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Properti tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

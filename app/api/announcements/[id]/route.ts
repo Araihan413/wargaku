@@ -9,6 +9,31 @@ import {
 } from '@/db/queries/communication/announcement.queries';
 import { deleteNotificationsByRedirectLink } from '@/lib/notifications';
 
+/**
+ * @openapi
+ * /api/announcements/{id}:
+ *   get:
+ *     summary: Mendapatkan detail pengumuman
+ *     description: Mengambil data lengkap pengumuman beserta lampirannya berdasarkan ID.
+ *     tags:
+ *       - Pengumuman & Informasi
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pengumuman
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail pengumuman
+ *       400:
+ *         description: ID pengumuman tidak valid
+ *       404:
+ *         description: Pengumuman tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -37,6 +62,60 @@ export async function GET(
   }
 }
 
+/**
+ * @openapi
+ * /api/announcements/{id}:
+ *   patch:
+ *     summary: Memperbarui pengumuman
+ *     description: |
+ *       Memperbarui data pengumuman (judul, isi, lampiran, kategori, atau status pinned). 
+ *       Hanya dapat dilakukan oleh pengguna dengan hak akses manage-announcements.
+ *     tags:
+ *       - Pengumuman & Informasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pengumuman
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [umum, penting, mendesak]
+ *               attachments:
+ *                 type: string
+ *               isPinned:
+ *                 type: boolean
+ *               pinUntil:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Pengumuman berhasil diperbarui
+ *       400:
+ *         description: ID tidak valid, tidak ada perubahan data, atau batas pin terlampaui
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Pengumuman tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -93,6 +172,39 @@ export async function PATCH(
   }
 }
 
+/**
+ * @openapi
+ * /api/announcements/{id}:
+ *   delete:
+ *     summary: Menghapus pengumuman
+ *     description: |
+ *       Menghapus pengumuman dari database dan secara otomatis membersihkan notifikasi terkait 
+ *       yang pernah dikirimkan ke warga. Memerlukan hak akses manage-announcements.
+ *     tags:
+ *       - Pengumuman & Informasi
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pengumuman
+ *     responses:
+ *       200:
+ *         description: Pengumuman berhasil dihapus
+ *       400:
+ *         description: ID pengumuman tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Pengumuman tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

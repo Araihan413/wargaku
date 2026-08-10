@@ -116,6 +116,7 @@ export interface DetailedScanResultData {
   occupiedRooms?: number | null;
   availableRooms?: number | null;
   activeResidents?: ActiveResidentEntry[];
+  activeKkCount?: number;
   rtName?: string | null;
   rwName?: string | null;
   villageName?: string | null;
@@ -752,35 +753,307 @@ export async function validateDwellingQrToken(qrToken: string) {
 }
 
 export async function getPublicScanDwelling(tokenStr: string) {
-  return resolveDwellingByTokenOrNumber(tokenStr);
+  const dwelling = await resolveDwellingByTokenOrNumber(tokenStr);
+  if (!dwelling) return null;
+
+  // Ambil data RT/RW dari systemSettings (selalu id = 1)
+  const [settings] = await db
+    .select({
+      rtName: schema.systemSettings.rtName,
+      rwName: schema.systemSettings.rwName,
+      villageName: schema.systemSettings.villageName,
+    })
+    .from(schema.systemSettings)
+    .where(eq(schema.systemSettings.id, 1))
+    .limit(1);
+
+  let ownerName: string | null = null;
+  let ownerPhone: string | null = null;
+  let propertyName: string | null = null;
+  let totalRooms: number | null = null;
+  let occupiedRooms: number | null = null;
+  let availableRooms: number | null = null;
+
+  if (dwelling.type === 'permanen') {
+    // Ambil nama pemilik dari tabel users via ownerUserId
+    if (dwelling.ownerUserId) {
+      const [owner] = await db
+        .select({ name: schema.users.name, phone: schema.users.phone })
+        .from(schema.users)
+        .where(eq(schema.users.id, dwelling.ownerUserId))
+        .limit(1);
+      ownerName = owner?.name ?? null;
+      ownerPhone = owner?.phone ?? null;
+    }
+  } else if (dwelling.type === 'kos' || dwelling.type === 'homestay') {
+    // Ambil data properti komersial dari rentalProperties
+    const [prop] = await db
+      .select({
+        name: schema.rentalProperties.name,
+        contactPerson: schema.rentalProperties.contactPerson,
+        phone: schema.rentalProperties.phone,
+        totalRooms: schema.rentalProperties.totalRooms,
+      })
+      .from(schema.rentalProperties)
+      .where(and(
+        eq(schema.rentalProperties.dwellingId, dwelling.id),
+        eq(schema.rentalProperties.isActive, true)
+      ))
+      .limit(1);
+
+    if (prop) {
+      propertyName = prop.name;
+      ownerName = prop.contactPerson ?? null;
+      ownerPhone = prop.phone ?? null;
+      totalRooms = prop.totalRooms;
+
+      // Hitung kamar yang sedang terisi (kontrak aktif)
+      const [occupiedRes] = await db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(schema.rentalContracts)
+        .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
+        .where(and(
+          eq(schema.rentalProperties.dwellingId, dwelling.id),
+          eq(schema.rentalContracts.isActive, true)
+        ));
+      occupiedRooms = occupiedRes?.count ?? 0;
+      availableRooms = Math.max(0, (totalRooms ?? 0) - (occupiedRooms ?? 0));
+    }
+  }
+
+  return {
+    id: dwelling.id,
+    blockNumber: dwelling.blockNumber,
+    houseNumber: dwelling.houseNumber,
+    type: dwelling.type,
+    latitude: dwelling.latitude ?? null,
+    longitude: dwelling.longitude ?? null,
+    ownerName,
+    ownerPhone,
+    propertyName,
+    totalRooms,
+    occupiedRooms,
+    availableRooms,
+    rtName: settings?.rtName ?? null,
+    rwName: settings?.rwName ?? null,
+    villageName: settings?.villageName ?? null,
+  };
 }
 
 export async function getDetailedScanDwelling(tokenStr: string | number) {
-  return resolveDwellingByTokenOrNumber(String(tokenStr));
+  const dwelling = await resolveDwellingByTokenOrNumber(String(tokenStr));
+  if (!dwelling) return null;
+
+  const [settings] = await db
+    .select({
+      rtName: schema.systemSettings.rtName,
+      rwName: schema.systemSettings.rwName,
+      villageName: schema.systemSettings.villageName,
+    })
+    .from(schema.systemSettings)
+    .where(eq(schema.systemSettings.id, 1))
+    .limit(1);
+
+  let ownerName: string | null = null;
+  let ownerPhone: string | null = null;
+  let propertyName: string | null = null;
+  let totalRooms: number | null = null;
+  let occupiedRooms: number | null = null;
+  let availableRooms: number | null = null;
+
+  // Hitung jumlah KK aktif yang menghuni (tanpa nama — privasi)
+  const [kkCountRes] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(schema.families)
+    .where(and(
+      eq(schema.families.dwellingId, dwelling.id),
+      eq(schema.families.isActive, true)
+    ));
+  const activeKkCount = kkCountRes?.count ?? 0;
+
+  if (dwelling.type === 'permanen') {
+    if (dwelling.ownerUserId) {
+      const [owner] = await db
+        .select({ name: schema.users.name, phone: schema.users.phone })
+        .from(schema.users)
+        .where(eq(schema.users.id, dwelling.ownerUserId))
+        .limit(1);
+      ownerName = owner?.name ?? null;
+      ownerPhone = owner?.phone ?? null;
+    }
+  } else if (dwelling.type === 'kos' || dwelling.type === 'homestay') {
+    const [prop] = await db
+      .select({
+        name: schema.rentalProperties.name,
+        contactPerson: schema.rentalProperties.contactPerson,
+        phone: schema.rentalProperties.phone,
+        totalRooms: schema.rentalProperties.totalRooms,
+      })
+      .from(schema.rentalProperties)
+      .where(and(
+        eq(schema.rentalProperties.dwellingId, dwelling.id),
+        eq(schema.rentalProperties.isActive, true)
+      ))
+      .limit(1);
+
+    if (prop) {
+      propertyName = prop.name;
+      ownerName = prop.contactPerson ?? null;
+      ownerPhone = prop.phone ?? null;
+      totalRooms = prop.totalRooms;
+
+      const [occupiedRes] = await db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(schema.rentalContracts)
+        .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
+        .where(and(
+          eq(schema.rentalProperties.dwellingId, dwelling.id),
+          eq(schema.rentalContracts.isActive, true)
+        ));
+      occupiedRooms = occupiedRes?.count ?? 0;
+      availableRooms = Math.max(0, (totalRooms ?? 0) - (occupiedRooms ?? 0));
+    }
+  }
+
+  return {
+    id: dwelling.id,
+    blockNumber: dwelling.blockNumber,
+    houseNumber: dwelling.houseNumber,
+    type: dwelling.type,
+    latitude: dwelling.latitude ?? null,
+    longitude: dwelling.longitude ?? null,
+    ownerName,
+    ownerPhone,
+    propertyName,
+    totalRooms,
+    occupiedRooms,
+    availableRooms,
+    // Data agregat — tanpa nama penghuni (privasi)
+    activeKkCount,
+    rtName: settings?.rtName ?? null,
+    rwName: settings?.rwName ?? null,
+    villageName: settings?.villageName ?? null,
+  };
 }
 
-export async function checkDwellingOwnership(tokenStr: string | number, userId: string) {
+export async function checkDwellingOwnership(
+  tokenStr: string | number,
+  userId: string,
+  activeRoleId?: number | null
+) {
   const dwelling = await resolveDwellingByTokenOrNumber(String(tokenStr));
   if (!dwelling) {
     return {
-      ownershipStatus: 'non-owner',
+      ownershipStatus: 'non-owner' as const,
       redirectTarget: null,
       propertyId: null,
       dwellingId: null,
     };
   }
 
+  // --- CEK 1: Pemilik Aset ---
   if (dwelling.ownerUserId === userId) {
+    if (dwelling.type === 'permanen') {
+      return {
+        ownershipStatus: 'pemilik-permanen' as const,
+        redirectTarget: '/dashboard',
+        dwellingId: dwelling.id,
+        propertyId: null,
+      };
+    } else {
+      // Cari propertyId untuk kos/homestay
+      const [prop] = await db
+        .select({ id: schema.rentalProperties.id })
+        .from(schema.rentalProperties)
+        .where(and(
+          eq(schema.rentalProperties.dwellingId, dwelling.id),
+          eq(schema.rentalProperties.isActive, true)
+        ))
+        .limit(1);
+      return {
+        ownershipStatus: 'pemilik-kos' as const,
+        redirectTarget: prop ? `/dashboard/my-properties/${prop.id}` : '/dashboard/my-properties',
+        dwellingId: dwelling.id,
+        propertyId: prop?.id ?? null,
+      };
+    }
+  }
+
+  // --- CEK 2: Kepala Keluarga Permanen (tinggal di hunian ini) ---
+  const [kkPermanen] = await db
+    .select({ id: schema.families.id })
+    .from(schema.families)
+    .where(and(
+      eq(schema.families.headUserId, userId),
+      eq(schema.families.dwellingId, dwelling.id),
+      eq(schema.families.isActive, true)
+    ))
+    .limit(1);
+  if (kkPermanen) {
     return {
-      ownershipStatus: dwelling.type === 'permanen' ? 'warga-permanen' : 'koordinator-kos',
-      redirectTarget: dwelling.type === 'permanen' ? '/dashboard' : '/dashboard/properties',
+      ownershipStatus: 'kepala-keluarga-permanen' as const,
+      redirectTarget: '/dashboard/family',
       dwellingId: dwelling.id,
+      propertyId: null,
     };
   }
 
+  // --- CEK 3: Kepala Keluarga yang NGEKOS di hunian ini ---
+  const [kkKos] = await db
+    .select({ familyId: schema.families.id })
+    .from(schema.families)
+    .innerJoin(schema.rentalContracts, eq(schema.rentalContracts.familyId, schema.families.id))
+    .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
+    .where(and(
+      eq(schema.families.headUserId, userId),
+      eq(schema.families.isActive, true),
+      eq(schema.rentalContracts.isActive, true),
+      eq(schema.rentalProperties.dwellingId, dwelling.id)
+    ))
+    .limit(1);
+  if (kkKos) {
+    return {
+      ownershipStatus: 'kepala-keluarga-kos' as const,
+      redirectTarget: '/dashboard/family',
+      dwellingId: dwelling.id,
+      propertyId: null,
+    };
+  }
+
+  // --- CEK 4: Koordinator Kos ---
+  const [koordinator] = await db
+    .select({ id: schema.rentalProperties.id })
+    .from(schema.rentalProperties)
+    .where(and(
+      eq(schema.rentalProperties.coordinatorUserId, userId),
+      eq(schema.rentalProperties.dwellingId, dwelling.id),
+      eq(schema.rentalProperties.isActive, true)
+    ))
+    .limit(1);
+  if (koordinator) {
+    return {
+      ownershipStatus: 'koordinator-kos' as const,
+      redirectTarget: `/dashboard/rentals/${koordinator.id}`,
+      dwellingId: dwelling.id,
+      propertyId: koordinator.id,
+    };
+  }
+
+  // --- TIDAK ADA KAITAN: Cek apakah sedang pakai mode officer ---
+  if (activeRoleId !== null && activeRoleId !== undefined && activeRoleId >= 1 && activeRoleId <= 4) {
+    return {
+      ownershipStatus: 'officer' as const,
+      redirectTarget: null,
+      dwellingId: dwelling.id,
+      propertyId: null,
+    };
+  }
+
+  // --- Fallback: Tamu Login ---
   return {
-    ownershipStatus: 'non-owner',
+    ownershipStatus: 'tamu-login' as const,
     redirectTarget: null,
     dwellingId: dwelling.id,
+    propertyId: null,
   };
 }

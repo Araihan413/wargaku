@@ -20,6 +20,69 @@ const updateDwellingSchema = z.object({
   ownerPhone: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
 });
 
+/**
+ * @openapi
+ * /api/dwellings/{id}:
+ *   put:
+ *     summary: Memperbarui data hunian
+ *     description: Mengubah informasi hunian yang sudah ada berdasarkan ID. Termasuk mengubah tipe hunian (dengan validasi).
+ *     tags:
+ *       - Hunian
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID hunian
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - blockNumber
+ *               - houseNumber
+ *               - type
+ *             properties:
+ *               blockNumber:
+ *                 type: string
+ *               houseNumber:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [permanen, kos, homestay]
+ *               isActive:
+ *                 type: boolean
+ *               notes:
+ *                 type: string
+ *               latitude:
+ *                 type: string
+ *               longitude:
+ *                 type: string
+ *               ownerUserId:
+ *                 type: string
+ *               ownerName:
+ *                 type: string
+ *               ownerPhone:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Data hunian berhasil diperbarui
+ *       400:
+ *         description: Validasi gagal atau ada penghuni aktif saat mengubah tipe
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Hunian tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -119,6 +182,37 @@ export async function PUT(
   }
 }
 
+/**
+ * @openapi
+ * /api/dwellings/{id}:
+ *   delete:
+ *     summary: Menonaktifkan hunian
+ *     description: Melakukan soft delete/menonaktifkan hunian. Tidak bisa dinonaktifkan jika masih ada KK atau penghuni sewa yang aktif.
+ *     tags:
+ *       - Hunian
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID hunian
+ *     responses:
+ *       200:
+ *         description: Hunian berhasil dinonaktifkan
+ *       400:
+ *         description: Gagal dinonaktifkan karena masih ada penghuni aktif
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Hunian tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

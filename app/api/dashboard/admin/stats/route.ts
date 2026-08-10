@@ -4,7 +4,26 @@ import { headers } from "next/headers";
 import { getEffectiveRoleId } from "@/lib/rbac";
 import { getSuperAdminDashboardStats } from "@/db/queries";
 
-// Route Handler untuk statistik dashboard Super Admin
+/**
+ * @openapi
+ * /api/dashboard/admin/stats:
+ *   get:
+ *     summary: Mendapatkan statistik dashboard Super Admin
+ *     description: Mengambil data ringkasan untuk dashboard Super Admin (total users, total RT, dll). Khusus untuk role Super Admin (ID 1).
+ *     tags:
+ *       - Dashboard & Statistik
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan statistik admin
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Akses khusus Super Admin
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

@@ -10,6 +10,36 @@ import {
 import { updateWargaSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/family-members/{id}:
+ *   get:
+ *     summary: Mendapatkan detail anggota keluarga
+ *     description: Mengambil data detail satu warga (anggota keluarga) berdasarkan ID. Memerlukan izin view-residents.
+ *     tags:
+ *       - Kependudukan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail warga
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Anggota keluarga tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -50,6 +80,72 @@ export async function GET(
 
 import { getFamilyById } from '@/db/queries/population/family.queries';
 
+/**
+ * @openapi
+ * /api/family-members/{id}:
+ *   put:
+ *     summary: Memperbarui data anggota keluarga
+ *     description: |
+ *       Mengubah data warga.
+ *       Jika Kartu Keluarga sedang dikunci (diverifikasi), warga hanya bisa mengubah data minor (pendidikan, pekerjaan, dll).
+ *       Admin/RT dengan izin manage-residents bisa mengubah semua data.
+ *     tags:
+ *       - Kependudukan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               nik:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *               relationship:
+ *                 type: string
+ *               birthPlace:
+ *                 type: string
+ *               birthDate:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               occupation:
+ *                 type: string
+ *               educationLevel:
+ *                 type: string
+ *               religion:
+ *                 type: string
+ *               ktpFile:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *               inactiveNote:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Data berhasil diperbarui
+ *       400:
+ *         description: Validasi gagal atau ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Anggota keluarga tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -133,6 +229,46 @@ export async function PUT(
   }
 }
 
+/**
+ * @openapi
+ * /api/family-members/{id}:
+ *   delete:
+ *     summary: Menghapus (Nonaktifkan) anggota keluarga
+ *     description: Mengubah status warga menjadi tidak aktif (isActive = false). Biasanya karena pindah, meninggal, dll.
+ *     tags:
+ *       - Kependudukan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               inactiveNote:
+ *                 type: string
+ *                 description: Catatan penonaktifan (misal "Pindah Domisili")
+ *     responses:
+ *       200:
+ *         description: Anggota keluarga berhasil dinonaktifkan
+ *       400:
+ *         description: ID tidak valid atau Kartu Keluarga sedang dikunci
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Anggota keluarga tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

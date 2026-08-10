@@ -304,6 +304,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Filter items matching the current active role and permission matrix
   const filteredItems = useMemo(() => {
+    if (activeRoleId === null) {
+      // Tampilkan hanya menu dasar (Dashboard) saat role belum terinisialisasi atau saat logout
+      return sidebarItems.filter(item => !item.permission && !item.requiresVerification);
+    }
+
     return sidebarItems
       .map((item) => {
         // Cek filter permission eksplisit jika ada
@@ -342,7 +347,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return item;
       })
       .filter((item): item is SidebarItem => item !== null);
-  }, [currentRoleId, userPermissions, hasFamily]);
+  }, [activeRoleId, currentRoleId, userPermissions, hasFamily]);
 
   const isActive = useCallback(
     (href?: string) => {

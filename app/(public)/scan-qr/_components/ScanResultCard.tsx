@@ -16,15 +16,22 @@ import {
   LayoutDashboard,
   ChevronRight,
   LogIn,
+  Shield,
 } from "lucide-react";
-import { PublicScanResultData, DetailedScanResultData, ActiveResidentEntry } from "@/db/queries/dashboard/public-portal.queries";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
+import { PublicScanResultData, DetailedScanResultData } from "@/db/queries/dashboard/public-portal.queries";
+
 
 // ─── Props ─────────────
 
 interface ScanResultCardPublicProps {
   mode: "publik";
+  scanResult: PublicScanResultData;
+  detailData?: never;
+  loggedInUserName?: never;
+}
+
+interface ScanResultCardOfficerProps {
+  mode: "officer";
   scanResult: PublicScanResultData;
   detailData?: never;
   loggedInUserName?: never;
@@ -37,7 +44,7 @@ interface ScanResultCardLoginProps {
   loggedInUserName?: string;
 }
 
-type ScanResultCardProps = ScanResultCardPublicProps | ScanResultCardLoginProps;
+type ScanResultCardProps = ScanResultCardPublicProps | ScanResultCardOfficerProps | ScanResultCardLoginProps;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -70,63 +77,9 @@ const getTypeBadge = (type: PublicScanResultData["type"]) => {
   }
 };
 
-function formatCheckIn(dateStr: string | Date | null) {
-  if (!dateStr) return "-";
-  try {
-    return format(new Date(dateStr), "MMM yyyy", { locale: localeId });
-  } catch {
-    return String(dateStr);
-  }
-}
 
-// ─── Sub-komponen: Daftar Penghuni Aktif (mode warga-login) ─────────────────
 
-function ActiveResidentsList({ residents }: { residents: ActiveResidentEntry[] }) {
-  if (residents.length === 0) {
-    return (
-      <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4 text-amber-700 text-xs font-semibold flex items-center gap-2">
-        <AlertCircle className="w-4 h-4 shrink-0" />
-        <span>Belum ada data penghuni aktif terdaftar.</span>
-      </div>
-    );
-  }
 
-  return (
-    <div className="space-y-2">
-      {residents.map((r, i) => (
-        <div
-          key={i}
-          className={`flex items-start gap-3 p-3.5 rounded-xl border text-sm ${
-            r.type === "keluarga"
-              ? "bg-blue-50/60 border-blue-200/80"
-              : "bg-emerald-50/60 border-emerald-200/80"
-          }`}
-        >
-          <div className={`p-1.5 rounded-lg ${r.type === "keluarga" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}>
-            {r.type === "keluarga" ? <Users className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-900 text-xs leading-snug truncate">{r.name}</p>
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-              {r.type === "keluarga" && r.memberCount !== undefined && (
-                <span className="text-[11px] text-blue-700 font-semibold">{r.memberCount} anggota keluarga</span>
-              )}
-              {r.type === "keluarga" && r.unitNumber && (
-                <span className="text-[11px] text-slate-500 font-medium">Unit {r.unitNumber}</span>
-              )}
-              {r.type === "penyewa" && r.roomNumber && (
-                <span className="text-[11px] text-emerald-700 font-semibold">Kamar {r.roomNumber}</span>
-              )}
-              {r.checkInDate && (
-                <span className="text-[11px] text-slate-400 font-medium">Sejak {formatCheckIn(r.checkInDate)}</span>
-              )}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
@@ -142,6 +95,16 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({ mode, scanResult
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 animate-in fade-in duration-300">
+
+      {/* Banner untuk mode officer */}
+      {mode === "officer" && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <Shield className="w-4 h-4 text-amber-600 shrink-0" />
+          <p className="text-xs font-semibold text-amber-800">
+            Anda sedang dalam mode kedinasan. Halaman ini menampilkan informasi publik.
+          </p>
+        </div>
+      )}
 
       {/* Banner untuk mode warga-login */}
       {mode === "warga-login" && (
@@ -291,14 +254,32 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({ mode, scanResult
         )}
       </div>
 
-      {/* DAFTAR PENGHUNI AKTIF (hanya mode warga-login) */}
+      {/* INFO AGREGAT PENGHUNI (hanya mode warga-login) — tanpa nama, hanya jumlah */}
       {mode === "warga-login" && detailData && (
         <div className="space-y-3 pt-2 border-t border-slate-100">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-slate-600" />
-            <span className="text-xs font-bold text-slate-700">Daftar Penghuni Aktif</span>
+            <span className="text-xs font-bold text-slate-700">Informasi Penghuni</span>
           </div>
-          <ActiveResidentsList residents={detailData.activeResidents || []} />
+          {scanResult.type === "permanen" ? (
+            <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+              <Users className="w-4 h-4 text-blue-600 shrink-0" />
+              <p className="text-xs font-semibold text-blue-800">
+                {detailData.activeKkCount && detailData.activeKkCount > 0
+                  ? `${detailData.activeKkCount} Kepala Keluarga aktif terdaftar di hunian ini.`
+                  : "Belum ada data penghuni aktif terdaftar."}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+              <BedDouble className="w-4 h-4 text-emerald-600 shrink-0" />
+              <p className="text-xs font-semibold text-emerald-800">
+                {detailData.availableRooms !== null
+                  ? `${detailData.availableRooms} kamar tersedia dari total ${detailData.totalRooms ?? 0} kamar.`
+                  : "Informasi ketersediaan kamar tidak tersedia."}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

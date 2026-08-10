@@ -4,6 +4,37 @@ import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 import { getDwellingDetailById } from '@/db/queries/population/dwelling.queries';
 
+/**
+ * @openapi
+ * /api/dwellings/{id}/detail:
+ *   get:
+ *     summary: Mendapatkan detail lengkap hunian
+ *     description: Mengambil data detail suatu hunian termasuk relasi Kepala Keluarga (jika permanen) atau properti sewa (jika kos/homestay). Membutuhkan akses admin/pengurus.
+ *     tags:
+ *       - Hunian
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID hunian
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail hunian
+ *       400:
+ *         description: ID Hunian tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Hunian tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

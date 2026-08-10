@@ -4,6 +4,37 @@ import { headers } from 'next/headers';
 import { submitFamily, getFamilyById } from '@/db/queries/population/family.queries';
 import { notifyRoles } from '@/lib/notifications';
 
+/**
+ * @openapi
+ * /api/families/{id}/submit:
+ *   post:
+ *     summary: Mengajukan verifikasi Kartu Keluarga ke RT
+ *     description: Mengirimkan data Kartu Keluarga (yang berstatus draft) untuk diverifikasi oleh Ketua RT. Membutuhkan file scan KK yang sudah diunggah.
+ *     tags:
+ *       - Kepala Keluarga
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID Kartu Keluarga
+ *     responses:
+ *       200:
+ *         description: Berkas Kartu Keluarga berhasil dikirim ke Ketua RT
+ *       400:
+ *         description: Harap unggah berkas Scan KK terlebih dahulu atau status tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Hanya Kepala Keluarga yang berhak mengirimkan
+ *       404:
+ *         description: Kartu Keluarga tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

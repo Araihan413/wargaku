@@ -11,6 +11,34 @@ import { getRentalPropertyById } from '@/db/queries/property/rental-property.que
 import { updateRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
+/**
+ * @openapi
+ * /api/rental-residents/{id}:
+ *   get:
+ *     summary: Mendapatkan detail penghuni (kontrak sewa)
+ *     description: Mengambil data detail satu kontrak penghuni sewa berdasarkan ID.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail penghuni
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Kontrak sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -43,6 +71,61 @@ export async function GET(
   }
 }
 
+/**
+ * @openapi
+ * /api/rental-residents/{id}:
+ *   put:
+ *     summary: Memperbarui data penghuni sewa
+ *     description: Mengubah data penghuni sewa. Jika status sudah terverifikasi, hanya nomor kamar, nomor HP, dan catatan yang dapat diubah.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roomNumber:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *               verificationStatus:
+ *                 type: string
+ *                 enum: [pending, verified, rejected]
+ *               verificationNote:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               nik:
+ *                 type: string
+ *               ktpFile:
+ *                 type: string
+ *               checkInDate:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Data penyewa berhasil diperbarui
+ *       400:
+ *         description: Validasi gagal
+ *       401:
+ *         description: Belum terautentikasi
+ *       404:
+ *         description: Kontrak sewa tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -98,6 +181,36 @@ export async function PUT(
   }
 }
 
+/**
+ * @openapi
+ * /api/rental-residents/{id}:
+ *   delete:
+ *     summary: Menghapus permanen kontrak penyewa
+ *     description: Menghapus data kontrak penghuni dari sistem secara permanen. Hanya bisa dilakukan oleh Admin/RT atau Koordinator properti tersebut.
+ *     tags:
+ *       - Properti & Sewa
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Kontrak penyewa berhasil dihapus
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Kontrak sewa atau properti kos tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

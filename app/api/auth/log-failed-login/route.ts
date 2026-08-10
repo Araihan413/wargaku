@@ -2,6 +2,37 @@ import { NextResponse } from "next/server";
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from "@/lib/audit-logger";
 
+/**
+ * @openapi
+ * /api/auth/log-failed-login:
+ *   post:
+ *     summary: Mencatat log percobaan login yang gagal
+ *     description: Dipanggil dari sisi klien saat login (lewat better-auth) gagal untuk mencatat ke dalam audit log (mencegah brute force atau memantau percobaan masuk).
+ *     tags:
+ *       - Autentikasi
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: Email atau NIK yang mencoba login
+ *               reason:
+ *                 type: string
+ *                 description: Alasan kegagalan (contoh "Password Salah")
+ *     responses:
+ *       200:
+ *         description: Berhasil mencatat log
+ *       400:
+ *         description: Email/NIK wajib diisi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

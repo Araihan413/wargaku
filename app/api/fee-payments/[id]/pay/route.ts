@@ -12,6 +12,60 @@ const payIuranSchema = z.object({
   paymentDate: z.string().min(1, 'Tanggal pembayaran wajib diisi'),
 });
 
+/**
+ * @openapi
+ * /api/fee-payments/{id}/pay:
+ *   post:
+ *     summary: Mencatat pembayaran iuran secara spesifik (dan sinkronisasi kas)
+ *     description: |
+ *       Mencatat pembayaran tagihan iuran berdasarkan nominal (bisa lunas atau sebagian).
+ *       Akan otomatis menambahkan entri ke tabel kas RT (Cash Transactions) jika pembayaran berhasil.
+ *       Membutuhkan izin manage-iuran.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID tagihan iuran
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amountPaid
+ *               - paymentMethod
+ *               - paymentDate
+ *             properties:
+ *               amountPaid:
+ *                 type: number
+ *                 description: Nominal yang dibayarkan
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [cash, transfer]
+ *               paymentDate:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Pembayaran berhasil dicatat
+ *       400:
+ *         description: Data tidak valid, tagihan sudah lunas, atau nominal melebihi sisa tagihan
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Tagihan tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

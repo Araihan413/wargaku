@@ -11,6 +11,64 @@ import {
 } from '@/db/queries';
 import { z } from 'zod';
 
+/**
+ * @openapi
+ * /api/cash-transactions:
+ *   get:
+ *     summary: Mendapatkan daftar transaksi kas RT
+ *     description: Mengambil daftar pemasukan (income) atau pengeluaran (expense) kas RT dengan dukungan pagination dan filter.
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [income, expense]
+ *           default: income
+ *         description: Tipe transaksi
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter kategori transaksi
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Tanggal awal filter
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Tanggal akhir filter
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Kata kunci pencarian deskripsi transaksi
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar transaksi kas
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -48,6 +106,54 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/cash-transactions:
+ *   post:
+ *     summary: Mencatat transaksi kas RT (Pemasukan / Pengeluaran)
+ *     description: Mencatat transaksi baru ke dalam buku kas RT. Membutuhkan hak akses manage-income (untuk pemasukan) atau manage-expense (untuk pengeluaran).
+ *     tags:
+ *       - Iuran & Keuangan
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - type
+ *               - amount
+ *               - transactionDate
+ *               - category
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [income, expense]
+ *               amount:
+ *                 type: number
+ *               transactionDate:
+ *                 type: string
+ *                 format: date
+ *               category:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               receiptFile:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Transaksi kas berhasil ditambahkan
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses untuk tipe transaksi ini
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
