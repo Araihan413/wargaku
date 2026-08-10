@@ -4,6 +4,45 @@ import { headers } from "next/headers";
 import { getEffectiveRoleId } from "@/lib/rbac";
 import { getAuditLogs } from "@/db/queries/system/audit-log.queries";
 
+/**
+ * @openapi
+ * /api/audit-logs/export:
+ *   get:
+ *     summary: Mengekspor audit log ke format CSV
+ *     description: Mengunduh data audit log dalam format CSV. Hanya bisa diakses oleh Super Admin.
+ *     tags:
+ *       - Sistem & Admin
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: module
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: dateRange
+ *         schema:
+ *           type: string
+ *           enum: [all, today, week, month]
+ *     responses:
+ *       200:
+ *         description: Berhasil mengunduh file CSV
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Akses ditolak (bukan Super Admin)
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(req: Request) {
   try {
     const session = await auth.api.getSession({

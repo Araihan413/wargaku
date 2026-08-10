@@ -4,6 +4,37 @@ import { headers } from "next/headers";
 import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { getFinancialReportData } from "@/db/queries/reports";
 
+/**
+ * @openapi
+ * /api/reports/financial:
+ *   get:
+ *     summary: Mendapatkan Laporan Keuangan
+ *     description: Mengambil data laporan keuangan (summary, pemasukan, pengeluaran) berdasarkan filter bulan dan tahun. Membutuhkan izin view-finance.
+ *     tags:
+ *       - Sistem & Admin
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         description: Tahun laporan
+ *       - in: query
+ *         name: month
+ *         schema:
+ *           type: string
+ *         description: Bulan laporan (angka 1-12 atau "all")
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan data laporan keuangan
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({

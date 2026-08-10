@@ -4,6 +4,50 @@ import { headers } from "next/headers";
 import { getEffectiveRoleId } from "@/lib/rbac";
 import { getAuditLogs, getAuditLogStats } from "@/db/queries/system/audit-log.queries";
 
+/**
+ * @openapi
+ * /api/audit-logs:
+ *   get:
+ *     summary: Mendapatkan daftar dan statistik audit log
+ *     description: Mengambil catatan riwayat aktivitas (audit logs) di sistem. Hanya bisa diakses oleh Super Admin (Role ID 1).
+ *     tags:
+ *       - Sistem & Admin
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: module
+ *         schema:
+ *           type: string
+ *         description: Filter nama modul (contoh "Kependudukan", "Sistem", "all")
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Pencarian berdasarkan aktor atau aksi
+ *       - in: query
+ *         name: dateRange
+ *         schema:
+ *           type: string
+ *           enum: [all, today, week, month]
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar log
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Akses ditolak (bukan Super Admin)
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(req: Request) {
   try {
     const session = await auth.api.getSession({

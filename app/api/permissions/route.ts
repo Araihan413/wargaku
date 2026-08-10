@@ -4,6 +4,26 @@ import { headers } from "next/headers";
 import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
 import { getRolePermissionMatrix, updateRolePermissions } from '@/db/queries/system/permission.queries';
 
+/**
+ * @openapi
+ * /api/permissions:
+ *   get:
+ *     summary: Mendapatkan Matriks Hak Akses (Role-Permission)
+ *     description: Mengambil data daftar role dan permission serta pemetaannya (matriks). Akses khusus Super Admin (Role ID 1) yang memiliki izin manage-roles.
+ *     tags:
+ *       - Sistem & Admin
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil data matriks role-permission
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Akses khusus Super Admin
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({
@@ -31,6 +51,44 @@ export async function GET() {
   }
 }
 
+/**
+ * @openapi
+ * /api/permissions:
+ *   put:
+ *     summary: Memperbarui hak akses (permissions) suatu Role
+ *     description: Mengubah daftar permission (fitur/akses) yang dimiliki oleh sebuah role. Akses khusus Super Admin.
+ *     tags:
+ *       - Sistem & Admin
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - roleId
+ *               - permissionIds
+ *             properties:
+ *               roleId:
+ *                 type: integer
+ *               permissionIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Hak akses role berhasil diperbarui
+ *       400:
+ *         description: Format request tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Akses khusus Super Admin
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(req: Request) {
   try {
     const session = await auth.api.getSession({

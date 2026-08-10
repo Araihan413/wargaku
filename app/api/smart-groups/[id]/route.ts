@@ -4,6 +4,36 @@ import { headers } from "next/headers";
 import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { deleteSmartGroup, updateSmartGroup, getSmartGroupById } from "@/db/queries/system/smart-group.queries";
 
+/**
+ * @openapi
+ * /api/smart-groups/{id}:
+ *   get:
+ *     summary: Mendapatkan detail Kelompok Warga Pintar
+ *     description: Mengambil detail smart group beserta kriterianya berdasarkan ID.
+ *     tags:
+ *       - Smart Groups
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan detail kelompok
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Kelompok tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -42,6 +72,45 @@ export async function GET(
   }
 }
 
+/**
+ * @openapi
+ * /api/smart-groups/{id}:
+ *   put:
+ *     summary: Memperbarui Kelompok Warga Pintar
+ *     description: Mengubah kriteria atau nama dari smart group.
+ *     tags:
+ *       - Smart Groups
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               criteria:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Preset filter berhasil diperbarui
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -80,6 +149,34 @@ export async function PUT(
   }
 }
 
+/**
+ * @openapi
+ * /api/smart-groups/{id}:
+ *   delete:
+ *     summary: Menghapus Kelompok Warga Pintar
+ *     description: Menghapus data smart group secara permanen dari sistem.
+ *     tags:
+ *       - Smart Groups
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Preset filter berhasil dihapus
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

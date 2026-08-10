@@ -3,6 +3,24 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getQrCodePageData } from "@/db/queries/population/dwelling.queries";
 
+/**
+ * @openapi
+ * /api/qr-codes/data:
+ *   get:
+ *     summary: Mendapatkan data QR Code Rumah
+ *     description: Mengambil data rumah dan token enkripsi untuk fitur pencetakan QR Code hunian/rumah.
+ *     tags:
+ *       - Modul Tambahan
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan data untuk QR Code
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({

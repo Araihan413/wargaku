@@ -6,6 +6,26 @@ import { getSystemSettings, updateSystemSettings } from "@/db/queries/system/sys
 import type { UpdateSystemSettingsInput } from "@/db/queries/system/system-setting.queries";
 import { getClientIp } from "@/lib/audit-logger";
 
+/**
+ * @openapi
+ * /api/system-config:
+ *   get:
+ *     summary: Mendapatkan konfigurasi sistem
+ *     description: Mengambil data pengaturan sistem saat ini (nama RT, RW, Kelurahan, Kecamatan, Kota, dll). Akses khusus Admin dengan izin manage-system-config.
+ *     tags:
+ *       - Sistem & Admin
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan konfigurasi sistem
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Akses khusus Super Admin atau Admin yang berwenang
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({
@@ -33,6 +53,57 @@ export async function GET() {
   }
 }
 
+/**
+ * @openapi
+ * /api/system-config:
+ *   put:
+ *     summary: Memperbarui konfigurasi sistem
+ *     description: Mengubah pengaturan/identitas sistem (Nama RT, RW, dll). Akses khusus Super Admin/Admin.
+ *     tags:
+ *       - Sistem & Admin
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rtName
+ *               - rwName
+ *               - villageName
+ *               - subdistrict
+ *               - city
+ *             properties:
+ *               rtName:
+ *                 type: string
+ *               rwName:
+ *                 type: string
+ *               villageName:
+ *                 type: string
+ *               subdistrict:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               province:
+ *                 type: string
+ *               postalCode:
+ *                 type: string
+ *               addressNotes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Konfigurasi sistem berhasil diperbarui
+ *       400:
+ *         description: Validasi input gagal
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Akses khusus Super Admin atau Admin yang berwenang
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function PUT(req: Request) {
   try {
     const session = await auth.api.getSession({

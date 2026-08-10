@@ -12,6 +12,42 @@ const ALLOWED_MIME_TYPES = [
   "application/pdf",
 ];
 
+/**
+ * @openapi
+ * /api/upload:
+ *   post:
+ *     summary: Mengunggah berkas
+ *     description: Mengunggah gambar (JPG/PNG/WebP) atau dokumen (PDF) ke layanan Cloudinary.
+ *     tags:
+ *       - Modul Tambahan
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               folder:
+ *                 type: string
+ *                 description: Folder tujuan (contoh "kk", "ktp", "complaints")
+ *               oldFileUrl:
+ *                 type: string
+ *                 description: URL berkas lama yang akan dihapus setelah unggahan baru
+ *     responses:
+ *       200:
+ *         description: Berkas berhasil diunggah
+ *       400:
+ *         description: Berkas tidak valid atau terlalu besar
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -73,6 +109,35 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/upload:
+ *   delete:
+ *     summary: Menghapus berkas
+ *     description: Menghapus berkas dari Cloudinary berdasarkan URL atau Public ID.
+ *     tags:
+ *       - Modul Tambahan
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               url:
+ *                 type: string
+ *               publicId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Berhasil menghapus berkas
+ *       401:
+ *         description: Belum terautentikasi
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function DELETE(request: Request) {
   try {
     const session = await auth.api.getSession({

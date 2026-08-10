@@ -4,6 +4,35 @@ import { headers } from "next/headers";
 import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { filterCitizens } from "@/db/queries/residents/citizen-filter.queries";
 
+/**
+ * @openapi
+ * /api/smart-groups/evaluate:
+ *   post:
+ *     summary: Mengevaluasi kriteria Smart Group
+ *     description: Menguji/mengevaluasi JSON criteria secara langsung dan mengembalikan daftar warga yang cocok (match). Digunakan untuk preview sebelum menyimpan.
+ *     tags:
+ *       - Smart Groups
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               criteria:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar warga hasil evaluasi
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({

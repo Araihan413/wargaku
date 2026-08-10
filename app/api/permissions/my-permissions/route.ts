@@ -5,6 +5,32 @@ import { getPermissionsByRoleId } from '@/db/queries/system/permission.queries';
 import { getUserRoles } from '@/db/queries/auth/user.queries';
 import { getEffectiveRoleId } from '@/lib/rbac';
 
+/**
+ * @openapi
+ * /api/permissions/my-permissions:
+ *   get:
+ *     summary: Mendapatkan hak akses (permissions) saya
+ *     description: Mengambil daftar permission yang dimiliki oleh pengguna berdasarkan role aktifnya saat ini. Jika roleId disertakan, akan mengembalikan permission untuk role tersebut (asalkan pengguna memilikinya atau adalah Super Admin).
+ *     tags:
+ *       - Sistem & Admin
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: roleId
+ *         schema:
+ *           type: integer
+ *         description: ID Role yang ingin dilihat permission-nya (opsional)
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan permission
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin untuk melihat permission role tersebut
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({

@@ -6,6 +6,26 @@ import { listCoordinators, createCoordinator, createCoordinatorSchema } from '@/
 import { z } from 'zod';
 import { notifyUser } from '@/lib/notifications';
 
+/**
+ * @openapi
+ * /api/coordinators:
+ *   get:
+ *     summary: Mendapatkan daftar koordinator
+ *     description: Mengambil daftar pengguna yang memiliki role sebagai koordinator (seperti Koordinator Kos).
+ *     tags:
+ *       - Modul Tambahan
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mendapatkan daftar koordinator
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function GET() {
   try {
     const session = await auth.api.getSession({
@@ -35,6 +55,48 @@ export async function GET() {
   }
 }
 
+/**
+ * @openapi
+ * /api/coordinators:
+ *   post:
+ *     summary: Menambah atau menetapkan koordinator
+ *     description: Mendaftarkan atau menugaskan pengguna menjadi koordinator suatu properti. Jika email baru, akan otomatis membuat akun.
+ *     tags:
+ *       - Modul Tambahan
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Koordinator berhasil ditambahkan/diperbarui
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Tidak memiliki izin akses
+ *       404:
+ *         description: Pengguna tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
