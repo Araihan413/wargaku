@@ -5,6 +5,7 @@ export function proxy(request: NextRequest) {
   // Ambil token sesi dari cookies (mendukung cookie lokal & secure di produksi)
   const sessionToken =
     request.cookies.get('better-auth.session_token') ||
+    request.cookies.get('__Secure-better-auth.session_token') ||
     request.cookies.get('__secure-better-auth.session_token');
 
   const { pathname } = request.nextUrl;

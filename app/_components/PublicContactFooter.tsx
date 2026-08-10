@@ -39,19 +39,24 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
             </h4>
             <ul className="space-y-2 text-xs font-medium text-slate-400">
               <li>
-                <a href="#beranda" className="hover:text-white transition-colors">
+                <Link href="/" className="hover:text-white transition-colors">
                   Beranda
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#pengumuman" className="hover:text-white transition-colors">
+                <Link href="/pengumuman" className="hover:text-white transition-colors">
                   Pengumuman
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#transparansi-kas" className="hover:text-white transition-colors">
+                <Link href="/kegiatan" className="hover:text-white transition-colors">
+                  Kegiatan
+                </Link>
+              </li>
+              <li>
+                <Link href="/transparansi-kas" className="hover:text-white transition-colors">
                   Transparansi Kas
-                </a>
+                </Link>
               </li>
               <li>
                 <Link href="/lapor" className="hover:text-white transition-colors">
@@ -59,7 +64,7 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/qr-codes" className="hover:text-white transition-colors">
+                <Link href="/scan-qr" className="hover:text-white transition-colors">
                   Scan QR Rumah
                 </Link>
               </li>
@@ -73,7 +78,7 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
             </h4>
             <ul className="space-y-2 text-xs font-medium text-slate-400">
               <li>
-                <Link href="/login" className="hover:text-white transition-colors">
+                <Link href="/register" className="hover:text-white transition-colors">
                   Daftar Sebagai Warga
                 </Link>
               </li>
@@ -86,11 +91,6 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
                 <Link href="/lapor?tab=tracking" className="hover:text-white transition-colors">
                   Cek Status Akun / Aduan
                 </Link>
-              </li>
-              <li>
-                <a href="#kontak" className="hover:text-white transition-colors">
-                  Kontak RT
-                </a>
               </li>
             </ul>
           </div>
