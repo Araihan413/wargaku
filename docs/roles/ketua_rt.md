@@ -64,8 +64,6 @@ Ketika Ketua RT login, menu sidebar utama meliputi:
 *   **KT-06: Administrasi Surat Pengantar (Hybrid)**
     *   **Menyetujui & Memproses Surat (Offline):** Ketua RT meninjau antrean permohonan surat masuk (status `Menunggu Review`) atau memproses draf fisik yang disodorkan Sekretaris (status `Sedang Diproses`).
     *   **Tanda Tangan & Stempel Basah:** Ketua RT menandatangani dan membubuhkan stempel basah pada surat pengantar fisik secara manual (offline).
-    *   **Update Status Siap Diambil:** Ketua RT (atau Sekretaris) mengubah status surat di aplikasi menjadi **`Siap Diambil`** untuk mengirimkan notifikasi pengambilan secara otomatis kepada warga pemohon.
-    *   **Penyerahan Surat (Selesai):** Setelah warga mengambil surat fisik tersebut, Ketua RT (atau Sekretaris) menandai statusnya sebagai **`Selesai`** (Diserahkan).
 *   **KT-07: Kelola Pengaduan Warga**
     Memantau laporan pengaduan masalah warga (kebersihan, ketertiban, infrastruktur rusak) yang masuk melalui portal publik atau login warga, serta memperbarui status penanganannya (`Proses` atau `Selesai`).
 *   **KT-08: Verifikasi Registrasi Warga**
@@ -107,7 +105,6 @@ flowchart TD
     C -->|Verifikasi Registrasi| D[Setujui Registrasi Akun Warga Baru]
     C -->|Verifikasi Dokumen| E[Periksa KK/KTP Warga & KTP Anak Kos]
     C -->|Otorisasi Keuangan| F[Approve Draf Pengeluaran dari Bendahara]
-    C -->|Tanda Tangan Surat| G[Setujui & TTD Draf Surat dari Sekretaris]
     C -->|Cetak QR| H[Unduh QR Code Rumah untuk Dipasang]
     
     D --> I[Selesai]
@@ -132,8 +129,7 @@ flowchart TD
     D --> E[User terima kredensial default & login]
     
     B -->|Metode 2: Mandiri| F[User registrasi via form publik]
-    F --> G[Sistem buat akun status: Pending]
-    G --> H[Ketua RT terima notifikasi & verifikasi data]
+    F --> G[Sistem buat akun status: Pending][Ketua RT terima notifikasi & verifikasi data]
     H --> I{RT Setujui?}
     I -->|Ya| J[RT Approve -> Status akun menjadi Active]
     I -->|Tidak| K[RT Reject -> Pendaftaran ditolak]
@@ -155,7 +151,6 @@ flowchart TD
     D --> H[Simpan]
     E --> H
     F --> H
-    G --> H
     H --> I[Data tersimpan di database]
     I --> J[Selesai]
 ```
@@ -169,8 +164,7 @@ flowchart TD
     C --> D[Ubah status menjadi: Sedang Diproses & Salin data warga per kolom / gabungan]
     D --> E[Pengurus paste ke template Word offline & print secara manual]
     E --> F[Ketua RT tanda tangan & stempel basah pada surat fisik]
-    F --> G[Pengurus isi nomor surat & klik 'Tandai Siap Diambil']
-    G --> H[Sistem ubah status: Siap Diambil & kirim Email Notifikasi]
+    F --> G[Pengurus isi nomor surat & klik 'Tandai Siap Diambil'][Sistem ubah status: Siap Diambil & kirim Email Notifikasi]
     H --> I[Warga datang mengambil surat fisik di rumah pengurus]
     I --> J[Pengurus klik 'Tandai Diserahkan' di sistem]
     J --> K[Sistem ubah status: Selesai]

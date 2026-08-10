@@ -27,7 +27,7 @@ Hak akses dan susunan menu sidebar akan beradaptasi secara dinamis berdasarkan h
         *   *Hak Akses*: Dia tidak bisa mengakses menu "Kelola Properti Pribadi" (karena bukan pemilik aset). Dia hanya bisa mengelola **Check-In/Out** kamar untuk unit-unit yang didelegasikan kepadanya oleh Pemilik.
 3.  **Kasus C: Pemilik Menunjuk Orang Luar/Anak Kos Sebagai Koordinator (Owner != Coordinator, Pengelola bukan KK)**
     *   *Siapa*: Penjaga kos bayaran atau anak kos tepercaya yang bukan merupakan warga tetap RT setempat (tidak terdaftar di KK lokal).
-    *   *Menu Sidebar*: Hanya menampilkan **Dashboard Utama Koordinator** + **`Kelola Properti Sewa`** (Tanpa menu kependudukan warga seperti Kelola Keluarga & Riwayat Surat).
+    *   *Menu Sidebar*: Hanya menampilkan **Dashboard Utama Koordinator** + **`Kelola Properti Sewa`** (Tanpa menu kependudukan warga seperti Kelola Keluarga ).
     *   *Hak Akses*: Akses menulis penuh (**Check-In/Out**) kamar yang didelegasikan. Tidak bisa mengakses menu "Kelola Properti Pribadi".
 
 ### 1.2 Konsep UI/UX Grid Kamar & Drawer Panel Geser (Slide-Over)
@@ -75,7 +75,7 @@ Untuk menyajikan tampilan yang sangat bersih, modern, dan rapi:
         *   `Email Kepala Keluarga` (Wajib, untuk pengiriman link aktivasi akun)
         *   `Nomor Pintu / Unit` (misal: *Pintu 03*)
         *   `Tanggal Masuk (Check-In)`
-        *   *Alur Delegasi & Kunci Akses:* Setelah disimpan, sistem otomatis mengirimkan link aktivasi ke **Email** Kepala Keluarga tersebut. Kepala Keluarga penyewa tinggal membuat password melalui link tersebut, login, dan menginput berkas KK serta data anggota keluarganya secara mandiri. Selama berkas KK dan data kependudukan tersebut belum diverifikasi oleh RT (status masih `Pending`), menu dashboard lainnya (seperti pengajuan surat pengantar) **terkunci/tidak aktif**. Setelah disetujui (status: `Verified`) oleh RT, barulah kunci dashboard terbuka sepenuhnya dan data mereka dinyatakan sah terdaftar sebagai warga di RT setempat.
+        *   *Alur Delegasi & Kunci Akses:* Setelah disimpan, sistem otomatis mengirimkan link aktivasi ke **Email** Kepala Keluarga tersebut. Kepala Keluarga penyewa tinggal membuat password melalui link tersebut, login, dan menginput berkas KK serta data anggota keluarganya secara mandiri. Selama berkas KK dan data kependudukan tersebut belum diverifikasi oleh RT (status masih `Pending`), menu dashboard lainnya **terkunci/tidak aktif**. Setelah disetujui (status: `Verified`) oleh RT, barulah kunci dashboard terbuka sepenuhnya dan data mereka dinyatakan sah terdaftar sebagai warga di RT setempat.
     *   Memantau status verifikasi seluruh data penghuni dari RT (Pending / Verified / Rejected).
 *   **KO-03: Manajemen Check-Out**
     Menandai penghuni sewa yang sudah pindah/keluar dengan memasukkan tanggal keluar. Data penghuni tersebut otomatis dinonaktifkan (`is_active = false`) agar tertib administrasi.

@@ -1,6 +1,6 @@
 # Panduan Peran & Fitur: Warga (Kepala Keluarga)
 
-Warga (Kepala Keluarga) adalah pengguna akhir utama sistem yang memiliki hak akses untuk melengkapi data anggota keluarganya secara mandiri, mengunduh surat pengantar dari RT, serta mengelola properti sewaan yang dimilikinya.
+Warga (Kepala Keluarga) adalah pengguna akhir utama sistem yang memiliki hak akses untuk melengkapi data anggota keluarganya secara mandiri, mengelola properti sewaan yang dimilikinya.
 
 ---
 
@@ -10,8 +10,7 @@ Ketika Warga (Kepala Keluarga) login, menu utama meliputi:
 *   **Beranda Dashboard Warga:** Tagihan iuran keluarga, ringkasan pengumuman internal, detail rumah tinggal, dan tautan cepat ke Form Pengaduan Publik.
 *   **Administrasi Keluarga:** (Menu Utama)
     *   **Kelola Anggota Keluarga:** (Sub-menu) Form pengisian NIK, KK, data anggota, dan upload berkas KK/KTP.
-    *   **Riwayat & Pengajuan Surat:** (Sub-menu) Pengajuan surat pengantar online dan pemantauan status siap ambil.
-*   **Pencarian Warga & Peta Hunian:** (Menu Utama - Direct Link) Peta interaktif & pencarian tetangga ramah privasi (tersensor sebagian).
+    *   **Pencarian Warga & Peta Hunian:** (Menu Utama - Direct Link) Peta interaktif & pencarian tetangga ramah privasi (tersensor sebagian).
 *   **Kelola Properti Pribadi:** (Menu Utama - Direct Link) Halaman utama pengelolaan seluruh aset properti sewaan yang dimiliki (Kos/Kontrakan/Homestay).
     *   *Desain Detil Halaman:* Menampilkan daftar kartu (cards) seluruh properti milik warga beserta tombol **`[+ Daftarkan Properti Baru]`**.
     *   *Aksi Detail Properti:* Mengklik salah satu kartu properti akan mengarahkan pemilik ke **Halaman Detail Properti** spesifik yang terbagi menjadi 3 Tab:
@@ -35,7 +34,7 @@ Hak akses dan susunan menu sidebar akan beradaptasi secara dinamis berdasarkan h
         *   *Hak Akses*: Dia tidak bisa mengakses menu "Kelola Properti Pribadi" (karena bukan pemilik aset). Dia hanya bisa mengelola **Check-In/Out** kamar untuk unit-unit yang didelegasikan kepadanya oleh Pemilik.
 3.  **Kasus C: Pemilik Menunjuk Orang Luar/Anak Kos Sebagai Koordinator (Owner != Coordinator, Pengelola bukan KK)**
     *   *Siapa*: Penjaga kos bayaran atau anak kos tepercaya yang bukan merupakan warga tetap RT setempat (tidak terdaftar di KK lokal).
-    *   *Menu Sidebar*: Hanya menampilkan **Dashboard Utama Koordinator** + **`Kelola Properti Sewa`** (Tanpa menu kependudukan warga seperti Kelola Keluarga & Riwayat Surat).
+    *   *Menu Sidebar*: Hanya menampilkan **Dashboard Utama Koordinator** + **`Kelola Properti Sewa`** (Tanpa menu kependudukan warga seperti Kelola Keluarga ).
     *   *Hak Akses*: Akses menulis penuh (**Check-In/Out**) kamar yang didelegasikan. Tidak bisa mengakses menu "Kelola Properti Pribadi".
 
 *   **Role Switcher (Peralihan Tampilan):** Jika Warga Tetap terpilih menjadi pengurus RT (RT/Sekretaris/Bendahara), terdapat tombol di sudut kanan atas profil untuk beralih mode tampilan ("Panel Pengurus" $\leftrightarrow$ "Tampilan Warga") guna merubah susunan menu sidebar secara dinamis.
@@ -57,7 +56,7 @@ Hak akses dan susunan menu sidebar akan beradaptasi secara dinamis berdasarkan h
         *   `Alamat Rumah` (Memilih nomor rumah terdaftar dari dropdown, atau input manual jika rumah baru)
         *   `Nomor Pintu/Unit` (Opsional, diisi jika tinggal di kontrakan berderet)
     *   **Tahap 2: Pengunggahan & Verifikasi Dokumen (Setelah Login - Akun Status Active):**
-        *   **Kunci Akses Menu (Feature Gate):** Setelah login pertama kali, menu-menu lainnya di dashboard warga (seperti Riwayat Surat, Kelola Properti Pribadi, Pencarian Warga) **terkunci (tidak aktif)**. Satu-satunya menu yang dapat diakses adalah Kelola Keluarga.
+        *   **Kunci Akses Menu (Feature Gate):** Setelah login pertama kali, menu-menu lainnya di dashboard warga (seperti Kelola Properti Pribadi, Pencarian Warga) **terkunci (tidak aktif)**. Satu-satunya menu yang dapat diakses adalah Kelola Keluarga.
         *   Wajib melengkapi profil dan mengunggah dokumen berikut:
             *   `Berkas Scan KK` (Scan/foto Kartu Keluarga asli format JPG/PNG/PDF, maks 2MB)
             *   `Tanggal Mulai Tinggal (Check-In Date)` (Tanggal mulai menempati rumah)
@@ -80,16 +79,7 @@ Hak akses dan susunan menu sidebar akan beradaptasi secara dinamis berdasarkan h
     *   **Aturan Penguncian Data & Perubahan Data (Verified Lock):**
         *   **Kondisi Terkunci (Read-Only):** Jika status verifikasi keluarga adalah `Verified`, seluruh data keluarga dan anggotanya akan dikunci secara otomatis. Tombol "Tambah", "Edit", dan "Hapus" anggota keluarga akan disembunyikan/dinonaktifkan untuk mencegah perubahan data sepihak.
         *   **Alur Pengubahan Data:** Warga yang ingin memperbarui data harus mengklik tombol **"Ajukan Perubahan Data"**. Tindakan ini akan mengembalikan status verifikasi menjadi `Pending` dan membuka kunci kolom input. Setelah warga selesai melakukan perubahan, Ketua RT / Sekretaris harus melakukan verifikasi ulang untuk mengembalikan status menjadi `Verified`.
-*   **WR-03: Pengajuan & Pemantauan Surat Pengantar (Hybrid)**
-    *   **Pengajuan Online:** Warga dapat mengajukan permohonan surat pengantar secara mandiri dengan mengisi form:
-        *   `Nama Pemohon` (Memilih dari daftar anggota keluarga terdaftar di KK-nya).
-        *   `Jenis Surat` (Dropdown: Domisili, Pengantar KTP, Pengantar KK, Surat Kematian, dll.).
-        *   `Keperluan` (Tujuan surat, misal: "Membuka rekening bank Mandiri").
-        *   `Dokumen Pendukung` (Upload berkas opsional jika dibutuhkan).
-        *   `Catatan Tambahan (Notes)` (Opsional, pesan khusus untuk pengurus).
-    *   **Pemantauan Status & Notifikasi Pengambilan:** Warga memantau status suratnya secara real-time di dashboard (Menunggu Review $\rightarrow$ Sedang Diproses $\rightarrow$ Siap Diambil $\rightarrow$ Selesai / Ditolak).
-    *   Ketika status berubah menjadi **`Siap Diambil`**, warga mendapatkan notifikasi email untuk mengambil surat fisik bertanda tangan asli & stempel basah RT di rumah Ketua RT / Sekretaris.
-*   **WR-03.1: Pemantauan Tagihan & Riwayat Iuran Keluarga**
+*   **WR-03: Pemantauan Tagihan & Riwayat Iuran Keluarga**
     *   **Widget Status Iuran:** Kepala Keluarga memantau status iuran bulanan berjalan langsung pada widget di Beranda Dashboard:
         *   `Lunas` (Hijau) jika sudah membayar penuh.
         *   `Kurang` (Oranye) jika baru membayar sebagian (cicil) beserta sisa kekurangan rupiah yang harus dilunasi.
@@ -142,11 +132,9 @@ flowchart TD
     
     C -->|Kelola KK & KTP| D[Input Data Anggota -> Upload KK & KTP -> Status: Pending]
     D --> E[RT Verifikasi -> Status: Verified]
-    C -->|Unduh Surat| F[Buka Menu Surat -> Unduh PDF Surat Pengantar Aktif]
     C -->|Kelola Aset| G[Masuk Menu Aset -> Daftarkan/Ubah Status Rumah Kosong atau Sewa]
     
     E --> H[Selesai]
-    F --> H
     G --> H
 ```
 
@@ -163,8 +151,7 @@ flowchart TD
     C --> D[Ketua RT / Sekretaris terima permohonan & verifikasi]
     D --> E{RT Setujui?}
     E -->|Ya| F[Status akun diubah menjadi Active]
-    E -->|Tidak| G[Pendaftaran ditolak]
-    F --> H[User login pertama kali]
+    E -->|Tidak| G[Pendaftaran ditolak][User login pertama kali]
     H --> I[Akses menu dashboard terkunci sebelum upload KK]
     I --> J[Ganti password default jika dibuatkan admin / langsung ke upload KK]
     J --> K[Selesai]

@@ -16,7 +16,7 @@ Ketika Super Admin login, menu sidebar utama meliputi:
     *   **Data Kependudukan:** (Sub-menu) Melihat seluruh data KK & warga di tingkat RT.
     *   **Laporan Keuangan Kas:** (Sub-menu) Memantau rekaman kas masuk/keluar Bendahara.
     *   **Postingan & Pengaduan:** (Sub-menu) Memantau seluruh pengumuman aktif & laporan aduan warga.
-*   **Konfigurasi Sistem:** (Menu Utama - Direct Link) Setelan nama desa, kelurahan, logo aplikasi kop surat, dan informasi kontak official.
+*   **Konfigurasi Sistem:** (Menu Utama - Direct Link) Setelan nama desa, kelurahan, logo aplikasi, dan informasi kontak official.
 
 ---
 
@@ -28,7 +28,6 @@ Ketika Super Admin login, menu sidebar utama meliputi:
     *   `Keluarga Aktif`: Total Kepala Keluarga (KK) yang status datanya `Verified`.
     *   `Saldo Kas RT Terkini`: Jumlah nominal saldo kas riil (sinkronisasi dari dashboard Bendahara).
     *   `Antrean Dokumen Pending`: Jumlah KK baru yang mengunggah scan berkas dan butuh verifikasi.
-    *   `Antrean Surat Pengantar`: Jumlah permohonan surat masuk warga yang berstatus `Menunggu Review`.
     *   `Aduan Warga Aktif`: Laporan keluhan warga yang berstatus `Menunggu` atau `Proses`.
 *   **SA-02: Manajemen Pengguna (User Account Management - CRUD)**
     Pengelolaan siklus hidup akun pengguna sistem Wargaku:
@@ -40,7 +39,7 @@ Ketika Super Admin login, menu sidebar utama meliputi:
     *   **Mutasi Peran (Role Mutation):** Mengubah wewenang/hak akses warga/pengurus secara langsung (misal mempromosikan warga biasa menjadi Sekretaris atau Bendahara). Fitur mutasi ini terkunci untuk akun Super Admin: pilihan "Super Admin" dihilangkan dari dropdown mutasi peran, akun Super Admin tidak dapat dimutasi ke peran operasional lain, dan peran operasional tidak dapat dimutasi menjadi Super Admin (Super Admin baru hanya bisa dibuat secara bersih via Tambah Pengguna Baru). Perubahan peran operasional **hanya memperbarui kolom `role` di tabel `users`** tanpa mengganggu data kependudukan mereka di tabel `families` maupun `family_members`.
 *   **SA-03: Manajemen Role & Permission (Dynamic RBAC Matrix)**
     Mengatur pembagian hak akses fitur secara modular dan dinamis:
-    *   **Matriks Hak Akses:** Tabel visual dengan baris berisi 6 role (Super Admin, Ketua RT, Sekretaris, Bendahara, Koordinator Properti Sewa, Warga) dan kolom berisi izin modul (`read_kependudukan`, `write_kependudukan`, `read_kas`, `write_kas`, `approve_kas`, `manage_surat`, `manage_properti`, `manage_complaint`, dll.).
+    *   **Matriks Hak Akses:** Tabel visual dengan baris berisi 6 role (Super Admin, Ketua RT, Sekretaris, Bendahara, Koordinator Properti Sewa, Warga) dan kolom berisi izin modul (`read_kependudukan`, `write_kependudukan`, `read_kas`, `write_kas`, `approve_kas`, `manage_properti`, `manage_complaint`, dll.).
     *   **Pembaruan Instan:** Men-centang atau menghapus centang langsung memperbarui aturan otorisasi di backend (API middleware) dan frontend (visibilitas menu sidebar) secara real-time.
 *   **SA-04: Lihat Kependudukan (Read-Only)**
     Melihat seluruh data warga, KK, properti sewa, dan data anak kos dari tingkat RT secara read-only guna mengawasi keakuratan data kependudukan secara teknis tanpa berwenang mengubahnya.
@@ -53,12 +52,12 @@ Ketika Super Admin login, menu sidebar utama meliputi:
     *   `Nama RT/RW` (misal: RT 03 / RW 08).
     *   `Kelurahan / Desa` (misal: Kelurahan Mulyorejo).
     *   `Kecamatan & Kota/Kabupaten` (misal: Kec. Sukolilo, Kota Surabaya).
-    *   `Logo RT / Korp`: Upload berkas gambar (.png/.jpg) untuk ditampilkan di kop surat pengantar dan header aplikasi.
+    *   `Logo RT / Korp`: Upload berkas gambar (.png/.jpg) untuk ditampilkan di header aplikasi.
     *   `Alamat Sekretariat RT`, `Email Resmi RT`, & `Kontak Pengurus` (Nomor HP/WA Official Ketua RT, Sekretaris, & Bendahara).
 *   **SA-08: Log Aktivitas (Audit Trail & Security Log)**
     Catatan riwayat transaksi data yang tidak dapat dimanipulasi oleh pengguna lain untuk melacak kebocoran data atau kecurangan keuangan:
     *   **Deteksi Aksi:** Log merekam aksi login, tambah data, edit data, hapus data, serta perubahan status verifikasi dokumen/kas.
-    *   **Metadata Log:** Setiap log mencantumkan `Timestamp` (waktu), `Pelaku` (Nama & NIK), `Modul terkait` (Kependudukan, Keuangan, Surat), `Deskripsi Detail` (contoh: *"Mengubah saldo kas keluar Rp 500.000 menjadi Approved"*), serta `IP Address & User Agent` pelaku.
+    *   **Metadata Log:** Setiap log mencantumkan `Timestamp` (waktu), `Pelaku` (Nama & NIK), `Modul terkait` (Kependudukan, Keuangan), `Deskripsi Detail` (contoh: *"Mengubah saldo kas keluar Rp 500.000 menjadi Approved"*), serta `IP Address & User Agent` pelaku.
 *   **SA-09: Isolasi Peran & Integrasi NIK Profil (Role Isolation & Profile NIK)**
     Pencegahan pencampuran data operasional dan data administratif:
     *   **Lock Mode Tampilan:** Akun Super Admin terkunci sepenuhnya pada mode administrasi global. Menu switch role (beralih mode tampilan ke Warga/Pengurus) dinonaktifkan seluruhnya dari dropdown profil.

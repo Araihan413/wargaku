@@ -33,7 +33,7 @@ Pengunjung yang membuka domain utama web RT akan menemui navigasi publik:
         *   **Sebaran Pendidikan:** Persentase tingkat pendidikan terakhir warga (Belum Sekolah, SD, SMP, SMA, Diploma, S1, S2/S3).
         *   **Status Hunian Properti:** Rasio hunian rumah (Terisi Keluarga Tetap, Rumah Kos/Kontrakan Aktif, Hunian Kosong).
         *   **Rasio Gender:** Grafik perbandingan jumlah Laki-laki vs Perempuan di wilayah RT.
-        *   **Statistik Pengaduan Warga:** Grafik akumulasi status penanganan laporan (Menunggu, Proses, Selesai, Ditolak) serta grafik sebaran jumlah aduan berdasarkan kategori/tipe (laporan yang di tolak tidak dihitung) (Infrastruktur, eKbersihan, Keamanan, Sosial, Lainnya).
+        *   **Statistik Pengaduan Warga:** Grafik akumulasi status penanganan laporan (Menunggu, Proses, Selesai, Ditolak) serta grafik sebaran jumlah aduan berdasarkan kategori/tipe (laporan yang ditolak tidak dihitung) (Infrastruktur, Kebersihan, Keamanan, Sosial, Lainnya).
     *   **Daftar Kontak Darurat Lokal:** Akses cepat nomor darurat penting di beranda publik (Pos Ronda RT, Ambulans/Puskesmas terdekat, Pemadam Kebakaran, Polisi/Babinsa setempat).
 *   **PB-02: Transparansi Arus Kas**
     Warga umum dapat melihat grafik statistik pemasukan vs pengeluaran per bulan serta tabel detail rincian transaksi kas terbaru secara *read-only*.
@@ -43,7 +43,7 @@ Pengunjung yang membuka domain utama web RT akan menemui navigasi publik:
     *   Setelah dikirim, sistem memberikan **Tracking Code** unik (contoh: `LAP-2026-001`) dan menyediakan tombol **"Salin Info Pengaduan"** atau **"Simpan ke WhatsApp"** (membuka wa.me dengan teks otomatis) agar warga mudah menyimpan kode tersebut secara mandiri.
     *   Pengirim dapat menginput kode tersebut di halaman "Cek Aduan" untuk melihat status penanganan: `Menunggu`, `Proses`, `Selesai`, atau **`Ditolak`**. Demi privasi keamanan pelapor, status laporan **hanya bisa dilacak menggunakan Tracking Code ini** (tidak bisa dicari menggunakan nama/nomor HP secara publik untuk menghindari pengintipan oleh tetangga).
     *   Jika laporan tidak valid, iseng, atau tidak jelas, pengurus akan mengubah status menjadi **`Ditolak`** dan memberikan **Catatan Tanggapan/Alasan Penolakan** yang dapat dibaca oleh pelapor secara terbuka melalui halaman tracking.
-    *   Tampilannya hanya berupa form pengajuan laporan and setelah melapor ada opsi copy kode tracking dan kirim code ke WA pelapor serta ada peringatan untuk menyimpan code jika ingin melacak aduan.
+    *   Tampilannya hanya berupa form pengajuan laporan dan setelah melapor ada opsi salin kode tracking serta kirim kode ke WA pelapor, juga ada peringatan untuk menyimpan kode jika ingin melacak aduan.
 *   **PB-04: Info Dasar QR Code Rumah (Smart QR)**
     Mendukung pemindaian stiker QR Code fisik di dinding rumah warga, unggah foto QR, atau pencarian manual nomor rumah dengan tampilan kondisional per tipe hunian dan penyesuaian hak akses (Publik vs Warga Login):
     *   **Metode Pemindaian & Pencarian Multi-mode:**
