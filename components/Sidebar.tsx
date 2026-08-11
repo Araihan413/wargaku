@@ -277,11 +277,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isLocked = (requiresVerification?: boolean) =>
     currentRoleId === 6 && Boolean(requiresVerification) && !isVerificationLoading && !isUnlockedStatus;
 
-  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [userPermissions, setUserPermissions] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem(`cached_permissions_role_${currentRoleId}`);
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch {}
+      }
+    }
+    return [];
+  });
+  const [isFetchingPermissions, setIsFetchingPermissions] = useState(() => userPermissions.length === 0);
 
   useEffect(() => {
     let isMounted = true;
     async function fetchPermissions() {
+      setIsFetchingPermissions(true);
       try {
         const res = await fetch(`/api/permissions/my-permissions?roleId=${currentRoleId}`);
         if (res.ok) {
@@ -290,10 +302,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const rawPerms = Array.isArray(json.permissions) ? json.permissions : [];
             const slugs = rawPerms.map((p: any) => (typeof p === "string" ? p : p.slug)).filter(Boolean);
             setUserPermissions(slugs);
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem(`cached_permissions_role_${currentRoleId}`, JSON.stringify(slugs));
+            }
           }
         }
       } catch (err) {
         console.error("Failed to fetch permissions in Sidebar:", err);
+      } finally {
+        if (isMounted) {
+          setIsFetchingPermissions(false);
+        }
       }
     }
     fetchPermissions();
@@ -449,14 +468,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Scrollable Navigation Area */}
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
-          {filteredItems.map((item, index) => {
-            const Icon = item.icon;
-            const hasSub = !!item.subItems;
-            const open = activeAccordion === item.title;
-            const parentActive = item.href ? isActive(item.href) : isChildActive(item.subItems);
+          {isFetchingPermissions ? (
+            /* Skeleton Loaders */
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className={`flex items-center gap-3 p-3 rounded-xl ${isCollapsed ? "justify-center" : "justify-start"} animate-pulse`}>
+                <div className="h-5 w-5 rounded-md bg-gray-border shrink-0" />
+                {!isCollapsed && <div className="h-4 w-32 rounded-md bg-gray-border" />}
+              </div>
+            ))
+          ) : (
+            filteredItems.map((item, index) => {
+              const Icon = item.icon;
+              const hasSub = !!item.subItems;
+              const open = activeAccordion === item.title;
+              const parentActive = item.href ? isActive(item.href) : isChildActive(item.subItems);
 
-            // Base parent class for both Button and Link (always transparent container)
-            const parentClassName = "flex items-center text-sm font-semibold rounded-xl cursor-pointer w-full bg-transparent text-gray-heading-main p-0 justify-start";
+              // Base parent class for both Button and Link (always transparent container)
+              const parentClassName = "flex items-center text-sm font-semibold rounded-xl cursor-pointer w-full bg-transparent text-gray-heading-main p-0 justify-start";
 
             // Base icon container class (handles background, width, active, and hover states)
             const iconContainerClassName = `flex items-center min-w-0 transition-all duration-300 py-3 rounded-xl ${
@@ -605,7 +633,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
               </div>
             );
-          })}
+          }))}
         </nav>
 
         {/* Sidebar Footer / User Profile Card */}

@@ -29,6 +29,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
 
@@ -45,7 +46,7 @@ export default function DashboardLayout({
   };
 
   const handleLogout = async () => {
-    useRoleStore.getState().resetRole();
+    setIsLoggingOut(true);
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("has_initial_redirected");
       // Bersihkan juga history path di localStorage agar tidak nyangkut jika login akun lain
@@ -60,6 +61,7 @@ export default function DashboardLayout({
         // Abaikan
       }
     }
+    useRoleStore.getState().resetRole();
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
@@ -68,6 +70,7 @@ export default function DashboardLayout({
         },
         onError: (ctx) => {
           toast.error(ctx.error.message || "Gagal keluar");
+          setIsLoggingOut(false);
         }
       },
     });
@@ -98,7 +101,7 @@ export default function DashboardLayout({
     }
   }, [user, isPending, router]);
 
-  if (isPending) {
+  if (isPending || isLoggingOut) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-page-bg">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

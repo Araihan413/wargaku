@@ -7,8 +7,23 @@ interface RoleState {
   resetRole: () => void;
 }
 
+const getInitialRoleId = () => {
+  if (typeof window === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|; )active_role_id=([^;]*)/);
+  if (match) {
+    const cookieRoleId = parseInt(match[1], 10);
+    if (!isNaN(cookieRoleId)) return cookieRoleId;
+  }
+  const localRole = localStorage.getItem('last_accessed_role_id');
+  if (localRole) {
+    const parsedLocal = parseInt(localRole, 10);
+    if (!isNaN(parsedLocal)) return parsedLocal;
+  }
+  return null;
+};
+
 export const useRoleStore = create<RoleState>((set) => ({
-  activeRoleId: null,
+  activeRoleId: getInitialRoleId(),
   setActiveRoleId: (roleId) => {
     set({ activeRoleId: roleId });
     if (typeof window !== 'undefined') {
@@ -32,49 +47,48 @@ export const useRoleStore = create<RoleState>((set) => ({
     }
   },
   initialize: (defaultRoleId, allowedRoles) => {
-    set(() => {
+    let candidateRoleId: number | null = null;
 
-      let candidateRoleId: number | null = null;
-
-      // 1. Try to read from cookie
-      if (typeof window !== 'undefined') {
-        const match = document.cookie.match(/(?:^|; )active_role_id=([^;]*)/);
-        if (match) {
-          const cookieRoleId = parseInt(match[1], 10);
-          if (!isNaN(cookieRoleId) && allowedRoles.includes(cookieRoleId)) {
-            candidateRoleId = cookieRoleId;
-          }
-        }
-
-        // 2. Try to read from localStorage if cookie not found
-        if (!candidateRoleId) {
-          const localRole = localStorage.getItem('last_accessed_role_id');
-          if (localRole) {
-            const parsedLocal = parseInt(localRole, 10);
-            if (!isNaN(parsedLocal) && allowedRoles.includes(parsedLocal)) {
-              candidateRoleId = parsedLocal;
-            }
-          }
+    if (typeof window !== 'undefined') {
+      const match = document.cookie.match(/(?:^|; )active_role_id=([^;]*)/);
+      if (match) {
+        const cookieRoleId = parseInt(match[1], 10);
+        if (!isNaN(cookieRoleId) && allowedRoles.includes(cookieRoleId)) {
+          candidateRoleId = cookieRoleId;
         }
       }
 
-      if (candidateRoleId !== null) {
-        return { activeRoleId: candidateRoleId };
-      }
-
-      // 3. Fallback logic saat pertama kali masuk (tidak ada history)
-      if (allowedRoles.length > 0) {
-        if (allowedRoles.includes(6)) {
-          return { activeRoleId: 6 };
+      if (!candidateRoleId) {
+        const localRole = localStorage.getItem('last_accessed_role_id');
+        if (localRole) {
+          const parsedLocal = parseInt(localRole, 10);
+          if (!isNaN(parsedLocal) && allowedRoles.includes(parsedLocal)) {
+            candidateRoleId = parsedLocal;
+          }
         }
-        // Jika tidak ada role Warga (6), ambil role dengan ID terkecil
+      }
+    }
+
+    if (candidateRoleId === null && allowedRoles.length > 0) {
+      if (allowedRoles.includes(6)) {
+        candidateRoleId = 6;
+      } else {
         const sorted = [...allowedRoles].sort((a, b) => a - b);
-        return { activeRoleId: sorted[0] };
+        candidateRoleId = sorted[0];
       }
+    }
 
-      // 4. Idle State (tidak ada role aktif)
-      return { activeRoleId: null };
-    });
+    set({ activeRoleId: candidateRoleId });
+
+    // Sync to cookie and localStorage if we picked a fallback or initialized successfully
+    if (candidateRoleId !== null && typeof window !== 'undefined') {
+      document.cookie = `active_role_id=${candidateRoleId}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      try {
+        localStorage.setItem('last_accessed_role_id', String(candidateRoleId));
+      } catch {
+        // Ignore localStorage quota errors
+      }
+    }
   },
 }));
 

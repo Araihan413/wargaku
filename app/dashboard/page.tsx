@@ -14,7 +14,7 @@ import { IdleAccountNotice } from "@/components/IdleAccountNotice";
 
 export default function Dashboard() {
   const { data: session, isPending } = authClient.useSession();
-  const { activeRoleId, initialize } = useRoleStore();
+  const { activeRoleId } = useRoleStore();
   const router = useRouter();
 
   const userBaseRoleId = session?.user?.roleId || 6;
@@ -37,6 +37,15 @@ export default function Dashboard() {
           const data = await res.json();
           if (isMounted && Array.isArray(data.allowedRoles)) {
             setAssignedRoles(data.allowedRoles);
+            
+            // Initialize useRoleStore synchronously before re-rendering
+            // to ensure activeRoleId is populated properly for new sessions
+            const baseRole = session.user.roleId || 6;
+            const isOfficer = baseRole >= 2 && baseRole <= 4;
+            const fetchedAllowedRoles = Array.from(new Set([...data.allowedRoles, isOfficer ? 6 : null].filter(Boolean))).sort((a: any, b: any) => a - b);
+            
+            useRoleStore.getState().initialize(baseRole, fetchedAllowedRoles);
+            
             setIsRolesLoaded(true);
           }
         }
@@ -57,13 +66,6 @@ export default function Dashboard() {
     if (isOfficer) list.add(6);
     return Array.from(list).sort((a, b) => a - b);
   }, [assignedRoles, isOfficer]);
-
-
-  useEffect(() => {
-    if (session?.user && isRolesLoaded) {
-      initialize(session.user.roleId, allowedRoles);
-    }
-  }, [session, isRolesLoaded, initialize, allowedRoles]);
 
   // Efek untuk mengembalikan pengguna ke menu terakhir yang dibuka saat sesi baru dimulai
   useEffect(() => {
