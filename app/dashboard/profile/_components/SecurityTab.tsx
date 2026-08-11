@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Lock, Eye, EyeOff, KeyRound, Save, Loader2, CheckCircle, ShieldAlert } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { NotificationSettingsCard } from "./NotificationSettingsCard";
 
 export const SecurityTab: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -62,7 +63,8 @@ export const SecurityTab: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-gray-border rounded-2xl p-6 shadow-sm space-y-6">
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white border border-gray-border rounded-2xl p-6 shadow-sm space-y-6">
       <div className="border-b border-gray-border pb-4">
         <h2 className="text-base font-extrabold text-gray-heading-main tracking-tight">
           Keamanan & Kata Sandi Akun
@@ -187,5 +189,8 @@ export const SecurityTab: React.FC = () => {
         </div>
       </div>
     </form>
-  );
+
+    <NotificationSettingsCard />
+  </div>
+);
 };

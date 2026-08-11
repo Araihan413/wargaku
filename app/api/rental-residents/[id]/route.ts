@@ -10,6 +10,7 @@ import {
 import { getRentalPropertyById } from '@/db/queries/property/rental-property.queries';
 import { updateRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+import { notifyUser } from '@/lib/notifications';
 
 /**
  * @openapi
@@ -75,8 +76,8 @@ export async function GET(
  * @openapi
  * /api/rental-residents/{id}:
  *   put:
- *     summary: Memperbarui data penghuni sewa
- *     description: Mengubah data penghuni sewa. Jika status sudah terverifikasi, hanya nomor kamar, nomor HP, dan catatan yang dapat diubah.
+ *     summary: Memperbarui data atau status verifikasi penyewa kos
+ *     description: Mengubah data kontrak penghuni atau memproses persetujuan/penolakan verifikasi oleh RT.
  *     tags:
  *       - Properti & Sewa
  *     security:
@@ -170,6 +171,27 @@ export async function PUT(
         checkInDate: validatedData.checkInDate,
       })
     });
+
+    // Kirim notifikasi lonceng ke Koordinator Kos jika status verifikasi diubah oleh RT
+    if (
+      validatedData.verificationStatus &&
+      validatedData.verificationStatus !== existingContract.verificationStatus
+    ) {
+      const property = await getRentalPropertyById(existingContract.rentalPropertyId).catch(() => null);
+      if (property?.coordinatorUserId && property.coordinatorUserId !== session.user.id) {
+        const isApproved = validatedData.verificationStatus === 'verified';
+        const tenantName = validatedData.name || existingContract.individualName || 'Penghuni Kos';
+        
+        notifyUser(property.coordinatorUserId, {
+          title: 'Status Verifikasi Penghuni Kos',
+          message: isApproved
+            ? `Pengajuan verifikasi penyewa "${tenantName}" di ${property.name} telah DISETUJUI oleh RT.`
+            : `Pengajuan verifikasi penyewa "${tenantName}" di ${property.name} telah DITOLAK oleh RT.${validatedData.verificationNote ? ` Catatan: ${validatedData.verificationNote}` : ''}`,
+          category: 'personal',
+          redirectLink: '/dashboard/my-properties',
+        }).catch((err: any) => console.error('Gagal mengirim notifikasi verifikasi kos:', err));
+      }
+    }
 
     return NextResponse.json({ message: 'Data penyewa berhasil diperbarui' });
   } catch (error: any) {

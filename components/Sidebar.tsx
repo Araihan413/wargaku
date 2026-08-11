@@ -28,6 +28,7 @@ import {
   X,
   User,
   Lock,
+  Radio,
 } from "lucide-react";
 
 interface SidebarSubItem {
@@ -80,6 +81,12 @@ const sidebarItems: SidebarItem[] = [
     title: "Konfigurasi Sistem",
     icon: Settings,
     href: "/dashboard/system-config",
+    permission: "manage-system-config",
+  },
+  {
+    title: "Broadcast Sistem",
+    icon: Radio,
+    href: "/dashboard/system-broadcast",
     permission: "manage-system-config",
   },
 

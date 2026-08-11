@@ -51,8 +51,8 @@ export const PendingVerificationQueue: React.FC<PendingVerificationQueueProps> =
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-border bg-gray-sidebar-hover/40 text-xs font-bold text-gray-secondary-text">
+            <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+              <tr>
                 <th className="py-3 px-4">Penyewa</th>
                 <th className="py-3 px-4">Properti & Kamar</th>
                 <th className="py-3 px-4">Tipe Sewa</th>

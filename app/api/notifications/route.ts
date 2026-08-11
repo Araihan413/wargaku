@@ -98,8 +98,14 @@ export async function GET(request: Request) {
     const category = (searchParams.get('category') as 'personal' | 'dinas' | 'all') || 'personal';
     const paginated = searchParams.get('paginated') === 'true';
     const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = parseInt(searchParams.get('offset') || '0');
 
-    const result = await listNotifications(session.user.id, category === 'all' ? undefined : category);
+    const result = await listNotifications(
+      session.user.id,
+      category === 'all' ? undefined : category,
+      limit,
+      offset
+    );
 
     if (paginated) {
       return NextResponse.json({ data: result, hasMore: result.length === limit });
@@ -146,9 +152,21 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const idStr = searchParams.get('id');
+    const category = searchParams.get('category') as 'personal' | 'dinas' | 'all' | null;
 
-    const id = idStr ? parseInt(idStr) : undefined;
-    await deleteNotifications(session.user.id, id ? [id] : []);
+    if (idStr) {
+      const id = parseInt(idStr);
+      if (isNaN(id)) {
+        return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
+      }
+      await deleteNotifications(session.user.id, [id]);
+    } else {
+      await deleteNotifications(
+        session.user.id,
+        undefined,
+        category && category !== 'all' ? category : undefined
+      );
+    }
 
     return NextResponse.json({ message: 'Berhasil menghapus notifikasi' });
   } catch (error: any) {

@@ -102,12 +102,13 @@ export async function generateTagihanForRule(ruleId: number) {
   const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   const activeFamilies = await db
-    .select({ id: schema.families.id })
+    .select({ id: schema.families.id, headUserId: schema.families.headUserId })
     .from(schema.families)
     .where(and(eq(schema.families.isActive, true), inArray(schema.families.verificationStatus, ['verified', 'changes_pending'])));
 
   let generated = 0;
   let skipped = 0;
+  const newlyBilledHeadUserIds: string[] = [];
 
   for (const family of activeFamilies) {
     const [existing] = await db
@@ -127,12 +128,23 @@ export async function generateTagihanForRule(ruleId: number) {
         isMandatory: rule.isMandatory,
       });
       generated++;
+      if (family.headUserId) {
+        newlyBilledHeadUserIds.push(family.headUserId);
+      }
     } else {
       skipped++;
     }
   }
 
-  return { period, generated, skipped };
+  return {
+    period,
+    generated,
+    skipped,
+    newlyBilledHeadUserIds,
+    ruleName: rule.name,
+    ruleAmount: rule.amount,
+    isMandatory: rule.isMandatory,
+  };
 }
 
 // ==========================================

@@ -204,8 +204,8 @@ function RegistrationApprovalsContent() {
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
+              <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+                <tr>
                   <th className="py-4 px-5">Nama & Kontak</th>
                   <th className="py-4 px-5">Tipe Akun</th>
                   <th className="py-4 px-5">NIK</th>

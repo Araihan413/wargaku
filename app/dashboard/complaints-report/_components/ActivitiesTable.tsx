@@ -40,8 +40,8 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
     <div className="bg-gray-card border border-gray-border rounded-2xl shadow-xs overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover/40 text-gray-secondary-text font-bold uppercase tracking-wider">
+          <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+            <tr>
               <th className="py-3.5 px-4">Nama Kegiatan</th>
               <th className="py-3.5 px-4">Tanggal & Waktu</th>
               <th className="py-3.5 px-4">Lokasi</th>
@@ -63,7 +63,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                 const upcoming = isUpcoming(item.eventDate);
                 return (
                   <tr key={item.id} className="hover:bg-gray-sidebar-hover/20 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-gray-heading-main max-w-[180px]">
+                    <td className="py-3.5 px-4 font-bold text-gray-heading-main max-w-45">
                       <div className="truncate">{item.title}</div>
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
@@ -78,7 +78,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                       {item.location ? (
                         <span className="inline-flex items-center gap-1 text-gray-heading-main">
                           <MapPin className="w-3 h-3 text-primary shrink-0" />
-                          <span className="truncate max-w-[120px]">{item.location}</span>
+                          <span className="truncate max-w-30">{item.location}</span>
                         </span>
                       ) : (
                         <span className="text-gray-300">—</span>

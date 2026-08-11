@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState, useSyncExternalStore } from "react";
+import Script from "next/script";
 import { Sidebar } from "@/components/Sidebar";
 import { Navbar } from "@/components/Navbar";
+import { OneSignalProvider } from "@/components/OneSignalProvider";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { SystemBroadcastBanner } from "@/components/SystemBroadcastBanner";
 import { useRoleStore } from "@/lib/store/use-role-store";
 
 const subscribeSidebar = (callback: () => void) => {
@@ -127,6 +130,12 @@ export default function DashboardLayout({
       data-sidebar-collapsed={isCollapsed}
       className="group/layout flex min-h-screen bg-gray-page-bg font-sans antialiased text-gray-body-text-btn selection:bg-primary/20"
     >
+      <Script
+        src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+        strategy="lazyOnload"
+      />
+      <OneSignalProvider />
+
       {/* Top Navbar */}
       <Navbar
         onOpenMobile={() => setIsMobileDrawerOpen(true)}
@@ -148,8 +157,9 @@ export default function DashboardLayout({
         isCollapsed ? "lg:pl-20" : "lg:pl-70"
       }`}>
         <div className="p-6 md:p-8 max-w-[1920px] mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
-          <div className="print:hidden">
+          <div className="print:hidden space-y-4">
             <Breadcrumb />
+            <SystemBroadcastBanner />
           </div>
           {children}
         </div>

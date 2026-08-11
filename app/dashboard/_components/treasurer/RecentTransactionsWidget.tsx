@@ -49,8 +49,8 @@ export const RecentTransactionsWidget: React.FC<RecentTransactionsWidgetProps> =
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-gray-secondary-text font-bold tracking-wider">
+          <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+            <tr>
               <th className="py-3 px-4">Tipe & Transaksi</th>
               <th className="py-3 px-4">Kategori</th>
               <th className="py-3 px-4">Tanggal</th>

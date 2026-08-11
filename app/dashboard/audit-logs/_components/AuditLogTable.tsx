@@ -50,8 +50,8 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
     <div className="bg-gray-card border border-gray-border rounded-2xl shadow-xs overflow-hidden flex flex-col justify-between space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover/40 text-gray-secondary-text font-bold uppercase tracking-wider">
+          <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+            <tr>
               <th className="py-3.5 px-4">Waktu</th>
               <th className="py-3.5 px-4">Pelaku (User)</th>
               <th className="py-3.5 px-4">Modul</th>

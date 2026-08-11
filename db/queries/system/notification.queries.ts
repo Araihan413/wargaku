@@ -22,7 +22,12 @@ export async function createNotification(input: CreateNotificationInput) {
   return result.insertId;
 }
 
-export async function listNotifications(userId: string, category?: 'personal' | 'dinas') {
+export async function listNotifications(
+  userId: string,
+  category?: 'personal' | 'dinas',
+  limit = 20,
+  offset = 0
+) {
   const conditions = [eq(schema.notifications.userId, userId)];
   if (category) {
     conditions.push(eq(schema.notifications.category, category));
@@ -33,7 +38,8 @@ export async function listNotifications(userId: string, category?: 'personal' | 
     .from(schema.notifications)
     .where(and(...conditions))
     .orderBy(desc(schema.notifications.createdAt))
-    .limit(50);
+    .limit(limit)
+    .offset(offset);
 }
 
 export async function markNotificationsRead(userId: string, notificationId?: number, category?: 'personal' | 'dinas') {
@@ -49,9 +55,20 @@ export async function markNotificationsRead(userId: string, notificationId?: num
   }
 }
 
-export async function deleteNotifications(userId: string, notificationIds: number[]) {
-  if (notificationIds.length === 0) return;
+export async function deleteNotifications(
+  userId: string,
+  notificationIds?: number[],
+  category?: 'personal' | 'dinas'
+) {
+  const conditions = [eq(schema.notifications.userId, userId)];
+
+  if (notificationIds && notificationIds.length > 0) {
+    conditions.push(inArray(schema.notifications.id, notificationIds));
+  } else if (category) {
+    conditions.push(eq(schema.notifications.category, category));
+  }
+
   await db
     .delete(schema.notifications)
-    .where(and(eq(schema.notifications.userId, userId), inArray(schema.notifications.id, notificationIds)));
+    .where(and(...conditions));
 }

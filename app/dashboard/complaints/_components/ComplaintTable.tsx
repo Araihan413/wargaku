@@ -96,8 +96,8 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({
     <div className="rounded-2xl border border-gray-border bg-gray-card shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover/50 text-gray-secondary-text font-bold uppercase tracking-wider">
+          <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+            <tr>
               <th className="px-4 py-3.5">Kode / Tanggal</th>
               <th className="px-4 py-3.5">Pelapor</th>
               <th className="px-4 py-3.5">Kategori</th>

@@ -187,7 +187,7 @@ export default function ProfilePage() {
           }`}
         >
           <ShieldCheck className={`h-4.5 w-4.5 ${activeTab === "keamanan" ? "text-primary" : "text-gray-secondary-text"}`} />
-          <span>Keamanan & Password</span>
+          <span>Keamanan & Notifikasi</span>
         </button>
 
         <button

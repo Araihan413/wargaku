@@ -365,8 +365,8 @@ export default function SmartGroupsPage() {
         ) : (
           <div className="overflow-x-auto rounded-xl border border-gray-border print:border-black">
             <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text print:bg-gray-100 print:text-black">
+              <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+                <tr>
                   <th className="py-3.5 px-4">No</th>
                   <th className="py-3.5 px-4">Nama Lengkap & NIK</th>
                   <th className="py-3.5 px-4">L/P</th>

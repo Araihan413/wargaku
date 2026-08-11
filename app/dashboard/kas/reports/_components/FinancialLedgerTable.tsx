@@ -104,8 +104,8 @@ export const FinancialLedgerTable: React.FC<FinancialLedgerTableProps> = ({ item
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-gray-border">
         <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
+          <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+            <tr>
               <th className="py-3 px-3.5">Tanggal</th>
               <th className="py-3 px-3.5">Jenis / Sumber</th>
               <th className="py-3 px-3.5">Kategori</th>

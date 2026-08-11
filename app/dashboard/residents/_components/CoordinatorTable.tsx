@@ -48,8 +48,8 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
     <div className="border border-gray-border rounded-2xl bg-gray-card shadow-sm overflow-hidden">
       <div className="overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
         <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-gray-border bg-gray-sidebar-hover text-xs font-bold text-gray-secondary-text">
+          <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+            <tr>
               <th className="py-4 px-5 min-w-50">Nama Koordinator</th>
               <th className="py-4 px-5">Kontak</th>
               <th className="py-4 px-5 min-w-45">Kos yang Dikelola</th>

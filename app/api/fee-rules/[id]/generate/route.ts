@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { generateTagihanForRule } from '@/db/queries/finance/fee.queries';
+import { notifyUser } from '@/lib/notifications';
 
 /**
  * @openapi
@@ -56,6 +57,31 @@ export async function POST(
     }
 
     const result = await generateTagihanForRule(ruleId);
+
+    // Kirim notifikasi lonceng HANYA ke warga yang baru dibuatkan tagihannya (tidak double)
+    if (result.generated > 0 && result.newlyBilledHeadUserIds.length > 0) {
+      const isMandatory = result.isMandatory;
+      const formattedAmount = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0,
+      }).format(Number(result.ruleAmount));
+
+      const title = isMandatory ? 'Tagihan Iuran Baru' : 'Pemberitahuan Partisipasi Iuran';
+      const message = isMandatory
+        ? `Tagihan Iuran Wajib "${result.ruleName}" periode ${result.period} sebesar ${formattedAmount} telah diterbitkan. Mohon lakukan pembayaran.`
+        : `Pemberitahuan partisipasi iuran "${result.ruleName}" periode ${result.period} sebesar ${formattedAmount} telah dibuka. Partisipasi Anda sangat berharga.`;
+
+      for (const headUserId of result.newlyBilledHeadUserIds) {
+        notifyUser(headUserId, {
+          title,
+          message,
+          category: 'personal',
+          redirectLink: '/dashboard/my-fees',
+        }).catch((err) => console.error('Gagal mengirim notifikasi iuran baru:', err));
+      }
+    }
+
     return NextResponse.json({
       message: `Tagihan periode ${result.period} berhasil dibuat (${result.generated} baru, ${result.skipped} sudah ada)`,
       data: result,

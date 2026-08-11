@@ -29,6 +29,7 @@ export const users = mysqlTable('users', {
   phone: varchar('phone', { length: 15 }),
   photo: varchar('photo', { length: 255 }),
   status: mysqlEnum('status', ['pending', 'active', 'suspended']).notNull().default('pending'),
+  pushNotificationsEnabled: boolean('push_notifications_enabled').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -391,6 +392,35 @@ export const smartGroups = mysqlTable('smart_groups', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
+
+// 5.4 System Broadcasts (Notifikasi Sistem dari Super Admin)
+export const systemBroadcasts = mysqlTable('system_broadcasts', {
+  id: int('id').autoincrement().primaryKey(),
+  title: varchar('title', { length: 150 }).notNull(),
+  message: text('message').notNull(),
+  type: mysqlEnum('type', ['info', 'maintenance', 'feature', 'warning']).notNull().default('info'),
+  sendPush: boolean('send_push').notNull().default(false),
+  sendInAppNotif: boolean('send_in_app_notif').notNull().default(false),
+  isActive: boolean('is_active').notNull().default(true),
+  expiresAt: timestamp('expires_at'),
+  createdBy: varchar('created_by', { length: 255 }).notNull().references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => [
+  index('system_broadcasts_is_active_idx').on(table.isActive),
+  index('system_broadcasts_created_at_idx').on(table.createdAt),
+]);
+
+// 5.5 Broadcast Dismissals (Catatan user yang sudah menutup banner)
+export const broadcastDismissals = mysqlTable('broadcast_dismissals', {
+  id: int('id').autoincrement().primaryKey(),
+  broadcastId: int('broadcast_id').notNull().references(() => systemBroadcasts.id, { onDelete: 'cascade' }),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  dismissedAt: timestamp('dismissed_at').notNull().defaultNow(),
+}, (table) => [
+  unique('broadcast_user_unique').on(table.broadcastId, table.userId),
+  index('dismissals_user_id_idx').on(table.userId),
+]);
 
 // ==========================================
 // 6. MODUL BETTER AUTH (Jangan diubah)

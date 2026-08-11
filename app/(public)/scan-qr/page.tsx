@@ -191,6 +191,14 @@ function PublicScanQrContent() {
     };
   }, [scanResult, session, isSessionPending, activeRoleId, router]);
 
+  const handleResetScan = () => {
+    setScanResult(null);
+    setDetailData(null);
+    setErrorMessage(null);
+    setInputToken("");
+    setScanMode("publik");
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputToken.trim()) {
@@ -212,174 +220,194 @@ function PublicScanQrContent() {
       />
 
       <section className="max-w-4xl mx-auto px-4 sm:px-6 -mt-8 relative z-20 space-y-6 pb-12">
-        {/* Navigation Tabs Bar */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-2 shadow-sm flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab("kamera")}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === "kamera"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            <Camera className="w-4 h-4" />
-            <span>Scan Kamera</span>
-          </button>
+        {/* FASE 1: INPUT SCANNER (Hanya tampil jika BELUM ada hasil scan) */}
+        {!scanResult && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
+            {/* Navigation Tabs Bar */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-2 shadow-sm flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab("kamera")}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  activeTab === "kamera"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Camera className="w-4 h-4" />
+                <span>Scan Kamera</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("manual")}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === "manual"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            <Search className="w-4 h-4" />
-            <span>Nomor Rumah</span>
-          </button>
-        </div>
-
-        {/* TAB 1: LIVE CAMERA SCANNER COMPONENT */}
-        {activeTab === "kamera" && (
-          <LiveCameraScanner
-            onScanSuccess={(token) => {
-              setInputToken(token);
-              executeFetch(token);
-            }}
-          />
-        )}
-
-        {/* TAB 2: MANUAL SEARCH BOX */}
-        {activeTab === "manual" && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
-                <Search className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-                  Pencarian Manual Blok / Nomor Rumah
-                </h2>
-                <p className="text-xs text-slate-500 font-medium">
-                  Ketikkan Blok &amp; Nomor Rumah (contoh:{" "}
-                  <code className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">A1-12</code>,{" "}
-                  <code className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Blok A1 No. 12</code>, atau{" "}
-                  <code className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">qr-dwelling-xxx</code>).
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("manual")}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  activeTab === "manual"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Search className="w-4 h-4" />
+                <span>Nomor Rumah</span>
+              </button>
             </div>
 
-            <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={inputToken}
-                  onChange={(e) => setInputToken(e.target.value)}
-                  placeholder="Ketik Blok & Nomor Rumah (contoh: A1-12)..."
-                  className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+            {/* TAB 1: LIVE CAMERA SCANNER COMPONENT */}
+            {activeTab === "kamera" && (
+              <div className="animate-in fade-in duration-200">
+                <LiveCameraScanner
+                  onScanSuccess={(token) => {
+                    setInputToken(token);
+                    executeFetch(token);
+                  }}
                 />
               </div>
+            )}
+
+            {/* TAB 2: MANUAL SEARCH BOX */}
+            {activeTab === "manual" && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                  <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+                      Pencarian Manual Blok / Nomor Rumah
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Ketikkan Blok &amp; Nomor Rumah (contoh:{" "}
+                      <code className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">A1-12</code>,{" "}
+                      <code className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Blok A1 No. 12</code>, atau{" "}
+                      <code className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">qr-dwelling-xxx</code>).
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={inputToken}
+                      onChange={(e) => setInputToken(e.target.value)}
+                      placeholder="Ketik Blok & Nomor Rumah (contoh: A1-12)..."
+                      className="w-full bg-gray-card border border-gray-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isLoadingAny}
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-extrabold shadow-sm hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                  >
+                    {isSearching ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    <span>Tampilkan Profil</span>
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Friendly Empty / Not Found State */}
+            {errorMessage && (
+              <DwellingNotFoundState
+                searchedQuery={inputToken || initialToken}
+                errorMessage={errorMessage}
+                onRetry={() => {
+                  const q = (inputToken || initialToken).trim();
+                  if (q) executeFetch(q);
+                  else setErrorMessage(null);
+                }}
+                isLoading={isLoadingAny}
+              />
+            )}
+          </div>
+        )}
+
+        {/* FASE 2: RESULT VIEW (Hanya tampil jika SCAN/SEARCH BERHASIL) */}
+        {scanResult && (
+          <div className="space-y-6 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-800">
+            {/* Top Action Bar saat Hasil Scan Berhasil Tampil */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 bg-linear-to-r from-blue-50/50 via-indigo-50/30 to-white">
+              <div className="flex items-center gap-3 text-center sm:text-left">
+                <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 shrink-0">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">QR Code / Hunian Ditemukan!</h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Profil hunian di bawah ini ditampilkan sesuai dengan hak akses sesi Anda.
+                  </p>
+                </div>
+              </div>
               <button
-                type="submit"
-                disabled={isLoadingAny}
-                className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-extrabold shadow-sm hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                type="button"
+                onClick={handleResetScan}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center justify-center gap-2 shrink-0"
               >
-                {isSearching ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                <span>Tampilkan Profil</span>
+                <RefreshCw className="w-4 h-4" />
+                <span>Scan QR / Cari Rumah Lain</span>
               </button>
-            </form>
+            </div>
+
+            {/* Loading state saat session/ownership sedang memproses detail */}
+            {(isCheckingOwnership || isSessionPending) && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex items-center gap-4">
+                <div className="p-3 rounded-full bg-blue-50">
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Memverifikasi akses...</p>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Mengecek apakah hunian ini terhubung dengan akun Anda.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* RESULT PROFILE CARD COMPONENT */}
+            {!isCheckingOwnership && !isSessionPending && scanMode === "publik" && (
+              <ScanResultCard
+                mode="publik"
+                scanResult={scanResult}
+              />
+            )}
+            {!isCheckingOwnership && !isSessionPending && scanMode === "officer" && (
+              <ScanResultCard
+                mode="officer"
+                scanResult={scanResult}
+              />
+            )}
+            {!isCheckingOwnership && !isSessionPending && scanMode === "tamu-login" && (
+              <ScanResultCard
+                mode="warga-login"
+                scanResult={scanResult}
+                detailData={detailData ?? {
+                  id: scanResult.id,
+                  blockNumber: scanResult.blockNumber,
+                  houseNumber: scanResult.houseNumber,
+                  type: scanResult.type,
+                  latitude: scanResult.latitude,
+                  longitude: scanResult.longitude,
+                  ownerName: scanResult.ownerName,
+                  ownerPhone: scanResult.ownerPhone,
+                  propertyName: scanResult.propertyName,
+                  totalRooms: scanResult.totalRooms,
+                  occupiedRooms: scanResult.occupiedRooms,
+                  availableRooms: scanResult.availableRooms,
+                  activeResidents: [],
+                  activeKkCount: 0,
+                  rtName: scanResult.rtName,
+                  rwName: scanResult.rwName,
+                  villageName: scanResult.villageName,
+                }}
+                loggedInUserName={session?.user?.name}
+              />
+            )}
           </div>
-        )}
-
-        {/* Friendly Empty / Not Found State */}
-        {errorMessage && (
-          <DwellingNotFoundState
-            searchedQuery={inputToken || initialToken}
-            errorMessage={errorMessage}
-            onRetry={() => {
-              const q = (inputToken || initialToken).trim();
-              if (q) executeFetch(q);
-              else setErrorMessage(null);
-            }}
-            isLoading={isLoadingAny}
-          />
-        )}
-
-        {/* Loading state saat session baru dimuat setelah scan berhasil */}
-        {scanResult && !isSearching && isSessionPending && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex items-center gap-4">
-            <div className="p-3 rounded-full bg-blue-50">
-              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900">Memverifikasi akses...</p>
-              <p className="text-xs text-slate-500 font-medium">
-                Mengecek apakah hunian ini terhubung dengan akun Anda.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Ownership check loading overlay */}
-        {isCheckingOwnership && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex items-center gap-4">
-            <div className="p-3 rounded-full bg-blue-50">
-              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900">Memverifikasi akses...</p>
-              <p className="text-xs text-slate-500 font-medium">
-                Mengecek apakah hunian ini terhubung dengan akun Anda.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* RESULT PROFILE CARD COMPONENT */}
-        {scanResult && !isCheckingOwnership && !isSessionPending && scanMode === "publik" && (
-          <ScanResultCard
-            mode="publik"
-            scanResult={scanResult}
-          />
-        )}
-        {scanResult && !isCheckingOwnership && !isSessionPending && scanMode === "officer" && (
-          <ScanResultCard
-            mode="officer"
-            scanResult={scanResult}
-          />
-        )}
-        {scanResult && !isCheckingOwnership && !isSessionPending && scanMode === "tamu-login" && (
-          <ScanResultCard
-            mode="warga-login"
-            scanResult={scanResult}
-            detailData={detailData ?? {
-              id: scanResult.id,
-              blockNumber: scanResult.blockNumber,
-              houseNumber: scanResult.houseNumber,
-              type: scanResult.type,
-              latitude: scanResult.latitude,
-              longitude: scanResult.longitude,
-              ownerName: scanResult.ownerName,
-              ownerPhone: scanResult.ownerPhone,
-              propertyName: scanResult.propertyName,
-              totalRooms: scanResult.totalRooms,
-              occupiedRooms: scanResult.occupiedRooms,
-              availableRooms: scanResult.availableRooms,
-              activeResidents: [],
-              activeKkCount: 0,
-              rtName: scanResult.rtName,
-              rwName: scanResult.rwName,
-              villageName: scanResult.villageName,
-            }}
-            loggedInUserName={session?.user?.name}
-          />
         )}
       </section>
     </>
