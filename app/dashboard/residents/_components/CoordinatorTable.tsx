@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { UserX, Home, Phone, Mail, Eye, Pencil, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { UserX, Home, Phone, Mail, Eye, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { TableSkeleton } from "@/components/TableSkeleton";
 
 export interface CoordinatorProperty {
   id: number;
@@ -59,16 +60,7 @@ export const CoordinatorTable: React.FC<CoordinatorTableProps> = ({
           </thead>
           <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
             {isLoading ? (
-              <tr>
-                <td colSpan={5} className="py-16 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="text-xs text-gray-placeholder">
-                      Memuat data koordinator kos...
-                    </span>
-                  </div>
-                </td>
-              </tr>
+              <TableSkeleton rowCount={5} colCount={5} />
             ) : coordinators.length > 0 ? (
               coordinators.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-sidebar-hover/20 transition-all">

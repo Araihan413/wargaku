@@ -1,5 +1,6 @@
 import React from "react";
-import { Loader2, ChevronLeft, ChevronRight, Pencil, Ban, CheckCircle, XCircle, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Ban, CheckCircle, XCircle, Eye } from "lucide-react";
+import { TableSkeleton } from "@/components/TableSkeleton";
 
 export interface DwellingItem {
   id: number;
@@ -59,16 +60,7 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
           </thead>
           <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
             {isLoading ? (
-              <tr>
-                <td colSpan={6} className="py-16 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="text-xs text-gray-placeholder">
-                      Memuat data hunian...
-                    </span>
-                  </div>
-                </td>
-              </tr>
+              <TableSkeleton rowCount={5} colCount={6} />
             ) : dwellings.length > 0 ? (
               dwellings.map((d) => {
                 const addressStr = `Blok ${d.blockNumber} No. ${d.houseNumber}`;

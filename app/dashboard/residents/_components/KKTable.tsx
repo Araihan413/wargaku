@@ -1,5 +1,4 @@
 import {
-  Loader2,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -12,6 +11,7 @@ import {
   File
 } from "lucide-react";
 import Link from "next/link";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { FamilyItem } from "../types";
 
 interface KKTableProps {
@@ -56,16 +56,7 @@ export const KKTable: React.FC<KKTableProps> = ({
           </thead>
           <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
             {isLoading ? (
-              <tr>
-                <td colSpan={7} className="py-16 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="text-xs text-gray-placeholder">
-                      Memuat data Kartu Keluarga...
-                    </span>
-                  </div>
-                </td>
-              </tr>
+              <TableSkeleton rowCount={5} colCount={7} />
             ) : families.length > 0 ? (
               families.map((f) => {
                 const addressParts = [

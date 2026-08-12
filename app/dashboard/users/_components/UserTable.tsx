@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Loader2,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -11,6 +10,7 @@ import {
   Pencil,
   ShieldAlert,
 } from "lucide-react";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { UserItem } from "../types";
 
 interface UserTableProps {
@@ -57,16 +57,7 @@ export const UserTable: React.FC<UserTableProps> = ({
           </thead>
           <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
             {isLoading ? (
-              <tr>
-                <td colSpan={5} className="py-16 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="text-xs text-gray-placeholder">
-                      Memuat data pengguna...
-                    </span>
-                  </div>
-                </td>
-              </tr>
+              <TableSkeleton rowCount={5} colCount={5} />
             ) : users.length > 0 ? (
               users.map((u) => {
                 const isSelf = u.id === currentUserId;
