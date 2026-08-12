@@ -159,7 +159,7 @@ export const FinancialLedgerTable: React.FC<FinancialLedgerTableProps> = ({ item
                       {item.receiptFile ? (
                         <SecureDocumentLink
                           type="receipt"
-                          recordId={Number(item.id)}
+                          recordId={item.rawId || parseInt(String(item.id).replace(/\D/g, ""), 10)}
                           mode="view"
                           className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-semibold"
                           title="Lihat Bukti Nota"

@@ -95,6 +95,7 @@ export async function getFinancialReportData(options: { year?: number; month?: n
 
     ledger.push({
       id: `CASH-${c.id}`,
+      rawId: c.id,
       date: dateStr,
       type: c.type,
       source: c.category === "Iuran Warga" ? "Iuran Warga" : "Kas RT",

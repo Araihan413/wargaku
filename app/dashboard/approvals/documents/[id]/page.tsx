@@ -74,7 +74,6 @@ export default function DocumentVerificationWorkspacePage() {
   const [activeDocRef, setActiveDocRef] = useState<ActiveDocRef>(null);
   const [activeDocTitle, setActiveDocTitle] = useState<string>("");
   const [signedDocUrl, setSignedDocUrl] = useState<string | null>(null);
-  const [isLoadingDoc, setIsLoadingDoc] = useState(false);
 
   // Tab state for mobile (activeTab: "document" | "data")
   const [activeMobileTab, setActiveMobileTab] = useState<"document" | "data">("data");
@@ -83,24 +82,10 @@ export default function DocumentVerificationWorkspacePage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
 
-  // Fetch signed URL setiap kali activeDocRef berubah
-  const fetchSignedDocUrl = useCallback(async (ref: ActiveDocRef) => {
+  // Set streaming URL setiap kali activeDocRef berubah
+  const fetchSignedDocUrl = useCallback((ref: ActiveDocRef) => {
     if (!ref) { setSignedDocUrl(null); return; }
-    setIsLoadingDoc(true);
-    try {
-      const res = await fetch(`/api/documents/secure-url?type=${ref.type}&id=${ref.recordId}`);
-      if (res.ok) {
-        const { signedUrl } = await res.json();
-        setSignedDocUrl(signedUrl);
-      } else {
-        setSignedDocUrl(null);
-        toast.error("Gagal memuat pratinjau dokumen.");
-      }
-    } catch {
-      setSignedDocUrl(null);
-    } finally {
-      setIsLoadingDoc(false);
-    }
+    setSignedDocUrl(`/api/documents/stream?type=${ref.type}&id=${ref.recordId}`);
   }, []);
 
   const fetchFamilyDetail = useCallback(async (id: number) => {
@@ -378,12 +363,7 @@ export default function DocumentVerificationWorkspacePage() {
 
           {/* Document Viewer Frame */}
           <div className="flex-1 p-4 flex items-center justify-center bg-gray-950/5 overflow-auto relative">
-            {isLoadingDoc ? (
-              <div className="flex flex-col items-center gap-2 text-gray-placeholder">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="text-xs font-medium">Memuat dokumen...</span>
-              </div>
-            ) : signedDocUrl ? (
+            {signedDocUrl ? (
               isPdf ? (
                 <iframe
                   src={signedDocUrl}

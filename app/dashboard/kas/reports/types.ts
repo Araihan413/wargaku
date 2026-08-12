@@ -16,6 +16,7 @@ export interface CategoryBreakdownItem {
 
 export interface LedgerItem {
   id: string;
+  rawId?: number;
   date: string;
   type: "income" | "expense";
   source: string;

@@ -10,13 +10,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { DocumentPreviewModal } from "./_components/DocumentPreviewModal";
 import { VerifyConfirmModal } from "./_components/VerifyConfirmModal";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { RefreshButton } from "@/components/RefreshButton";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 const STATUS_OPTIONS: SelectOption[] = [
   { value: "pending", label: "Menunggu Review" },
@@ -96,11 +96,6 @@ function DocumentApprovalsContent() {
     }
   }, []);
 
-  // Modal states
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewTitle, setPreviewTitle] = useState("");
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedTitle, setSelectedTitle] = useState("");
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
@@ -172,11 +167,6 @@ function DocumentApprovalsContent() {
     }
   };
 
-  const handleOpenPreview = (url: string, title: string) => {
-    setPreviewUrl(url);
-    setPreviewTitle(title);
-    setIsPreviewOpen(true);
-  };
 
   const handleOpenConfirm = (id: number, name: string, action: "approve" | "reject") => {
     setSelectedId(id);
@@ -297,7 +287,7 @@ function DocumentApprovalsContent() {
         {/* Data Table */}
         <div className="overflow-x-auto">
           {isLoading ? (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                 <tr>
                   <th className="py-4 px-5">Kepala Keluarga / Penyewa</th>
@@ -322,7 +312,7 @@ function DocumentApprovalsContent() {
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                   <tr>
                     <th className="py-4 px-5">Kepala Keluarga</th>
@@ -411,7 +401,7 @@ function DocumentApprovalsContent() {
               </p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                 <tr>
                   <th className="py-4 px-5">Nama Penghuni</th>
@@ -464,13 +454,15 @@ function DocumentApprovalsContent() {
                       </td>
                       <td className="py-4 px-5 text-center">
                         {ren.ktpFile ? (
-                          <button
-                            onClick={() => handleOpenPreview(ren.ktpFile!, `KTP - ${ren.name}`)}
+                          <SecureDocumentLink
+                            type="ktp-tenant"
+                            recordId={ren.id}
+                            title={`KTP - ${ren.name}`}
                             className="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1"
                           >
                             <Eye className="h-3 w-3" />
-                            Pratinjau
-                          </button>
+                            <span>Pratinjau</span>
+                          </SecureDocumentLink>
                         ) : (
                           <span className="text-gray-placeholder italic text-[10px]">Belum diunggah</span>
                         )}
@@ -511,13 +503,6 @@ function DocumentApprovalsContent() {
         </div>
       </div>
 
-      {/* Document Preview Modal */}
-      <DocumentPreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        fileUrl={previewUrl}
-        title={previewTitle}
-      />
 
       {/* Verify Confirm/Reject Modal */}
       <VerifyConfirmModal
