@@ -2,7 +2,7 @@
 
 import React from "react";
 import { TunggakanItem } from "../../types";
-import { ChevronDown, ChevronRight, MessageSquare, AlertCircle, CheckCircle2, Loader } from "lucide-react";
+import { ChevronDown, ChevronRight, MessageSquare, AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface TunggakanTableProps {
   data: TunggakanItem[];
@@ -29,9 +29,25 @@ export const TunggakanTable: React.FC<TunggakanTableProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12 text-gray-secondary-text">
-        <Loader className="h-5 w-5 animate-spin mr-2" />
-        <span className="text-sm font-semibold">Memuat laporan tunggakan...</span>
+      <div className="space-y-3 animate-pulse">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-20 bg-gray-card border border-gray-border rounded-2xl p-4 flex items-center justify-between shadow-xs"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 bg-gray-border/70 rounded-xl" />
+              <div className="space-y-2">
+                <div className="h-4 w-44 bg-gray-border/60 rounded-md" />
+                <div className="h-3 w-28 bg-gray-border/40 rounded-md" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-5 w-24 bg-gray-border/60 rounded-md" />
+              <div className="h-8 w-8 bg-gray-border/70 rounded-xl" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
