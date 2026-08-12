@@ -6,6 +6,9 @@ import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
+import { notifyRoles } from "@/lib/notifications";
+import { sendEmail } from "@/lib/mail";
+import { getWargaRegistrationEmail } from "@/lib/emails/templates";
 
 /**
  * @openapi
@@ -85,9 +88,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "NIK sudah terdaftar" }, { status: 400 });
     }
 
-    // Insert data kependudukan dengan status draft
+    // Insert data kependudukan dengan status draft & tetapkan role Warga (6)
     await db.transaction(async (tx) => {
-      // 1. Insert ke tabel families
+      // 1. Tetapkan role Warga secara eksplisit
+      await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, session.user.id));
+      await tx.insert(schema.userRoles).values({
+        userId: session.user.id,
+        roleId: 6,
+        isPrimary: true,
+      });
+
+      // 2. Insert ke tabel families
       const [insertResult] = await tx.insert(schema.families).values({
         dwellingId: dwellingId,
         headUserId: session.user.id,
@@ -98,7 +109,7 @@ export async function POST(request: Request) {
 
       const familyId = insertResult.insertId;
 
-      // 2. Insert ke tabel family_members
+      // 3. Insert ke tabel family_members
       await tx.insert(schema.familyMembers).values({
         familyId: familyId,
         userId: session.user.id,
@@ -118,6 +129,28 @@ export async function POST(request: Request) {
       description: `${session.user.name} menyelesaikan pendaftaran data kependudukan (KK No. ${familyNumber}, hunian ID: ${dwellingId}).`,
       ipAddress,
     }).catch(() => null);
+
+    // 1. Kirim notifikasi internal ke Ketua RT & Sekretaris
+    notifyRoles(["ketua-rt", "sekretaris"], {
+      title: "Pendaftaran Warga Baru",
+      message: `Warga bernama ${session.user.name} telah menyelesaikan pendaftaran mandiri dan menunggu persetujuan Anda.`,
+      category: "dinas",
+      redirectLink: `/dashboard/approvals/registration`,
+    }).catch((err) => {
+      console.error("Gagal mengirim notifikasi ke RT:", err);
+    });
+
+    // 2. Kirim email konfirmasi ke Warga
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000";
+    const loginLink = `${appUrl}/login`;
+
+    sendEmail({
+      to: { email: session.user.email, name: session.user.name },
+      subject: "Pendaftaran Akun Wargaku Berhasil",
+      htmlContent: getWargaRegistrationEmail(session.user.name, loginLink),
+    }).catch((err) => {
+      console.error("Gagal mengirim email konfirmasi warga:", err);
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

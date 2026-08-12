@@ -31,30 +31,30 @@ export function getBaseEmailLayout({ subtitle, theme, contentHtml }: BaseEmailOp
     <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; width: 100%; margin: 0; padding: 0;">
         <tr>
-          <td align="center" style="padding: 12px 0;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%; background-color: #ffffff; margin: 0 auto;">
+          <td align="center" style="padding: 16px 0;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 560px; width: 100%; background-color: #ffffff; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
               <!-- Header Banner -->
               <tr>
-                <td style="background: ${headerGradient}; padding: 24px 24px; text-align: left;">
-                  <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2;">WARGAKU</h1>
-                  <p style="color: ${subtitleColor}; margin: 4px 0 0 0; font-size: 13px; font-weight: 500;">${subtitle}</p>
+                <td style="background: ${headerGradient}; padding: 20px 24px; text-align: left;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2;">WARGAKU</h1>
+                  <p style="color: ${subtitleColor}; margin: 2px 0 0 0; font-size: 12px; font-weight: 500;">${subtitle}</p>
                 </td>
               </tr>
               
               <!-- Body Content -->
               <tr>
-                <td style="padding: 28px 24px; color: #1e293b; font-size: 15px; line-height: 1.6;">
+                <td style="padding: 22px 24px; color: #1e293b; font-size: 14px; line-height: 1.55;">
                   ${contentHtml}
                 </td>
               </tr>
               
               <!-- Footer -->
               <tr>
-                <td style="background-color: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
-                  <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.5;">
+                <td style="background-color: #f8fafc; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
+                  <p style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.4;">
                     Pesan ini dikirim secara otomatis oleh sistem Wargaku. Mohon untuk tidak membalas email ini secara langsung.
                   </p>
-                  <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 0 0;">
+                  <p style="font-size: 11px; color: #94a3b8; margin: 6px 0 0 0;">
                     &copy; ${currentYear} Wargaku. All rights reserved.
                   </p>
                 </td>
@@ -70,30 +70,67 @@ export function getBaseEmailLayout({ subtitle, theme, contentHtml }: BaseEmailOp
 
 export function getWargaRegistrationEmail(name: string, loginLink: string): string {
   const content = `
-    <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 16px; letter-spacing: -0.4px;">Registrasi Akun Diterima!</h2>
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+    <h2 style="font-size: 19px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 12px; letter-spacing: -0.4px;">Registrasi Akun Diterima!</h2>
+    <p style="font-size: 14px; line-height: 1.55; color: #334155; margin-bottom: 14px;">
       Halo <strong>${name}</strong>, terima kasih telah melakukan pendaftaran mandiri di aplikasi <strong>Wargaku</strong>.
     </p>
     
-    <div style="background-color: #eff6ff; border-left: 4px solid #2563eb; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; color: #1e40af;">
-      <p style="margin: 0; font-size: 14px; line-height: 1.5;">
+    <div style="background-color: #eff6ff; border-left: 4px solid #2563eb; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; color: #1e40af;">
+      <p style="margin: 0; font-size: 13px; line-height: 1.45;">
         Akun Anda saat ini berstatus <strong>Pending</strong>. Pengurus RT sedang melakukan verifikasi data kependudukan Anda. Anda akan menerima email pemberitahuan setelah akun Anda disetujui.
       </p>
     </div>
     
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 28px;">
+    <p style="font-size: 14px; line-height: 1.55; color: #334155; margin-bottom: 18px;">
       Setelah akun Anda diaktifkan oleh Ketua RT, Anda dapat masuk ke aplikasi melalui tautan berikut:
     </p>
     
-    <div style="text-align: center; margin-bottom: 28px;">
-      <a href="${loginLink}" style="background-color: #2563eb; color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <a href="${loginLink}" style="background-color: #2563eb; color: #ffffff; padding: 10px 24px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 13px; display: inline-block; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);">
         Halaman Login Wargaku
       </a>
     </div>
     
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-top: 24px; margin-bottom: 0;">
+    <p style="font-size: 13px; line-height: 1.5; color: #64748b; margin-top: 16px; margin-bottom: 0;">
       Salam hangat,<br/>
-      <strong>Pengurus RT - Wargaku</strong>
+      <strong style="color: #334155;">Pengurus RT - Wargaku</strong>
+    </p>
+  `;
+
+  return getBaseEmailLayout({
+    title: "WARGAKU",
+    subtitle: "Sistem Informasi & Manajemen RT",
+    theme: "info",
+    contentHtml: content,
+  });
+}
+
+export function getKoordinatorRegistrationEmail(name: string, loginLink: string): string {
+  const content = `
+    <h2 style="font-size: 19px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 12px; letter-spacing: -0.4px;">Pendaftaran Koordinator Kos Diterima!</h2>
+    <p style="font-size: 14px; line-height: 1.55; color: #334155; margin-bottom: 14px;">
+      Halo <strong>${name}</strong>, terima kasih telah melakukan pendaftaran mandiri sebagai <strong>Koordinator Kos / Pengelola Properti Sewa</strong> di aplikasi <strong>Wargaku</strong>.
+    </p>
+
+    <div style="background-color: #eef2ff; border-left: 4px solid #4f46e5; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; color: #3730a3;">
+      <p style="margin: 0; font-size: 13px; line-height: 1.45;">
+        Akun Anda saat ini berstatus <strong>Pending</strong>. Pengurus RT sedang melakukan verifikasi pendaftaran Anda. Anda dapat login setelah akun disetujui oleh Ketua RT.
+      </p>
+    </div>
+
+    <p style="font-size: 14px; line-height: 1.55; color: #334155; margin-bottom: 18px;">
+      Setelah akun Anda diaktifkan oleh Ketua RT, Anda dapat masuk ke aplikasi melalui tautan berikut:
+    </p>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+      <a href="${loginLink}" style="background-color: #4f46e5; color: #ffffff; padding: 10px 24px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 13px; display: inline-block; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);">
+        Halaman Login Wargaku
+      </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 1.5; color: #64748b; margin-top: 16px; margin-bottom: 0;">
+      Salam hangat,<br/>
+      <strong style="color: #334155;">Pengurus RT - Wargaku</strong>
     </p>
   `;
 
@@ -107,24 +144,55 @@ export function getWargaRegistrationEmail(name: string, loginLink: string): stri
 
 export function getWargaApprovalEmail(name: string, loginLink: string): string {
   const content = `
-    <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 16px; letter-spacing: -0.4px;">Akun Wargaku Telah Aktif!</h2>
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+    <h2 style="font-size: 19px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 12px; letter-spacing: -0.4px;">Akun Wargaku Telah Aktif!</h2>
+    <p style="font-size: 14px; line-height: 1.55; color: #334155; margin-bottom: 14px;">
       Halo <strong>${name}</strong>, pendaftaran akun mandiri Anda di aplikasi <strong>Wargaku</strong> telah disetujui dan diaktifkan oleh pengurus RT.
     </p>
     
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 28px;">
+    <p style="font-size: 14px; line-height: 1.55; color: #334155; margin-bottom: 18px;">
       Anda sekarang sudah dapat masuk dan menggunakan seluruh fitur Wargaku menggunakan email dan password yang Anda daftarkan sebelumnya:
     </p>
     
-    <div style="text-align: center; margin-bottom: 28px;">
-      <a href="${loginLink}" style="background-color: #10b981; color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <a href="${loginLink}" style="background-color: #10b981; color: #ffffff; padding: 10px 24px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 13px; display: inline-block; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);">
         Masuk ke Aplikasi
       </a>
     </div>
     
-    <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-top: 24px; margin-bottom: 0;">
+    <p style="font-size: 13px; line-height: 1.5; color: #64748b; margin-top: 16px; margin-bottom: 0;">
       Salam hangat,<br/>
-      <strong>Pengurus RT - Wargaku</strong>
+      <strong style="color: #334155;">Pengurus RT - Wargaku</strong>
+    </p>
+  `;
+
+  return getBaseEmailLayout({
+    title: "WARGAKU",
+    subtitle: "Sistem Informasi & Manajemen RT",
+    theme: "success",
+    contentHtml: content,
+  });
+}
+
+export function getKoordinatorApprovalEmail(name: string, loginLink: string): string {
+  const content = `
+    <h2 style="font-size: 19px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 12px; letter-spacing: -0.4px;">Akun Koordinator Kos Telah Aktif!</h2>
+    <p style="font-size: 14px; line-height: 1.55; color: #334155; margin-bottom: 14px;">
+      Halo <strong>${name}</strong>, pendaftaran mandiri Anda sebagai <strong>Koordinator Kos / Pengelola Properti Sewa</strong> di aplikasi <strong>Wargaku</strong> telah disetujui dan diaktifkan oleh pengurus RT.
+    </p>
+
+    <p style="font-size: 14px; line-height: 1.55; color: #334155; margin-bottom: 18px;">
+      Anda sekarang sudah dapat masuk ke dashboard Koordinator Kos menggunakan email dan password yang Anda daftarkan sebelumnya:
+    </p>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+      <a href="${loginLink}" style="background-color: #4f46e5; color: #ffffff; padding: 10px 24px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 13px; display: inline-block; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);">
+        Masuk ke Aplikasi
+      </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 1.5; color: #64748b; margin-top: 16px; margin-bottom: 0;">
+      Salam hangat,<br/>
+      <strong style="color: #334155;">Pengurus RT - Wargaku</strong>
     </p>
   `;
 

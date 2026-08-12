@@ -12,11 +12,13 @@ import { getUserRoles } from '@/db/queries/auth/user.queries';
  * Memastikan bahwa pengguna hanya dapat beralih ke role yang secara resmi terdaftar di user_roles.
  * @param session Sesi pengguna dari Better Auth
  */
-export async function getEffectiveRoleId(session: any): Promise<number> {
-  if (!session?.user?.id) return 6;
+export async function getEffectiveRoleId(session: any): Promise<number | null> {
+  if (!session?.user?.id) return null;
 
   const userAllowedRoles = await getUserRoles(session.user.id);
-  const primaryRoleId = userAllowedRoles[0] || 6;
+  if (userAllowedRoles.length === 0) return null;
+
+  const primaryRoleId = userAllowedRoles[0] || null;
 
   try {
     const reqCookies = await cookies();
@@ -39,7 +41,9 @@ export async function getEffectiveRoleId(session: any): Promise<number> {
  * @param roleId ID role pengguna (dari sesi Better Auth)
  * @param permissionSlug Slug dari permission yang ingin dicek (misal: 'view-residents')
  */
-export async function hasPermission(roleId: number, permissionSlug: string): Promise<boolean> {
+export async function hasPermission(roleId: number | null | undefined, permissionSlug: string): Promise<boolean> {
+  if (!roleId) return false;
+
   const permissionCheck = await db
     .select({ id: schema.rolePermissions.id })
     .from(schema.rolePermissions)

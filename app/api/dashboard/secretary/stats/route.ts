@@ -35,7 +35,7 @@ export async function GET() {
     }
 
     const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = [1, 2, 3].includes(effectiveRoleId);
+    const isAllowed = typeof effectiveRoleId === 'number' && [1, 2, 3].includes(effectiveRoleId);
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });

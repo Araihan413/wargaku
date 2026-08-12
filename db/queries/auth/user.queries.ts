@@ -366,10 +366,9 @@ export async function getUserRoles(userId: string): Promise<number[]> {
     if (records.length > 0) {
       return records.map((r) => r.roleId);
     }
-    // Fallback default Warga
-    return [6];
+    return [];
   } catch {
-    return [6];
+    return [];
   }
 }
 
@@ -900,7 +899,6 @@ export async function registerCoord(id: string, email: string, nik: string, pass
  */
 export async function setUserRoles(userId: string, roleIds: number[], primaryRoleId?: number) {
   const validRoleIds = Array.from(new Set(roleIds.filter((id) => id >= 1 && id <= 6)));
-  if (validRoleIds.length === 0) validRoleIds.push(6);
 
   // Ambil role akun saat ini
   const currentRoles = await getUserRoles(userId);
@@ -934,12 +932,14 @@ export async function setUserRoles(userId: string, roleIds: number[], primaryRol
     .limit(1);
   if (familyHead && !validRoleIds.includes(6)) throw new Error('HEAD_OF_FAMILY_WARGA_REQUIRED');
 
-  const primary = primaryRoleId && validRoleIds.includes(primaryRoleId) ? primaryRoleId : validRoleIds[0];
+  const primary = primaryRoleId && validRoleIds.includes(primaryRoleId) ? primaryRoleId : (validRoleIds[0] ?? null);
 
   await db.transaction(async (tx) => {
     await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, userId));
-    const newRoles = validRoleIds.map((rId) => ({ userId, roleId: rId, isPrimary: rId === primary }));
-    await tx.insert(schema.userRoles).values(newRoles);
+    if (validRoleIds.length > 0) {
+      const newRoles = validRoleIds.map((rId) => ({ userId, roleId: rId, isPrimary: rId === primary }));
+      await tx.insert(schema.userRoles).values(newRoles);
+    }
   });
 
   return true;
@@ -972,11 +972,10 @@ export async function mutateOfficerRole(targetUserId: string, newOfficerRoleId: 
   }
 
   const currentRoles = await getUserRoles(targetUserId);
-  let newRolesList = currentRoles.filter((r) => ![2, 3, 4].includes(r));
+  const newRolesList = currentRoles.filter((r) => ![2, 3, 4].includes(r));
   if (newOfficerRoleId !== null && [2, 3, 4].includes(newOfficerRoleId)) newRolesList.push(newOfficerRoleId);
-  if (newRolesList.length === 0) newRolesList = [6];
 
-  const primaryRole = newOfficerRoleId ?? newRolesList[0];
+  const primaryRole = newOfficerRoleId ?? (newRolesList[0] || undefined);
   return setUserRoles(targetUserId, newRolesList, primaryRole);
 }
 

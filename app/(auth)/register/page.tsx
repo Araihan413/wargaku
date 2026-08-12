@@ -213,17 +213,32 @@ export default function RegisterPage() {
           password: data.password,
           name: data.name,
           phone: data.phone,
-          nik: data.nik,
-          roleId: roleId, // 5 = Koordinator Kost, 6 = Warga
           status: "pending", // Status default pending menunggu persetujuan RT
-          familyNumber: data.accountType === "warga" ? data.familyNumber : undefined,
-          dwellingId: data.accountType === "warga" && data.dwellingId ? Number(data.dwellingId) : undefined,
         },
         {
           onRequest: () => {
             setIsLoading(true);
           },
           onSuccess: async () => {
+            // Langkah 1: Assign roleId yang benar via API (koordinator = 5, warga = 6)
+            // roleId tidak bisa dikirim via signUp karena kolom tidak ada di tabel users
+            if (roleId !== 6) {
+              try {
+                const roleRes = await fetch("/api/auth/assign-role", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ roleId }),
+                });
+                if (!roleRes.ok) {
+                  const errData = await roleRes.json();
+                  console.error("Gagal assign role:", errData.error);
+                }
+              } catch (err) {
+                console.error("Error assigning role", err);
+              }
+            }
+
+            // Langkah 2: Untuk warga, simpan data kependudukan (NIK, KK, hunian)
             if (data.accountType === "warga") {
               try {
                 const res = await fetch("/api/auth/complete-registration", {
@@ -249,6 +264,7 @@ export default function RegisterPage() {
               }
             }
 
+            // Langkah 3: Hancurkan sesi, arahkan ke login
             await authClient.signOut();
             setIsLoading(false);
             toast.success(

@@ -3,27 +3,12 @@ import { create } from 'zustand';
 interface RoleState {
   activeRoleId: number | null;
   setActiveRoleId: (roleId: number) => void;
-  initialize: (defaultRoleId: number, allowedRoles: number[]) => void;
+  initialize: (defaultRoleId?: number | null, allowedRoles?: number[]) => void;
   resetRole: () => void;
 }
 
-const getInitialRoleId = () => {
-  if (typeof window === 'undefined') return null;
-  const match = document.cookie.match(/(?:^|; )active_role_id=([^;]*)/);
-  if (match) {
-    const cookieRoleId = parseInt(match[1], 10);
-    if (!isNaN(cookieRoleId)) return cookieRoleId;
-  }
-  const localRole = localStorage.getItem('last_accessed_role_id');
-  if (localRole) {
-    const parsedLocal = parseInt(localRole, 10);
-    if (!isNaN(parsedLocal)) return parsedLocal;
-  }
-  return null;
-};
-
 export const useRoleStore = create<RoleState>((set) => ({
-  activeRoleId: getInitialRoleId(),
+  activeRoleId: null,
   setActiveRoleId: (roleId) => {
     set({ activeRoleId: roleId });
     if (typeof window !== 'undefined') {
@@ -32,6 +17,17 @@ export const useRoleStore = create<RoleState>((set) => ({
         localStorage.setItem('last_accessed_role_id', String(roleId));
       } catch {
         // Ignore localStorage quota errors
+      }
+
+      // Sync ke backend via session/cookie
+      try {
+        fetch('/api/auth/switch-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roleId }),
+        }).catch(() => null);
+      } catch {
+        // Ignore errors
       }
     }
   },
@@ -46,7 +42,7 @@ export const useRoleStore = create<RoleState>((set) => ({
       }
     }
   },
-  initialize: (defaultRoleId, allowedRoles) => {
+  initialize: (defaultRoleId, allowedRoles = []) => {
     let candidateRoleId: number | null = null;
 
     if (typeof window !== 'undefined') {
@@ -70,8 +66,8 @@ export const useRoleStore = create<RoleState>((set) => ({
     }
 
     if (candidateRoleId === null && allowedRoles.length > 0) {
-      if (allowedRoles.includes(6)) {
-        candidateRoleId = 6;
+      if (defaultRoleId && allowedRoles.includes(defaultRoleId)) {
+        candidateRoleId = defaultRoleId;
       } else {
         const sorted = [...allowedRoles].sort((a, b) => a - b);
         candidateRoleId = sorted[0];

@@ -4,7 +4,7 @@ import { eq, and, desc, inArray } from 'drizzle-orm';
 import { sendEmail } from '@/lib/mail';
 import {
   getWargaApprovalEmail,
-  getCoordActivationEmail,
+  getKoordinatorApprovalEmail,
   getRegistrationRejectionEmail,
 } from '@/lib/emails/templates';
 import { notifyUser } from '@/lib/notifications';
@@ -150,7 +150,7 @@ export async function processRegistrationApproval(
         await sendEmail({
           to: { email: user.email, name: user.name },
           subject: 'Akun Koordinator Kost Anda Telah Aktif',
-          htmlContent: getCoordActivationEmail(user.name, `${origin}/auth/reset-password?token=activation-${userId}`),
+          htmlContent: getKoordinatorApprovalEmail(user.name, `${origin}/login`),
         });
       } catch (err) {
         console.error('Gagal mengirim email aktivasi koordinator:', err);

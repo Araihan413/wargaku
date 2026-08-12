@@ -64,6 +64,14 @@ export async function GET(request: Request) {
       targetRoleId = parsedRoleId;
     }
 
+    if (!targetRoleId) {
+      return NextResponse.json({
+        roleId: null,
+        allowedRoles: [],
+        permissions: [],
+      });
+    }
+
     const permissions = await getPermissionsByRoleId(targetRoleId);
 
     return NextResponse.json({

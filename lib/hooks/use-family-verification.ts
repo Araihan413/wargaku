@@ -16,9 +16,9 @@ export interface FamilyVerificationState {
   refetch: () => Promise<void>;
 }
 
-export function useFamilyVerification(userRoleId?: number): FamilyVerificationState {
+export function useFamilyVerification(userRoleId?: number | null): FamilyVerificationState {
   const { activeRoleId } = useRoleStore();
-  const currentRoleId = userRoleId === 6 ? 6 : (activeRoleId ?? userRoleId);
+  const currentRoleId = userRoleId === 6 ? 6 : (activeRoleId ?? userRoleId ?? undefined);
 
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatusType>("unsubmitted");
   const [hasVerified, setHasVerified] = useState<boolean>(false);

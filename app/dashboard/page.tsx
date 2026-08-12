@@ -17,8 +17,8 @@ export default function Dashboard() {
   const { activeRoleId } = useRoleStore();
   const router = useRouter();
 
-  const userBaseRoleId = session?.user?.roleId || 6;
-  const [assignedRoles, setAssignedRoles] = useState<number[]>([userBaseRoleId]);
+  const [assignedRoles, setAssignedRoles] = useState<number[]>([]);
+  const userBaseRoleId = session?.user?.roleId ?? (assignedRoles.length > 0 ? assignedRoles[0] : null);
   const [isRolesLoaded, setIsRolesLoaded] = useState(false);
 
   useEffect(() => {
@@ -40,9 +40,11 @@ export default function Dashboard() {
             
             // Initialize useRoleStore synchronously before re-rendering
             // to ensure activeRoleId is populated properly for new sessions
-            const baseRole = session.user.roleId || 6;
-            const isOfficer = baseRole >= 2 && baseRole <= 4;
-            const fetchedAllowedRoles = Array.from(new Set([...data.allowedRoles, isOfficer ? 6 : null].filter(Boolean))).sort((a: any, b: any) => a - b);
+            const baseRole = session.user.roleId ?? (data.allowedRoles.length > 0 ? data.allowedRoles[0] : null);
+            const isOfficer = typeof baseRole === 'number' && baseRole >= 2 && baseRole <= 4;
+            const fetchedAllowedRoles = Array.from(
+              new Set([...data.allowedRoles, isOfficer ? 6 : null].filter((r): r is number => typeof r === 'number'))
+            ).sort((a: any, b: any) => a - b);
             
             useRoleStore.getState().initialize(baseRole, fetchedAllowedRoles);
             
@@ -60,7 +62,7 @@ export default function Dashboard() {
     };
   }, [session?.user]);
 
-  const isOfficer = userBaseRoleId >= 2 && userBaseRoleId <= 4;
+  const isOfficer = typeof userBaseRoleId === 'number' && userBaseRoleId >= 2 && userBaseRoleId <= 4;
   const allowedRoles = React.useMemo(() => {
     const list = new Set<number>(assignedRoles);
     if (isOfficer) list.add(6);
@@ -103,7 +105,7 @@ export default function Dashboard() {
   const currentRoleId =
     validActiveRole ??
     (allowedRoles.length > 0
-      ? allowedRoles.includes(userBaseRoleId)
+      ? userBaseRoleId && allowedRoles.includes(userBaseRoleId)
         ? userBaseRoleId
         : allowedRoles[0]
       : null);
