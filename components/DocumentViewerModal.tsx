@@ -60,7 +60,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-200">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-gray-950/70 backdrop-blur-xs transition-opacity"
@@ -68,23 +68,23 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
       />
 
       {/* Modal Dialog Content */}
-      <div className="relative w-full max-w-5xl h-[88vh] bg-gray-card border border-gray-border rounded-3xl shadow-2xl flex flex-col overflow-hidden z-10">
+      <div className="relative w-full max-w-5xl h-[92vh] sm:h-[88vh] bg-gray-card border border-gray-border rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden z-10">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-border bg-white shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2.5 bg-primary/10 text-primary rounded-2xl shrink-0">
-              <FileText className="h-5 w-5" />
+        <div className="flex items-center justify-between px-3.5 py-2.5 sm:px-5 sm:py-3.5 border-b border-gray-border bg-white shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 sm:p-2.5 bg-primary/10 text-primary rounded-xl sm:rounded-2xl shrink-0">
+              <FileText className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-extrabold text-gray-heading-main truncate max-w-xs sm:max-w-md">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-bold text-gray-heading-main truncate max-w-45 sm:max-w-md">
                   {displayTitle}
                 </h3>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeMeta.badgeColor}`}>
+                <span className={`hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeMeta.badgeColor}`}>
                   {typeMeta.label}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-secondary-text flex items-center gap-1 mt-0.5">
+              <p className="hidden sm:flex text-[11px] text-gray-secondary-text items-center gap-1 mt-0.5">
                 <ShieldCheck className="h-3 w-3 text-emerald-600" />
                 <span>Dokumen Resmi Terverifikasi Sistem</span>
               </p>
@@ -92,78 +92,79 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Open in New Tab */}
             <a
               href={streamUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-gray-border text-xs font-semibold text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center p-2 sm:px-3 sm:py-1.5 rounded-xl border border-gray-border text-xs font-semibold text-gray-secondary-text hover:text-gray-heading-main hover:bg-gray-sidebar-hover transition-colors cursor-pointer"
               title="Buka Layar Penuh di Tab Baru"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Layar Penuh</span>
+              <span className="hidden sm:inline ml-1">Layar Penuh</span>
             </a>
 
             {/* Download Button */}
             <a
               href={downloadUrl}
               download={downloadFilename || true}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-900 shadow-xs transition-all cursor-pointer"
+              className="inline-flex items-center justify-center p-2 sm:px-3 sm:py-1.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-900 shadow-xs transition-all cursor-pointer"
               title="Unduh Berkas Asli"
             >
               <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Unduh</span>
+              <span className="hidden sm:inline ml-1">Unduh</span>
             </a>
 
             {/* Close Button */}
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-gray-placeholder hover:text-gray-heading-main hover:bg-gray-sidebar-hover transition-colors cursor-pointer ml-1"
+              className="p-2 rounded-xl text-gray-placeholder hover:text-gray-heading-main hover:bg-gray-sidebar-hover transition-colors cursor-pointer"
               title="Tutup (ESC)"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
           </div>
         </div>
 
         {/* Viewer Body */}
-        <div className="relative flex-1 bg-slate-900/5 p-2 sm:p-4 flex items-center justify-center overflow-hidden">
+        <div className="relative flex-1 bg-slate-900/5 p-1.5 sm:p-4 flex items-center justify-center overflow-hidden">
           {/* Loading Indicator */}
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-card/80 backdrop-blur-xs z-10 gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-7 w-7 sm:h-8 sm:w-8 animate-spin text-primary" />
               <span className="text-xs font-semibold text-gray-placeholder">
-                Mengambil & mendekripsi berkas aman...
+                Memuat dokumen aman...
               </span>
             </div>
           )}
 
           {/* Error State */}
           {hasError ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center max-w-sm space-y-3">
+            <div className="flex flex-col items-center justify-center p-6 text-center max-w-sm space-y-3">
               <div className="p-3 bg-rose-50 text-rose-600 rounded-full">
-                <AlertCircle className="h-8 w-8" />
+                <AlertCircle className="h-7 w-7 sm:h-8 sm:w-8" />
               </div>
               <h4 className="text-sm font-bold text-gray-heading-main">Gagal Memuat Pratinjau</h4>
               <p className="text-xs text-gray-secondary-text leading-relaxed">
-                Berkas tidak dapat ditampilkan atau sesi Anda telah berakhir.
+                Berkas tidak dapat ditampilkan di dalam browser atau sesi Anda telah berakhir.
               </p>
               <a
                 href={streamUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-bold text-primary hover:underline"
+                className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1"
               >
-                Coba buka langsung di tab baru
+                <span>Buka di tab baru</span>
+                <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           ) : (
             <iframe
               key={`${type}-${recordId}`}
               src={streamUrl}
-              className="w-full h-full rounded-2xl border border-gray-border bg-white shadow-xs"
+              className="w-full h-full rounded-xl sm:rounded-2xl border border-gray-border bg-white shadow-xs"
               title={displayTitle}
               onLoad={() => setIsLoading(false)}
               onError={() => {
@@ -174,8 +175,8 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
           )}
         </div>
 
-        {/* Footer Security Watermark */}
-        <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-border flex items-center justify-between text-[11px] text-gray-secondary-text shrink-0">
+        {/* Footer Security Watermark (Hidden on Mobile) */}
+        <div className="hidden sm:flex px-5 py-2.5 bg-gray-50 border-t border-gray-border items-center justify-between text-[11px] text-gray-secondary-text shrink-0">
           <div className="flex items-center gap-1.5">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
             <span>Sesi Terenkripsi &bull; Hak Akses Diaudit</span>
