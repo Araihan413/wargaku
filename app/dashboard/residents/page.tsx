@@ -466,6 +466,7 @@ function ResidentsContent() {
             selectedActive={selectedActive}
             setSelectedActive={setSelectedActive}
             setCurrentPage={setCurrentPage}
+            isLoading={isLoading}
           />
 
           <KKTable
@@ -501,6 +502,7 @@ function ResidentsContent() {
               }}
               placeholder="Cari nama penyewa atau NIK..."
               containerClassName="flex-1 w-full"
+              isLoading={isRentersLoading}
             />
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
@@ -580,6 +582,7 @@ function ResidentsContent() {
               }}
               placeholder="Cari berdasarkan blok atau nomor rumah..."
               containerClassName="flex-1 w-full"
+              isLoading={isDwellingsLoading}
             />
 
             <div className="w-full sm:w-48 shrink-0">
@@ -633,6 +636,7 @@ function ResidentsContent() {
               }}
               placeholder="Cari nama koordinator atau NIK..."
               containerClassName="flex-1 w-full"
+              isLoading={isCoordinatorsLoading}
             />
 
             <div className="w-full sm:w-48 shrink-0">

@@ -117,6 +117,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             onChange={setSearchTerm}
             placeholder="Cari kegiatan/lokasi..."
             containerClassName="w-full sm:w-72"
+            isLoading={isLoading}
           />
 
           {/* Filter Tabs: Otomatis dipisahkan berdasarkan tanggal pelaksanaan */}

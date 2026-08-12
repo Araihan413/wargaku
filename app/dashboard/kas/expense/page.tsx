@@ -213,6 +213,7 @@ export default function CatatPengeluaranPage() {
           endDate={endDate}
           onEndDateChange={setEndDate}
           onReset={handleResetFilters}
+          isLoading={isLoading}
         />
 
         {/* Error Message */}

@@ -10,6 +10,7 @@ interface KKSearchFilterProps {
   selectedActive: string;
   setSelectedActive: (active: string) => void;
   setCurrentPage: (page: number) => void;
+  isLoading?: boolean;
 }
 
 export const KKSearchFilter: React.FC<KKSearchFilterProps> = ({
@@ -20,6 +21,7 @@ export const KKSearchFilter: React.FC<KKSearchFilterProps> = ({
   selectedActive,
   setSelectedActive,
   setCurrentPage,
+  isLoading,
 }) => {
   const statusOptions: SelectOption[] = [
     { value: "", label: "Semua Status Verifikasi" },
@@ -46,6 +48,7 @@ export const KKSearchFilter: React.FC<KKSearchFilterProps> = ({
           }}
           placeholder="Cari nomor KK atau nama Kepala Keluarga..."
           containerClassName="w-full"
+          isLoading={isLoading}
         />
       </div>
 

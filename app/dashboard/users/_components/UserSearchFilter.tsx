@@ -12,6 +12,7 @@ interface UserSearchFilterProps {
   setSelectedStatus: (status: string) => void;
   roles: RoleItem[];
   setCurrentPage: (page: number) => void;
+  isLoading?: boolean;
 }
 
 export const UserSearchFilter: React.FC<UserSearchFilterProps> = ({
@@ -23,6 +24,7 @@ export const UserSearchFilter: React.FC<UserSearchFilterProps> = ({
   setSelectedStatus,
   roles,
   setCurrentPage,
+  isLoading,
 }) => {
   const roleOptions: SelectOption[] = [
     { value: "", label: "Semua Peran" },
@@ -51,6 +53,7 @@ export const UserSearchFilter: React.FC<UserSearchFilterProps> = ({
           }}
           placeholder="Cari berdasarkan nama atau email..."
           containerClassName="w-full"
+          isLoading={isLoading}
         />
       </div>
 

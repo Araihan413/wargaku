@@ -14,6 +14,7 @@ interface ExpenseFilterBarProps {
   endDate: string;
   onEndDateChange: (d: string) => void;
   onReset: () => void;
+  isLoading?: boolean;
 }
 
 export const ExpenseFilterBar: React.FC<ExpenseFilterBarProps> = ({
@@ -26,6 +27,7 @@ export const ExpenseFilterBar: React.FC<ExpenseFilterBarProps> = ({
   endDate,
   onEndDateChange,
   onReset,
+  isLoading,
 }) => {
   const categoryOptions = [
     { value: "", label: "Semua Kategori Pengeluaran" },
@@ -41,6 +43,7 @@ export const ExpenseFilterBar: React.FC<ExpenseFilterBarProps> = ({
           onChange={onSearchChange}
           placeholder="Cari keperluan / kategori..."
           containerClassName="w-full"
+          isLoading={isLoading}
         />
 
         {/* Category Select */}

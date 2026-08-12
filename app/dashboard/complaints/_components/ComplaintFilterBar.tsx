@@ -13,6 +13,7 @@ interface ComplaintFilterBarProps {
   status: string;
   onStatusChange: (value: string) => void;
   onReset: () => void;
+  isLoading?: boolean;
 }
 
 export const ComplaintFilterBar: React.FC<ComplaintFilterBarProps> = ({
@@ -23,6 +24,7 @@ export const ComplaintFilterBar: React.FC<ComplaintFilterBarProps> = ({
   status,
   onStatusChange,
   onReset,
+  isLoading,
 }) => {
   const categoryOptions = [
     { value: "all", label: "Semua Kategori" },
@@ -50,6 +52,7 @@ export const ComplaintFilterBar: React.FC<ComplaintFilterBarProps> = ({
           onChange={onSearchChange}
           placeholder="Cari kode tracking (LAP-...), nama, WhatsApp, atau isi aduan..."
           containerClassName="flex-1"
+          isLoading={isLoading}
         />
 
         {/* Filters */}

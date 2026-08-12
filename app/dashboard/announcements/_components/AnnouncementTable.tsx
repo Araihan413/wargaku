@@ -119,6 +119,7 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
             onChange={setSearchTerm}
             placeholder="Cari pengumuman..."
             containerClassName="w-full sm:w-72"
+            isLoading={isLoading}
           />
 
           {/* Category Filter Tabs */}

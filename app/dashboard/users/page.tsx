@@ -222,6 +222,7 @@ function UserManagementContent() {
         setSelectedStatus={setSelectedStatus}
         roles={roles}
         setCurrentPage={setCurrentPage}
+        isLoading={isLoading}
       />
 
       {/* Tabel Pengguna */}

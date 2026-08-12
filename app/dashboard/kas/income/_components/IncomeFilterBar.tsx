@@ -14,6 +14,7 @@ interface IncomeFilterBarProps {
   endDate: string;
   onEndDateChange: (d: string) => void;
   onReset: () => void;
+  isLoading?: boolean;
 }
 
 export const IncomeFilterBar: React.FC<IncomeFilterBarProps> = ({
@@ -26,6 +27,7 @@ export const IncomeFilterBar: React.FC<IncomeFilterBarProps> = ({
   endDate,
   onEndDateChange,
   onReset,
+  isLoading,
 }) => {
   const categoryOptions = [
     { value: "", label: "Semua Kategori Pemasukan" },
@@ -41,6 +43,7 @@ export const IncomeFilterBar: React.FC<IncomeFilterBarProps> = ({
           onChange={onSearchChange}
           placeholder="Cari deskripsi / kategori..."
           containerClassName="w-full"
+          isLoading={isLoading}
         />
 
         {/* Category Select */}

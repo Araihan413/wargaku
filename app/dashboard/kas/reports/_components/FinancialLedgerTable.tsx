@@ -97,6 +97,7 @@ export const FinancialLedgerTable: React.FC<FinancialLedgerTableProps> = ({ item
             onChange={setSearchTerm}
             placeholder="Cari deskripsi / kategori..."
             containerClassName="w-full sm:max-w-96"
+            isLoading={searchTerm !== debouncedSearchTerm}
           />
         </div>
       </div>

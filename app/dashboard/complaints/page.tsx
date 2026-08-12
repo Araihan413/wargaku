@@ -179,6 +179,7 @@ function ComplaintsDashboardContent() {
         status={status}
         onStatusChange={setStatus}
         onReset={handleResetFilters}
+        isLoading={isLoading}
       />
 
       {/* Table List */}
