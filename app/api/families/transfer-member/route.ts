@@ -7,6 +7,8 @@ import { getFamilyMemberById, transferFamilyMember, getFamilyMembersByFamilyId }
 import { transferFamilyMemberSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 import { notifyUser } from '@/lib/notifications';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 export async function POST(request: Request) {
   try {
@@ -97,6 +99,15 @@ export async function POST(request: Request) {
         redirectLink: "/dashboard/family",
       });
     }
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'TRANSFER_FAMILY_MEMBER',
+      module: 'kependudukan',
+      description: `Memindahkan anggota keluarga ${member?.name || `ID #${validated.memberId}`} ke KK ID #${newFamilyId}.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       message: 'Anggota keluarga berhasil dipindahkan',

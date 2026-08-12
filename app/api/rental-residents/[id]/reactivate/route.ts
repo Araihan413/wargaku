@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { reactivateTenantContract, getTenantContractById } from '@/db/queries/property/tenant.queries';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 /**
  * @openapi
@@ -57,6 +59,15 @@ export async function POST(
     }
 
     await reactivateTenantContract(contractId);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'REACTIVATE_TENANT',
+      module: 'sewa',
+      description: `Mengaktifkan kembali kontrak sewa ID #${contractId}.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({ message: 'Kontrak penyewa berhasil diaktifkan kembali' });
   } catch (error: any) {

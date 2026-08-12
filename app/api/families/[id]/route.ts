@@ -7,6 +7,8 @@ import { updateFamilySchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 import { deleteCloudinaryFileByUrl } from '@/lib/cloudinary';
 import { notifyUser } from '@/lib/notifications';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 
 /**
@@ -208,6 +210,15 @@ export async function PUT(
 
     await updateFamily(familyId, validated);
 
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'UPDATE_FAMILY',
+      module: 'kependudukan',
+      description: `Memperbarui data Kartu Keluarga ID #${familyId}${hasManagePerm ? ' (oleh pengurus)' : ' (oleh kepala keluarga)'}.`,
+      ipAddress,
+    }).catch(() => null);
+
     // Kirim notifikasi ke Kepala Keluarga jika data diubah oleh Pengurus/RT
     if (hasManagePerm && family.headUserId && session.user.id !== family.headUserId) {
       notifyUser(family.headUserId, {
@@ -270,6 +281,15 @@ export async function DELETE(
     }
 
     await deleteFamily(familyId);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'DELETE_FAMILY',
+      module: 'kependudukan',
+      description: `Menonaktifkan Kartu Keluarga ID #${familyId} (No. KK: ${family.familyNumber || '-'}).`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({ message: 'Kartu Keluarga berhasil dinonaktifkan' });
   } catch (error: any) {

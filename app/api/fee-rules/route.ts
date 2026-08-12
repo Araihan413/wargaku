@@ -5,6 +5,8 @@ import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { listFeeRules, createFeeRule } from '@/db/queries/finance/fee.queries';
 import { notifyAllWarga, notifyRoles } from '@/lib/notifications';
 import { z } from 'zod';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 const createFeeRuleSchema = z.object({
   name: z.string().min(1, 'Nama iuran wajib diisi'),
@@ -111,6 +113,15 @@ export async function POST(request: Request) {
     }
 
     const { id, period } = await createFeeRule(parsed.data, session.user.id);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'CREATE_FEE_RULE',
+      module: 'keuangan',
+      description: `Membuat aturan iuran baru: "${parsed.data.name}" sebesar Rp ${Number(parsed.data.amount).toLocaleString('id-ID')} periode ${period}.`,
+      ipAddress,
+    }).catch(() => null);
 
     notifyAllWarga({
       title: 'Tagihan Iuran RT Baru',

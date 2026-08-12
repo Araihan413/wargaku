@@ -4,6 +4,8 @@ import { headers } from 'next/headers';
 import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { updateFeeRule, deleteFeeRule } from '@/db/queries/finance/fee.queries';
 import { z } from 'zod';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 const updateFeeRuleSchema = z.object({
   name: z.string().min(1, 'Nama iuran wajib diisi'),
@@ -85,6 +87,16 @@ export async function PUT(
     }
 
     await updateFeeRule(ruleId, parsed.data);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'UPDATE_FEE_RULE',
+      module: 'keuangan',
+      description: `Memperbarui aturan iuran ID #${ruleId}: "${parsed.data.name}" menjadi Rp ${Number(parsed.data.amount).toLocaleString('id-ID')}.`,
+      ipAddress,
+    }).catch(() => null);
+
     return NextResponse.json({ message: 'Aturan iuran berhasil diperbarui' });
   } catch (err: any) {
     if (err.message === 'NOT_FOUND') {
@@ -147,6 +159,16 @@ export async function DELETE(
     }
 
     const result = await deleteFeeRule(ruleId);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'DELETE_FEE_RULE',
+      module: 'keuangan',
+      description: `${result.softDeleted ? 'Menonaktifkan' : 'Menghapus'} aturan iuran ID #${ruleId}.`,
+      ipAddress,
+    }).catch(() => null);
+
     if (result.softDeleted) {
       return NextResponse.json({
         message: 'Aturan iuran dinonaktifkan karena sudah memiliki riwayat pembayaran warga.',

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { registerCoord } from '@/db/queries/auth/user.queries';
 import { hashPassword } from 'better-auth/crypto';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 const nikRegex = /^[0-9]{16}$/;
 
@@ -66,6 +68,15 @@ export async function POST(request: Request) {
 
     const hashedPassword = await hashPassword(password);
     await registerCoord(id, email, nik, hashedPassword);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: null,
+      action: 'REGISTER_COORDINATOR',
+      module: 'autentikasi',
+      description: `Koordinator baru berhasil mendaftarkan akun: ${email} (NIK: ${nik}).`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       success: true,

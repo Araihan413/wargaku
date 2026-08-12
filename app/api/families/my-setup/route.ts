@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { setupMyFamilyCard } from "@/db/queries/population/family.queries";
+import { createAuditLog } from "@/db/queries/system/audit-log.queries";
+import { getClientIp } from "@/lib/audit-logger";
 
 export async function POST(req: Request) {
   try {
@@ -29,6 +31,15 @@ export async function POST(req: Request) {
       nik: nik ? String(nik).trim() : null,
       kkFile: kkFile || null,
     });
+
+    const ipAddress = await getClientIp(req);
+    createAuditLog({
+      userId: session.user.id,
+      action: "SETUP_FAMILY_CARD",
+      module: "kependudukan",
+      description: `${session.user.name} mendaftarkan Kartu Keluarga mandiri (No. KK: ${familyNumber}, hunian ID: ${dwellingId}).`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       message: "Kartu Keluarga berhasil didaftarkan!",

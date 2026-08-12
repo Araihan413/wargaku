@@ -4,6 +4,8 @@ import { headers } from 'next/headers';
 import { checkOutTenant, getTenantContractById } from '@/db/queries/property/tenant.queries';
 import { getRentalPropertyById } from '@/db/queries/property/rental-property.queries';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 /**
  * @openapi
@@ -109,6 +111,15 @@ export async function POST(
       checkOutDate,
       notes: body.notes || null,
     });
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'CHECKOUT_TENANT',
+      module: 'sewa',
+      description: `Check-out penghuni kontrak ID #${contractId} pada tanggal ${checkOutDate.toISOString().split('T')[0]}.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({ message: 'Penyewa berhasil diajukan check-out' });
   } catch (error: any) {

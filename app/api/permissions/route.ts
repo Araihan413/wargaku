@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
 import { getRolePermissionMatrix, updateRolePermissions } from '@/db/queries/system/permission.queries';
+import { createAuditLog } from "@/db/queries/system/audit-log.queries";
+import { getClientIp } from "@/lib/audit-logger";
 
 /**
  * @openapi
@@ -117,6 +119,16 @@ export async function PUT(req: Request) {
     }
 
     const result = await updateRolePermissions(roleId, permissionIds, session.user.id);
+
+    const ipAddress = await getClientIp(req);
+    createAuditLog({
+      userId: session.user.id,
+      action: "UPDATE_PERMISSIONS",
+      module: "sistem",
+      description: `Memperbarui hak akses (permissions) untuk Role ID #${roleId} — ${permissionIds.length} permission ditetapkan.`,
+      ipAddress,
+    }).catch(() => null);
+
     return NextResponse.json({ message: "Hak akses role berhasil diperbarui", result });
   } catch (error: any) {
     console.error("Error in PUT /api/permissions:", error);

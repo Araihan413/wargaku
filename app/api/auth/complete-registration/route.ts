@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { createAuditLog } from "@/db/queries/system/audit-log.queries";
+import { getClientIp } from "@/lib/audit-logger";
 
 /**
  * @openapi
@@ -107,6 +109,15 @@ export async function POST(request: Request) {
         isActive: true,
       });
     });
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: "COMPLETE_REGISTRATION",
+      module: "autentikasi",
+      description: `${session.user.name} menyelesaikan pendaftaran data kependudukan (KK No. ${familyNumber}, hunian ID: ${dwellingId}).`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

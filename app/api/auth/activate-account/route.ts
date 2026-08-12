@@ -13,6 +13,8 @@ import {
 import { eq, and, gt, sql } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import { randomUUID } from "crypto";
+import { createAuditLog } from "@/db/queries/system/audit-log.queries";
+import { getClientIp } from "@/lib/audit-logger";
 
 /**
  * @openapi
@@ -302,6 +304,15 @@ export async function POST(request: Request) {
         .set({ isUsed: true })
         .where(eq(accountActivationTokens.id, tokenData.id));
     });
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId,
+      action: "ACTIVATE_ACCOUNT",
+      module: "autentikasi",
+      description: `Akun baru diaktifkan melalui tautan undangan untuk email ${tokenData.email} (penyewa kos).`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       success: true,

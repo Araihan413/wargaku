@@ -13,6 +13,8 @@ import {
 import { createRentalResidentSchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 import { notifyRoles } from '@/lib/notifications';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 /**
  * @openapi
@@ -232,6 +234,15 @@ export async function POST(request: Request) {
       redirectLink: '/dashboard/rentals',
     });
 
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'CREATE_RENTAL_CONTRACT',
+      module: 'sewa',
+      description: `Mendaftarkan penghuni baru: ${validatedData.name} (NIK: ${validatedData.nik}) di properti ${property.name}, kamar ${validatedData.roomNumber || '-'}.`,
+      ipAddress,
+    }).catch(() => null);
+
     return NextResponse.json(
       { message: 'Penghuni sewa berhasil didaftarkan', contractId },
       { status: 201 }
@@ -315,6 +326,15 @@ export async function DELETE(request: Request) {
     }
 
     await terminateTenantContract(contractId);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'TERMINATE_RENTAL_CONTRACT',
+      module: 'sewa',
+      description: `Mengakhiri kontrak sewa ID #${contractId}.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({ message: 'Kontrak sewa berhasil diakhiri' });
   } catch (error: any) {

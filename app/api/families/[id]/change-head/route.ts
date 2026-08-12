@@ -5,6 +5,8 @@ import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 import { changeFamilyHead } from '@/db/queries/population/family-member.queries';
 import { changeFamilyHeadSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 export async function POST(
   request: Request,
@@ -39,6 +41,15 @@ export async function POST(
       familyId,
       ...validated,
     });
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'CHANGE_FAMILY_HEAD',
+      module: 'kependudukan',
+      description: `Mengganti Kepala Keluarga pada KK ID #${familyId} (anggota baru ID: ${validated.newHeadMemberId}).`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       message: 'Kepala Keluarga berhasil diubah',

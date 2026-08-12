@@ -6,6 +6,8 @@ import { listFamilyMembers, createFamilyMember } from '@/db/queries/population/f
 import { getFamilyById } from '@/db/queries/population/family.queries';
 import { createWargaSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 /**
  * @openapi
@@ -209,6 +211,15 @@ export async function POST(request: Request) {
       educationLevel: validatedData.educationLevel,
       ktpFile: validatedData.ktpFile,
     });
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'ADD_FAMILY_MEMBER',
+      module: 'kependudukan',
+      description: `Menambahkan anggota keluarga baru: ${validatedData.name} (NIK: ${validatedData.nik}) ke KK ID #${validatedData.familyId}.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json(
       { message: 'Anggota keluarga berhasil ditambahkan', id: memberId },

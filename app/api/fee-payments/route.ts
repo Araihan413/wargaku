@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { listPayments, recordPayment } from '@/db/queries/finance/fee.queries';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 /**
  * @openapi
@@ -131,6 +133,16 @@ export async function POST(request: Request) {
     }
 
     const updated = await recordPayment(paymentId, status, session.user.id);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'RECORD_FEE_PAYMENT',
+      module: 'keuangan',
+      description: `Mencatat status pembayaran iuran ID #${paymentId} menjadi "${status}".`,
+      ipAddress,
+    }).catch(() => null);
+
     return NextResponse.json({ message: 'Pembayaran iuran berhasil diperbarui', data: updated });
   } catch (err) {
     console.error('[POST /api/fee-payments]', err);

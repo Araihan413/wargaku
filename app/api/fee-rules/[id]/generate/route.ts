@@ -4,6 +4,8 @@ import { headers } from 'next/headers';
 import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { generateTagihanForRule } from '@/db/queries/finance/fee.queries';
 import { notifyUser } from '@/lib/notifications';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 /**
  * @openapi
@@ -81,6 +83,15 @@ export async function POST(
         }).catch((err) => console.error('Gagal mengirim notifikasi iuran baru:', err));
       }
     }
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'GENERATE_FEE_BILLS',
+      module: 'keuangan',
+      description: `Generate tagihan "${result.ruleName}" periode ${result.period}: ${result.generated} tagihan baru diterbitkan, ${result.skipped} sudah ada.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       message: `Tagihan periode ${result.period} berhasil dibuat (${result.generated} baru, ${result.skipped} sudah ada)`,

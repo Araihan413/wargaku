@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 import { listFamilies, createFamilyWithHeadMember } from '@/db/queries';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 /**
  * @openapi
@@ -161,6 +163,15 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const familyId = await createFamilyWithHeadMember(body);
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'CREATE_FAMILY',
+      module: 'kependudukan',
+      description: `Membuat Kartu Keluarga baru (No. KK: ${body.familyCardNumber || '-'}, Kepala Keluarga: ${body.headName || '-'}).`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({ id: familyId, message: 'Kartu Keluarga berhasil dibuat' }, { status: 201 });
   } catch (error: any) {

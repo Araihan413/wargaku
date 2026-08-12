@@ -5,6 +5,7 @@ import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
 import { getSystemSettings, updateSystemSettings } from "@/db/queries/system/system-setting.queries";
 import type { UpdateSystemSettingsInput } from "@/db/queries/system/system-setting.queries";
 import { getClientIp } from "@/lib/audit-logger";
+import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 
 /**
  * @openapi
@@ -140,6 +141,14 @@ export async function PUT(req: Request) {
 
     const ipAddress = await getClientIp(req);
     const updatedSettings = await updateSystemSettings(body, session.user.id, ipAddress || undefined);
+
+    createAuditLog({
+      userId: session.user.id,
+      action: "UPDATE_SYSTEM_CONFIG",
+      module: "sistem",
+      description: `Memperbarui konfigurasi sistem RT: ${body.rtName}, RW: ${body.rwName}, Kelurahan: ${body.villageName}.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       message: "Konfigurasi sistem berhasil diperbarui",

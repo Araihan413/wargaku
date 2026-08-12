@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { requestFamilyChange, getFamilyById } from '@/db/queries/population/family.queries';
 import { notifyRoles } from '@/lib/notifications';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 export async function POST(
   request: Request,
@@ -34,6 +36,15 @@ export async function POST(
       category: "dinas",
       redirectLink: "/dashboard/warga",
     });
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'REQUEST_FAMILY_CHANGE',
+      module: 'kependudukan',
+      description: `${session.user.name} mengajukan permohonan perubahan data Kartu Keluarga ID #${familyId}${family?.familyNumber ? ` (No. KK: ${family.familyNumber})` : ''}.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       success: true,

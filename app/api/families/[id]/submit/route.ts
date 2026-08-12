@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { submitFamily, getFamilyById } from '@/db/queries/population/family.queries';
 import { notifyRoles } from '@/lib/notifications';
+import { createAuditLog } from '@/db/queries/system/audit-log.queries';
+import { getClientIp } from '@/lib/audit-logger';
 
 /**
  * @openapi
@@ -65,6 +67,15 @@ export async function POST(
       category: "dinas",
       redirectLink: "/dashboard/approvals/verification",
     });
+
+    const ipAddress = await getClientIp(request);
+    createAuditLog({
+      userId: session.user.id,
+      action: 'SUBMIT_FAMILY',
+      module: 'kependudukan',
+      description: `${session.user.name} mengajukan verifikasi Kartu Keluarga ID #${familyId}${family?.familyNumber ? ` (No. KK: ${family.familyNumber})` : ''}.`,
+      ipAddress,
+    }).catch(() => null);
 
     return NextResponse.json({
       success: true,
