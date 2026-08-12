@@ -190,7 +190,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: `Tipe dokumen '${type}' tidak didukung.` }, { status: 400 });
     }
 
-    // 3. Ambil Signed URL Internal dari Cloudinary (Server-to-Server)
+    // 3. Ambil Berkas dari Cloudinary (Server-to-Server)
     const publicId = extractPublicIdFromUrl(fileUrl, true);
     if (!publicId) {
       return NextResponse.json({ error: "Format URL berkas tidak valid." }, { status: 422 });
@@ -200,19 +200,55 @@ export async function GET(request: Request) {
     if (fileUrl.includes('/upload/')) deliveryType = 'upload';
     else if (fileUrl.includes('/private/')) deliveryType = 'private';
 
-    const signedCloudinaryUrl = generateSignedUrl(publicId, "image", 120, deliveryType);
+    let fileBuffer: ArrayBuffer | null = null;
+    let contentType = "application/pdf";
 
-    // 4. Unduh Berkas dari Cloudinary di Server
-    const upstreamResponse = await fetch(signedCloudinaryUrl);
-    if (!upstreamResponse.ok) {
-      console.error("[Stream API] Gagal mengunduh dari Cloudinary:", upstreamResponse.status, upstreamResponse.statusText);
+    // Coba Fetch 1: Cloudinary Signed URL dengan resource_type 'image'
+    try {
+      const signedUrlImage = generateSignedUrl(publicId, "image", 120, deliveryType);
+      const res = await fetch(signedUrlImage);
+      if (res.ok) {
+        contentType = res.headers.get("content-type") || "application/pdf";
+        fileBuffer = await res.arrayBuffer();
+      }
+    } catch {}
+
+    // Coba Fetch 2 (Fallback): Cloudinary Signed URL dengan resource_type 'raw'
+    if (!fileBuffer) {
+      try {
+        const signedUrlRaw = generateSignedUrl(publicId, "raw", 120, deliveryType);
+        const res = await fetch(signedUrlRaw);
+        if (res.ok) {
+          contentType = res.headers.get("content-type") || "application/pdf";
+          fileBuffer = await res.arrayBuffer();
+        }
+      } catch {}
+    }
+
+    // Coba Fetch 3 (Fallback): Fetch direct URL tersimpan jika tipe upload publik
+    if (!fileBuffer && fileUrl.startsWith("http")) {
+      try {
+        const res = await fetch(fileUrl);
+        if (res.ok) {
+          contentType = res.headers.get("content-type") || "application/pdf";
+          fileBuffer = await res.arrayBuffer();
+        }
+      } catch {}
+    }
+
+    if (!fileBuffer) {
+      console.error("[Stream API] Gagal mengunduh berkas dari semua metode Cloudinary untuk publicId:", publicId);
       return NextResponse.json({ error: "Gagal mengambil berkas dari media storage." }, { status: 502 });
     }
 
-    const contentType = upstreamResponse.headers.get("content-type") || "application/pdf";
-    const fileBuffer = await upstreamResponse.arrayBuffer();
+    // Deteksi Content-Type dari buffer jika upstream mengembalikan generic stream/octet-stream
+    if (contentType === "application/octet-stream" || contentType === "text/plain") {
+      if (defaultFilename.endsWith(".pdf")) contentType = "application/pdf";
+      else if (defaultFilename.endsWith(".png")) contentType = "image/png";
+      else if (defaultFilename.endsWith(".jpg") || defaultFilename.endsWith(".jpeg")) contentType = "image/jpeg";
+    }
 
-    // 5. Stream Buffer ke Browser dengan Header Keamanan Ketat
+    // 4. Stream Buffer ke Browser dengan Header Keamanan Ketat
     const disposition = isDownload ? "attachment" : "inline";
 
     return new NextResponse(Buffer.from(fileBuffer), {

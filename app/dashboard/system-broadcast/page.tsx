@@ -245,7 +245,7 @@ export default function SystemBroadcastPage() {
       <div className="bg-gray-card rounded-2xl border border-gray-border/60 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead className="border-b border-gray-border/80 bg-gray-sidebar-hover/80 text-[11px] font-bold text-gray-heading-small">
                 <tr>
                   <th className="py-3 px-4">Pesan & Kategori</th>

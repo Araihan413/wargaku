@@ -244,7 +244,6 @@ export default function DocumentVerificationWorkspacePage() {
 
   if (!family) return null;
 
-  const isPdf = signedDocUrl?.toLowerCase().includes(".pdf") || signedDocUrl?.includes("/raw/upload/");
   const isPending = family.verificationStatus === "pending";
   const isUpdate = isUpdateSubmission();
 
@@ -364,25 +363,12 @@ export default function DocumentVerificationWorkspacePage() {
           {/* Document Viewer Frame */}
           <div className="flex-1 p-4 flex items-center justify-center bg-gray-950/5 overflow-auto relative">
             {signedDocUrl ? (
-              isPdf ? (
-                <iframe
-                  src={signedDocUrl}
-                  title={activeDocTitle}
-                  className="w-full h-full border-0 rounded-2xl bg-white shadow-md"
-                />
-              ) : (
-                <div className="max-w-full max-h-full flex items-center justify-center p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={signedDocUrl}
-                    alt={activeDocTitle}
-                    className="max-w-full max-h-[70vh] lg:max-h-[75vh] object-contain rounded-2xl shadow-md border border-gray-border"
-                  />
-                  <div className="absolute top-2 right-2 bg-gray-950/60 backdrop-blur-xs text-[10px] text-white px-3 py-1.5 rounded-xl font-medium">
-                    {activeDocTitle}
-                  </div>
-                </div>
-              )
+              <iframe
+                key={signedDocUrl}
+                src={signedDocUrl}
+                title={activeDocTitle}
+                className="w-full h-full border-0 rounded-2xl bg-white shadow-md"
+              />
             ) : (
               <div className="text-center py-20 text-xs text-gray-placeholder flex flex-col items-center gap-2">
                 <FileText className="h-10 w-10 text-gray-border animate-pulse" />
@@ -603,7 +589,6 @@ export default function DocumentVerificationWorkspacePage() {
           )}
 
         </div>
-
       </div>
 
       {/* Verify Confirm/Reject Modal Popup */}

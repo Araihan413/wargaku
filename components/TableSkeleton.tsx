@@ -106,7 +106,7 @@ export function StandaloneTableSkeleton({
       className={`rounded-2xl border border-gray-border bg-gray-card shadow-xs overflow-hidden ${className}`}
     >
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="border-b border-gray-border bg-gray-sidebar-hover/60">
               {Array.from({ length: colCount }).map((_, idx) => (

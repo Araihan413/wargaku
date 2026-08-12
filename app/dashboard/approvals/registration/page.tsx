@@ -191,7 +191,7 @@ function RegistrationApprovalsContent() {
         {/* Table list */}
         <div className="overflow-x-auto">
           {isLoading ? (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                 <tr>
                   <th className="py-4 px-5">Nama & Kontak</th>
@@ -216,7 +216,7 @@ function RegistrationApprovalsContent() {
               </p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                 <tr>
                   <th className="py-4 px-5">Nama & Kontak</th>

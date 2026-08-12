@@ -63,7 +63,7 @@ export const RecentAuditLogsWidget: React.FC<RecentAuditLogsWidgetProps> = ({ lo
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-border">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+            <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider text-xs">
               <tr>
                 <th className="py-3 px-3.5">Waktu</th>
                 <th className="py-3 px-3.5">Pelaku</th>

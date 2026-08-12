@@ -308,7 +308,7 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
         {/* Dwelling List Table */}
         <div className="border border-gray-border rounded-2xl bg-gray-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                 <tr>
                   <th className="py-4 px-5 w-12 text-center">

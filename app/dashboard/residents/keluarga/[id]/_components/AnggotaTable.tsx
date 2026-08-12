@@ -74,7 +74,7 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-collapse text-xs">
           <thead className="">
             <tr>
               <th className="py-4 px-5">Nama Lengkap</th>
