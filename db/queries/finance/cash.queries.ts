@@ -91,6 +91,7 @@ export async function createCashTransaction(
     description: string;
     receiptFile?: string | null;
     createdBy: string;
+    approvedBy?: string | null;
   }
 ) {
   const [result] = await db.insert(schema.cashTransactions).values({
@@ -100,7 +101,9 @@ export async function createCashTransaction(
     category: data.category,
     description: data.description,
     receiptFile: data.receiptFile ?? null,
+    status: 'approved',
     createdBy: data.createdBy,
+    approvedBy: data.approvedBy ?? data.createdBy,
   });
   return result.insertId;
 }
