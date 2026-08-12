@@ -12,6 +12,7 @@ import { CitizenFilterOptions, FilteredCitizen } from "@/db/queries/residents/ci
 import { SavedSmartGroup } from "@/db/queries/system/smart-group.queries";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { TableSkeleton } from "@/components/TableSkeleton";
 
 const initialFilterState: CitizenFilterOptions = {
   searchQuery: "",
@@ -358,9 +359,22 @@ export default function SmartGroupsPage() {
 
         {/* Loading / Empty / Table Content */}
         {isEvaluating ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="w-7 h-7 text-primary animate-spin mb-3" />
-            <p className="text-xs font-bold text-gray-heading-main">Menyaring Data Warga...</p>
+          <div className="overflow-x-auto rounded-xl border border-gray-border print:border-black">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+                <tr>
+                  <th className="py-3.5 px-4">No</th>
+                  <th className="py-3.5 px-4">Nama Lengkap & NIK</th>
+                  <th className="py-3.5 px-4">L/P</th>
+                  <th className="py-3.5 px-4">Usia</th>
+                  <th className="py-3.5 px-4">Hubungan</th>
+                  <th className="py-3.5 px-4">Blok & Rumah</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-border">
+                <TableSkeleton rowCount={5} colCount={6} showActionButtons={false} cellPadding="py-3 px-4" />
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-gray-border print:border-black">

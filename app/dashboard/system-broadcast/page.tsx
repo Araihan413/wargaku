@@ -11,7 +11,6 @@ import {
   Trash2,
   Power,
   Search,
-  Loader2,
   Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +19,7 @@ import { useRoleStore } from "@/lib/store/use-role-store";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { BroadcastAdminItem, CreateBroadcastPayload } from "./types";
 import { CreateBroadcastModal } from "./_components/CreateBroadcastModal";
+import { TableSkeleton } from "@/components/TableSkeleton";
 
 export default function SystemBroadcastPage() {
   const { activeRoleId } = useRoleStore();
@@ -244,9 +244,21 @@ export default function SystemBroadcastPage() {
       {/* 3. Data Table */}
       <div className="bg-gray-card rounded-2xl border border-gray-border/60 shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="text-xs text-gray-placeholder">Memuat daftar broadcast...</span>
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full text-left border-collapse">
+              <thead className="border-b border-gray-border/80 bg-gray-sidebar-hover/80 text-[11px] font-bold text-gray-heading-small">
+                <tr>
+                  <th className="py-3 px-4">Pesan & Kategori</th>
+                  <th className="py-3 px-4">Target Peran</th>
+                  <th className="py-3 px-4">Status & Masa Berlaku</th>
+                  <th className="py-3 px-4">Interaksi</th>
+                  <th className="py-3 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-border/60 text-xs">
+                <TableSkeleton rowCount={4} colCount={5} />
+              </tbody>
+            </table>
           </div>
         ) : filteredBroadcasts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">

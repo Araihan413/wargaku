@@ -232,9 +232,14 @@ function RentalsContent() {
   // Loading State
   if (isLoadingProperties) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-xs text-gray-placeholder">Memuat Data Properti Sewa...</span>
+      <div className="space-y-6 animate-pulse pb-12">
+        <div className="h-10 w-64 rounded-xl bg-gray-border/60" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-card border border-gray-border p-4 shadow-xs" />
+          ))}
+        </div>
+        <div className="h-80 rounded-2xl bg-gray-card border border-gray-border shadow-xs" />
       </div>
     );
   }

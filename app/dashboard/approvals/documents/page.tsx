@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   UserCheck,
   UserX,
-  Loader2,
   CheckCircle2,
   Eye,
   Search,
@@ -17,6 +16,7 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { RefreshButton } from "@/components/RefreshButton";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { TableSkeleton } from "@/components/TableSkeleton";
 
 const STATUS_OPTIONS: SelectOption[] = [
   { value: "pending", label: "Menunggu Review" },
@@ -297,10 +297,21 @@ function DocumentApprovalsContent() {
         {/* Data Table */}
         <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center text-xs text-gray-placeholder gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              Memuat data dokumen...
-            </div>
+            <table className="w-full text-left border-collapse">
+              <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+                <tr>
+                  <th className="py-4 px-5">Kepala Keluarga / Penyewa</th>
+                  <th className="py-4 px-5">Nomor Identitas</th>
+                  <th className="py-4 px-5">Alamat / Properti</th>
+                  <th className="py-4 px-5 text-center">Detail</th>
+                  <th className="py-4 px-5 text-center">Status Berkas</th>
+                  <th className="py-4 px-5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
+                <TableSkeleton rowCount={5} colCount={6} />
+              </tbody>
+            </table>
           ) : activeTab === "family" ? (
             familiesList.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-12 text-center text-xs text-gray-placeholder gap-2 min-h-60">

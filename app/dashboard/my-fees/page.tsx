@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import {
   CheckCircle2,
   AlertCircle,
-  Loader2,
   Calendar,
   CreditCard,
   Building,
@@ -205,9 +204,17 @@ function WargaMyFeesContent() {
       </div>
 
       {isLoading ? (
-        <div className="flex h-64 flex-col items-center justify-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-xs font-medium text-gray-placeholder">Memuat data iuran...</span>
+        <div className="space-y-6 animate-pulse">
+          {/* Summary Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 rounded-2xl bg-gray-card border border-gray-border p-5 shadow-xs" />
+            ))}
+          </div>
+          {/* Section 1 Skeleton */}
+          <div className="h-64 rounded-3xl bg-gray-card border border-gray-border shadow-xs" />
+          {/* Section 2 Skeleton */}
+          <div className="h-72 rounded-3xl bg-gray-card border border-gray-border shadow-xs" />
         </div>
       ) : !data || !data.hasFamily ? (
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center max-w-md mx-auto space-y-3">

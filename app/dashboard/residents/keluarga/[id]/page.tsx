@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, UserPlus, Loader2 } from "lucide-react";
+import { ArrowLeft, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { KKDetailCard } from "./_components/KKDetailCard";
 import { AnggotaTable } from "./_components/AnggotaTable";
@@ -109,9 +109,10 @@ export default function FamilyDetailPage({ params }: PageProps) {
 
   if (isLoading && !familyDetail) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-2">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm text-gray-placeholder">Memuat detail Kartu Keluarga...</span>
+      <div className="space-y-6 animate-pulse pb-12">
+        <div className="h-48 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+        <div className="h-72 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+        <div className="h-36 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
       </div>
     );
   }

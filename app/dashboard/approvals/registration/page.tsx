@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { RefreshButton } from "@/components/RefreshButton";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { TableSkeleton } from "@/components/TableSkeleton";
 
 
 interface PendingUser {
@@ -190,10 +191,22 @@ function RegistrationApprovalsContent() {
         {/* Table list */}
         <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center text-xs text-gray-placeholder gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              Memuat data pendaftaran pending...
-            </div>
+            <table className="w-full text-left border-collapse">
+              <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
+                <tr>
+                  <th className="py-4 px-5">Nama & Kontak</th>
+                  <th className="py-4 px-5">Tipe Akun</th>
+                  <th className="py-4 px-5">NIK</th>
+                  <th className="py-4 px-5">Nomor KK</th>
+                  <th className="py-4 px-5">Rencana Alamat</th>
+                  <th className="py-4 px-5 text-center">Tanggal Daftar</th>
+                  <th className="py-4 px-5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
+                <TableSkeleton rowCount={4} colCount={7} />
+              </tbody>
+            </table>
           ) : pendingList.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center text-xs text-gray-placeholder gap-2 min-h-60">
               <CheckCircle2 className="h-10 w-10 text-emerald-500" />

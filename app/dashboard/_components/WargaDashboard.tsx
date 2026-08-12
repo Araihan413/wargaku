@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Loader2, AlertCircle, QrCode, Home, Download } from "lucide-react";
+import { AlertCircle, QrCode, Home, Download } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { WargaHeaderBanner } from "./warga/WargaHeaderBanner";
@@ -95,9 +95,31 @@ export function WargaDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm font-medium text-gray-placeholder">Memuat Portal Warga...</span>
+      <div className="space-y-6 animate-pulse pb-12">
+        {/* Banner Hero Skeleton */}
+        <div className="h-44 w-full rounded-3xl bg-gray-border/60" />
+
+        {/* Quick Actions Grid Skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-28 rounded-2xl bg-gray-card border border-gray-border p-4 flex flex-col justify-between shadow-xs"
+            >
+              <div className="h-10 w-10 rounded-xl bg-gray-border/70" />
+              <div className="h-4 w-20 bg-gray-border/60 rounded-md" />
+            </div>
+          ))}
+        </div>
+
+        {/* Info Widget Skeleton */}
+        <div className="h-36 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+
+        {/* Content Split Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-72 rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+          <div className="h-72 rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+        </div>
       </div>
     );
   }

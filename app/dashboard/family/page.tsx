@@ -167,9 +167,10 @@ function WargaFamilyContent() {
 
   if (isLoading && !familyDetail) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-2">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm font-medium text-gray-placeholder">Memuat Data Kartu Keluarga...</span>
+      <div className="space-y-6 animate-pulse pb-12">
+        <div className="h-56 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+        <div className="h-72 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+        <div className="h-44 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
       </div>
     );
   }
