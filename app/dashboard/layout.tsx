@@ -69,7 +69,8 @@ export default function DashboardLayout({
       fetchOptions: {
         onSuccess: () => {
           toast.success("Berhasil keluar dari akun");
-          router.push("/login");
+          // Gunakan hard redirect untuk membersihkan status memori client-side sepenuhnya
+          window.location.href = "/login";
         },
         onError: (ctx) => {
           toast.error(ctx.error.message || "Gagal keluar");
@@ -82,7 +83,8 @@ export default function DashboardLayout({
   const user = session?.user;
 
   React.useEffect(() => {
-    if (!isPending) {
+    // Lewati pengalihan jika sedang dalam proses logout manual untuk menghindari konflik transisi rute
+    if (!isPending && !isLoggingOut) {
       if (!user) {
         router.push("/login");
       } else {
@@ -102,7 +104,7 @@ export default function DashboardLayout({
         }
       }
     }
-  }, [user, isPending, router]);
+  }, [user, isPending, isLoggingOut, router]);
 
   if (isPending || isLoggingOut) {
     return (

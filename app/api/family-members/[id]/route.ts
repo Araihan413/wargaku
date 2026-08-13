@@ -7,6 +7,8 @@ import {
   updateFamilyMember,
   deleteFamilyMember,
 } from '@/db/queries/population/family-member.queries';
+import { getFamilyById } from '@/db/queries/population/family.queries';
+import { getUserById } from '@/db/queries/auth/user.queries';
 import { updateWargaSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 
@@ -77,8 +79,6 @@ export async function GET(
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
-
-import { getFamilyById } from '@/db/queries/population/family.queries';
 
 /**
  * @openapi
@@ -184,13 +184,40 @@ export async function PUT(
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
-    const allowedStatuses = ['draft', 'rejected', 'changes_pending'];
-    const isLocked = !isOfficer && !allowedStatuses.includes(family.verificationStatus);
+    if (!isOfficer) {
+      const currentUser = await getUserById(session.user.id);
+      if (!currentUser || currentUser.status !== 'active') {
+        return NextResponse.json(
+          { error: 'Akun Anda belum aktif atau sedang ditangguhkan' },
+          { status: 403 }
+        );
+      }
+    }
 
     const body = await request.json();
     const validatedData = updateWargaSchema.parse(body);
 
-    let updatePayload: any = {
+    if (!isOfficer) {
+      if (family.verificationStatus === 'pending') {
+        return NextResponse.json(
+          { error: 'Data Kartu Keluarga sedang dikunci untuk verifikasi RT. Silakan tunggu verifikasi selesai atau batalkan pengajuan.' },
+          { status: 400 }
+        );
+      }
+
+      if (family.verificationStatus === 'verified') {
+        // Pada status terverifikasi, warga hanya diizinkan memperbarui nomor telepon/WhatsApp langsung
+        await updateFamilyMember(memberId, { phone: validatedData.phone || null });
+        return NextResponse.json({ message: 'Nomor telepon anggota keluarga berhasil diperbarui' });
+      }
+    }
+
+    const updatePayload: any = {
+      name: validatedData.name,
+      nik: validatedData.nik,
+      gender: validatedData.gender,
+      relationship: validatedData.relationship,
+      ktpFile: validatedData.ktpFile,
       birthPlace: validatedData.birthPlace,
       birthDate: validatedData.birthDate ? String(validatedData.birthDate) : undefined,
       phone: validatedData.phone,
@@ -204,17 +231,6 @@ export async function PUT(
     }
     if (validatedData.inactiveNote !== undefined) {
       updatePayload.inactiveNote = validatedData.inactiveNote;
-    }
-
-    if (!isLocked) {
-      updatePayload = {
-        ...updatePayload,
-        name: validatedData.name,
-        nik: validatedData.nik,
-        gender: validatedData.gender,
-        relationship: validatedData.relationship,
-        ktpFile: validatedData.ktpFile,
-      };
     }
 
     await updateFamilyMember(memberId, updatePayload);
@@ -308,7 +324,17 @@ export async function DELETE(
     }
 
     if (!isOfficer) {
-      const allowedStatuses = ['draft', 'rejected', 'changes_pending'];
+      const currentUser = await getUserById(session.user.id);
+      if (!currentUser || currentUser.status !== 'active') {
+        return NextResponse.json(
+          { error: 'Akun Anda belum aktif atau sedang ditangguhkan' },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (!isOfficer) {
+      const allowedStatuses = ['draft', 'rejected'];
       if (!allowedStatuses.includes(family.verificationStatus)) {
         return NextResponse.json(
           { error: 'Data Kartu Keluarga sedang dikunci untuk verifikasi RT. Silakan ajukan perubahan data terlebih dahulu.' },

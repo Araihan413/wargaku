@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoleStore } from "@/lib/store/use-role-store";
 
-export type VerificationStatusType = "draft" | "pending" | "verified" | "rejected" | "changes_pending" | "unsubmitted";
+export type VerificationStatusType = "draft" | "pending" | "verified" | "rejected" | "unsubmitted";
 
 export interface FamilyVerificationState {
   isVerified: boolean;
@@ -83,7 +83,7 @@ export function useFamilyVerification(userRoleId?: number | null): FamilyVerific
   const isNonWarga = currentRoleId !== undefined && currentRoleId !== 6 && currentRoleId !== 5;
 
   return {
-    isVerified: isNonWarga || hasVerified || verificationStatus === "verified" || verificationStatus === "changes_pending",
+    isVerified: isNonWarga || hasVerified || verificationStatus === "verified",
     hasVerified: isNonWarga ? true : hasVerified,
     hasFamily,
     verificationStatus: isNonWarga ? "verified" : verificationStatus,

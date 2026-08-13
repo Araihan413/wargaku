@@ -17,6 +17,7 @@ interface EditWargaMemberModalProps {
   onSuccess: () => void;
   member: WargaFamilyMember | null;
   isLocked?: boolean;
+  onCustomSubmit?: (data: any) => Promise<boolean>;
 }
 
 export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
@@ -25,12 +26,13 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
   onSuccess,
   member,
   isLocked = false,
+  onCustomSubmit,
 }) => {
   const [prevMember, setPrevMember] = useState<WargaFamilyMember | null>(null);
 
   const [name, setName] = useState("");
   const [nik, setNik] = useState("");
-  const [relationship, setRelationship] = useState<any>("Istri");
+  const [relationship, setRelationship] = useState<"Kepala_Keluarga" | "Suami" | "Istri" | "Anak" | "Orang_Tua" | "Mertua" | "Sepupu" | "Lainnya">("Istri");
   const [gender, setGender] = useState<"L" | "P">("L");
   const [birthPlace, setBirthPlace] = useState("");
   const [birthDate, setBirthDate] = useState("");
@@ -43,12 +45,12 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   // Synchronize form state with props during render without useEffect to prevent cascading renders
-  if (member !== prevMember) {
+  if (member && member !== prevMember) {
     setPrevMember(member);
     if (member) {
       setName(member.name || "");
       setNik(member.nik || "");
-      setRelationship(member.relationship || "Istri");
+      setRelationship(member.relationship as any || "Istri");
       setGender(member.gender || "L");
       setBirthPlace(member.birthPlace || "");
       setBirthDate(member.birthDate ? member.birthDate.split("T")[0] : "");
@@ -121,22 +123,39 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
         finalKtpUrl = ktpFile;
       }
 
+      const payload = {
+        name,
+        nik,
+        relationship,
+        gender,
+        birthPlace: birthPlace || null,
+        birthDate: birthDate || null,
+        occupation: occupation || null,
+        educationLevel: educationLevel || null,
+        religion: religion || null,
+        phone: phone || null,
+        ktpFile: finalKtpUrl,
+      };
+
+      if (onCustomSubmit) {
+        const ok = await onCustomSubmit(payload);
+        if (ok) {
+          toast.success(`Biodata "${name}" berhasil diperbarui`);
+          onSuccess();
+        }
+        return;
+      }
+
+      if (isLocked) {
+        toast.error("Data keluarga sedang dikunci untuk verifikasi RT. Silakan ajukan perubahan data terlebih dahulu.");
+        setIsLoading(false);
+        return;
+      }
+
       const res = await fetch(`/api/family-members/${member.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          nik,
-          relationship,
-          gender,
-          birthPlace: birthPlace || null,
-          birthDate: birthDate || null,
-          occupation: occupation || null,
-          educationLevel: educationLevel || null,
-          religion: religion || null,
-          phone: phone || null,
-          ktpFile: finalKtpUrl,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -186,10 +205,10 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Locked Info Banner */}
             {isLocked && (
-              <div className="p-4 bg-emerald-50/70 border border-emerald-100 rounded-2xl mb-2 space-y-1 text-left sm:col-span-2">
-                <span className="text-xs font-bold text-emerald-700 block">Data Keluarga Terverifikasi/Pending RT:</span>
-                <p className="text-xs text-emerald-600 leading-relaxed">
-                  Data identitas utama dikunci. Gunakan menu &quot;Ajukan Perubahan Data&quot; di halaman KK jika ingin membukanya.
+              <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl mb-2 space-y-1 text-left sm:col-span-2">
+                <span className="text-xs font-bold text-blue-800 block">Mode Pembaruan Kontak Warga:</span>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  Data kependudukan resmi telah terverifikasi oleh RT. Anda dapat memperbarui <strong>Nomor HP / WhatsApp</strong> secara langsung. Untuk mengubah nama, NIK, pekerjaan, atau data lainnya, silakan gunakan tombol <strong>&ldquo;Ajukan Perubahan Data&rdquo;</strong> di halaman utama.
                 </p>
               </div>
             )}
@@ -281,7 +300,10 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 value={birthPlace}
                 onChange={(e) => setBirthPlace(e.target.value)}
                 placeholder="Contoh: Bandung"
-                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                disabled={isLocked}
+                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
+                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
@@ -292,7 +314,10 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                disabled={isLocked}
+                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
+                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
@@ -304,6 +329,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 onChange={setOccupation}
                 suggestions={commonOccupations}
                 placeholder="Contoh: Wiraswasta"
+                disabled={isLocked}
               />
             </div>
 
@@ -315,6 +341,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 onChange={setEducationLevel}
                 suggestions={commonEducations}
                 placeholder="Contoh: S1 / SMA"
+                disabled={isLocked}
               />
             </div>
 
@@ -326,6 +353,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 onChange={(val) => setReligion(val)}
                 options={religionOptions}
                 placeholder="-- Pilih Agama --"
+                disabled={isLocked}
               />
             </div>
 

@@ -10,6 +10,7 @@ interface AutocompleteInputProps {
   className?: string;
   label?: string;
   required?: boolean;
+  disabled?: boolean;
   icon?: React.ComponentType<{ className?: string }>;
 }
 
@@ -21,6 +22,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   className = "",
   label,
   required = false,
+  disabled = false,
   icon: Icon,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -75,12 +77,17 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
             onChange(e.target.value);
             setIsOpen(true);
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => {
+            if (!disabled) setIsOpen(true);
+          }}
           placeholder={placeholder}
           required={required}
+          disabled={disabled}
           className={`w-full rounded-xl border border-gray-border bg-gray-card py-2.5 ${
             Icon ? "pl-10" : "px-3.5"
-          } pr-3.5 text-sm text-gray-heading-main focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all ${className}`}
+          } pr-3.5 text-sm text-gray-heading-main focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
+            disabled ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
+          } ${className}`}
         />
 
         {isOpen && filtered.length > 0 && (

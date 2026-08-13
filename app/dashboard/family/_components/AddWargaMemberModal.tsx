@@ -15,6 +15,7 @@ interface AddWargaMemberModalProps {
   onClose: () => void;
   onSuccess: () => void;
   familyId: number;
+  onCustomSubmit?: (data: any) => Promise<boolean>;
 }
 
 export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
@@ -22,6 +23,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
   onClose,
   onSuccess,
   familyId,
+  onCustomSubmit,
 }) => {
   const [name, setName] = useState("");
   const [nik, setNik] = useState("");
@@ -57,25 +59,36 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
       const result = await executeWithFileUpload({
         file: ktpFile,
         folder: "ktp",
-        submitFn: (finalKtpUrl) =>
-          fetch("/api/family-members", {
+        submitFn: async (finalKtpUrl) => {
+          const payload = {
+            familyId,
+            name,
+            nik,
+            relationship,
+            gender,
+            birthPlace: birthPlace || null,
+            birthDate: birthDate || null,
+            occupation: occupation || null,
+            educationLevel: educationLevel || null,
+            religion: religion || null,
+            phone: phone || null,
+            ktpFile: finalKtpUrl,
+          };
+
+          if (onCustomSubmit) {
+            const ok = await onCustomSubmit(payload);
+            return {
+              ok,
+              json: async () => ({ message: "Success" }),
+            } as any;
+          }
+
+          return fetch("/api/family-members", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              familyId,
-              name,
-              nik,
-              relationship,
-              gender,
-              birthPlace: birthPlace || null,
-              birthDate: birthDate || null,
-              occupation: occupation || null,
-              educationLevel: educationLevel || null,
-              religion: religion || null,
-              phone: phone || null,
-              ktpFile: finalKtpUrl,
-            }),
-          }),
+            body: JSON.stringify(payload),
+          });
+        },
         successMessage: `Anggota keluarga "${name}" berhasil ditambahkan`,
       });
 

@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
 import { getFamilyById, updateFamily, deleteFamily } from '@/db/queries/population/family.queries';
+import { getActiveChangeRequest, getChangeRequestById } from '@/db/queries/population/family-change-request.queries';
+import { getUserById } from '@/db/queries/auth/user.queries';
 import { updateFamilySchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 import { deleteCloudinaryFileByUrl } from '@/lib/cloudinary';
@@ -139,7 +141,20 @@ export async function GET(
       return NextResponse.json({ error: 'Tidak memiliki izin akses ke keluarga ini' }, { status: 403 });
     }
 
-    return NextResponse.json(family);
+    const { searchParams } = new URL(request.url);
+    const changeRequestIdParam = searchParams.get('changeRequestId');
+
+    let changeRequest = null;
+    if (changeRequestIdParam && !isNaN(Number(changeRequestIdParam))) {
+      changeRequest = await getChangeRequestById(Number(changeRequestIdParam));
+    } else {
+      changeRequest = await getActiveChangeRequest(familyId);
+    }
+
+    return NextResponse.json({
+      ...family,
+      changeRequest,
+    });
   } catch (error: any) {
     console.error('Error in GET /api/families/[id]:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
@@ -184,10 +199,19 @@ export async function PUT(
     let updateData: any;
 
     if (!hasManagePerm) {
-      // Perilaku Warga: cek aturan lock status verified
-      if (family.verificationStatus === 'verified') {
+      // Periksa status akun pengguna
+      const currentUser = await getUserById(session.user.id);
+      if (!currentUser || currentUser.status !== 'active') {
         return NextResponse.json(
-          { error: 'Data keluarga yang terverifikasi dikunci. Silakan ajukan perubahan data.' },
+          { error: 'Akun Anda belum aktif atau sedang ditangguhkan' },
+          { status: 403 }
+        );
+      }
+
+      // Perilaku Warga: cek aturan lock status verified dan pending
+      if (family.verificationStatus === 'verified' || family.verificationStatus === 'pending') {
+        return NextResponse.json(
+          { error: 'Data Kartu Keluarga yang terverifikasi atau sedang dalam proses peninjauan RT tidak dapat diubah secara langsung.' },
           { status: 403 }
         );
       }

@@ -5,8 +5,11 @@ import {
   UserCheck,
   UserX,
   CheckCircle2,
+  XCircle,
   Eye,
   Search,
+  FileText,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -20,12 +23,17 @@ import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 const STATUS_OPTIONS: SelectOption[] = [
   { value: "pending", label: "Menunggu Review" },
-  { value: "verified", label: "Terverifikasi" },
+  { value: "verified", label: "Terverifikasi / Disetujui" },
   { value: "rejected", label: "Ditolak" },
 ];
 
-interface FamilyItem {
+const SUBTYPE_OPTIONS: SelectOption[] = [
+  { value: "all", label: "Semua Jenis Pengajuan" },
+  { value: "registration", label: "Registrasi Baru" },
+  { value: "change_request", label: "Perubahan Data" },
+];
 
+interface FamilyItem {
   id: number;
   familyNumber: string;
   headName: string;
@@ -37,6 +45,9 @@ interface FamilyItem {
   blockNumber: string;
   houseNumber: string;
   memberCount: number;
+  submissionType: "registration" | "change_request";
+  submissionLabel: string;
+  changeRequestId?: number | null;
 }
 
 interface RentalResidentItem {
@@ -66,6 +77,7 @@ export default function DocumentApprovalsPage() {
 function DocumentApprovalsContent() {
   const [activeTab, setActiveTab] = useState<"family" | "rental_resident">("family");
   const [statusFilter, setStatusFilter] = useState<"pending" | "verified" | "rejected">("pending");
+  const [subTypeFilter, setSubTypeFilter] = useState<"all" | "registration" | "change_request">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 400);
 
@@ -80,7 +92,7 @@ function DocumentApprovalsContent() {
   const fetchPendingCounts = useCallback(async () => {
     try {
       const [famRes, rentRes] = await Promise.all([
-        fetch("/api/approvals/documents?type=family&status=pending"),
+        fetch("/api/approvals/documents?type=family&subType=all&status=pending"),
         fetch("/api/approvals/documents?type=rental_resident&status=pending")
       ]);
       if (famRes.ok) {
@@ -105,7 +117,7 @@ function DocumentApprovalsContent() {
     await Promise.resolve(); // Defers state updates to avoid synchronous setState in useEffect
     setIsLoading(true);
     try {
-      const url = `/api/approvals/documents?type=${activeTab}&status=${statusFilter}&query=${encodeURIComponent(debouncedQuery)}`;
+      const url = `/api/approvals/documents?type=${activeTab}&subType=${subTypeFilter}&status=${statusFilter}&query=${encodeURIComponent(debouncedQuery)}`;
       const res = await fetch(url);
       const result = await res.json();
       if (res.ok) {
@@ -123,7 +135,7 @@ function DocumentApprovalsContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeTab, statusFilter, debouncedQuery]);
+  }, [activeTab, subTypeFilter, statusFilter, debouncedQuery]);
 
   useEffect(() => {
     let active = true;
@@ -211,16 +223,16 @@ function DocumentApprovalsContent() {
 
 
       {/* Tabs & Controls */}
-      <div className="bg-gray-card border border-gray-border rounded-2xl p-4 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          {/* Tab buttons */}
-          <div className="flex bg-gray-sidebar-hover/40 p-1 rounded-xl w-fit">
+      <div className="bg-gray-card border border-gray-border rounded-2xl p-5 space-y-4 shadow-xs">
+        {/* Row 1: Tab Navigation */}
+        <div className="flex items-center justify-between border-b border-gray-border/60 pb-3">
+          <div className="flex bg-gray-sidebar-hover/60 p-1 rounded-xl w-fit">
             <button
               onClick={() => {
                 setActiveTab("family");
                 setFamiliesList([]);
               }}
-              className={`relative px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+              className={`relative px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "family"
                   ? "bg-gray-card text-gray-heading-main shadow-xs"
                   : "text-gray-secondary-text hover:text-gray-heading-main"
@@ -229,7 +241,7 @@ function DocumentApprovalsContent() {
               <span>Data Keluarga</span>
               {familyPendingCount > 0 && (
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 animate-ping"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                 </span>
               )}
@@ -239,7 +251,7 @@ function DocumentApprovalsContent() {
                 setActiveTab("rental_resident");
                 setRentalList([]);
               }}
-              className={`relative px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+              className={`relative px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "rental_resident"
                   ? "bg-gray-card text-gray-heading-main shadow-xs"
                   : "text-gray-secondary-text hover:text-gray-heading-main"
@@ -248,33 +260,47 @@ function DocumentApprovalsContent() {
               <span>Data Penyewa</span>
               {rentalPendingCount > 0 && (
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 animate-ping"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                 </span>
               )}
             </button>
           </div>
+        </div>
 
-          {/* Filters & Search */}
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-60">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-placeholder" />
-              <input
-                type="text"
-                placeholder={
-                  activeTab === "family"
-                    ? "Cari nama KK / nomor KK..."
-                    : "Cari nama penghuni / NIK..."
-                }
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-xs pl-9 pr-4 py-2 bg-gray-sidebar-hover/20 border border-gray-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-gray-placeholder text-gray-heading-main"
-              />
-            </div>
+        {/* Row 2: Search & Filters Toolbar */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pt-1">
+          {/* Search Input */}
+          <div className="relative w-full lg:max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-placeholder" />
+            <input
+              type="text"
+              placeholder={
+                activeTab === "family"
+                  ? "Cari nama kepala keluarga / nomor KK..."
+                  : "Cari nama penghuni / NIK..."
+              }
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full text-xs pl-10 pr-4 py-2.5 bg-gray-sidebar-hover/20 border border-gray-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-placeholder text-gray-heading-main transition-all"
+            />
+          </div>
+
+          {/* Filters Selectors */}
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full lg:w-auto">
+            {/* SubType Selector (Khusus Tab Data Keluarga) */}
+            {activeTab === "family" && (
+              <div className="w-full sm:w-56">
+                <CustomSelect
+                  value={subTypeFilter}
+                  onChange={(val) => setSubTypeFilter(val as any)}
+                  options={SUBTYPE_OPTIONS}
+                />
+              </div>
+            )}
 
             {/* Status Selector */}
-            <div className="w-full sm:w-44">
+            <div className="w-full sm:w-52">
               <CustomSelect
                 value={statusFilter}
                 onChange={(val) => setStatusFilter(val as any)}
@@ -285,17 +311,17 @@ function DocumentApprovalsContent() {
         </div>
 
         {/* Data Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-thin">
           {isLoading ? (
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full min-w-240 text-left border-collapse text-xs">
               <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                 <tr>
-                  <th className="py-4 px-5">Kepala Keluarga / Penyewa</th>
-                  <th className="py-4 px-5">Nomor Identitas</th>
-                  <th className="py-4 px-5">Alamat / Properti</th>
-                  <th className="py-4 px-5 text-center">Detail</th>
-                  <th className="py-4 px-5 text-center">Status Berkas</th>
-                  <th className="py-4 px-5 text-right">Aksi</th>
+                  <th className="py-4 px-5 min-w-45">Kepala Keluarga / Penyewa</th>
+                  <th className="py-4 px-5 min-w-35">Nomor Identitas</th>
+                  <th className="py-4 px-5 min-w-35">Alamat / Properti</th>
+                  <th className="py-4 px-5 min-w-27.5 text-center">Detail</th>
+                  <th className="py-4 px-5 min-w-30 text-center">Status Berkas</th>
+                  <th className="py-4 px-5 min-w-25 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
@@ -312,29 +338,49 @@ function DocumentApprovalsContent() {
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full min-w-240 text-left border-collapse text-xs">
                 <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                   <tr>
-                    <th className="py-4 px-5">Kepala Keluarga</th>
-                    <th className="py-4 px-5">Nomor KK</th>
-                    <th className="py-4 px-5">Alamat Alokasi</th>
-                    <th className="py-4 px-5 text-center">Jumlah Anggota</th>
-                    <th className="py-4 px-5 text-center">Mulai Tinggal</th>
-                    <th className="py-4 px-5 text-center">Tinjau KK & Anggota</th>
-                    {statusFilter === "rejected" && <th className="py-4 px-5">Alasan Ditolak</th>}
-                    <th className="py-4 px-5 text-right">Aksi</th>
+                    <th className="py-4 px-5 min-w-45">Kepala Keluarga</th>
+                    <th className="py-4 px-5 min-w-35">Nomor KK</th>
+                    <th className="py-4 px-5 min-w-35 text-center">Jenis Pengajuan</th>
+                    <th className="py-4 px-5 min-w-32.5">Alamat Alokasi</th>
+                    <th className="py-4 px-5 min-w-27.5 text-center">Jumlah Anggota</th>
+                    <th className="py-4 px-5 min-w-30 text-center">Mulai Tinggal / Diajukan</th>
+                    <th className="py-4 px-5 min-w-30 text-center">Tinjau KK & Anggota</th>
+                    {statusFilter === "rejected" && <th className="py-4 px-5 min-w-37.5">Alasan Ditolak</th>}
+                    <th className="py-4 px-5 min-w-25 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
                   {familiesList.map((fam) => {
                     const addressStr = `Blok ${fam.blockNumber} No. ${fam.houseNumber}`;
                     return (
-                      <tr key={fam.id} className="hover:bg-gray-sidebar-hover/5 transition-colors">
-                        <td className="py-4 px-5">
+                      <tr key={`${fam.submissionType}-${fam.id}-${fam.changeRequestId || "reg"}`} className="hover:bg-gray-sidebar-hover/5 transition-colors">
+                        <td className="py-4 px-5 min-w-45">
                           <div className="font-semibold text-gray-heading-main">{fam.headName}</div>
                         </td>
-                        <td className="py-4 px-5 font-mono text-sm font-semibold text-gray-secondary-text">{fam.familyNumber}</td>
-                        <td className="py-4 px-5 text-gray-secondary-text">
+                        <td className="py-4 px-5 min-w-35 font-mono text-sm font-semibold text-gray-secondary-text">{fam.familyNumber}</td>
+                        <td className="py-4 px-5 min-w-35 text-center">
+                          {fam.submissionType === "change_request" ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200"
+                              title="Usulan perubahan data dari KK yang sudah terdaftar"
+                            >
+                              <FileText className="h-3 w-3 text-amber-600" />
+                              Perubahan Data
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              title="Pendaftaran Kartu Keluarga Baru"
+                            >
+                              <UserPlus className="h-3 w-3 text-emerald-600" />
+                              Registrasi Baru
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-5 min-w-32.5 text-gray-secondary-text">
                           <div>
                             <span className="text-gray-heading-main font-semibold">{addressStr}</span>
                             {fam.unitNumber && (
@@ -344,45 +390,55 @@ function DocumentApprovalsContent() {
                             )}
                           </div>
                         </td>
-                        <td className="py-4 px-5 text-center font-semibold text-gray-heading-main">
+                        <td className="py-4 px-5 min-w-27.5 text-center font-semibold text-gray-heading-main">
                           <span>{fam.memberCount} orang</span>
                         </td>
-                        <td className="py-4 px-5 font-semibold text-center text-gray-secondary-text">
+                        <td className="py-4 px-5 min-w-30 font-semibold text-center text-gray-secondary-text">
                           <span>{formatDate(fam.checkInDate)}</span>
                         </td>
-                        <td className="py-4 px-5 text-center">
+                        <td className="py-4 px-5 min-w-30 text-center">
                           <Link
-                            href={`/dashboard/approvals/documents/${fam.id}`}
+                            href={`/dashboard/approvals/documents/${fam.id}${fam.changeRequestId ? `?changeRequestId=${fam.changeRequestId}` : ""}`}
                             className="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1"
                           >
                             <Eye className="h-3 w-3" />
-                            Tinjau Berkas
+                            Tinjau
                           </Link>
                         </td>
                         {statusFilter === "rejected" && (
-                          <td className="py-4 px-5 max-w-xs truncate text-rose-600 font-medium">
+                          <td className="py-4 px-5 min-w-37.5 max-w-xs truncate text-rose-600 font-medium">
                             {fam.verificationNote || "-"}
                           </td>
                         )}
-                        <td className="py-4 px-5 text-right">
+                        <td className="py-4 px-5 min-w-25 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            {statusFilter !== "verified" && (
-                              <button
-                                onClick={() => handleOpenConfirm(fam.id, fam.headName, "approve")}
-                                className="p-1.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors cursor-pointer"
-                                title="Setujui KK"
-                              >
-                                <UserCheck className="h-4.5 w-4.5" />
-                              </button>
-                            )}
-                            {statusFilter !== "rejected" && (
-                              <button
-                                onClick={() => handleOpenConfirm(fam.id, fam.headName, "reject")}
-                                className="p-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors cursor-pointer"
-                                title="Tolak KK"
-                              >
-                                <UserX className="h-4.5 w-4.5" />
-                              </button>
+                            {statusFilter === "pending" ? (
+                              <>
+                                <button
+                                  onClick={() => handleOpenConfirm(fam.id, fam.headName, "approve")}
+                                  className="p-1.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors cursor-pointer"
+                                  title={fam.submissionType === "change_request" ? "Setujui Perubahan" : "Setujui KK"}
+                                >
+                                  <UserCheck className="h-4.5 w-4.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleOpenConfirm(fam.id, fam.headName, "reject")}
+                                  className="p-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors cursor-pointer"
+                                  title={fam.submissionType === "change_request" ? "Tolak Perubahan" : "Tolak KK"}
+                                >
+                                  <UserX className="h-4.5 w-4.5" />
+                                </button>
+                              </>
+                            ) : statusFilter === "verified" ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Disetujui</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                                <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Ditolak</span>
+                              </span>
                             )}
                           </div>
                         </td>
@@ -401,18 +457,18 @@ function DocumentApprovalsContent() {
               </p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full min-w-240 text-left border-collapse text-xs">
               <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                 <tr>
-                  <th className="py-4 px-5">Nama Penghuni</th>
-                  <th className="py-4 px-5">NIK</th>
-                  <th className="py-4 px-5">Properti Sewa</th>
-                  <th className="py-4 px-5">No Kamar / Hunian</th>
-                  <th className="py-4 px-5 text-center">Tipe Sewa</th>
-                  <th className="py-4 px-5 text-center">Mulai Sewa</th>
-                  <th className="py-4 px-5 text-center">Berkas KTP</th>
-                  {statusFilter === "rejected" && <th className="py-4 px-5">Alasan Ditolak</th>}
-                  <th className="py-4 px-5 text-right">Aksi</th>
+                  <th className="py-4 px-5 min-w-45">Nama Penghuni</th>
+                  <th className="py-4 px-5 min-w-35">NIK</th>
+                  <th className="py-4 px-5 min-w-35">Properti Sewa</th>
+                  <th className="py-4 px-5 min-w-32.5">No Kamar / Hunian</th>
+                  <th className="py-4 px-5 min-w-25 text-center">Tipe Sewa</th>
+                  <th className="py-4 px-5 min-w-27.5 text-center">Mulai Sewa</th>
+                  <th className="py-4 px-5 min-w-27.5 text-center">Berkas KTP</th>
+                  {statusFilter === "rejected" && <th className="py-4 px-5 min-w-37.5">Alasan Ditolak</th>}
+                  <th className="py-4 px-5 min-w-25 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
@@ -420,7 +476,7 @@ function DocumentApprovalsContent() {
                   const addressStr = `Blok ${ren.blockNumber} No. ${ren.houseNumber}`;
                   return (
                     <tr key={ren.id} className="hover:bg-gray-sidebar-hover/5 transition-colors">
-                      <td className="py-4 px-5">
+                      <td className="py-4 px-5 min-w-45">
                         <div className="font-semibold text-gray-heading-main">{ren.name}</div>
                         {ren.phone && (
                           <div className="text-xs text-gray-secondary-text mt-0.5">
@@ -428,17 +484,17 @@ function DocumentApprovalsContent() {
                           </div>
                         )}
                       </td>
-                      <td className="py-4 px-5 font-mono text-gray-secondary-text font-semibold">{ren.nik}</td>
-                      <td className="py-4 px-5">
+                      <td className="py-4 px-5 min-w-35 font-mono text-gray-secondary-text font-semibold">{ren.nik}</td>
+                      <td className="py-4 px-5 min-w-35">
                         <span className="font-semibold">{ren.propertyName}</span>
                       </td>
-                      <td className="py-4 px-5">
+                      <td className="py-4 px-5 min-w-32.5">
                         <div className="text-gray-heading-main">
                           <span className="font-semibold">{ren.roomNumber || "-"}</span>
                         </div>
                         <div className="text-xs text-gray-secondary-text mt-0.5">{addressStr}</div>
                       </td>
-                      <td className="py-4 px-5 text-center font-medium capitalize">
+                      <td className="py-4 px-5 min-w-25 text-center font-medium capitalize">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[9px] ${
                             ren.tenantType === "keluarga"
@@ -449,48 +505,61 @@ function DocumentApprovalsContent() {
                           {ren.tenantType}
                         </span>
                       </td>
-                      <td className="py-4 px-5 text-center text-gray-secondary-text font-semibold">
+                      <td className="py-4 px-5 min-w-27.5 font-semibold text-center text-gray-secondary-text">
                         <span>{formatDate(ren.checkInDate)}</span>
                       </td>
-                      <td className="py-4 px-5 text-center">
+                      <td className="py-4 px-5 min-w-27.5 text-center">
                         {ren.ktpFile ? (
-                          <SecureDocumentLink
-                            type="ktp-tenant"
-                            recordId={ren.id}
-                            title={`KTP - ${ren.name}`}
-                            className="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1"
-                          >
-                            <Eye className="h-3 w-3" />
-                            <span>Pratinjau</span>
-                          </SecureDocumentLink>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <SecureDocumentLink
+                              type="ktp-tenant"
+                              recordId={ren.id}
+                              mode="view"
+                              className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[10px] font-bold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1"
+                              title="Lihat Berkas KTP"
+                            >
+                              <Eye className="h-3 w-3" />
+                              Lihat
+                            </SecureDocumentLink>
+                          </div>
                         ) : (
-                          <span className="text-gray-placeholder italic text-[10px]">Belum diunggah</span>
+                          <span className="text-[10px] text-gray-placeholder italic">Belum unggah</span>
                         )}
                       </td>
                       {statusFilter === "rejected" && (
-                        <td className="py-4 px-5 max-w-xs truncate text-rose-600 font-medium">
+                        <td className="py-4 px-5 min-w-37.5 max-w-xs truncate text-rose-600 font-medium">
                           {ren.verificationNote || "-"}
                         </td>
                       )}
-                      <td className="py-4 px-5 text-right">
+                      <td className="py-4 px-5 min-w-25 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {statusFilter !== "verified" && (
-                            <button
-                              onClick={() => handleOpenConfirm(ren.id, ren.name, "approve")}
-                              className="p-1.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors cursor-pointer"
-                              title="Setujui KTP"
-                            >
-                              <UserCheck className="h-4.5 w-4.5" />
-                            </button>
-                          )}
-                          {statusFilter !== "rejected" && (
-                            <button
-                              onClick={() => handleOpenConfirm(ren.id, ren.name, "reject")}
-                              className="p-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors cursor-pointer"
-                              title="Tolak KTP"
-                            >
-                              <UserX className="h-4.5 w-4.5" />
-                            </button>
+                          {statusFilter === "pending" ? (
+                            <>
+                              <button
+                                onClick={() => handleOpenConfirm(ren.id, ren.name, "approve")}
+                                className="p-1.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors cursor-pointer"
+                                title="Setujui Berkas Penyewa"
+                              >
+                                <UserCheck className="h-4.5 w-4.5" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenConfirm(ren.id, ren.name, "reject")}
+                                className="p-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors cursor-pointer"
+                                title="Tolak Berkas Penyewa"
+                              >
+                                <UserX className="h-4.5 w-4.5" />
+                              </button>
+                            </>
+                          ) : statusFilter === "verified" ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Disetujui</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                              <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                              <span>Ditolak</span>
+                            </span>
                           )}
                         </div>
                       </td>

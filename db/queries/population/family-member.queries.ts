@@ -197,6 +197,9 @@ export async function createFamilyMember(data: CreateFamilyMemberInput) {
   // Cek duplikasi NIK
   const existing = await getFamilyMemberByNik(data.nik);
   if (existing) {
+    if (existing.familyId === data.familyId && !existing.isActive) {
+      throw new Error(`NIK ${data.nik} sudah terdaftar sebagai anggota non-aktif di KK ini. Silakan gunakan tombol "Aktifkan" pada tabel anggota keluarga.`);
+    }
     throw new Error(`NIK ${data.nik} sudah terdaftar di sistem kependudukan.`);
   }
 
@@ -329,20 +332,7 @@ export async function deleteFamilyMember(id: number, note?: string) {
   if (!member) throw new Error('Anggota keluarga tidak ditemukan.');
 
   if (member.relationship === 'Kepala_Keluarga') {
-    const [otherMembers] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(schema.familyMembers)
-      .where(
-        and(
-          eq(schema.familyMembers.familyId, member.familyId),
-          ne(schema.familyMembers.id, id),
-          eq(schema.familyMembers.isActive, true)
-        )
-      );
-
-    if (Number(otherMembers?.count ?? 0) > 0) {
-      throw new Error('Tidak dapat menghapus Kepala Keluarga selama masih ada anggota keluarga lain yang aktif. Lakukan Ganti Kepala Keluarga terlebih dahulu.');
-    }
+    throw new Error('Kepala Keluarga tidak dapat dihapus. Lakukan Ganti Kepala Keluarga terlebih dahulu atau nonaktifkan Kartu Keluarga melalui Pengurus RT.');
   }
 
   await db

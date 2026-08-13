@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { listFamilies } from "@/db/queries/population/family.queries";
+import { listFamilyChangeRequests } from "@/db/queries/population/family-change-request.queries";
 import { listAllTenantContracts } from "@/db/queries/property/tenant.queries";
 
 /**
@@ -10,7 +11,7 @@ import { listAllTenantContracts } from "@/db/queries/property/tenant.queries";
  * /api/approvals/documents:
  *   get:
  *     summary: Mendapatkan daftar dokumen penduduk yang perlu diverifikasi
- *     description: Mengambil daftar Kartu Keluarga (KK) atau Bukti Domisili/Sewa (untuk Warga Sewa) yang sedang menunggu persetujuan RT. Membutuhkan izin verify-documents.
+ *     description: Mengambil daftar Kartu Keluarga (KK Baru / Usulan Perubahan Data) atau Bukti Domisili/Sewa yang sedang menunggu persetujuan RT. Membutuhkan izin verify-documents.
  *     tags:
  *       - Verifikasi & Persetujuan
  *     security:
@@ -23,6 +24,13 @@ import { listAllTenantContracts } from "@/db/queries/property/tenant.queries";
  *           enum: [family, rental_resident]
  *           default: family
  *         description: Tipe dokumen (Kartu Keluarga atau Kontrak Sewa)
+ *       - in: query
+ *         name: subType
+ *         schema:
+ *           type: string
+ *           enum: [all, registration, change_request]
+ *           default: all
+ *         description: Jenis pengajuan (Semua, Registrasi Baru, atau Perubahan Data)
  *       - in: query
  *         name: status
  *         schema:
@@ -65,18 +73,69 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "family"; // 'family' atau 'rental_resident'
+    const subType = (searchParams.get("subType") || "all") as "all" | "registration" | "change_request";
     const status = (searchParams.get("status") || "pending") as "pending" | "verified" | "rejected";
     const query = searchParams.get("query") || "";
 
     if (type === "family") {
-      const result = await listFamilies({
-        verificationStatus: status,
-        query,
-        isActive: true,
-        limit: 100,
-        offset: 0,
+      let registrationItems: any[] = [];
+      let changeRequestItems: any[] = [];
+
+      // 1. Ambil pendaftaran KK baru jika subType === 'all' atau 'registration'
+      if (subType === "all" || subType === "registration") {
+        const regResult = await listFamilies({
+          verificationStatus: status,
+          query,
+          isActive: true,
+          limit: 100,
+          offset: 0,
+        });
+        registrationItems = (regResult.data || []).map((fam) => ({
+          ...fam,
+          submissionType: "registration",
+          submissionLabel: "Registrasi Baru",
+          changeRequestId: null,
+        }));
+      }
+
+      // 2. Ambil usulan perubahan data jika subType === 'all' atau 'change_request'
+      if (subType === "all" || subType === "change_request") {
+        const crStatus = status === "verified" ? "approved" : status;
+        const crResult = await listFamilyChangeRequests({
+          status: crStatus as any,
+          query,
+          limit: 100,
+          offset: 0,
+        });
+        changeRequestItems = (crResult.data || []).map((cr) => ({
+          id: cr.familyId,
+          changeRequestId: cr.id,
+          familyNumber: cr.familyNumber,
+          headUserId: cr.headUserId,
+          headName: cr.headName,
+          blockNumber: cr.blockNumber,
+          houseNumber: cr.houseNumber,
+          dwellingType: cr.dwellingType,
+          verificationStatus: status,
+          verificationNote: cr.rejectionNote,
+          kkFile: cr.kkFile,
+          isActive: true,
+          createdAt: cr.createdAt,
+          checkInDate: cr.submittedAt || cr.createdAt,
+          updatedAt: cr.updatedAt,
+          memberCount: cr.memberCount,
+          submissionType: "change_request",
+          submissionLabel: "Perubahan Data",
+        }));
+      }
+
+      const combined = [...registrationItems, ...changeRequestItems].sort((a, b) => {
+        const dateA = new Date(a.checkInDate || a.createdAt).getTime();
+        const dateB = new Date(b.checkInDate || b.createdAt).getTime();
+        return dateB - dateA;
       });
-      return NextResponse.json({ data: result.data || [] });
+
+      return NextResponse.json({ data: combined });
     } else if (type === "rental_resident") {
       const result = await listAllTenantContracts({
         query,

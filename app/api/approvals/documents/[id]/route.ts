@@ -3,6 +3,11 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { updateFamily, getFamilyById } from "@/db/queries/population/family.queries";
+import {
+  getActiveChangeRequest,
+  approveChangeRequest,
+  rejectChangeRequest,
+} from "@/db/queries/population/family-change-request.queries";
 import { getTenantContractById, updateTenantContract } from "@/db/queries/property/tenant.queries";
 import { createNotification } from "@/db/queries/system/notification.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
@@ -109,10 +114,35 @@ export async function PATCH(
         return NextResponse.json({ error: "Kartu Keluarga tidak ditemukan" }, { status: 404 });
       }
 
-      await updateFamily(documentId, {
-        verificationStatus: status,
-        verificationNote: note,
-      });
+      const activeReq = await getActiveChangeRequest(documentId);
+      if (activeReq && activeReq.status === 'pending') {
+        if (action === 'approve') {
+          await approveChangeRequest(activeReq.id, session.user.id);
+        } else {
+          await rejectChangeRequest(activeReq.id, session.user.id, rejectReason || 'Ditolak oleh RT');
+        }
+      } else {
+        await updateFamily(documentId, {
+          verificationStatus: status,
+          verificationNote: note,
+        });
+
+        try {
+          if (family.headUserId) {
+            await createNotification({
+              userId: family.headUserId,
+              title: action === "approve" ? "Kartu Keluarga Terverifikasi" : "Kartu Keluarga Ditolak",
+              message: action === "approve"
+                ? "Berkas Kartu Keluarga Anda telah berhasil diverifikasi dan disetujui oleh Ketua RT."
+                : `Pengajuan berkas Kartu Keluarga Anda ditolak oleh Ketua RT. Alasan: "${note}"`,
+              category: "personal",
+              redirectLink: "/dashboard/family",
+            });
+          }
+        } catch (notifErr) {
+          console.error("Failed to create notification for Warga:", notifErr);
+        }
+      }
 
       const ipAddress = await getClientIp(request);
       await createAuditLog({
@@ -122,22 +152,6 @@ export async function PATCH(
         description: `${action === "approve" ? "Menyetujui verifikasi berkas" : "Menolak berkas"} Kartu Keluarga No. ${family.familyNumber || `#${documentId}`}${note ? ` (Catatan: ${note})` : ''}`,
         ipAddress,
       });
-
-      try {
-        if (family.headUserId) {
-          await createNotification({
-            userId: family.headUserId,
-            title: action === "approve" ? "Kartu Keluarga Terverifikasi" : "Kartu Keluarga Ditolak",
-            message: action === "approve"
-              ? "Berkas Kartu Keluarga Anda telah berhasil diverifikasi dan disetujui oleh Ketua RT."
-              : `Pengajuan berkas Kartu Keluarga Anda ditolak oleh Ketua RT. Alasan: "${note}"`,
-            category: "personal",
-            redirectLink: "/dashboard/family",
-          });
-        }
-      } catch (notifErr) {
-        console.error("Failed to create notification for Warga:", notifErr);
-      }
 
       return NextResponse.json({
         success: true,

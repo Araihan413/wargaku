@@ -204,6 +204,27 @@ export async function listRoles() {
 }
 
 /**
+ * Ambil data ringkas user berdasarkan ID (termasuk status aktif/pending/suspended).
+ */
+export async function getUserById(userId: string) {
+  const [user] = await db
+    .select({
+      id: schema.users.id,
+      name: schema.users.name,
+      email: schema.users.email,
+      status: schema.users.status,
+      phone: schema.users.phone,
+      photo: schema.users.photo,
+      createdAt: schema.users.createdAt,
+    })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+
+  return user ?? null;
+}
+
+/**
  * Ambil profil lengkap user, termasuk role aktif dan keluarga terhubung.
  */
 export async function getUserFullProfile(userId: string) {

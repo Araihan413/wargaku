@@ -1,4 +1,4 @@
-export type VerificationStatusType = "draft" | "pending" | "verified" | "rejected" | "changes_pending" | "unsubmitted";
+export type VerificationStatusType = "draft" | "pending" | "verified" | "rejected";
 
 export interface WargaFamilyMember {
   id: number;
@@ -8,15 +8,37 @@ export interface WargaFamilyMember {
   birthPlace?: string | null;
   birthDate?: string | null;
   gender: "L" | "P";
-  relationship: "Kepala_Keluarga" | "Suami" | "Istri" | "Anak" | "Orang_Tua" | "Lainnya";
+  relationship: "Kepala_Keluarga" | "Suami" | "Istri" | "Anak" | "Orang_Tua" | "Mertua" | "Sepupu" | "Lainnya";
   occupation?: string | null;
   educationLevel?: string | null;
   religion?: "Islam" | "Kristen" | "Katolik" | "Hindu" | "Buddha" | "Khonghucu" | "Lainnya" | null;
   phone?: string | null;
   ktpFile?: string | null;
+  inactiveNote?: string | null;
   isActive: boolean;
+  _action?: "keep" | "create" | "update" | "delete";
+  tempId?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface WargaChangeRequest {
+  id: number;
+  familyId: number;
+  headUserId: string;
+  status: "draft" | "pending" | "approved" | "rejected" | "cancelled";
+  rejectionNote: string | null;
+  familyNumber: string | null;
+  kkFile: string | null;
+  draftData: {
+    familyNumber: string;
+    kkFile?: string | null;
+    members: WargaFamilyMember[];
+  };
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface WargaFamilyDetail {
@@ -29,8 +51,7 @@ export interface WargaFamilyDetail {
   kkFile?: string | null;
   verificationStatus: VerificationStatusType;
   verificationNote?: string | null;
-  hasVerified: boolean;
-  draftOpenedAt?: string | null;
+  hasVerified?: boolean;
   checkInDate: string;
   checkOutDate?: string | null;
   isActive: boolean;
@@ -41,4 +62,5 @@ export interface WargaFamilyDetail {
     type: string;
   } | null;
   members: WargaFamilyMember[];
+  changeRequest?: WargaChangeRequest | null;
 }

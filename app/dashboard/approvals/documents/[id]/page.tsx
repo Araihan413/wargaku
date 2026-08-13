@@ -2,19 +2,21 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Loader2,
   AlertTriangle,
   FileText,
   Check,
+  CheckCircle2,
+  XCircle,
   Eye,
   MapPin,
-  CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VerifyConfirmModal } from "../_components/VerifyConfirmModal";
+import { FamilyChangeDiffViewer } from "../_components/FamilyChangeDiffViewer";
 
 interface FamilyMember {
   id: number;
@@ -23,12 +25,14 @@ interface FamilyMember {
   birthPlace: string | null;
   birthDate: string | null;
   gender: "L" | "P";
-  relationship: "Kepala_Keluarga" | "Suami" | "Istri" | "Anak" | "Orang_Tua" | "Lainnya";
+  relationship: "Kepala_Keluarga" | "Suami" | "Istri" | "Anak" | "Orang_Tua" | "Mertua" | "Sepupu" | "Lainnya";
   occupation: string | null;
   educationLevel: string | null;
   religion: string | null;
   phone: string | null;
   ktpFile: string | null;
+  inactiveNote?: string | null;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +42,25 @@ interface Dwelling {
   blockNumber: string;
   houseNumber: string;
   type: string;
+}
+
+interface ChangeRequest {
+  id: number;
+  familyId: number;
+  headUserId: string;
+  status: "draft" | "pending" | "approved" | "rejected" | "cancelled";
+  rejectionNote: string | null;
+  familyNumber: string | null;
+  kkFile: string | null;
+  draftData: {
+    familyNumber: string;
+    kkFile?: string | null;
+    members: any[];
+  };
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface FamilyDetail {
@@ -53,16 +76,18 @@ interface FamilyDetail {
   updatedAt: string;
   hasVerified: boolean;
   lastVerifiedAt: string | null;
-  draftOpenedAt: string | null;
   blockNumber?: string | null;
   houseNumber?: string | null;
   dwelling: Dwelling | null;
   members: FamilyMember[];
+  changeRequest?: ChangeRequest | null;
 }
 
 export default function DocumentVerificationWorkspacePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const changeRequestId = searchParams.get("changeRequestId");
   const familyId = Number(params?.id);
 
   const [family, setFamily] = useState<FamilyDetail | null>(null);
@@ -91,7 +116,8 @@ export default function DocumentVerificationWorkspacePage() {
   const fetchFamilyDetail = useCallback(async (id: number) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/families/${id}`);
+      const url = changeRequestId ? `/api/families/${id}?changeRequestId=${changeRequestId}` : `/api/families/${id}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setFamily(data);
@@ -122,7 +148,7 @@ export default function DocumentVerificationWorkspacePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, fetchSignedDocUrl]);
+  }, [router, fetchSignedDocUrl, changeRequestId]);
 
   useEffect(() => {
     let active = true;
@@ -184,6 +210,7 @@ export default function DocumentVerificationWorkspacePage() {
     }
   };
 
+  // Helper to format date
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
     try {
@@ -198,41 +225,6 @@ export default function DocumentVerificationWorkspacePage() {
     }
   };
 
-  // Helper to detect if member is newly added (added after the last RT approval)
-  const isNewMember = (member: FamilyMember) => {
-    if (!family) return false;
-    if (family.lastVerifiedAt) {
-      const memberTime = new Date(member.createdAt).getTime();
-      const lastVerifiedTime = new Date(family.lastVerifiedAt).getTime();
-      return memberTime > lastVerifiedTime - 2000;
-    }
-    // Fallback to original logic if no lastVerifiedAt exists
-    const memberTime = new Date(member.createdAt).getTime();
-    const familyTime = new Date(family.createdAt).getTime();
-    return memberTime - familyTime > 5 * 60 * 1000;
-  };
-
-  // Helper to detect if member details were updated (updated after the last RT approval)
-  const isEditedMember = (member: FamilyMember) => {
-    if (!family) return false;
-    const createdTime = new Date(member.createdAt).getTime();
-    const updatedTime = new Date(member.updatedAt).getTime();
-    
-    if (family.lastVerifiedAt) {
-      const lastVerifiedTime = new Date(family.lastVerifiedAt).getTime();
-      // Telah diupdate setelah persetujuan RT terakhir dan bukan baru dibuat
-      return updatedTime > lastVerifiedTime + 2000 && createdTime < lastVerifiedTime - 2000;
-    }
-    
-    return updatedTime - createdTime > 10 * 1000;
-  };
-
-  // Helper to detect if this is an update vs new registration
-  const isUpdateSubmission = () => {
-    if (!family) return false;
-    return family.hasVerified;
-  };
-
   if (isLoading) {
     return (
       <div className="flex h-[80vh] flex-col items-center justify-center gap-2">
@@ -244,8 +236,9 @@ export default function DocumentVerificationWorkspacePage() {
 
   if (!family) return null;
 
-  const isPending = family.verificationStatus === "pending";
-  const isUpdate = isUpdateSubmission();
+  const isChangeRequest = Boolean(family.changeRequest);
+  const activeStatus = family.changeRequest ? family.changeRequest.status : family.verificationStatus;
+  const isPending = activeStatus === "pending";
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-6.5rem)] overflow-hidden">
@@ -263,11 +256,11 @@ export default function DocumentVerificationWorkspacePage() {
             <h1 className="text-sm md:text-base font-bold text-gray-heading-main tracking-tight flex items-center gap-2">
               Workspace Kependudukan: {family.headName}
               <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border tracking-wider text-center ${
-                isUpdate
-                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                isChangeRequest
+                  ? "bg-amber-50 text-amber-800 border-amber-200"
                   : "bg-emerald-50 text-emerald-700 border-emerald-200"
               }`}>
-                {isUpdate ? "Pembaruan Data" : "Pendaftaran Baru"}
+                {isChangeRequest ? "Perubahan Data" : "Pendaftaran Baru"}
               </span>
             </h1>
             <p className="text-[10px] text-gray-secondary-text">
@@ -279,13 +272,17 @@ export default function DocumentVerificationWorkspacePage() {
         {/* Status indicator on desktop */}
         <div className="hidden lg:block">
           <span className={`text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-wider ${
-            family.verificationStatus === "pending"
+            isPending
               ? "bg-amber-50 text-amber-700 border border-amber-200"
-              : family.verificationStatus === "verified"
+              : activeStatus === "verified" || activeStatus === "approved"
               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
               : "bg-rose-50 text-rose-700 border border-rose-200"
           }`}>
-            {family.verificationStatus === "pending" ? "Menunggu Verifikasi" : family.verificationStatus === "verified" ? "Terverifikasi" : "Ditolak"}
+            {isPending
+              ? "Menunggu Verifikasi"
+              : activeStatus === "verified" || activeStatus === "approved"
+              ? "Terverifikasi / Disetujui"
+              : "Ditolak"}
           </span>
         </div>
       </div>
@@ -425,66 +422,46 @@ export default function DocumentVerificationWorkspacePage() {
               </div>
             </div>
 
-            {/* Simple Diff Viewer (Only shown for update submissions) */}
-            {isUpdate && (
+            {/* Mode Diff Viewer jika ada changeRequest */}
+            {isChangeRequest && family.changeRequest ? (
+              <FamilyChangeDiffViewer
+                liveFamilyNumber={family.familyNumber}
+                liveMembers={family.members || []}
+                draftFamilyNumber={family.changeRequest.draftData.familyNumber}
+                draftMembers={family.changeRequest.draftData.members || []}
+                onSelectDoc={(doc) => {
+                  const ref: ActiveDocRef = { type: doc.type, recordId: doc.recordId };
+                  setActiveDocRef(ref);
+                  setActiveDocTitle(doc.title);
+                  fetchSignedDocUrl(ref);
+                  if (window.innerWidth < 1024) {
+                    setActiveMobileTab("document");
+                  }
+                }}
+              />
+            ) : (
               <div className="space-y-3">
-                <h3 className="text-[10px] font-bold text-gray-secondary-text uppercase tracking-wider flex items-center gap-1.5">
-                  <CheckCircle className="h-3.5 w-3.5 text-blue-500" />
-                  Sorotan Perubahan Data
+                <h3 className="text-[10px] font-bold text-gray-secondary-text uppercase tracking-wider">
+                  Daftar Anggota Keluarga ({family.members.length} orang)
                 </h3>
-                <div className="p-4 border border-blue-100 bg-blue-50/20 rounded-2xl text-[10px] text-gray-secondary-text space-y-2">
-                  <p className="leading-relaxed">
-                    Sistem mendeteksi adanya data baru/anggota keluarga baru yang diunggah sejak verifikasi KK terakhir. 
-                    Periksa nama anggota yang berlabel <span className="text-blue-700 font-bold bg-blue-100 px-1.5 py-0.5 rounded-md text-[8px] uppercase">BARU</span> di bawah ini.
-                  </p>
-                </div>
-              </div>
-            )}
 
-            {/* Family Members Check List */}
-            <div className="space-y-3">
-              <h3 className="text-[10px] font-bold text-gray-secondary-text uppercase tracking-wider">
-                Daftar Anggota Keluarga ({family.members.length} orang)
-              </h3>
-              
-              <div className="space-y-3">
-                {family.members.map((member) => {
-                  const isNew = !isUpdate || isNewMember(member);
-                  const isEdited = isUpdate && isEditedMember(member) && !isNewMember(member);
-                  return (
+                <div className="space-y-3">
+                  {family.members.map((member) => (
                     <div
                       key={member.id}
-                      className={`p-4 border rounded-2xl transition-all ${
-                        isNew
-                          ? "border-blue-200 bg-blue-50/10"
-                          : isEdited
-                          ? "border-amber-200 bg-amber-50/10"
-                          : "border-gray-border bg-gray-card/50"
-                      }`}
+                      className="p-4 border border-gray-border bg-gray-card/50 rounded-2xl transition-all"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-xs font-bold text-gray-heading-main">{member.name}</h4>
-                            {isNew && (
-                              <span className="text-[8px] font-bold bg-blue-100 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                                Baru
-                              </span>
-                            )}
-                            {isEdited && (
-                              <span className="text-[8px] font-bold bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                                Diubah
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[9px] font-mono text-gray-secondary-text mt-0.5 block">{member.nik}</span>
+                          <h4 className="text-xs font-bold text-gray-heading-main">{member.name}</h4>
+                          <span className="text-[10px] font-mono text-gray-secondary-text mt-0.5 block">{member.nik}</span>
                         </div>
-                        <span className="text-[9px] font-bold px-2 py-0.5 bg-gray-sidebar-hover text-gray-secondary-text rounded-full shrink-0">
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-sidebar-hover text-gray-secondary-text rounded-full shrink-0">
                           {getRelationshipLabel(member.relationship)}
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2 text-[9px] text-gray-secondary-text mt-3 pt-3 border-t border-gray-border/40">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2 text-[10px] text-gray-secondary-text mt-3 pt-3 border-t border-gray-border/40">
                         <div>
                           <span className="font-bold text-gray-secondary-text block">Gender</span>
                           <span className="text-gray-heading-main mt-0.5 block">
@@ -515,7 +492,7 @@ export default function DocumentVerificationWorkspacePage() {
                           <span className="font-bold text-gray-secondary-text block">No. Telepon / HP</span>
                           <span className="text-gray-heading-main mt-0.5 block">{member.phone || "-"}</span>
                         </div>
-                        
+
                         {/* KTP link that updates Left Document Viewer */}
                         <div className="col-span-2 sm:col-span-3 mt-1.5 pt-1.5 border-t border-gray-border/20">
                           {member.ktpFile ? (
@@ -526,7 +503,6 @@ export default function DocumentVerificationWorkspacePage() {
                                 setActiveDocRef(ref);
                                 setActiveDocTitle(`KTP - ${member.name}`);
                                 fetchSignedDocUrl(ref);
-                                // Auto switch to document tab on mobile
                                 if (window.innerWidth < 1024) {
                                   setActiveMobileTab("document");
                                 }
@@ -538,27 +514,23 @@ export default function DocumentVerificationWorkspacePage() {
                               }`}
                             >
                               <Eye className="h-3 w-3" />
-                              Tampilkan KTP di Viewer
+                              <span>Lihat KTP</span>
                             </button>
                           ) : (
-                            <span className="italic text-gray-placeholder text-[9px]">
-                              KTP: {member.birthDate && new Date().getFullYear() - new Date(member.birthDate).getFullYear() < 17 
-                                ? "Di bawah 17 th (Tidak wajib KTP)" 
-                                : "Belum diunggah"}
-                            </span>
+                            <span className="text-[9px] text-gray-placeholder italic">KTP belum diunggah</span>
                           )}
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
 
-          {/* 4. Footer Actions (Only shown for pending KKs) */}
-          {isPending && (
+          {/* 4. Footer Actions / Status Info */}
+          {isPending ? (
             <div className="px-4 md:px-6 py-4 bg-gray-sidebar-hover/10 border-t border-gray-border shrink-0">
               <div className="flex items-center gap-2 w-full">
                 <button
@@ -570,7 +542,7 @@ export default function DocumentVerificationWorkspacePage() {
                   disabled={isSubmitting}
                   className="flex-1 py-2.5 border border-rose-200 text-xs text-rose-700 bg-rose-50/50 hover:bg-rose-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50 font-bold text-center"
                 >
-                  Tolak Berkas
+                  {isChangeRequest ? "Tolak Perubahan" : "Tolak Berkas"}
                 </button>
                 <button
                   type="button"
@@ -582,9 +554,35 @@ export default function DocumentVerificationWorkspacePage() {
                   className="flex-1 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                 >
                   <Check className="h-4 w-4" />
-                  Setujui & Kunci
+                  {isChangeRequest ? "Setujui Perubahan" : "Setujui & Kunci"}
                 </button>
               </div>
+            </div>
+          ) : (
+            <div className="px-4 md:px-6 py-3.5 bg-gray-card border-t border-gray-border shrink-0">
+              {activeStatus === "verified" || activeStatus === "approved" ? (
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3.5 py-2.5 rounded-xl border border-emerald-200">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>
+                    Dokumen {isChangeRequest ? "usulan perubahan data" : "pendaftaran KK"} ini telah resmi disetujui
+                    {family.changeRequest?.reviewedAt
+                      ? ` pada ${formatDate(family.changeRequest.reviewedAt)}`
+                      : family.lastVerifiedAt
+                      ? ` pada ${formatDate(family.lastVerifiedAt)}`
+                      : ""}.
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 bg-rose-50 px-3.5 py-2.5 rounded-xl border border-rose-200">
+                  <XCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                  <span>
+                    Dokumen {isChangeRequest ? "usulan perubahan data" : "pendaftaran KK"} ini telah ditolak.
+                    {family.changeRequest?.rejectionNote || family.verificationNote
+                      ? ` Catatan: "${family.changeRequest?.rejectionNote || family.verificationNote}"`
+                      : ""}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

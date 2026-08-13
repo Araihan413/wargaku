@@ -27,10 +27,19 @@ export function OneSignalProvider() {
         window.OneSignalDeferred.push(async function (OneSignal: any) {
           if (!isMounted) return;
 
-          await OneSignal.init({
-            appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "4b65889e-4def-48b9-926c-187e0d2fe7f7",
-            allowLocalhostAsSecureOrigin: true,
-          });
+          // Guard: cegah inisialisasi ganda
+          if (!OneSignal.initialized) {
+            try {
+              await OneSignal.init({
+                appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "4b65889e-4def-48b9-926c-187e0d2fe7f7",
+                allowLocalhostAsSecureOrigin: true,
+              });
+            } catch (err: any) {
+              if (!err?.message?.includes("already initialized")) {
+                console.error("OneSignal.init error:", err);
+              }
+            }
+          }
 
           if (pushEnabled) {
             // Re-opt in if previously opted out

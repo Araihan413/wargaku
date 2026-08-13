@@ -33,63 +33,30 @@ function WargaFamilyContent() {
   const [selectedMemberForEdit, setSelectedMemberForEdit] = useState<WargaFamilyMember | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedMemberForDelete, setSelectedMemberForDelete] = useState<WargaFamilyMember | null>(null);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [selectedMemberForRestore, setSelectedMemberForRestore] = useState<WargaFamilyMember | null>(null);
+  const [isRestoringMember, setIsRestoringMember] = useState(false);
   const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
 
   const [isSubmittingToRT, setIsSubmittingToRT] = useState(false);
   const [isCancellingChange, setIsCancellingChange] = useState(false);
   const [showCancelChangeConfirm, setShowCancelChangeConfirm] = useState(false);
+  const [isCancellingSubmit, setIsCancellingSubmit] = useState(false);
+  const [showCancelSubmitConfirm, setShowCancelSubmitConfirm] = useState(false);
 
-  const handleCancelChange = async () => {
-    if (!familyDetail) return;
-    setIsCancellingChange(true);
-    try {
-      const res = await fetch(`/api/families/${familyDetail.id}/cancel-change`, {
-        method: "POST",
-      });
+  // Change request helpers
+  const activeChangeReq = familyDetail?.changeRequest;
+  const isChangeDraftActive = Boolean(
+    activeChangeReq && (activeChangeReq.status === "draft" || activeChangeReq.status === "rejected")
+  );
+  const isChangePending = Boolean(activeChangeReq && activeChangeReq.status === "pending");
 
-      if (res.ok) {
-        toast.success("Perubahan berhasil dibatalkan!");
-        setShowCancelChangeConfirm(false);
-        fetchFamilyDetails(familyDetail.id);
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Gagal membatalkan perubahan");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Terjadi kesalahan sistem.");
-    } finally {
-      setIsCancellingChange(false);
-    }
-  };
+  const displayedMembers = isChangeDraftActive || isChangePending
+    ? activeChangeReq?.draftData.members || []
+    : familyDetail?.members || [];
 
-  const handleSubmitToRT = async () => {
-    if (!familyDetail) return;
-    setIsSubmittingToRT(true);
-    try {
-      const res = await fetch(`/api/families/${familyDetail.id}/submit`, {
-        method: "POST",
-      });
-
-      if (res.ok) {
-        toast.success("Berkas Kartu Keluarga berhasil dikirim ke RT!");
-        setIsConfirmSubmitOpen(false);
-        fetchFamilyDetails(familyDetail.id);
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Gagal mengirim berkas ke RT");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Terjadi kesalahan sistem saat mengirim.");
-    } finally {
-      setIsSubmittingToRT(false);
-    }
-  };
-
-  const handleConfirmSubmit = () => {
-    setIsConfirmSubmitOpen(true);
-  };
+  const isPending = isChangePending || (!activeChangeReq && familyDetail?.verificationStatus === "pending");
+  const isLocked = isChangePending || (!activeChangeReq && (familyDetail?.verificationStatus === "verified" || familyDetail?.verificationStatus === "pending"));
 
   // Helper to fetch family details
   const fetchFamilyDetails = useCallback(async (id: number) => {
@@ -145,7 +112,6 @@ function WargaFamilyContent() {
             setError(err.error || "Gagal memuat rincian Kartu Keluarga");
           }
         }
-
       } catch (err) {
         console.error(err);
         if (isMounted) {
@@ -164,6 +130,265 @@ function WargaFamilyContent() {
       isMounted = false;
     };
   }, []);
+
+  // Custom handlers for Draft Change Request
+  const handleAddMemberToDraft = async (data: any): Promise<boolean> => {
+    if (!familyDetail?.changeRequest) return false;
+    const currentMembers = familyDetail.changeRequest.draftData.members || [];
+    const newMember: WargaFamilyMember = {
+      ...data,
+      id: Date.now(),
+      tempId: String(Date.now()),
+      isActive: true,
+      _action: "create",
+    };
+    const updated = [...currentMembers, newMember];
+    try {
+      const res = await fetch(`/api/families/${familyDetail.id}/change-request`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          familyNumber: familyDetail.changeRequest.familyNumber || familyDetail.familyNumber,
+          kkFile: familyDetail.changeRequest.kkFile || familyDetail.kkFile,
+          members: updated,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(`Anggota keluarga "${data.name}" berhasil ditambahkan ke draf`);
+        fetchFamilyDetails(familyDetail.id);
+        return true;
+      }
+      const err = await res.json();
+      toast.error(err.error || "Gagal menambahkan anggota ke draf");
+      return false;
+    } catch {
+      toast.error("Terjadi kesalahan sistem saat menyimpan draf");
+      return false;
+    }
+  };
+
+  const handleEditMemberInDraft = async (data: any): Promise<boolean> => {
+    if (!familyDetail?.changeRequest || !selectedMemberForEdit) return false;
+    const currentMembers = familyDetail.changeRequest.draftData.members || [];
+    const updated = currentMembers.map((m) => {
+      const match = (selectedMemberForEdit.id && m.id === selectedMemberForEdit.id) ||
+                    (selectedMemberForEdit.tempId && m.tempId === selectedMemberForEdit.tempId);
+      if (!match) return m;
+      return {
+        ...m,
+        ...data,
+        _action: m.id && m._action !== "create" ? "update" : m._action || "update",
+      };
+    });
+
+    try {
+      const res = await fetch(`/api/families/${familyDetail.id}/change-request`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          familyNumber: familyDetail.changeRequest.familyNumber || familyDetail.familyNumber,
+          kkFile: familyDetail.changeRequest.kkFile || familyDetail.kkFile,
+          members: updated,
+        }),
+      });
+
+      if (res.ok) {
+        fetchFamilyDetails(familyDetail.id);
+        return true;
+      }
+      const err = await res.json();
+      toast.error(err.error || "Gagal memperbarui data anggota di draf");
+      return false;
+    } catch {
+      toast.error("Terjadi kesalahan sistem saat memperbarui draf");
+      return false;
+    }
+  };
+
+  const handleDeleteMemberInDraft = async (member: WargaFamilyMember, note: string) => {
+    if (!familyDetail?.changeRequest) return;
+    const currentMembers = familyDetail.changeRequest.draftData.members || [];
+    let updated: WargaFamilyMember[];
+
+    if (member.tempId || member._action === "create") {
+      updated = currentMembers.filter((m) => m !== member && m.tempId !== member.tempId);
+    } else {
+      updated = currentMembers.map((m) => {
+        if (m.id === member.id) {
+          return {
+            ...m,
+            isActive: false,
+            inactiveNote: note || "Dinonaktifkan oleh Kepala Keluarga",
+            _action: "delete" as const,
+          };
+        }
+        return m;
+      });
+    }
+
+    try {
+      const res = await fetch(`/api/families/${familyDetail.id}/change-request`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          familyNumber: familyDetail.changeRequest.familyNumber || familyDetail.familyNumber,
+          kkFile: familyDetail.changeRequest.kkFile || familyDetail.kkFile,
+          members: updated,
+        }),
+      });
+
+      if (res.ok) {
+        fetchFamilyDetails(familyDetail.id);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal menonaktifkan anggota di draf");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan sistem");
+    }
+  };
+
+  const handleCancelChange = async () => {
+    if (!familyDetail) return;
+    setIsCancellingChange(true);
+    try {
+      const res = await fetch(`/api/families/${familyDetail.id}/change-request`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast.success("Draf perubahan berhasil dibatalkan!");
+        setShowCancelChangeConfirm(false);
+        fetchFamilyDetails(familyDetail.id);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal membatalkan perubahan");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsCancellingChange(false);
+    }
+  };
+
+  const handleSubmitToRT = async () => {
+    if (!familyDetail) return;
+    setIsSubmittingToRT(true);
+    try {
+      const endpoint = isChangeDraftActive
+        ? `/api/families/${familyDetail.id}/change-request/submit`
+        : `/api/families/${familyDetail.id}/submit`;
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        toast.success(
+          isChangeDraftActive
+            ? "Permohonan perubahan data KK berhasil dikirim ke RT!"
+            : "Berkas Kartu Keluarga berhasil dikirim ke RT!"
+        );
+        setIsConfirmSubmitOpen(false);
+        fetchFamilyDetails(familyDetail.id);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal mengirim berkas ke RT");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem saat mengirim.");
+    } finally {
+      setIsSubmittingToRT(false);
+    }
+  };
+
+  const handleCancelSubmit = async () => {
+    if (!familyDetail) return;
+    setIsCancellingSubmit(true);
+    try {
+      const endpoint = isChangePending
+        ? `/api/families/${familyDetail.id}/change-request`
+        : `/api/families/${familyDetail.id}/submit`;
+
+      const res = await fetch(endpoint, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Pengajuan verifikasi berhasil dibatalkan!");
+        setShowCancelSubmitConfirm(false);
+        if (familyId) fetchFamilyDetails(familyId);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal membatalkan pengajuan");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsCancellingSubmit(false);
+    }
+  };
+
+  const handleRestoreMember = async () => {
+    if (!selectedMemberForRestore || !familyId) return;
+    setIsRestoringMember(true);
+    try {
+      if (isChangeDraftActive && activeChangeReq) {
+        const currentMembers = activeChangeReq.draftData.members || [];
+        const updated = currentMembers.map((m) => {
+          if (m.id === selectedMemberForRestore.id || (m.tempId && m.tempId === selectedMemberForRestore.tempId)) {
+            return {
+              ...m,
+              isActive: true,
+              inactiveNote: null,
+              _action: m.id ? ("update" as const) : ("create" as const),
+            };
+          }
+          return m;
+        });
+        const res = await fetch(`/api/families/${familyDetail.id}/change-request`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            familyNumber: activeChangeReq.familyNumber || familyDetail.familyNumber,
+            kkFile: activeChangeReq.kkFile || familyDetail.kkFile,
+            members: updated,
+          }),
+        });
+
+        if (res.ok) {
+          toast.success(`${selectedMemberForRestore.name} berhasil diaktifkan kembali di draf!`);
+          setIsRestoreModalOpen(false);
+          setSelectedMemberForRestore(null);
+          fetchFamilyDetails(familyId);
+        } else {
+          const err = await res.json();
+          toast.error(err.error || "Gagal mengaktifkan kembali anggota");
+        }
+      } else {
+        const res = await fetch(`/api/family-members/${selectedMemberForRestore.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isActive: true, inactiveNote: null }),
+        });
+        if (res.ok) {
+          toast.success(`${selectedMemberForRestore.name} berhasil diaktifkan kembali!`);
+          setIsRestoreModalOpen(false);
+          setSelectedMemberForRestore(null);
+          fetchFamilyDetails(familyId);
+        } else {
+          const err = await res.json();
+          toast.error(err.error || "Gagal mengaktifkan kembali anggota");
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsRestoringMember(false);
+    }
+  };
 
   if (isLoading && !familyDetail) {
     return (
@@ -198,12 +423,6 @@ function WargaFamilyContent() {
     );
   }
 
-
-
-  const isLocked = familyDetail.verificationStatus === "verified" || familyDetail.verificationStatus === "pending";
-
-
-
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
@@ -213,23 +432,26 @@ function WargaFamilyContent() {
             Kelola Anggota Keluarga
           </h1>
           <p className="text-xs sm:text-sm text-gray-secondary-text mt-0.5">
-              Lengkapi berkas Kartu Keluarga, scan KTP, dan atur biodata anggota keluarga Anda.
-            </p>
-          </div>
+            Lengkapi berkas Kartu Keluarga, scan KTP, dan atur biodata anggota keluarga Anda.
+          </p>
+        </div>
       </div>
 
       {/* 1. Header Card & Verification Alert Status */}
       <WargaKKHeader
         family={familyDetail}
+        isLocked={isLocked}
         onRefresh={() => {
           if (familyId) fetchFamilyDetails(familyId);
         }}
+        onCancelChange={() => setShowCancelChangeConfirm(true)}
       />
 
       {/* 2. List of Family Members Table */}
       <WargaMemberTable
-        members={familyDetail.members || []}
+        members={displayedMembers}
         isLocked={isLocked}
+        isPending={isPending}
         onAddMember={() => setIsAddModalOpen(true)}
         onEditMember={(member) => {
           setSelectedMemberForEdit(member);
@@ -238,6 +460,10 @@ function WargaFamilyContent() {
         onDeleteMember={(member) => {
           setSelectedMemberForDelete(member);
           setIsDeleteModalOpen(true);
+        }}
+        onRestoreMember={(member) => {
+          setSelectedMemberForRestore(member);
+          setIsRestoreModalOpen(true);
         }}
       />
 
@@ -252,6 +478,7 @@ function WargaFamilyContent() {
             fetchFamilyDetails(familyId);
           }}
           familyId={familyId}
+          onCustomSubmit={isChangeDraftActive ? handleAddMemberToDraft : undefined}
         />
       )}
 
@@ -269,6 +496,7 @@ function WargaFamilyContent() {
         }}
         member={selectedMemberForEdit}
         isLocked={isLocked}
+        onCustomSubmit={isChangeDraftActive ? handleEditMemberInDraft : undefined}
       />
 
       {/* Delete Member Modal */}
@@ -284,6 +512,23 @@ function WargaFamilyContent() {
           if (familyId) fetchFamilyDetails(familyId);
         }}
         member={selectedMemberForDelete}
+        onCustomDelete={isChangeDraftActive ? handleDeleteMemberInDraft : undefined}
+      />
+
+      {/* Restore Member Confirm Modal */}
+      <ConfirmModal
+        isOpen={isRestoreModalOpen}
+        onClose={() => {
+          setIsRestoreModalOpen(false);
+          setSelectedMemberForRestore(null);
+        }}
+        onConfirm={handleRestoreMember}
+        title="Aktifkan Kembali Anggota"
+        description={selectedMemberForRestore ? `Apakah Anda yakin ingin mengaktifkan kembali ${selectedMemberForRestore.name} sebagai anggota keluarga aktif?` : ""}
+        confirmText="Ya, Aktifkan"
+        cancelText="Batal"
+        isLoading={isRestoringMember}
+        variant="primary"
       />
 
       {/* Confirm Submit to RT Modal */}
@@ -292,11 +537,28 @@ function WargaFamilyContent() {
         onClose={() => setIsConfirmSubmitOpen(false)}
         onConfirm={handleSubmitToRT}
         title="Konfirmasi Pengiriman Data"
-        description="Apakah Anda yakin data Kartu Keluarga sudah sesuai? Setelah dikirim, data akan dikunci untuk verifikasi RT."
+        description={
+          isChangeDraftActive
+            ? "Apakah Anda yakin usulan perubahan data Kartu Keluarga sudah sesuai? Berkas usulan akan dikirim ke RT untuk ditinjau."
+            : "Apakah Anda yakin data Kartu Keluarga sudah sesuai? Setelah dikirim, data akan dikunci untuk verifikasi RT."
+        }
         confirmText="Ya, Kirim"
         cancelText="Batal"
         isLoading={isSubmittingToRT}
         variant="primary"
+      />
+
+      {/* Confirm Cancel Submit Modal */}
+      <ConfirmModal
+        isOpen={showCancelSubmitConfirm}
+        onClose={() => setShowCancelSubmitConfirm(false)}
+        onConfirm={handleCancelSubmit}
+        title="Batalkan Pengajuan Verifikasi"
+        description="Apakah Anda yakin ingin membatalkan pengajuan verifikasi ke RT? Data Anda akan kembali dapat disunting."
+        confirmText="Ya, Batalkan"
+        cancelText="Batal"
+        isLoading={isCancellingSubmit}
+        variant="danger"
       />
 
       {/* Confirm Cancel Change Modal */}
@@ -305,22 +567,21 @@ function WargaFamilyContent() {
         onClose={() => setShowCancelChangeConfirm(false)}
         onConfirm={handleCancelChange}
         title="Batalkan Perubahan Data"
-        description="Apakah Anda yakin ingin membatalkan pengajuan perubahan data KK ini? Status KK Anda akan dikunci kembali ke Terverifikasi."
+        description="Apakah Anda yakin ingin membatalkan draf perubahan data KK ini? Seluruh draf usulan akan dibuang dan data resmi Anda tetap utuh."
         confirmText="Ya, Batalkan"
         cancelText="Batal"
         isLoading={isCancellingChange}
         variant="danger"
       />
 
-      {/* Action Button Section for Editable States (draft, changes_pending, rejected) */}
-      {!isLocked && (familyDetail.verificationStatus === "draft" || familyDetail.verificationStatus === "changes_pending" || familyDetail.verificationStatus === "rejected") && (
+      {/* Action Button Section for Editable States (draft, rejected, or active change draft) */}
+      {!isLocked && (isChangeDraftActive || familyDetail.verificationStatus === "draft" || familyDetail.verificationStatus === "rejected") && (
         <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-4 border-t border-gray-border/40 mt-6">
-          {/* Kirim / Verifikasi Ke RT */}
           <button
             type="button"
-            onClick={handleConfirmSubmit}
-            disabled={isSubmittingToRT || !familyDetail.kkFile}
-            title={!familyDetail.kkFile ? "Harap unggah berkas Scan KK terlebih dahulu" : undefined}
+            onClick={() => setIsConfirmSubmitOpen(true)}
+            disabled={isSubmittingToRT || (!familyDetail.kkFile && !activeChangeReq?.kkFile)}
+            title={(!familyDetail.kkFile && !activeChangeReq?.kkFile) ? "Harap unggah berkas Scan KK terlebih dahulu" : undefined}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-bold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] duration-150 disabled:hover:scale-100 cursor-pointer"
           >
             {isSubmittingToRT ? (
@@ -329,35 +590,22 @@ function WargaFamilyContent() {
               <Send className="h-4.5 w-4.5" />
             )}
             <span>
-              {familyDetail.verificationStatus === "changes_pending"
-                ? "Kirim Perubahan"
+              {isChangeDraftActive
+                ? "Kirim Perubahan ke RT"
                 : familyDetail.verificationStatus === "rejected"
-                ? "Ajukan Ulang"
+                ? "Ajukan Ulang ke RT"
                 : "Verifikasi Ke RT"}
             </span>
           </button>
         </div>
       )}
 
-      {/* Action Button Section for Pending State (Sedang Menunggu Verifikasi RT) */}
-      {familyDetail.verificationStatus === "pending" && (
+      {/* Action Button Section for Pending State */}
+      {(isChangePending || (!activeChangeReq && familyDetail.verificationStatus === "pending")) && (
         <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-4 border-t border-gray-border/40 mt-6">
           <button
             type="button"
-            onClick={() => {
-              // Panggil penanganan batalkan submit
-              const cancelBtn = document.querySelector<HTMLButtonElement>('[data-action="cancel-submit"]');
-              if (cancelBtn) cancelBtn.click();
-              else {
-                fetch(`/api/families/${familyDetail.id}/cancel-submit`, { method: "POST" })
-                  .then((res) => {
-                    if (res.ok) {
-                      toast.success("Pengajuan verifikasi berhasil dibatalkan!");
-                      if (familyId) fetchFamilyDetails(familyId);
-                    }
-                  });
-              }
-            }}
+            onClick={() => setShowCancelSubmitConfirm(true)}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 text-red-800 px-5 py-3 text-sm font-bold transition-all shadow-md cursor-pointer duration-150 active:scale-95"
           >
             <XCircle className="h-4.5 w-4.5 text-red-700" />

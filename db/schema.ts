@@ -114,9 +114,8 @@ export const families = mysqlTable('families', {
   headUserId: varchar('head_user_id', { length: 255 }).references(() => users.id),
   familyNumber: varchar('family_number', { length: 20 }).notNull().unique(),
   kkFile: varchar('kk_file', { length: 255 }),
-  verificationStatus: mysqlEnum('verification_status', ['draft', 'pending', 'verified', 'rejected', 'changes_pending']).notNull().default('draft'),
+  verificationStatus: mysqlEnum('verification_status', ['draft', 'pending', 'verified', 'rejected']).notNull().default('draft'),
   verificationNote: text('verification_note'),
-  draftOpenedAt: timestamp('draft_opened_at'),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -152,6 +151,27 @@ export const familyMembers = mysqlTable('family_members', {
   familyIdx: index('family_members_family_idx').on(table.familyId),
   userIdIdx: index('family_members_user_idx').on(table.userId),
   relationshipIdx: index('family_members_relationship_idx').on(table.relationship),
+}));
+
+// 2.3.1 Family Change Requests (Staging Draft Usulan Perubahan Data KK)
+export const familyChangeRequests = mysqlTable('family_change_requests', {
+  id: int('id').autoincrement().primaryKey(),
+  familyId: int('family_id').notNull().references(() => families.id, { onDelete: 'cascade' }),
+  headUserId: varchar('head_user_id', { length: 255 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: mysqlEnum('status', ['draft', 'pending', 'approved', 'rejected', 'cancelled']).notNull().default('draft'),
+  rejectionNote: text('rejection_note'),
+  familyNumber: varchar('family_number', { length: 20 }),
+  kkFile: varchar('kk_file', { length: 255 }),
+  draftData: json('draft_data').notNull(),
+  submittedAt: timestamp('submitted_at'),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewedByUserId: varchar('reviewed_by_user_id', { length: 255 }).references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  familyIdx: index('family_change_requests_family_idx').on(table.familyId),
+  statusIdx: index('family_change_requests_status_idx').on(table.status),
+  headUserIdx: index('family_change_requests_head_user_idx').on(table.headUserId),
 }));
 
 // 2.4 Rental Properties (Properti Komersial Kos/Homestay)

@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 import { listFamilyMembers, createFamilyMember } from '@/db/queries/population/family-member.queries';
 import { getFamilyById } from '@/db/queries/population/family.queries';
+import { getUserById } from '@/db/queries/auth/user.queries';
 import { createWargaSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
@@ -187,9 +188,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
-    // Jika warga biasa, periksa status verifikasi KK (hanya draft, rejected, changes_pending yang boleh)
     if (!isOfficer) {
-      const allowedStatuses = ['draft', 'rejected', 'changes_pending'];
+      const currentUser = await getUserById(session.user.id);
+      if (!currentUser || currentUser.status !== 'active') {
+        return NextResponse.json(
+          { error: 'Akun Anda belum aktif atau sedang ditangguhkan' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Jika warga biasa, periksa status verifikasi KK (hanya draft, rejected yang boleh langsung)
+    if (!isOfficer) {
+      const allowedStatuses = ['draft', 'rejected'];
       if (!allowedStatuses.includes(family.verificationStatus)) {
         return NextResponse.json(
           { error: 'Data Kartu Keluarga sedang dikunci untuk verifikasi RT. Silakan ajukan perubahan data terlebih dahulu.' },

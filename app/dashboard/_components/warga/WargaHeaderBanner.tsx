@@ -8,7 +8,7 @@ interface WargaHeaderBannerProps {
   family: {
     id: number;
     familyNumber: string;
-    verificationStatus: "draft" | "pending" | "verified" | "rejected" | "changes_pending";
+    verificationStatus: "draft" | "pending" | "verified" | "rejected";
     verificationNote?: string | null;
     headName: string;
     totalMembers: number;

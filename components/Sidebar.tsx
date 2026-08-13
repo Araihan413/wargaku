@@ -278,8 +278,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isUnlockedStatus =
     isVerified ||
-    verificationStatus === "verified" ||
-    verificationStatus === "changes_pending";
+    verificationStatus === "verified";
 
   const isLocked = (requiresVerification?: boolean) =>
     currentRoleId === 6 && Boolean(requiresVerification) && !isVerificationLoading && !isUnlockedStatus;

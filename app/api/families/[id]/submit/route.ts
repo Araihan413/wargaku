@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { submitFamily, getFamilyById } from '@/db/queries/population/family.queries';
-import { notifyRoles } from '@/lib/notifications';
+import { submitFamily, getFamilyById, cancelSubmitFamily } from '@/db/queries/population/family.queries';
+import { getUserById } from '@/db/queries/auth/user.queries';
+import { notifyRoles, deleteNotificationsByRedirectLink } from '@/lib/notifications';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
 
@@ -36,6 +37,33 @@ import { getClientIp } from '@/lib/audit-logger';
  *         description: Kartu Keluarga tidak ditemukan
  *       500:
  *         description: Kesalahan server internal
+ *   delete:
+ *     summary: Membatalkan pengajuan verifikasi Kartu Keluarga (Kembali ke Draf)
+ *     description: Membatalkan pengajuan KK yang sedang berstatus "pending" (menunggu verifikasi RT) dan mengembalikannya ke status "draft". Hanya Kepala Keluarga yang dapat membatalkan pengajuan ini.
+ *     tags:
+ *       - Kepala Keluarga
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID Kartu Keluarga
+ *     responses:
+ *       200:
+ *         description: Pengajuan verifikasi Kartu Keluarga berhasil dibatalkan
+ *       400:
+ *         description: Invalid status (bukan pending) atau ID KK tidak valid
+ *       401:
+ *         description: Belum terautentikasi
+ *       403:
+ *         description: Hanya Kepala Keluarga yang berhak membatalkan
+ *       404:
+ *         description: Kartu Keluarga tidak ditemukan
+ *       500:
+ *         description: Kesalahan server internal
  */
 export async function POST(
   request: Request,
@@ -57,6 +85,14 @@ export async function POST(
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
+    const currentUser = await getUserById(session.user.id);
+    if (!currentUser || currentUser.status !== 'active') {
+      return NextResponse.json(
+        { error: 'Akun Anda belum aktif atau sedang ditangguhkan' },
+        { status: 403 }
+      );
+    }
+
     await submitFamily(familyId, session.user.id);
 
     // Notifikasi ke Ketua RT + Sekretaris bahwa ada berkas KK baru menunggu verifikasi
@@ -65,7 +101,7 @@ export async function POST(
       title: "Berkas KK Menunggu Verifikasi",
       message: `Berkas Kartu Keluarga${family?.familyNumber ? ` No. ${family.familyNumber}` : ''} telah dikirim oleh ${session.user.name || 'Warga'} untuk verifikasi.`,
       category: "dinas",
-      redirectLink: "/dashboard/approvals/verification",
+      redirectLink: `/dashboard/approvals/documents/${familyId}`,
     });
 
     const ipAddress = await getClientIp(request);
@@ -91,10 +127,64 @@ export async function POST(
     if (error.message === 'NO_KK_FILE') {
       return NextResponse.json({ error: 'Harap unggah berkas Scan KK terlebih dahulu sebelum mengirim' }, { status: 400 });
     }
+    if (error.message === 'NO_ACTIVE_MEMBERS') {
+      return NextResponse.json({ error: 'Kartu Keluarga harus memiliki minimal 1 anggota keluarga yang aktif sebelum diajukan ke RT' }, { status: 400 });
+    }
     if (error.message === 'INVALID_STATUS') {
       return NextResponse.json({ error: 'Data KK sudah dikirim atau sedang dalam proses verifikasi' }, { status: 400 });
     }
     console.error('Error in POST /api/families/[id]/submit:', error);
+    return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const familyId = Number(id);
+
+    if (isNaN(familyId)) {
+      return NextResponse.json({ error: 'ID Kartu Keluarga tidak valid' }, { status: 400 });
+    }
+
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
+    }
+
+    const currentUser = await getUserById(session.user.id);
+    if (!currentUser || currentUser.status !== 'active') {
+      return NextResponse.json(
+        { error: 'Akun Anda belum aktif atau sedang ditangguhkan' },
+        { status: 403 }
+      );
+    }
+
+    await cancelSubmitFamily(familyId, session.user.id);
+
+    await deleteNotificationsByRedirectLink(`/dashboard/approvals/documents/${familyId}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Pengajuan verifikasi Kartu Keluarga berhasil dibatalkan dan dikembalikan ke Draf.',
+    });
+  } catch (error: any) {
+    if (error.message === 'NOT_FOUND') {
+      return NextResponse.json({ error: 'Kartu Keluarga tidak ditemukan' }, { status: 404 });
+    }
+    if (error.message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Hanya Kepala Keluarga yang berhak membatalkan pengajuan berkas KK' }, { status: 403 });
+    }
+    if (error.message === 'INVALID_STATUS') {
+      return NextResponse.json({ error: 'Pengajuan tidak dapat dibatalkan karena tidak berstatus pending' }, { status: 400 });
+    }
+    console.error('Error in DELETE /api/families/[id]/submit:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }

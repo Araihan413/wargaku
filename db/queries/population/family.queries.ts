@@ -1,7 +1,7 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql } from 'drizzle-orm';
-import { notifyRoles, notifyUser } from '@/lib/notifications';
+import { notifyUser } from '@/lib/notifications';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -12,7 +12,7 @@ export interface CreateFamilyInput {
   familyNumber: string;
   headUserId?: string | null;
   kkFile?: string | null;
-  verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected' | 'changes_pending';
+  verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected';
   verificationNote?: string | null;
 }
 
@@ -21,7 +21,7 @@ export interface UpdateFamilyInput {
   familyNumber?: string;
   headUserId?: string | null;
   kkFile?: string | null;
-  verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected' | 'changes_pending';
+  verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected';
   verificationNote?: string | null;
   isActive?: boolean;
 }
@@ -31,7 +31,7 @@ export interface ListFamiliesOptions {
   offset?: number;
   query?: string;
   dwellingId?: number;
-  verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected' | 'changes_pending';
+  verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected';
   isActive?: boolean;
 }
 
@@ -124,7 +124,6 @@ export async function getFamilyById(id: number) {
       dwellingType: schema.dwellings.type,
       verificationStatus: schema.families.verificationStatus,
       verificationNote: schema.families.verificationNote,
-      draftOpenedAt: schema.families.draftOpenedAt,
       kkFile: schema.families.kkFile,
       isActive: schema.families.isActive,
       createdAt: schema.families.createdAt,
@@ -373,25 +372,19 @@ export async function submitFamily(familyId: number, userId: string) {
   if (!family) throw new Error('NOT_FOUND');
   if (family.headUserId !== userId) throw new Error('FORBIDDEN');
   if (!family.kkFile) throw new Error('NO_KK_FILE');
-  if (family.verificationStatus !== 'draft' && family.verificationStatus !== 'rejected' && family.verificationStatus !== 'changes_pending') {
+  if (family.verificationStatus !== 'draft' && family.verificationStatus !== 'rejected') {
     throw new Error('INVALID_STATUS');
+  }
+
+  const activeMembers = family.members?.filter((m) => m.isActive) ?? [];
+  if (activeMembers.length === 0) {
+    throw new Error('NO_ACTIVE_MEMBERS');
   }
 
   await db
     .update(schema.families)
     .set({ verificationStatus: 'pending', verificationNote: null, updatedAt: new Date() })
     .where(eq(schema.families.id, familyId));
-
-  try {
-    await notifyRoles(['ketua-rt'], {
-      title: 'Verifikasi KK Baru',
-      message: `Warga bernama ${family.headName} mengirimkan pengajuan Kartu Keluarga untuk diverifikasi.`,
-      category: 'dinas',
-      redirectLink: `/dashboard/approvals/documents/${familyId}`,
-    });
-  } catch (err) {
-    console.error('Gagal kirim notifikasi submitFamily:', err);
-  }
 }
 
 export async function verifyFamilyStatus(familyId: number, action: 'approve' | 'reject', note?: string | null) {
@@ -407,7 +400,6 @@ export async function verifyFamilyStatus(familyId: number, action: 'approve' | '
       .set({
         verificationStatus: newStatus,
         verificationNote,
-        draftOpenedAt: null,
         updatedAt: new Date(),
       })
       .where(eq(schema.families.id, familyId));
@@ -420,7 +412,7 @@ export async function verifyFamilyStatus(familyId: number, action: 'approve' | '
           ? `Kartu Keluarga Anda ${statusText}. Catatan: ${note}`
           : `Kartu Keluarga Anda telah ${statusText} oleh RT.`,
         category: 'dinas',
-        redirectLink: '/dashboard/my-family',
+        redirectLink: '/dashboard/family',
       });
     }
   });
@@ -430,9 +422,8 @@ export async function cancelFamilyChange(familyId: number, userId: string) {
   const [family] = await db.select().from(schema.families).where(eq(schema.families.id, familyId)).limit(1);
   if (!family) throw new Error('NOT_FOUND');
   if (family.headUserId !== userId) throw new Error('FORBIDDEN');
-  if (family.verificationStatus !== 'draft' && family.verificationStatus !== 'changes_pending') throw new Error('INVALID_STATUS');
 
-  await db.update(schema.families).set({ verificationStatus: 'verified', verificationNote: null, draftOpenedAt: null, updatedAt: new Date() }).where(eq(schema.families.id, familyId));
+  await db.update(schema.families).set({ verificationStatus: 'verified', verificationNote: null, updatedAt: new Date() }).where(eq(schema.families.id, familyId));
   return true;
 }
 
@@ -442,10 +433,7 @@ export async function cancelSubmitFamily(familyId: number, userId: string) {
   if (family.headUserId !== userId) throw new Error('FORBIDDEN');
   if (family.verificationStatus !== 'pending') throw new Error('INVALID_STATUS');
 
-  // Jika KK memiliki penanda draftOpenedAt, berarti ini adalah pembatalan dari permohonan perubahan data (kembalikan ke 'changes_pending')
-  // Jika tidak ada draftOpenedAt, berarti ini adalah registrasi awal baru (kembalikan ke 'draft')
-  const nextStatus = family.draftOpenedAt ? 'changes_pending' : 'draft';
-  await db.update(schema.families).set({ verificationStatus: nextStatus, updatedAt: new Date() }).where(eq(schema.families.id, familyId));
+  await db.update(schema.families).set({ verificationStatus: 'draft', updatedAt: new Date() }).where(eq(schema.families.id, familyId));
   return true;
 }
 
@@ -455,7 +443,6 @@ export async function requestFamilyChange(familyId: number, userId: string) {
   if (family.headUserId !== userId) throw new Error('FORBIDDEN');
   if (family.verificationStatus !== 'verified') throw new Error('INVALID_STATUS');
 
-  await db.update(schema.families).set({ verificationStatus: 'changes_pending', draftOpenedAt: new Date(), updatedAt: new Date() }).where(eq(schema.families.id, familyId));
   return true;
 }
 
