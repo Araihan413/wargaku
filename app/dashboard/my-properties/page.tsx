@@ -22,7 +22,7 @@ interface PropertyItem {
   isActive: boolean;
   blockNumber: string;
   houseNumber: string;
-  type: string;
+  dwellingType: string;
   coordinatorName?: string | null;
   coordinatorPhone?: string | null;
   coordinatorStatus?: "pending" | "active" | "suspended" | null;
@@ -333,11 +333,11 @@ function MyPropertiesContent() {
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
-                        p.type === "kos"
+                        p.dwellingType === "kos"
                           ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
                           : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                       }`}>
-                        {p.type}
+                        {p.dwellingType}
                       </span>
                       {isPendingRegister && (
                         <span className="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100">
