@@ -26,7 +26,7 @@ export function HistoryTab({ inactiveResidents, onViewDetail }: HistoryTabProps)
               <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
                 <tr>
                   <th className="py-4 px-5">Nama Penyewa</th>
-                  <th className="py-4 px-5">Kamar</th>
+                  <th className="py-4 px-5">Tipe</th>
                   <th className="py-4 px-5 font-mono">NIK / Kontak</th>
                   <th className="py-4 px-5">Tanggal Masuk</th>
                   <th className="py-4 px-5">Tanggal Keluar</th>
@@ -38,8 +38,8 @@ export function HistoryTab({ inactiveResidents, onViewDetail }: HistoryTabProps)
                   <tr key={res.id} className="border-b border-gray-border/60 hover:bg-gray-sidebar-hover/10 text-gray-secondary-text transition-colors">
                     <td className="py-4 px-5 font-bold text-gray-heading-main">{res.name}</td>
                     <td className="py-4 px-5">
-                      <span className="px-2 py-0.5 rounded bg-gray-sidebar-hover text-[10px] font-semibold text-gray-secondary-text">
-                        {res.roomNumber || "No Room"}
+                      <span className="px-2 py-0.5 rounded bg-gray-sidebar-hover text-[10px] font-semibold text-gray-secondary-text capitalize">
+                        {res.tenantType || "Perorangan"}
                       </span>
                     </td>
                     <td className="py-4 px-5 font-mono">

@@ -24,7 +24,6 @@ export interface PendingRenterItem {
   name: string;
   nik: string;
   tenantType: "perorangan" | "keluarga";
-  roomNumber?: string | null;
   checkInDate: string;
   verificationStatus: "pending" | "verified" | "rejected";
   ktpFile?: string | null;

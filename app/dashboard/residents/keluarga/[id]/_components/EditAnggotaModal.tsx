@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import React, { useState, useEffect } from "react";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X, User, CreditCard, Calendar, Phone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { KtpUploadInput } from "@/components/KtpUploadInput";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { commonOccupations, commonEducations, genderOptions, relationshipOptions, religionOptions } from "@/lib/constants";
+import { formatDateForInput, calculateAge } from "@/lib/date-format";
 
 interface EditAnggotaModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface EditAnggotaModalProps {
   onSuccess: () => void;
   member: FamilyMemberItem | null;
   familyVerificationStatus?: string;
+  isRentalFamily?: boolean;
 }
 
 export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
@@ -25,56 +27,58 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
   onClose,
   onSuccess,
   member,
-  familyVerificationStatus,
+  familyVerificationStatus: _familyVerificationStatus,
+  isRentalFamily = false,
 }) => {
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
   const [isUploadingKtp, setIsUploadingKtp] = useState(false);
-
-  const [prevMember, setPrevMember] = useState<FamilyMemberItem | null>(null);
-
-  // Sync ktpFile state when the member prop changes
-  if (member !== prevMember) {
-    setPrevMember(member);
-    setKtpFile(member ? member.ktpFile || null : null);
-  }
-
-  const isLocked = false; // RT/Admin has full access to edit everything
 
   const {
     register,
     handleSubmit,
     control,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(updateWargaSchema),
-    values: member
-      ? {
-          name: member.name,
-          nik: member.nik,
-          birthPlace: member.birthPlace || "",
-          birthDate: member.birthDate ? member.birthDate.split("T")[0] : "",
-          gender: member.gender,
-          relationship: member.relationship,
-          occupation: member.occupation || "",
-          educationLevel: member.educationLevel || "",
-          religion: member.religion || ("Islam" as any),
-          phone: member.phone || "",
-          ktpFile: member.ktpFile || "",
-        }
-      : {
-          name: "",
-          nik: "",
-          birthPlace: "",
-          birthDate: "",
-          gender: "L" as any,
-          relationship: "Anak" as any,
-          occupation: "",
-          educationLevel: "",
-          religion: "Islam" as any,
-          phone: "",
-          ktpFile: "",
-        },
+    defaultValues: {
+      name: "",
+      nik: "",
+      birthPlace: "",
+      birthDate: "",
+      gender: "L" as any,
+      relationship: "Anak" as any,
+      occupation: "",
+      educationLevel: "",
+      religion: "Islam" as any,
+      phone: "",
+      ktpFile: "",
+    },
   });
+
+  useEffect(() => {
+    if (isOpen && member) {
+      reset({
+        name: member.name || "",
+        nik: member.nik || "",
+        birthPlace: member.birthPlace || "",
+        birthDate: formatDateForInput(member.birthDate),
+        gender: member.gender || "L",
+        relationship: member.relationship || "Anak",
+        occupation: member.occupation || "",
+        educationLevel: member.educationLevel || "",
+        religion: (member.religion as any) || "Islam",
+        phone: member.phone || "",
+        ktpFile: member.ktpFile || "",
+      });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setKtpFile(member.ktpFile || null);
+    }
+  }, [isOpen, member, reset]);
+
+  const birthDateValue = useWatch({ control, name: "birthDate" }) as string | undefined;
+  const age = calculateAge(birthDateValue);
+  const isKtpRequired = Boolean(isRentalFamily && age >= 18);
 
   const handleClose = () => {
     onClose();
@@ -82,6 +86,11 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
 
   const onSubmit = async (data: any) => {
     if (!member) return;
+
+    if (isKtpRequired && !ktpFile) {
+      toast.error("Scan KTP wajib diunggah untuk anggota keluarga penyewa berusia 18 tahun ke atas");
+      return;
+    }
 
     setIsUploadingKtp(true);
     try {
@@ -101,12 +110,12 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
 
       const payload = {
         ...data,
-        birthPlace: data.birthPlace || null,
+        birthPlace: data.birthPlace ? data.birthPlace.trim() : "",
         birthDate: data.birthDate || null,
-        occupation: data.occupation || null,
-        educationLevel: data.educationLevel || null,
-        religion: data.religion || null,
-        phone: data.phone || null,
+        occupation: data.occupation ? data.occupation.trim() : "",
+        educationLevel: data.educationLevel ? data.educationLevel.trim() : "",
+        religion: data.religion || "Islam",
+        phone: data.phone ? data.phone.trim() : null,
         ktpFile: finalKtpUrl,
       };
 
@@ -139,7 +148,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-border pb-3 mb-4 shrink-0">
           <h3 className="text-lg font-bold text-gray-heading-main">
-            Ubah Data Anggota Keluarga
+            Edit Data Anggota Keluarga
           </h3>
           <button
             onClick={handleClose}
@@ -162,7 +171,6 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               registerProps={register("name")}
               icon={User}
               error={errors.name?.message}
-              readOnly={isLocked}
             />
 
             {/* NIK */}
@@ -172,10 +180,10 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               type="text"
               required={true}
               placeholder="16 digit nomor NIK"
+              maxLength={16}
               registerProps={register("nik")}
               icon={CreditCard}
               error={errors.nik?.message}
-              readOnly={isLocked}
             />
 
             <div className="grid grid-cols-2 gap-4">
@@ -192,7 +200,6 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                       onChange={(val) => field.onChange(val)}
                       options={genderOptions}
                       placeholder="Pilih..."
-                      disabled={isLocked}
                     />
                   )}
                 />
@@ -214,13 +221,8 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                       required={true}
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val)}
-                      options={
-                        member?.relationship === "Kepala_Keluarga"
-                          ? relationshipOptions
-                          : relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")
-                      }
+                      options={relationshipOptions}
                       placeholder="Pilih..."
-                      disabled={isLocked || member?.relationship === "Kepala_Keluarga"}
                     />
                   )}
                 />
@@ -238,6 +240,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                 id="birthPlace"
                 label="Tempat Lahir"
                 type="text"
+                required={true}
                 placeholder="Contoh: Jakarta"
                 registerProps={register("birthPlace")}
                 icon={User}
@@ -249,7 +252,9 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                 id="birthDate"
                 label="Tanggal Lahir"
                 type="date"
+                required={true}
                 placeholder=""
+                note={birthDateValue ? `Usia: ${age} thn` : undefined}
                 registerProps={register("birthDate")}
                 icon={Calendar}
                 error={errors.birthDate?.message}
@@ -265,13 +270,19 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                   render={({ field }) => (
                     <CustomSelect
                       label="Agama"
-                      value={field.value || ""}
+                      required={true}
+                      value={field.value || "Islam"}
                       onChange={(val) => field.onChange(val)}
                       options={religionOptions}
                       placeholder="Pilih..."
                     />
                   )}
                 />
+                {errors.religion && (
+                  <p className="text-xs font-semibold text-error mt-0.5">
+                    {errors.religion.message}
+                  </p>
+                )}
               </div>
 
               {/* Phone */}
@@ -295,6 +306,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                   render={({ field }) => (
                     <AutocompleteInput
                       label="Pekerjaan"
+                      required={true}
                       value={field.value || ""}
                       onChange={field.onChange}
                       suggestions={commonOccupations}
@@ -317,6 +329,7 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
                   render={({ field }) => (
                     <AutocompleteInput
                       label="Pendidikan Terakhir"
+                      required={true}
                       value={field.value || ""}
                       onChange={field.onChange}
                       suggestions={commonEducations}
@@ -337,8 +350,9 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               <KtpUploadInput
                 value={ktpFile}
                 onChange={setKtpFile}
-                label="Berkas Scan KTP Anggota"
-                disabled={isLocked}
+                label={isKtpRequired ? "Berkas Scan KTP Anggota (Wajib untuk usia 18+ thn)" : "Berkas Scan KTP Anggota"}
+                required={isKtpRequired}
+                existingUrl={typeof ktpFile === "string" ? ktpFile : undefined}
               />
             </div>
           </div>
@@ -349,23 +363,19 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
               type="button"
               onClick={handleClose}
               disabled={isSubmitting || isUploadingKtp}
-              className="px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-sm font-semibold text-gray-secondary-text cursor-pointer transition-colors"
+              className="rounded-xl border border-gray-border px-4 py-2 text-xs font-semibold text-gray-secondary-text hover:bg-gray-sidebar-hover cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting || isUploadingKtp}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-900 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all"
+              className="rounded-xl bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary-900 cursor-pointer disabled:opacity-60 flex items-center gap-1.5 shadow-sm"
             >
-              {isSubmitting || isUploadingKtp ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                "Simpan Perubahan"
+              {(isSubmitting || isUploadingKtp) && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               )}
+              <span>Simpan Perubahan</span>
             </button>
           </div>
         </form>

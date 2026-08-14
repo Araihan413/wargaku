@@ -110,6 +110,7 @@ export async function POST(
     await checkOutTenant(contractId, {
       checkOutDate,
       notes: body.notes || null,
+      autoFreeVacantRoom: body.autoFreeVacantRoom !== undefined ? body.autoFreeVacantRoom : true,
     });
 
     const ipAddress = await getClientIp(request);

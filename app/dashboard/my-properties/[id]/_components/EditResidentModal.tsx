@@ -1,20 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Loader2, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
-import { CustomSelect } from "@/components/CustomSelect";
 import { KtpUploadInput } from "@/components/KtpUploadInput";
-
 import { RentalResidentItem } from "../types";
+import { formatDateForInput } from "@/lib/date-format";
 
 interface EditResidentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   resident: RentalResidentItem | null;
-  roomList?: string[];
 }
 
 export const EditResidentModal: React.FC<EditResidentModalProps> = ({
@@ -22,24 +20,31 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
   onClose,
   onSuccess,
   resident,
-  roomList = [],
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form Fields
-  const [name, setName] = useState(resident?.name || "");
-  const [nik, setNik] = useState(resident?.nik || "");
-  const [phone, setPhone] = useState(resident?.phone || "");
-  const [roomNumber, setRoomNumber] = useState(resident?.roomNumber || "");
-  const [checkInDate, setCheckInDate] = useState(
-    resident?.checkInDate ? resident.checkInDate.split("T")[0] : ""
-  );
+  const [name, setName] = useState("");
+  const [nik, setNik] = useState("");
+  const [phone, setPhone] = useState("");
+  const [checkInDate, setCheckInDate] = useState("");
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
-  const existingKtpUrl = resident?.ktpFile || "";
+
+  useEffect(() => {
+    if (isOpen && resident) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setName(resident.name || "");
+      setNik(resident.nik || "");
+      setPhone(resident.phone || "");
+      setCheckInDate(formatDateForInput(resident.checkInDate));
+      setKtpFile(resident.ktpFile || null);
+    }
+  }, [isOpen, resident]);
 
   if (!isOpen || !resident) return null;
 
   const isVerified = resident.verificationStatus === "verified";
+  const existingKtpUrl = resident.ktpFile || "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +58,6 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
     let ktpUrl = existingKtpUrl;
 
     try {
-      // 1. Upload new KTP to Cloudinary if a local file is selected, or use direct URL
       if (ktpFile instanceof File) {
         const uploadRes = await uploadFileToCloudinary(ktpFile, "ktp");
         ktpUrl = uploadRes.url;
@@ -61,7 +65,6 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
         ktpUrl = ktpFile;
       }
 
-      // 2. Submit Update
       const res = await fetch(`/api/rental-residents/${resident.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -69,7 +72,6 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
           name,
           nik,
           phone,
-  roomNumber,
           checkInDate: new Date(checkInDate),
           ktpFile: ktpUrl,
         }),
@@ -135,57 +137,56 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
               </div>
             )}
 
-        {/* Rejection Note Alert Banner */}
-        {resident.verificationStatus === "rejected" && resident.verificationNote && (
-          <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl mb-5 space-y-1">
-            <span className="text-xs font-bold text-rose-700 block">Alasan Penolakan RT:</span>
-            <p className="text-xs text-rose-600 leading-relaxed italic">
-              &ldquo;{resident.verificationNote}&rdquo;
-            </p>
-          </div>
-        )}
+            {/* Rejection Note Alert Banner */}
+            {resident.verificationStatus === "rejected" && resident.verificationNote && (
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl mb-5 space-y-1">
+                <span className="text-xs font-bold text-rose-700 block">Alasan Penolakan RT:</span>
+                <p className="text-xs text-rose-600 leading-relaxed italic">
+                  &ldquo;{resident.verificationNote}&rdquo;
+                </p>
+              </div>
+            )}
 
-          {/* Name & NIK */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                Nama Lengkap Penyewa <span className="text-red-500 ml-0.5">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Sesuai KTP"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                required
-                disabled={isVerified}
-              />
+            {/* Name & NIK */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                  Nama Lengkap Penyewa <span className="text-red-500 ml-0.5">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Sesuai KTP"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  required
+                  disabled={isVerified}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                  NIK (16 Digit) <span className="text-red-500 ml-0.5">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="16 Digit NIK"
+                  value={nik}
+                  onChange={(e) => setNik(e.target.value)}
+                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono disabled:opacity-60 disabled:cursor-not-allowed"
+                  required
+                  disabled={isVerified}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                NIK (16 Digit) <span className="text-red-500 ml-0.5">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="NIK Warga"
-                value={nik}
-                onChange={(e) => setNik(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono disabled:opacity-60 disabled:cursor-not-allowed"
-                required
-                disabled={isVerified}
-              />
-            </div>
-          </div>
 
-          {/* Phone & Room Number */}
-          <div className="grid grid-cols-2 gap-4">
+            {/* Phone */}
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                Nomor HP/WA <span className="text-red-500 ml-0.5">*</span>
+                Nomor WhatsApp <span className="text-red-500 ml-0.5">*</span>
               </label>
               <input
                 type="text"
-                placeholder="Contoh: 0812..."
+                placeholder="Contoh: 08123456789"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
@@ -193,62 +194,36 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
               />
             </div>
 
-            {roomList && roomList.length > 0 ? (
-              <CustomSelect
-                value={roomNumber}
-                onChange={setRoomNumber}
-                options={roomList.map((r) => ({ value: r, label: r }))}
-                placeholder="-- Pilih Kamar --"
-                label="Nomor/Nama Kamar"
+            {/* Check-In Date */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Tanggal Masuk / Check-In <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <input
+                type="date"
+                value={checkInDate}
+                onChange={(e) => setCheckInDate(e.target.value)}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 required
+                disabled={isVerified}
               />
-            ) : (
-              <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  Nomor/Nama Kamar <span className="text-red-500 ml-0.5">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Misal: Kamar 01, A2"
-                  value={roomNumber}
-                  onChange={(e) => setRoomNumber(e.target.value)}
-                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  required
-                />
-              </div>
-            )}
+            </div>
+
+            {/* KTP Document Component */}
+            <div className="space-y-1.5">
+              <KtpUploadInput
+                value={ktpFile}
+                onChange={setKtpFile}
+                label="Unggah Scan KTP"
+                disabled={isVerified}
+                existingUrl={existingKtpUrl}
+              />
+            </div>
+
           </div>
 
-          {/* Check-In Date */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Tanggal Check-In <span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <input
-              type="date"
-              value={checkInDate}
-              onChange={(e) => setCheckInDate(e.target.value)}
-              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              required
-              disabled={isVerified}
-            />
-          </div>
-
-          {/* KTP File Upload */}
-          <div className="space-y-1.5">
-            <KtpUploadInput
-              value={ktpFile}
-              onChange={setKtpFile}
-              label="Unggah Foto/Scan KTP)"
-              disabled={isVerified}
-              existingUrl={existingKtpUrl}
-            />
-          </div>
- 
-          </div>
- 
-          {/* Submit */}
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-border/50 shrink-0 mt-4">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 pt-4 border-t border-gray-border shrink-0 mt-4">
             <button
               type="button"
               onClick={onClose}
@@ -259,7 +234,7 @@ export const EditResidentModal: React.FC<EditResidentModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-700 disabled:bg-primary/50 text-xs font-bold text-white cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-900 disabled:bg-primary/50 text-xs font-bold text-white cursor-pointer transition-colors flex items-center justify-center gap-1.5"
             >
               {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               <span>Simpan Perubahan</span>

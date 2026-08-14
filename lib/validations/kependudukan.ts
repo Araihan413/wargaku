@@ -115,13 +115,24 @@ export const createWargaSchema = z.object({
         : 'NIK harus berupa teks',
   }).regex(nikRegex, 'NIK harus terdiri dari 16 digit angka'),
   
-  birthPlace: z.string().max(50, 'Tempat lahir maksimal 50 karakter').optional().nullable().transform((val) => val ? toTitleCase(val) : val),
+  birthPlace: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Tempat lahir wajib diisi'
+        : 'Tempat lahir harus berupa teks',
+  }).min(2, 'Tempat lahir minimal 2 karakter')
+    .max(50, 'Tempat lahir maksimal 50 karakter')
+    .transform((val) => toTitleCase(val)),
   
   birthDate: z.preprocess((arg) => {
-    if (arg === '' || arg === null || arg === undefined) return null;
     if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
     return arg;
-  }, z.date().optional().nullable()),
+  }, z.date({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Tanggal lahir wajib diisi'
+        : 'Format tanggal lahir tidak valid',
+  })),
   
   gender: z.enum(['L', 'P'], {
     error: (issue) =>
@@ -137,9 +148,26 @@ export const createWargaSchema = z.object({
         : 'Hubungan keluarga tidak valid',
   }),
   
-  occupation: z.string().max(50, 'Pekerjaan maksimal 50 karakter').optional().nullable(),
-  educationLevel: z.string().max(50, 'Pendidikan terakhir maksimal 50 karakter').optional().nullable(),
-  religion: z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']).optional().nullable(),
+  occupation: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Pekerjaan wajib diisi'
+        : 'Pekerjaan harus berupa teks',
+  }).min(1, 'Pekerjaan wajib diisi').max(50, 'Pekerjaan maksimal 50 karakter'),
+  
+  educationLevel: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Pendidikan terakhir wajib dipilih'
+        : 'Pendidikan terakhir harus berupa teks',
+  }).min(1, 'Pendidikan terakhir wajib dipilih').max(50, 'Pendidikan terakhir maksimal 50 karakter'),
+  
+  religion: z.enum(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya'], {
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Agama wajib dipilih'
+        : 'Agama tidak valid',
+  }),
   
   phone: z.string()
     .regex(indonesianPhoneRegex, 'Nomor HP/WhatsApp tidak valid. Gunakan format Indonesia (misal: 081234567890)')

@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { X, Loader2, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
-
 interface CheckOutModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,7 +11,6 @@ interface CheckOutModalProps {
   resident: {
     id: number;
     name: string;
-    roomNumber?: string | null;
     checkInDate?: string;
   } | null;
 }
@@ -26,6 +24,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkOutDate, setCheckOutDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
+  const [autoFreeVacantRoom, setAutoFreeVacantRoom] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +38,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
         body: JSON.stringify({
           checkOutDate: new Date(checkOutDate),
           notes: notes || null,
+          autoFreeVacantRoom,
         }),
       });
 
@@ -50,8 +50,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
       } else {
         toast.error(data.error || "Gagal memproses check-out penyewa");
       }
-    } catch (err: any) {
-      console.error(err);
+    } catch {
       toast.error("Terjadi kesalahan koneksi");
     } finally {
       setIsSubmitting(false);
@@ -61,6 +60,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
   const handleClose = () => {
     setCheckOutDate(new Date().toISOString().split("T")[0]);
     setNotes("");
+    setAutoFreeVacantRoom(true);
     onClose();
   };
 
@@ -87,7 +87,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
           <h2 className="text-lg font-bold text-gray-heading-main">Proses Check-Out Penyewa</h2>
         </div>
         <p className="text-xs text-gray-secondary-text mb-6">
-          Penyewa <strong>{resident.name}</strong> ({resident.roomNumber || "Tanpa Kamar"}) akan dinonaktifkan dari hunian.
+          Penyewa <strong>{resident.name}</strong> akan dinonaktifkan dari hunian sewa.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -118,6 +118,20 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
               className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
               rows={3}
             />
+          </div>
+
+          {/* Auto Free Vacant Room Toggle */}
+          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-sidebar-hover/60 border border-gray-border">
+            <input
+              type="checkbox"
+              id="coordAutoFreeVacantRoom"
+              checked={autoFreeVacantRoom}
+              onChange={(e) => setAutoFreeVacantRoom(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-border text-primary focus:ring-primary/20 cursor-pointer"
+            />
+            <label htmlFor="coordAutoFreeVacantRoom" className="text-xs font-semibold text-gray-heading-main cursor-pointer select-none">
+              Otomatis tambah 1 kamar kosong (Kurangi kamar terisi)
+            </label>
           </div>
 
           {/* Submit */}

@@ -7,7 +7,6 @@ import {
   updateRentalProperty,
   deleteRentalProperty,
   cleanupOldCoordinatorRole,
-  getMaxActiveRoomNumber,
 } from '@/db/queries/property/rental-property.queries';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
@@ -157,13 +156,6 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateRentalPropertySchema.parse(body);
 
-    if (validatedData.totalRooms !== undefined) {
-      const maxActiveRoom = await getMaxActiveRoomNumber(propertyId);
-      if (validatedData.totalRooms < maxActiveRoom) {
-        return NextResponse.json({ error: `Tidak dapat mengurangi jumlah kamar menjadi ${validatedData.totalRooms}, karena kamar nomor ${maxActiveRoom.toString().padStart(2, '0')} masih memiliki penyewa aktif.` }, { status: 400 });
-      }
-    }
-
     const oldCoordinatorId = existingProperty.coordinatorUserId;
 
     await updateRentalProperty(propertyId, {
@@ -172,6 +164,7 @@ export async function PUT(
       contactPerson: validatedData.contactPerson,
       phone: validatedData.phone,
       totalRooms: validatedData.totalRooms,
+      occupiedRooms: validatedData.occupiedRooms,
       notes: validatedData.notes,
       isActive: validatedData.isActive,
     });

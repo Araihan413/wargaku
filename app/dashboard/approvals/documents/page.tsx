@@ -56,7 +56,6 @@ interface RentalResidentItem {
   nik: string;
   phone?: string | null;
   tenantType: "perorangan" | "keluarga";
-  roomNumber?: string | null;
   checkInDate: string;
   verificationStatus: "pending" | "verified" | "rejected";
   verificationNote?: string | null;
@@ -463,7 +462,7 @@ function DocumentApprovalsContent() {
                   <th className="py-4 px-5 min-w-45">Nama Penghuni</th>
                   <th className="py-4 px-5 min-w-35">NIK</th>
                   <th className="py-4 px-5 min-w-35">Properti Sewa</th>
-                  <th className="py-4 px-5 min-w-32.5">No Kamar / Hunian</th>
+                  <th className="py-4 px-5 min-w-32.5">Alamat Hunian</th>
                   <th className="py-4 px-5 min-w-25 text-center">Tipe Sewa</th>
                   <th className="py-4 px-5 min-w-27.5 text-center">Mulai Sewa</th>
                   <th className="py-4 px-5 min-w-27.5 text-center">Berkas KTP</th>
@@ -490,9 +489,8 @@ function DocumentApprovalsContent() {
                       </td>
                       <td className="py-4 px-5 min-w-32.5">
                         <div className="text-gray-heading-main">
-                          <span className="font-semibold">{ren.roomNumber || "-"}</span>
+                          <span className="font-semibold">{addressStr}</span>
                         </div>
-                        <div className="text-xs text-gray-secondary-text mt-0.5">{addressStr}</div>
                       </td>
                       <td className="py-4 px-5 min-w-25 text-center font-medium capitalize">
                         <span

@@ -647,6 +647,7 @@ export async function getCoordinatorDashboardStats(userId: string, userRoleId?: 
       id: schema.rentalProperties.id,
       name: schema.rentalProperties.name,
       totalRooms: schema.rentalProperties.totalRooms,
+      occupiedRooms: schema.rentalProperties.occupiedRooms,
       blockNumber: schema.dwellings.blockNumber,
       houseNumber: schema.dwellings.houseNumber,
       type: schema.dwellings.type,
@@ -677,7 +678,6 @@ export async function getCoordinatorDashboardStats(userId: string, userRoleId?: 
     .select({
       id: schema.rentalContracts.id,
       rentalPropertyId: schema.rentalContracts.rentalPropertyId,
-      roomNumber: schema.rentalContracts.roomNumber,
       tenantType: schema.rentalContracts.tenantType,
       individualName: schema.rentalContracts.individualName,
       individualNik: schema.rentalContracts.individualNik,
@@ -701,15 +701,7 @@ export async function getCoordinatorDashboardStats(userId: string, userRoleId?: 
 
   const totalProperties = properties.length;
   const totalRooms = properties.reduce((sum, p) => sum + (p.totalRooms || 0), 0);
-
-  const occupiedRoomSet = new Set<string>();
-  activeContracts.forEach((c) => {
-    if (c.roomNumber) {
-      occupiedRoomSet.add(`${c.rentalPropertyId}-${c.roomNumber}`);
-    }
-  });
-
-  const occupiedRooms = occupiedRoomSet.size;
+  const occupiedRooms = properties.reduce((sum, p) => sum + (p.occupiedRooms || 0), 0);
   const vacantRooms = Math.max(0, totalRooms - occupiedRooms);
   const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
   const totalActiveResidents = activeContracts.length;
@@ -718,14 +710,8 @@ export async function getCoordinatorDashboardStats(userId: string, userRoleId?: 
   const pendingVerifications = pendingContracts.length;
 
   const propertyBreakdown = properties.map((p) => {
-    const propContracts = activeContracts.filter((c) => c.rentalPropertyId === p.id);
-    const propOccupiedSet = new Set<string>();
-    propContracts.forEach((c) => {
-      if (c.roomNumber) propOccupiedSet.add(c.roomNumber);
-    });
-
     const propTotalRooms = p.totalRooms || 0;
-    const propOccupiedRooms = propOccupiedSet.size;
+    const propOccupiedRooms = p.occupiedRooms || 0;
     const propVacantRooms = Math.max(0, propTotalRooms - propOccupiedRooms);
     const propOccupancyRate = propTotalRooms > 0 ? Math.round((propOccupiedRooms / propTotalRooms) * 100) : 0;
 
@@ -746,7 +732,6 @@ export async function getCoordinatorDashboardStats(userId: string, userRoleId?: 
     name: c.individualName || c.userName || 'Penyewa',
     nik: c.individualNik || '-',
     tenantType: c.tenantType === 'family' ? ('keluarga' as const) : ('perorangan' as const),
-    roomNumber: c.roomNumber,
     checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
     verificationStatus: 'pending' as const,
     ktpFile: c.individualKtpFile || null,

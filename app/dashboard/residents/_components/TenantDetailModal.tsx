@@ -166,14 +166,6 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
               </div>
 
               <div className="flex gap-3 items-start">
-                <FileText className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Nomor Kamar</span>
-                  <span className="text-xs font-semibold text-gray-heading-main">{resident.roomNumber || "Unit Utama"}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
                 <Calendar className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
                 <div>
                   <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Tanggal Masuk</span>

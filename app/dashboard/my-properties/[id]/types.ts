@@ -4,7 +4,6 @@ export interface RentalResidentItem {
   nik: string;
   phone?: string | null;
   tenantType?: "perorangan" | "keluarga";
-  roomNumber?: string | null;
   checkInDate: string;
   checkOutDate?: string | null;
   verificationStatus: "draft" | "pending" | "verified" | "rejected";
@@ -27,6 +26,8 @@ export interface PropertyDetails {
   contactPerson?: string | null;
   phone?: string | null;
   totalRooms: number;
+  occupiedRooms: number;
+  vacantRooms: number;
   isActive: boolean;
   activeResidentsCount: number;
   dwelling: {
@@ -44,5 +45,4 @@ export interface PropertyDetails {
     status: string;
   } | null;
   notes?: string | null;
-  maxActiveRoomNumber?: number;
 }

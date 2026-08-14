@@ -9,12 +9,14 @@ import { KtpUploadInput } from "@/components/KtpUploadInput";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { CustomSelect } from "@/components/CustomSelect";
 import { commonOccupations, commonEducations, relationshipOptions, religionOptions, genderOptions } from "@/lib/constants";
+import { calculateAge } from "@/lib/date-format";
 
 interface AddWargaMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   familyId: number;
+  isRentalFamily?: boolean;
   onCustomSubmit?: (data: any) => Promise<boolean>;
 }
 
@@ -23,6 +25,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
   onClose,
   onSuccess,
   familyId,
+  isRentalFamily = false,
   onCustomSubmit,
 }) => {
   const [name, setName] = useState("");
@@ -41,6 +44,9 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
 
   if (!isOpen) return null;
 
+  const age = calculateAge(birthDate);
+  const isKtpRequired = Boolean(isRentalFamily && age >= 18);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !nik.trim()) {
@@ -50,6 +56,31 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
 
     if (nik.length !== 16) {
       toast.error("NIK harus terdiri dari 16 digit angka");
+      return;
+    }
+
+    if (!birthPlace.trim()) {
+      toast.error("Tempat Lahir wajib diisi");
+      return;
+    }
+
+    if (!birthDate) {
+      toast.error("Tanggal Lahir wajib diisi");
+      return;
+    }
+
+    if (!educationLevel.trim()) {
+      toast.error("Pendidikan Terakhir wajib diisi / dipilih");
+      return;
+    }
+
+    if (!occupation.trim()) {
+      toast.error("Pekerjaan wajib diisi / dipilih");
+      return;
+    }
+
+    if (isKtpRequired && !ktpFile) {
+      toast.error("Scan KTP wajib diunggah untuk anggota keluarga penyewa berusia 18 tahun ke atas");
       return;
     }
 
@@ -66,12 +97,12 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
             nik,
             relationship,
             gender,
-            birthPlace: birthPlace || null,
-            birthDate: birthDate || null,
-            occupation: occupation || null,
-            educationLevel: educationLevel || null,
-            religion: religion || null,
-            phone: phone || null,
+            birthPlace: birthPlace.trim(),
+            birthDate,
+            occupation: occupation.trim(),
+            educationLevel: educationLevel.trim(),
+            religion,
+            phone: phone.trim() || null,
             ktpFile: finalKtpUrl,
           };
 
@@ -114,7 +145,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
                 Tambah Anggota Keluarga
               </h3>
               <p className="text-xs text-gray-secondary-text">
-                Masukkan biodata anggota keluarga baru sesuai dokumen resmi.
+                Masukkan biodata lengkap anggota keluarga baru sesuai dokumen resmi.
               </p>
             </div>
           </div>
@@ -185,38 +216,37 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
               />
             </div>
 
-            {/* No HP */}
-            <div className="space-y-1">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">No. HP / WA</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="081234..."
-                className="bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-            </div>
-
             {/* Tempat Lahir */}
             <div className="space-y-1">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tempat Lahir</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Tempat Lahir <span className="text-red-500 ml-0.5">*</span>
+              </label>
               <input
                 type="text"
                 value={birthPlace}
                 onChange={(e) => setBirthPlace(e.target.value)}
                 placeholder="Contoh: Bandung"
                 className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                required
               />
             </div>
 
             {/* Tanggal Lahir */}
             <div className="space-y-1">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tanggal Lahir</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Tanggal Lahir <span className="text-red-500 ml-0.5">*</span>
+                {birthDate && (
+                  <span className="text-xs text-gray-secondary-text font-normal ml-1.5">
+                    (Usia: {age} thn)
+                  </span>
+                )}
+              </label>
               <input
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
                 className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                required
               />
             </div>
 
@@ -224,6 +254,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
             <div className="space-y-1">
               <AutocompleteInput
                 label="Pekerjaan"
+                required={true}
                 value={occupation}
                 onChange={setOccupation}
                 suggestions={commonOccupations}
@@ -234,7 +265,8 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
             {/* Pendidikan */}
             <div className="space-y-1">
               <AutocompleteInput
-                label="Pendidikan"
+                label="Pendidikan Terakhir"
+                required={true}
                 value={educationLevel}
                 onChange={setEducationLevel}
                 suggestions={commonEducations}
@@ -243,13 +275,28 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
             </div>
 
             {/* Agama */}
-            <div className="space-y-1 sm:col-span-2">
+            <div className="space-y-1">
               <CustomSelect
                 label="Agama"
+                required={true}
                 value={religion}
                 onChange={(val) => setReligion(val)}
                 options={religionOptions}
                 placeholder="-- Pilih Agama --"
+              />
+            </div>
+
+            {/* No HP */}
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                No. HP / WhatsApp
+              </label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Contoh: 081234567890"
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
@@ -258,7 +305,8 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
               <KtpUploadInput
                 value={ktpFile}
                 onChange={setKtpFile}
-                label="Berkas Scan KTP Anggota"
+                label={isKtpRequired ? "Unggah Scan KTP (Wajib untuk usia 18+ thn)" : "Unggah Scan KTP"}
+                required={isKtpRequired}
               />
             </div>
           </div>

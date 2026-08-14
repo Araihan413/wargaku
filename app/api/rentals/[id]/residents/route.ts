@@ -209,7 +209,6 @@ export async function POST(
       if (validatedData.familyId) {
         contractId = await createTenantContract({
           rentalPropertyId: propertyId,
-          roomNumber: validatedData.roomNumber || '',
           tenantType: 'family',
           familyId: validatedData.familyId,
           userId: validatedData.userId ?? null,
@@ -218,10 +217,11 @@ export async function POST(
           individualPhone: validatedData.phone,
           individualKtpFile: validatedData.ktpFile,
           checkInDate,
+          autoDeductVacantRoom: validatedData.autoDeductVacantRoom,
         });
 
         return NextResponse.json({
-          message: 'Penyewa Keluarga Terdaftar berhasil dihubungkan ke kamar',
+          message: 'Penyewa Keluarga Terdaftar berhasil dihubungkan ke hunian sewa',
           id: contractId,
         }, { status: 201 });
       }
@@ -233,13 +233,13 @@ export async function POST(
 
       contractId = await createTenantContract({
         rentalPropertyId: propertyId,
-        roomNumber: validatedData.roomNumber || '',
         tenantType: 'family',
         individualName: validatedData.name,
         individualNik: validatedData.nik,
         individualPhone: validatedData.phone,
         individualKtpFile: validatedData.ktpFile,
         checkInDate,
+        autoDeductVacantRoom: validatedData.autoDeductVacantRoom,
       });
 
       const requestOrigin = request.headers.get('origin') || undefined;
@@ -248,7 +248,6 @@ export async function POST(
         nik: validatedData.nik,
         rentalContractId: contractId,
         propertyName: property.name,
-        roomNumber: validatedData.roomNumber,
         userName: validatedData.name,
         requestOrigin,
       });
@@ -262,13 +261,13 @@ export async function POST(
     // === PERORANGAN (Individu) ===
     contractId = await createTenantContract({
       rentalPropertyId: propertyId,
-      roomNumber: validatedData.roomNumber || '',
       tenantType: 'individual',
       individualName: validatedData.name,
       individualNik: validatedData.nik,
       individualPhone: validatedData.phone,
       individualKtpFile: validatedData.ktpFile,
       checkInDate,
+      autoDeductVacantRoom: validatedData.autoDeductVacantRoom,
     });
 
     return NextResponse.json({ message: 'Penghuni sewa berhasil didaftarkan', id: contractId }, { status: 201 });

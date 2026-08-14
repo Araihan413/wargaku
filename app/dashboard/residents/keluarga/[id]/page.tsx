@@ -214,22 +214,27 @@ export default function FamilyDetailPage({ params }: PageProps) {
           fetchFamilyDetails();
         }}
         familyId={familyId}
+        isRentalFamily={familyDetail?.dwelling?.type === "kos" || familyDetail?.dwelling?.type === "homestay"}
       />
 
-      <EditAnggotaModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedMemberForEdit(null);
-        }}
-        onSuccess={() => {
-          setIsEditModalOpen(false);
-          setSelectedMemberForEdit(null);
-          fetchFamilyDetails();
-        }}
-        member={selectedMemberForEdit}
-        familyVerificationStatus={familyDetail.verificationStatus}
-      />
+      {selectedMemberForEdit && (
+        <EditAnggotaModal
+          key={selectedMemberForEdit.id || selectedMemberForEdit.nik}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedMemberForEdit(null);
+          }}
+          onSuccess={() => {
+            setIsEditModalOpen(false);
+            setSelectedMemberForEdit(null);
+            fetchFamilyDetails();
+          }}
+          member={selectedMemberForEdit}
+          familyVerificationStatus={familyDetail.verificationStatus}
+          isRentalFamily={familyDetail?.dwelling?.type === "kos" || familyDetail?.dwelling?.type === "homestay"}
+        />
+      )}
 
       <NonaktifkanAnggotaModal
         isOpen={isDisableModalOpen}

@@ -151,17 +151,14 @@ export async function sendAccountActivationEmail({
   toEmail,
   userName,
   propertyName,
-  roomNumber,
   activationUrl,
 }: {
   toEmail: string;
   userName: string;
   propertyName: string;
-  roomNumber?: string;
   activationUrl: string;
 }) {
   const subject = `[Wargaku] Undangan Aktivasi Akun - ${propertyName}`;
-  const roomText = roomNumber ? ` (Kamar ${roomNumber})` : "";
   const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -188,7 +185,7 @@ export async function sendAccountActivationEmail({
 
         <h2 style="margin: 0 0 12px; font-size: 18px; font-weight: 700; color: #0f172a;">Selamat Datang, ${userName}!</h2>
         <p style="margin: 0 0 20px; font-size: 13px; color: #475569; line-height: 1.6;">
-          Anda telah didaftarkan sebagai penyewa di <strong>${propertyName}</strong>${roomText}.
+          Anda telah didaftarkan sebagai penyewa di <strong>${propertyName}</strong>.
           Silakan selesaikan pendaftaran akun Anda untuk mengakses fitur WargaKu (QR Hunian, laporan iuran, dan informasi lingkungan RT).
         </p>
 

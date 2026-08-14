@@ -20,8 +20,6 @@ interface CheckInModalProps {
   onClose: () => void;
   onSuccess: () => void;
   propertyId: number;
-  roomList?: string[];
-  initialRoom?: string;
 }
 
 export const CheckInModal: React.FC<CheckInModalProps> = ({
@@ -29,8 +27,6 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
   onClose,
   onSuccess,
   propertyId,
-  roomList = [],
-  initialRoom = "",
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,9 +36,9 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
   const [nik, setNik] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [roomNumber, setRoomNumber] = useState(initialRoom);
   const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split("T")[0]);
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
+  const [autoDeductVacantRoom, setAutoDeductVacantRoom] = useState(true);
 
   // Keluarga mode: "baru" = Case 2 (email Brevo), "terdaftar" = Case 1 (autocomplete KK)
   const [familyMode, setFamilyMode] = useState<"baru" | "terdaftar">("baru");
@@ -83,7 +79,6 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
     }
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -91,10 +86,6 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
     if (tenantType === "keluarga" && familyMode === "terdaftar") {
       if (!selectedFamily) {
         toast.error("Pilih Kartu Keluarga dari daftar pencarian terlebih dahulu");
-        return;
-      }
-      if (!roomNumber.trim()) {
-        toast.error("Nomor Kamar wajib dipilih");
         return;
       }
 
@@ -108,8 +99,8 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
             familyId: selectedFamily.id,
             name: selectedFamily.headName ?? "",
             nik: selectedFamily.headNik ?? "",
-            roomNumber: roomNumber.trim(),
             checkInDate: new Date(checkInDate),
+            autoDeductVacantRoom,
           }),
         });
         const data = await res.json();
@@ -117,7 +108,7 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
           toast.error(data.error || "Gagal mendaftarkan penyewa");
           return;
         }
-        toast.success("Penyewa Keluarga Terdaftar berhasil dihubungkan ke kamar!");
+        toast.success("Penyewa Keluarga Terdaftar berhasil dihubungkan ke hunian sewa!");
         onSuccess();
         handleClose();
       } catch {
@@ -145,8 +136,12 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
         return;
       }
     }
-    if (tenantType === "perorangan" && !ktpFile) {
-      toast.error("File KTP wajib diunggah untuk penyewa perorangan");
+    if (!ktpFile) {
+      toast.error(
+        tenantType === "keluarga"
+          ? "Scan KTP Kepala Keluarga wajib diunggah"
+          : "Scan KTP Penyewa wajib diunggah"
+      );
       return;
     }
     if (tenantType === "keluarga" && familyMode === "baru" && !email.trim()) {
@@ -170,9 +165,9 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
               nik,
               phone: phone ? phone.trim() : undefined,
               email: tenantType === "keluarga" ? email.trim() : undefined,
-              roomNumber: roomNumber ? roomNumber.trim() : undefined,
               checkInDate: new Date(checkInDate),
               ktpFile: ktpUrl || (typeof ktpFile === "string" ? ktpFile : null),
+              autoDeductVacantRoom,
             }),
           }),
         successMessage:
@@ -195,9 +190,9 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
     setNik("");
     setPhone("");
     setEmail("");
-    setRoomNumber("");
     setCheckInDate(new Date().toISOString().split("T")[0]);
     setKtpFile(null);
+    setAutoDeductVacantRoom(true);
     setTenantType("perorangan");
     setFamilyMode("baru");
     setFamilyNumberInput("");
@@ -430,36 +425,10 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
                     value={ktpFile}
                     onChange={setKtpFile}
                     label={tenantType === "keluarga" ? "Unggah Scan KTP Kepala Keluarga" : "Unggah Scan KTP Penyewa"}
-                    required={tenantType === "perorangan"}
+                    required={true}
                   />
                 </div>
               </>
-            )}
-
-            {/* Room Number (Selalu tampil) */}
-            {roomList && roomList.length > 0 ? (
-              <CustomSelect
-                value={roomNumber}
-                onChange={setRoomNumber}
-                options={roomList.map((r) => ({ value: r, label: r }))}
-                placeholder="-- Pilih Kamar --"
-                label="Nomor/Nama Kamar"
-                required
-              />
-            ) : (
-              <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  Nomor/Nama Kamar <span className="text-red-500 ml-0.5">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Misal: Kamar 01, A2"
-                  value={roomNumber}
-                  onChange={(e) => setRoomNumber(e.target.value)}
-                  className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  required
-                />
-              </div>
             )}
 
             {/* Check-In Date */}
@@ -474,6 +443,20 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
                 className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 required
               />
+            </div>
+
+            {/* Auto Deduct Vacant Room Toggle */}
+            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-sidebar-hover/60 border border-gray-border">
+              <input
+                type="checkbox"
+                id="coordAutoDeductVacantRoom"
+                checked={autoDeductVacantRoom}
+                onChange={(e) => setAutoDeductVacantRoom(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-border text-primary focus:ring-primary/20 cursor-pointer"
+              />
+              <label htmlFor="coordAutoDeductVacantRoom" className="text-xs font-semibold text-gray-heading-main cursor-pointer select-none">
+                Otomatis kurangi 1 kamar kosong (Tambah kamar terisi)
+              </label>
             </div>
 
           </div>

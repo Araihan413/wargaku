@@ -13,6 +13,7 @@ export interface CreateRentalPropertyInput {
   contactPerson?: string | null;
   phone?: string | null;
   totalRooms: number;
+  occupiedRooms?: number;
   notes?: string | null;
 }
 
@@ -22,6 +23,7 @@ export interface UpdateRentalPropertyInput {
   contactPerson?: string | null;
   phone?: string | null;
   totalRooms?: number;
+  occupiedRooms?: number;
   notes?: string | null;
   isActive?: boolean;
 }
@@ -71,6 +73,7 @@ export async function listRentalProperties(options: {
       contactPerson: schema.rentalProperties.contactPerson,
       phone: schema.rentalProperties.phone,
       totalRooms: schema.rentalProperties.totalRooms,
+      occupiedRooms: schema.rentalProperties.occupiedRooms,
       isActive: schema.rentalProperties.isActive,
       notes: schema.rentalProperties.notes,
       createdAt: schema.rentalProperties.createdAt,
@@ -92,6 +95,14 @@ export async function listRentalProperties(options: {
     .offset(offset)
     .orderBy(desc(schema.rentalProperties.createdAt));
 
+  const mappedData = data.map((p) => {
+    const vacantRooms = Math.max(0, p.totalRooms - p.occupiedRooms);
+    return {
+      ...p,
+      vacantRooms,
+    };
+  });
+
   const [totalResult] = await db
     .select({ count: sql<number>`count(*)` })
     .from(schema.rentalProperties)
@@ -99,7 +110,7 @@ export async function listRentalProperties(options: {
     .where(whereClause);
 
   return {
-    data,
+    data: mappedData,
     metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
   };
 }
@@ -124,104 +135,15 @@ export async function getRentalPropertyById(id: number) {
     .from(schema.rentalContracts)
     .where(and(eq(schema.rentalContracts.rentalPropertyId, id), eq(schema.rentalContracts.isActive, true)));
 
-  const maxActiveRoomNumber = await getMaxActiveRoomNumber(id);
+  const activeContracts = Number(activeContractsRes?.count ?? 0);
+  const vacantRooms = Math.max(0, property.totalRooms - property.occupiedRooms);
 
   return {
     ...property,
     dwelling: dwelling ?? null,
-    activeContracts: Number(activeContractsRes?.count ?? 0),
-    maxActiveRoomNumber,
+    activeContracts,
+    vacantRooms,
   };
-}
-
-export async function getMaxActiveRoomNumber(propertyId: number): Promise<number> {
-  const contracts = await db
-    .select({ roomNumber: schema.rentalContracts.roomNumber })
-    .from(schema.rentalContracts)
-    .where(
-      and(
-        eq(schema.rentalContracts.rentalPropertyId, propertyId),
-        eq(schema.rentalContracts.isActive, true)
-      )
-    );
-  
-  let max = 0;
-  for (const c of contracts) {
-    const num = parseInt(c.roomNumber, 10);
-    if (!isNaN(num) && num > max) {
-      max = num;
-    }
-  }
-  return max;
-}
-
-/**
- * Status kamar dan daftar kontrak aktif per kamar.
- */
-export async function getRentalPropertyRooms(propertyId: number, property: { totalRooms: number }) {
-  const rooms: string[] = [];
-  for (let i = 1; i <= (property.totalRooms || 0); i++) {
-    rooms.push(i.toString().padStart(2, '0'));
-  }
-
-  const activeContracts = await db
-    .select({
-      id: schema.rentalContracts.id,
-      roomNumber: schema.rentalContracts.roomNumber,
-      tenantType: schema.rentalContracts.tenantType,
-      individualName: schema.rentalContracts.individualName,
-      individualNik: schema.rentalContracts.individualNik,
-      individualPhone: schema.rentalContracts.individualPhone,
-      individualKtpFile: schema.rentalContracts.individualKtpFile,
-      checkInDate: schema.rentalContracts.checkInDate,
-      verificationStatus: schema.rentalContracts.verificationStatus,
-      verificationNote: schema.rentalContracts.verificationNote,
-      isActive: schema.rentalContracts.isActive,
-      userName: schema.users.name,
-      userPhone: schema.users.phone,
-      familyNumber: schema.families.familyNumber,
-      familyKkFile: schema.families.kkFile,
-    })
-    .from(schema.rentalContracts)
-    .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
-    .leftJoin(schema.families, eq(schema.rentalContracts.familyId, schema.families.id))
-    .where(and(eq(schema.rentalContracts.rentalPropertyId, propertyId), eq(schema.rentalContracts.isActive, true)));
-
-  return rooms.map((roomNum) => {
-    const roomContracts = activeContracts.filter(
-      (c) => c.roomNumber === roomNum || (c.roomNumber === null && rooms.length === 1)
-    );
-    let status: 'vacant' | 'occupied' | 'sharing' = 'vacant';
-    if (roomContracts.length === 1) status = 'occupied';
-    else if (roomContracts.length > 1) status = 'sharing';
-
-    const residents = roomContracts.map((c) => {
-      const tenantTypeStr = c.tenantType === 'family' ? ('keluarga' as const) : ('perorangan' as const);
-      return {
-        id: c.id,
-        name: c.individualName || c.userName || 'Penyewa',
-        nik: c.individualNik || c.familyNumber || '-',
-        phone: c.individualPhone || c.userPhone || null,
-        tenantType: tenantTypeStr,
-        roomNumber: c.roomNumber,
-        checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
-        verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
-        verificationNote: c.verificationNote || null,
-        ktpFile: c.individualKtpFile || c.familyKkFile || null,
-        isActive: c.isActive,
-        hasActivated: c.tenantType === 'family' ? !!c.familyNumber : true,
-      };
-    });
-
-    return {
-      roomNumber: roomNum,
-      status,
-      residentsCount: roomContracts.length,
-      residents,
-      contractsCount: roomContracts.length,
-      contracts: roomContracts,
-    };
-  });
 }
 
 export async function isPropertyOwner(propertyId: number, userId: string): Promise<boolean> {
@@ -262,6 +184,7 @@ export async function createRentalProperty(data: CreateRentalPropertyInput) {
     contactPerson: data.contactPerson ?? null,
     phone: data.phone ?? null,
     totalRooms: data.totalRooms,
+    occupiedRooms: data.occupiedRooms ?? 0,
     isActive: true,
     notes: data.notes ?? null,
   });
@@ -276,6 +199,7 @@ export async function updateRentalProperty(id: number, data: UpdateRentalPropert
   if (data.contactPerson !== undefined) payload.contactPerson = data.contactPerson;
   if (data.phone !== undefined) payload.phone = data.phone;
   if (data.totalRooms !== undefined) payload.totalRooms = data.totalRooms;
+  if (data.occupiedRooms !== undefined) payload.occupiedRooms = data.occupiedRooms;
   if (data.notes !== undefined) payload.notes = data.notes;
   if (data.isActive !== undefined) payload.isActive = data.isActive;
 

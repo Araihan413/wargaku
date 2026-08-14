@@ -4,6 +4,8 @@ import { headers } from 'next/headers';
 import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
 import { listComplaints, createComplaint, checkIpRateLimit } from '@/db/queries';
 import { notifyRoles } from '@/lib/notifications';
+import { getClientIp } from '@/lib/audit-logger';
+import { verifyTurnstileToken } from '@/lib/turnstile';
 
 /**
  * @openapi
@@ -130,9 +132,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const reqHeaders = await headers();
-    const forwarded = reqHeaders.get('x-forwarded-for');
-    const clientIp = forwarded ? forwarded.split(',')[0].trim() : reqHeaders.get('x-real-ip') || '127.0.0.1';
+    const clientIp = (await getClientIp(request)) || '127.0.0.1';
 
     const isRateLimitOk = await checkIpRateLimit(clientIp);
     if (!isRateLimitOk) {
@@ -143,7 +143,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { reporterName, reporterPhone, category, description, photoPath, dwellingId } = body;
+    const { reporterName, reporterPhone, category, description, photoPath, dwellingId, turnstileToken } = body;
+
+    // Verifikasi Keamanan Cloudflare Turnstile (Anti-Bot & Spam)
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, clientIp);
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { error: turnstileResult.error || 'Verifikasi keamanan bot gagal.' },
+        { status: 400 }
+      );
+    }
 
     if (!reporterName?.trim()) return NextResponse.json({ error: 'Nama pelapor wajib diisi' }, { status: 400 });
     if (!category) return NextResponse.json({ error: 'Kategori pengaduan wajib dipilih' }, { status: 400 });

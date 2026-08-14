@@ -29,11 +29,11 @@ export const PublicLocationAndAboutSection: React.FC<PublicLocationAndAboutSecti
             <div className="flex items-center justify-between">
               <h3 className="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-rose-500" />
-                Sekretariat & Pelayanan {rtName}
+                Sekretariat RT
               </h3>
               {hasCoordinates ? (
                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                  📍 Lokasi Presisi GPS
+                  📍 Lokasi GPS
                 </span>
               ) : (
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">

@@ -203,7 +203,7 @@ export async function createOrGetDraftChangeRequest(familyId: number, userId: st
     gender: m.gender,
     relationship: m.relationship,
     birthPlace: m.birthPlace ?? null,
-    birthDate: m.birthDate ? String(m.birthDate) : null,
+    birthDate: m.birthDate ? (m.birthDate instanceof Date ? m.birthDate.toISOString().split("T")[0] : String(m.birthDate)) : null,
     phone: m.phone ?? null,
     occupation: m.occupation ?? null,
     educationLevel: m.educationLevel ?? null,

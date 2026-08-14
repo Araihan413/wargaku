@@ -26,7 +26,7 @@ export const PublicHeroSection: React.FC<PublicHeroSectionProps> = ({ settings }
         />
         <div className="absolute z-10 px-10">
           <div className="lg:col-span-7 space-y-6 text-left sm:w-3/5 w-full">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 ">
+            <h1 className="text-3xl sm:text-3xl font-extrabold text-slate-900 ">
               Bersama Mewujudkan{" "}
               <span className="text-blue-600">RT {rtName.replace(/RT\s*/i, "")}</span> yang Tertib, Aman dan Transparansi
             </h1>

@@ -12,7 +12,6 @@ import { getTenantFamilyWelcomeEmail } from '@/lib/emails/templates';
 
 export interface CreateTenantInput {
   rentalPropertyId: number;
-  roomNumber: string;
   tenantType: 'individual' | 'family';
   // Untuk individual tenant
   individualName?: string;
@@ -26,10 +25,10 @@ export interface CreateTenantInput {
   email?: string | null;
   checkInDate: string | Date;
   notes?: string | null;
+  autoDeductVacantRoom?: boolean;
 }
 
 export interface UpdateTenantInput {
-  roomNumber?: string;
   tenantType?: 'individual' | 'family';
   individualName?: string | null;
   individualNik?: string | null;
@@ -77,7 +76,6 @@ export async function listTenantContracts(options: {
     .select({
       id: schema.rentalContracts.id,
       rentalPropertyId: schema.rentalContracts.rentalPropertyId,
-      roomNumber: schema.rentalContracts.roomNumber,
       tenantType: schema.rentalContracts.tenantType,
       familyId: schema.rentalContracts.familyId,
       userId: schema.rentalContracts.userId,
@@ -110,7 +108,6 @@ export async function listTenantContracts(options: {
     return {
       id: c.id,
       rentalPropertyId: c.rentalPropertyId,
-      roomNumber: c.roomNumber,
       tenantType: tenantTypeStr,
       name: c.individualName || c.userName || 'Penyewa',
       nik: c.individualNik || c.familyNumber || '-',
@@ -182,7 +179,6 @@ export async function listAllTenantContracts(options: {
     .select({
       id: schema.rentalContracts.id,
       rentalPropertyId: schema.rentalContracts.rentalPropertyId,
-      roomNumber: schema.rentalContracts.roomNumber,
       tenantType: schema.rentalContracts.tenantType,
       individualName: schema.rentalContracts.individualName,
       individualNik: schema.rentalContracts.individualNik,
@@ -218,7 +214,6 @@ export async function listAllTenantContracts(options: {
     return {
       id: c.id,
       rentalPropertyId: c.rentalPropertyId,
-      roomNumber: c.roomNumber,
       tenantType: tenantTypeStr,
       name: c.individualName || c.userName || 'Penyewa',
       nik: c.individualNik || c.familyNumber || '-',
@@ -258,33 +253,6 @@ export async function getTenantContractById(id: number) {
   return contract ?? null;
 }
 
-/**
- * Riwayat kontrak non-aktif untuk kamar tertentu.
- */
-export async function getRoomContractHistory(propertyId: number, roomNumber: string) {
-  const rawData = await db
-    .select()
-    .from(schema.rentalContracts)
-    .where(
-      and(
-        eq(schema.rentalContracts.rentalPropertyId, propertyId),
-        eq(schema.rentalContracts.roomNumber, roomNumber),
-        eq(schema.rentalContracts.isActive, false)
-      )
-    )
-    .orderBy(desc(schema.rentalContracts.checkOutDate), desc(schema.rentalContracts.createdAt));
-
-  return rawData.map((c) => ({
-    id: c.id,
-    name: c.individualName || 'Penyewa',
-    nik: c.individualNik || '-',
-    tenantType: c.tenantType,
-    checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
-    checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
-    checkOutNote: c.checkOutNote || null,
-  }));
-}
-
 // ==========================================
 // WRITE QUERIES
 // ==========================================
@@ -305,21 +273,36 @@ export async function createTenantContract(data: CreateTenantInput) {
     if (existing) throw new Error(`NIK ${data.individualNik} sudah memiliki kontrak sewa aktif.`);
   }
 
-  const [result] = await db.insert(schema.rentalContracts).values({
-    rentalPropertyId: data.rentalPropertyId,
-    roomNumber: data.roomNumber,
-    tenantType: data.tenantType,
-    familyId: data.familyId ?? null,
-    userId: data.userId ?? null,
-    individualName: data.individualName ?? null,
-    individualNik: data.individualNik ?? null,
-    individualPhone: data.individualPhone ?? null,
-    individualKtpFile: data.individualKtpFile ?? null,
-    checkInDate,
-    isActive: true,
+  let contractId!: number;
+
+  await db.transaction(async (tx) => {
+    const [result] = await tx.insert(schema.rentalContracts).values({
+      rentalPropertyId: data.rentalPropertyId,
+      tenantType: data.tenantType,
+      familyId: data.familyId ?? null,
+      userId: data.userId ?? null,
+      individualName: data.individualName ?? null,
+      individualNik: data.individualNik ?? null,
+      individualPhone: data.individualPhone ?? null,
+      individualKtpFile: data.individualKtpFile ?? null,
+      checkInDate,
+      isActive: true,
+    });
+    contractId = result.insertId;
+
+    // Otomatis kurangi kamar kosong / tambah kamar terisi jika autoDeductVacantRoom true (default: true)
+    if (data.autoDeductVacantRoom !== false) {
+      await tx
+        .update(schema.rentalProperties)
+        .set({
+          occupiedRooms: sql`LEAST(${schema.rentalProperties.totalRooms}, ${schema.rentalProperties.occupiedRooms} + 1)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.rentalProperties.id, data.rentalPropertyId));
+    }
   });
 
-  return result.insertId;
+  return contractId;
 }
 
 /**
@@ -398,7 +381,6 @@ export async function createFamilyTenantWithUser(
     // 4. Buat kontrak sewa
     const [insertContract] = await tx.insert(schema.rentalContracts).values({
       rentalPropertyId: data.rentalPropertyId,
-      roomNumber: data.roomNumber,
       tenantType: 'family',
       familyId,
       userId,
@@ -406,9 +388,20 @@ export async function createFamilyTenantWithUser(
       isActive: true,
     });
     contractId = insertContract.insertId;
+
+    // Otomatis kurangi kamar kosong / tambah kamar terisi jika autoDeductVacantRoom true (default: true)
+    if (data.autoDeductVacantRoom !== false) {
+      await tx
+        .update(schema.rentalProperties)
+        .set({
+          occupiedRooms: sql`LEAST(${schema.rentalProperties.totalRooms}, ${schema.rentalProperties.occupiedRooms} + 1)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.rentalProperties.id, data.rentalPropertyId));
+    }
   });
 
-  // Kirim email kredensia
+  // Kirim email kredensial
   try {
     const origin = requestOrigin ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     await sendEmail({
@@ -428,7 +421,6 @@ export async function createFamilyTenantWithUser(
  */
 export async function updateTenantContract(id: number, data: UpdateTenantInput) {
   const payload: Record<string, any> = { updatedAt: new Date() };
-  if (data.roomNumber !== undefined) payload.roomNumber = data.roomNumber;
   if (data.individualName !== undefined) payload.individualName = data.individualName;
   if (data.individualNik !== undefined) payload.individualNik = data.individualNik;
   if (data.individualPhone !== undefined) payload.individualPhone = data.individualPhone;
@@ -446,11 +438,12 @@ export async function updateTenantContract(id: number, data: UpdateTenantInput) 
 
 /**
  * Check-out penyewa — nonaktifkan kontrak.
- * Jika family tenant, nonaktifkan KK juga.
+ * Jika family tenant, nonaktifkan domisili KK juga.
+ * Otomatis tambah kamar kosong jika autoFreeVacantRoom bernilai true (default: true).
  */
 export async function checkOutTenant(
   contractId: number,
-  data: { checkOutDate: Date; notes?: string | null }
+  data: { checkOutDate: Date; notes?: string | null; autoFreeVacantRoom?: boolean }
 ) {
   await db.transaction(async (tx) => {
     const [contract] = await tx
@@ -471,8 +464,18 @@ export async function checkOutTenant(
       })
       .where(eq(schema.rentalContracts.id, contractId));
 
+    // Kurangi kamar terisi / tambah kamar kosong jika autoFreeVacantRoom true (default: true)
+    if (data.autoFreeVacantRoom !== false) {
+      await tx
+        .update(schema.rentalProperties)
+        .set({
+          occupiedRooms: sql`GREATEST(0, ${schema.rentalProperties.occupiedRooms} - 1)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.rentalProperties.id, contract.rentalPropertyId));
+    }
+
     // Jika family tenant, cabut domisili (dwellingId: null) agar tidak lagi menghuni kos ini.
-    // Dilarang melakukan suspend/inactive KK karena KK masih valid secara administratif.
     if (contract.tenantType === 'family' && contract.familyId) {
       await tx
         .update(schema.families)
@@ -483,7 +486,7 @@ export async function checkOutTenant(
 }
 
 /**
- * Hapus kontrak sewa (hard delete untuk individual, cascade untuk family tenant).
+ * Hapus kontrak sewa.
  */
 export async function deleteTenantContract(contractId: number) {
   await db.transaction(async (tx) => {
@@ -495,10 +498,18 @@ export async function deleteTenantContract(contractId: number) {
 
     if (!contract) return;
 
+    if (contract.isActive) {
+      await tx
+        .update(schema.rentalProperties)
+        .set({
+          occupiedRooms: sql`GREATEST(0, ${schema.rentalProperties.occupiedRooms} - 1)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.rentalProperties.id, contract.rentalPropertyId));
+    }
+
     await tx.delete(schema.rentalContracts).where(eq(schema.rentalContracts.id, contractId));
 
-    // Jika family tenant, cabut domisili (dwellingId: null). 
-    // Dilarang keras melakukan hard-delete pada data keluarga dan user!
     if (contract.tenantType === 'family' && contract.familyId) {
       await tx
         .update(schema.families)
@@ -526,6 +537,14 @@ export async function reactivateTenantContract(contractId: number) {
       .set({ isActive: true, checkOutDate: null, updatedAt: new Date() })
       .where(eq(schema.rentalContracts.id, contractId));
 
+    await tx
+      .update(schema.rentalProperties)
+      .set({
+        occupiedRooms: sql`LEAST(${schema.rentalProperties.totalRooms}, ${schema.rentalProperties.occupiedRooms} + 1)`,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.rentalProperties.id, contract.rentalPropertyId));
+
     if (contract.tenantType === 'family' && contract.familyId) {
       await tx.update(schema.families).set({ isActive: true, updatedAt: new Date() }).where(eq(schema.families.id, contract.familyId));
       if (contract.userId) {
@@ -552,7 +571,6 @@ export async function createActivationTokenAndSendEmail({
   rentalContractId,
   familyId,
   propertyName,
-  roomNumber,
   userName,
   requestOrigin,
 }: {
@@ -561,7 +579,6 @@ export async function createActivationTokenAndSendEmail({
   rentalContractId?: number;
   familyId?: number;
   propertyName: string;
-  roomNumber?: string;
   userName: string;
   requestOrigin?: string;
 }) {
@@ -602,7 +619,6 @@ export async function createActivationTokenAndSendEmail({
     toEmail: email,
     userName,
     propertyName,
-    roomNumber,
     activationUrl,
   });
 
@@ -610,9 +626,7 @@ export async function createActivationTokenAndSendEmail({
 }
 
 /**
- * Auto-Link kontrak sewa aktif yang masih gantung (familyId IS NULL) ke data keluarga/user
- * yang baru terbentuk dari registrasi mandiri penyewa.
- * Juga mematikan token aktivasi yang sudah tidak relevan.
+ * Auto-Link kontrak sewa aktif yang masih gantung (familyId IS NULL) ke data keluarga/user.
  */
 export async function autoLinkTenantContractToFamily({
   familyId,
@@ -632,7 +646,6 @@ export async function autoLinkTenantContractToFamily({
     eq(schema.rentalContracts.tenantType, 'family'),
   ];
 
-  // Cari kontrak sewa aktif yang NIK-nya cocok dan familyId masih null
   if (nik) {
     conditions.push(eq(schema.rentalContracts.individualNik, nik));
   }
@@ -646,13 +659,11 @@ export async function autoLinkTenantContractToFamily({
   if (!contract) return null;
 
   await db.transaction(async (tx) => {
-    // Sambungkan kontrak sewa ke family & user yang baru terbentuk
     await tx
       .update(schema.rentalContracts)
       .set({ familyId, userId })
       .where(eq(schema.rentalContracts.id, contract.id));
 
-    // Auto-Sync Dwelling ID jika disediakan
     if (dwellingId) {
       await tx
         .update(schema.families)
@@ -660,7 +671,6 @@ export async function autoLinkTenantContractToFamily({
         .where(eq(schema.families.id, familyId));
     }
 
-    // Matikan token aktivasi gantung yang terkait (berdasarkan email atau NIK)
     if (email || nik) {
       await tx
         .update(schema.accountActivationTokens)
@@ -680,4 +690,3 @@ export async function autoLinkTenantContractToFamily({
 
   return contract;
 }
-

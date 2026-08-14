@@ -26,6 +26,7 @@ export function BusinessTab({
   // Form States
   const [name, setName] = useState(property?.name || "");
   const [totalRooms, setTotalRooms] = useState<number>(property?.totalRooms || 0);
+  const [occupiedRooms, setOccupiedRooms] = useState<number>(property?.occupiedRooms || 0);
   const [contactPerson, setContactPerson] = useState(property?.contactPerson || "");
   const [businessPhone, setBusinessPhone] = useState(property?.phone || "");
   const [notes, setNotes] = useState(property?.notes || "");
@@ -58,10 +59,10 @@ export function BusinessTab({
     setPrevSessionUserId(sessionUserId);
     setName(property.name);
     setTotalRooms(property.totalRooms);
+    setOccupiedRooms(property.occupiedRooms || 0);
     setContactPerson(property.contactPerson || "");
     setBusinessPhone(property.phone || "");
     setNotes(property.notes || "");
-
 
     const isSelf = property.coordinatorUserId === sessionUserId || !property.coordinatorUserId;
     setCoordinatorOption(isSelf ? "self" : "other");
@@ -104,8 +105,6 @@ export function BusinessTab({
     }
   }, [property?.dwelling?.qrToken]);
 
-
-
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -113,8 +112,13 @@ export function BusinessTab({
       return;
     }
     const activeTotalRooms = Number(totalRooms);
-    if (activeTotalRooms <= 0) {
-      toast.error("Jumlah kamar harus lebih dari 0");
+    const activeOccupiedRooms = Number(occupiedRooms);
+    if (activeTotalRooms < 0 || activeOccupiedRooms < 0) {
+      toast.error("Jumlah kamar tidak boleh negatif");
+      return;
+    }
+    if (activeOccupiedRooms > activeTotalRooms) {
+      toast.error("Jumlah kamar terisi tidak boleh melebihi total kapasitas kamar");
       return;
     }
 
@@ -123,6 +127,7 @@ export function BusinessTab({
     const payload: any = {
       name,
       totalRooms: activeTotalRooms,
+      occupiedRooms: activeOccupiedRooms,
       contactPerson: contactPerson || null,
       phone: businessPhone || null,
       notes: notes || null,
@@ -222,25 +227,40 @@ export function BusinessTab({
 
 
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                Jumlah Kamar/Pintu <span className="text-red-500 ml-0.5">*</span>
+                Total Kapasitas Kamar <span className="text-red-500 ml-0.5">*</span>
               </label>
               <input
                 type="number"
-                min={property?.maxActiveRoomNumber || 1}
+                min={0}
                 value={totalRooms || ""}
                 onChange={(e) => setTotalRooms(Number(e.target.value))}
-                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-70 disabled:bg-gray-100"
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 required
               />
-              {(property?.maxActiveRoomNumber ?? 0) > 1 && (
-                <p className="text-[10px] text-amber-600 font-medium mt-1">
-                  Minimal {property!.maxActiveRoomNumber} (Kamar {property!.maxActiveRoomNumber!.toString().padStart(2, '0')} masih terisi).
-                </p>
-              )}
             </div>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Jumlah Kamar Terisi <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={totalRooms}
+                value={occupiedRooms}
+                onChange={(e) => setOccupiedRooms(Number(e.target.value))}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                required
+              />
+              <p className="text-[10px] text-gray-secondary-text font-medium mt-1">
+                Kamar Kosong: <strong className="text-amber-600">{Math.max(0, totalRooms - occupiedRooms)} Kamar</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 WhatsApp Bisnis
@@ -252,18 +272,17 @@ export function BusinessTab({
                 className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-              Nama Kontak
-            </label>
-            <input
-              type="text"
-              value={contactPerson}
-              onChange={(e) => setContactPerson(e.target.value)}
-              className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-            />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Nama Kontak
+              </label>
+              <input
+                type="text"
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
           </div>
 
           {/* Description/Notes */}

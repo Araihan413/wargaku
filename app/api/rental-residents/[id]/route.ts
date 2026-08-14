@@ -155,11 +155,10 @@ export async function PUT(
     const body = await request.json();
     const validatedData: any = updateRentalResidentSchema.parse(body);
 
-    // Jika sudah terverifikasi, hanya boleh edit no kamar, no hp, dan catatan (kecuali sedang memproses verifikasi itu sendiri)
+    // Jika sudah terverifikasi, hanya boleh edit no hp dan catatan (kecuali sedang memproses verifikasi itu sendiri)
     const isVerified = existingContract.verificationStatus === 'verified' && !validatedData.verificationStatus;
     
     await updateTenantContract(contractId, {
-      roomNumber: validatedData.roomNumber,
       individualPhone: validatedData.phone,
       notes: validatedData.notes,
       verificationStatus: validatedData.verificationStatus,

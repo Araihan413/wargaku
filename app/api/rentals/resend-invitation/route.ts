@@ -63,7 +63,6 @@ export async function POST(request: Request) {
         individualName: rentalContracts.individualName,
         individualNik: rentalContracts.individualNik,
         individualPhone: rentalContracts.individualPhone,
-        roomNumber: rentalContracts.roomNumber,
         propertyName: rentalProperties.name,
       })
       .from(rentalContracts)
@@ -105,7 +104,6 @@ export async function POST(request: Request) {
       nik: contract.individualNik || "",
       rentalContractId: contract.id,
       propertyName: contract.propertyName,
-      roomNumber: contract.roomNumber,
       userName: contract.individualName || "Penyewa",
       requestOrigin: reqOrigin,
     });

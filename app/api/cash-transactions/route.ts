@@ -9,6 +9,7 @@ import {
   createExpenseSchema,
   createAuditLog,
 } from '@/db/queries';
+import { getClientIp } from '@/lib/audit-logger';
 import { z } from 'zod';
 
 /**
@@ -188,7 +189,7 @@ export async function POST(request: Request) {
       createdBy: session.user.id,
     });
 
-    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+    const ipAddress = (await getClientIp(request)) || undefined;
     await createAuditLog({
       userId: session.user.id,
       action: type === 'expense' ? 'CREATE_KAS_EXPENSE' : 'CREATE_KAS_INCOME',

@@ -98,7 +98,6 @@ export interface ActiveResidentEntry {
   type?: string | null;
   memberCount?: number | null;
   unitNumber?: string | null;
-  roomNumber?: string | null;
   checkInDate?: string | Date | null;
 }
 

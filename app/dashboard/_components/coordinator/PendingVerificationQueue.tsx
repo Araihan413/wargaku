@@ -54,7 +54,7 @@ export const PendingVerificationQueue: React.FC<PendingVerificationQueueProps> =
             <thead className="border-b border-gray-border bg-gray-sidebar-hover/90 text-gray-secondary-text font-bold tracking-wider">
               <tr>
                 <th className="py-3 px-4">Penyewa</th>
-                <th className="py-3 px-4">Properti & Kamar</th>
+                <th className="py-3 px-4">Properti Sewa</th>
                 <th className="py-3 px-4">Tipe Sewa</th>
                 <th className="py-3 px-4">Check-In</th>
                 <th className="py-3 px-4 text-right">Status</th>
@@ -69,9 +69,6 @@ export const PendingVerificationQueue: React.FC<PendingVerificationQueueProps> =
                   </td>
                   <td className="py-3 px-4">
                     <div className="font-medium text-gray-heading-main">{r.propertyName}</div>
-                    <div className="text-[10px] text-gray-secondary-text mt-0.5">
-                      {r.roomNumber ? `Kamar / Unit ${r.roomNumber}` : "Utama"}
-                    </div>
                   </td>
                   <td className="py-3 px-4">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${

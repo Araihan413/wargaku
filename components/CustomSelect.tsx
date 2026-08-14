@@ -11,7 +11,7 @@ export interface SelectOption {
 }
 
 interface CustomSelectProps {
-  value: string;
+  value?: string | null;
   onChange: (value: string) => void;
   options: SelectOption[];
   placeholder?: string;
@@ -24,7 +24,7 @@ interface CustomSelectProps {
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
-  value,
+  value = "",
   onChange,
   options,
   placeholder = "Pilih salah satu...",

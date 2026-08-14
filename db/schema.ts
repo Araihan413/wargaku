@@ -183,6 +183,7 @@ export const rentalProperties = mysqlTable('rental_properties', {
   contactPerson: varchar('contact_person', { length: 100 }),
   phone: varchar('phone', { length: 15 }),
   totalRooms: int('total_rooms').notNull().default(0),
+  occupiedRooms: int('occupied_rooms').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
   notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -197,7 +198,6 @@ export const rentalProperties = mysqlTable('rental_properties', {
 export const rentalContracts = mysqlTable('rental_contracts', {
   id: int('id').autoincrement().primaryKey(),
   rentalPropertyId: int('rental_property_id').notNull().references(() => rentalProperties.id),
-  roomNumber: varchar('room_number', { length: 10 }).notNull(),
   tenantType: mysqlEnum('tenant_type', ['individual', 'family']).notNull(),
   familyId: int('family_id').references(() => families.id, { onDelete: 'set null' }),
   userId: varchar('user_id', { length: 255 }).references(() => users.id, { onDelete: 'set null' }),

@@ -116,7 +116,7 @@ export const VerifyTenantModal: React.FC<VerifyTenantModalProps> = ({
               <div className="col-span-2">
                 <span className="text-gray-secondary-text block">Alamat Tinggal RT (Properti)</span>
                 <span className="font-semibold text-gray-heading-main block mt-0.5">
-                  {resident.propertyName} - {addressStr} {resident.roomNumber ? `(Kamar ${resident.roomNumber})` : ""}
+                  {resident.propertyName} - {addressStr}
                 </span>
               </div>
             </div>

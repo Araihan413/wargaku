@@ -46,7 +46,6 @@ interface RentalResident {
   name: string;
   nik: string;
   phone: string;
-  roomNumber: string | null;
   originAddress: string | null;
   occupation: string | null;
   educationLevel: string | null;
@@ -385,11 +384,6 @@ export default function NeighborhoodPage() {
                               >
                                 <div className="flex items-center justify-between border-b border-gray-border/40 pb-1">
                                   <span className="font-bold text-gray-heading-main">{res.name}</span>
-                                  {res.roomNumber && (
-                                    <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                                      Kamar: {res.roomNumber}
-                                    </span>
-                                  )}
                                 </div>
                                 <div className="grid grid-cols-2 gap-y-1 text-gray-secondary-text">
                                   <span>NIK:</span>

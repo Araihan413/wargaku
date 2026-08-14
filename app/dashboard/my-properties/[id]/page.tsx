@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -105,15 +105,6 @@ export default function PropertyDetailsPage() {
       setIsSendingToRT(false);
     }
   };
-
-  const parsedRooms = useMemo(() => {
-    const rooms: string[] = [];
-    const total = property?.totalRooms || 0;
-    for (let i = 1; i <= total; i++) {
-      rooms.push(i.toString().padStart(2, "0"));
-    }
-    return rooms;
-  }, [property?.totalRooms]);
 
   const fetchProperty = useCallback(async () => {
     try {
@@ -258,12 +249,11 @@ export default function PropertyDetailsPage() {
         )}
       </div>
 
-      {/* TAB 1: KAMAR & PENGHUNI */}
+      {/* TAB 1: PENGHUNI AKTIF */}
       {activeTab === "residents" && (
         <ResidentsTab
           property={property}
           activeResidents={activeResidents}
-          parsedRooms={parsedRooms}
           isCoordinator={isCoordinator}
           onCheckOut={(res) => {
             setSelectedResidentForCheckOut(res);
@@ -314,7 +304,6 @@ export default function PropertyDetailsPage() {
         onClose={() => setIsCheckInOpen(false)}
         onSuccess={fetchResidents}
         propertyId={Number(propertyId)}
-        roomList={parsedRooms}
       />
 
       <CheckOutModal
@@ -336,7 +325,6 @@ export default function PropertyDetailsPage() {
           }}
           onSuccess={fetchResidents}
           resident={selectedResidentForEdit}
-          roomList={parsedRooms}
         />
       )}
 

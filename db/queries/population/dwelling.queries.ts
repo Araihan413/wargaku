@@ -212,7 +212,7 @@ export async function getDwellingDetailById(id: number) {
         .where(and(eq(schema.rentalContracts.rentalPropertyId, property.id), eq(schema.rentalContracts.isActive, true)));
 
       const activeTenants = Number(activeTenantsCount?.count ?? 0);
-      const vacantRooms = Math.max(0, property.totalRooms - activeTenants);
+      const vacantRooms = Math.max(0, property.totalRooms - property.occupiedRooms);
 
       return { ...dwelling, property: { ...property, activeTenants, vacantRooms, coordinator } };
     }
@@ -496,11 +496,12 @@ export async function getNeighborhoodMap(isOfficer: boolean) {
         contactPerson: property.contactPerson,
         phone: isOfficer ? property.phone : _censorPhone(property.phone),
         totalRooms: property.totalRooms,
+        occupiedRooms: property.occupiedRooms,
+        vacantRooms: Math.max(0, property.totalRooms - property.occupiedRooms),
         tenants: allRentalContracts
           .filter((c) => c.rentalPropertyId === property.id)
           .map((contract) => ({
             id: contract.id,
-            roomNumber: contract.roomNumber,
             tenantType: contract.tenantType,
             name: contract.individualName,
             nik: isOfficer ? contract.individualNik : _censorNik(contract.individualNik),

@@ -50,11 +50,11 @@ export const DetailResidentModal: React.FC<DetailResidentModalProps> = ({
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto pr-1 pb-2 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
-          {/* Status Badge & Room */}
+          {/* Status Badge & Tenant Type */}
           <div className="flex items-center justify-between bg-gray-sidebar-hover/30 border border-gray-border rounded-xl p-3">
             <div>
-              <span className="text-[10px] font-semibold text-gray-secondary-text block">Nomor Kamar</span>
-              <span className="text-base font-bold text-primary">{resident.roomNumber || "Belum Diatur"}</span>
+              <span className="text-[10px] font-semibold text-gray-secondary-text block">Tipe Penyewa</span>
+              <span className="text-sm font-bold text-primary capitalize">{resident.tenantType || "Perorangan"}</span>
             </div>
             <div className="text-right">
               <span className="text-[10px] font-semibold text-gray-secondary-text block mb-1">Status Verifikasi</span>

@@ -209,6 +209,22 @@ export async function POST(request: Request) {
       }
     }
 
+    // Validasi aturan KTP untuk Keluarga Penyewa (usia >= 18 tahun wajib KTP)
+    const isRentalFamily = family.dwellingType === 'kos' || family.dwellingType === 'homestay';
+    let memberAge = 0;
+    if (validatedData.birthDate) {
+      const birth = new Date(validatedData.birthDate);
+      const diffMs = Date.now() - birth.getTime();
+      memberAge = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25));
+    }
+
+    if (isRentalFamily && memberAge >= 18 && !validatedData.ktpFile) {
+      return NextResponse.json(
+        { error: 'Anggota keluarga penyewa dengan usia 18 tahun ke atas wajib mengunggah Scan KTP.' },
+        { status: 400 }
+      );
+    }
+
     const memberId = await createFamilyMember({
       familyId: validatedData.familyId,
       nik: validatedData.nik,

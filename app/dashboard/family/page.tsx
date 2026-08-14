@@ -478,26 +478,31 @@ function WargaFamilyContent() {
             fetchFamilyDetails(familyId);
           }}
           familyId={familyId}
+          isRentalFamily={familyDetail?.dwellingAddress?.type === "kos" || familyDetail?.dwellingAddress?.type === "homestay"}
           onCustomSubmit={isChangeDraftActive ? handleAddMemberToDraft : undefined}
         />
       )}
 
       {/* Edit Member Modal */}
-      <EditWargaMemberModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedMemberForEdit(null);
-        }}
-        onSuccess={() => {
-          setIsEditModalOpen(false);
-          setSelectedMemberForEdit(null);
-          if (familyId) fetchFamilyDetails(familyId);
-        }}
-        member={selectedMemberForEdit}
-        isLocked={isLocked}
-        onCustomSubmit={isChangeDraftActive ? handleEditMemberInDraft : undefined}
-      />
+      {selectedMemberForEdit && (
+        <EditWargaMemberModal
+          key={selectedMemberForEdit.id || selectedMemberForEdit.tempId || selectedMemberForEdit.nik}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedMemberForEdit(null);
+          }}
+          onSuccess={() => {
+            setIsEditModalOpen(false);
+            setSelectedMemberForEdit(null);
+            if (familyId) fetchFamilyDetails(familyId);
+          }}
+          member={selectedMemberForEdit}
+          isLocked={isLocked}
+          isRentalFamily={familyDetail?.dwellingAddress?.type === "kos" || familyDetail?.dwellingAddress?.type === "homestay"}
+          onCustomSubmit={isChangeDraftActive ? handleEditMemberInDraft : undefined}
+        />
+      )}
 
       {/* Delete Member Modal */}
       <DeleteWargaMemberModal

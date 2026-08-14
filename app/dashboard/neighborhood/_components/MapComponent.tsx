@@ -39,7 +39,6 @@ interface RentalResident {
   name: string;
   nik: string;
   phone: string;
-  roomNumber: string | null;
   originAddress: string | null;
 }
 
@@ -186,7 +185,7 @@ export default function MapComponent({
                             <ul className="list-disc list-inside text-[9px] text-gray-body-text-btn space-y-0.5 pl-1">
                               {prop.residents.map((r) => (
                                 <li key={r.id}>
-                                  {r.name} {r.roomNumber ? `(Kamar ${r.roomNumber})` : ""}
+                                  {r.name}
                                 </li>
                               ))}
                             </ul>

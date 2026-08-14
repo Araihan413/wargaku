@@ -7,23 +7,33 @@ export async function getClientIp(req?: Request): Promise<string | null> {
   try {
     let rawIp: string | null = null;
     if (req) {
-      const forwardedFor = req.headers.get("x-forwarded-for");
-      if (forwardedFor) {
-        rawIp = forwardedFor.split(",")[0].trim();
+      const cfIp = req.headers.get("cf-connecting-ip");
+      if (cfIp) {
+        rawIp = cfIp.trim();
       } else {
-        const realIp = req.headers.get("x-real-ip");
-        if (realIp) rawIp = realIp.trim();
+        const forwardedFor = req.headers.get("x-forwarded-for");
+        if (forwardedFor) {
+          rawIp = forwardedFor.split(",")[0].trim();
+        } else {
+          const realIp = req.headers.get("x-real-ip");
+          if (realIp) rawIp = realIp.trim();
+        }
       }
     }
 
     if (!rawIp) {
       const headerList = await headers();
-      const forwardedFor = headerList.get("x-forwarded-for");
-      if (forwardedFor) {
-        rawIp = forwardedFor.split(",")[0].trim();
+      const cfIp = headerList.get("cf-connecting-ip");
+      if (cfIp) {
+        rawIp = cfIp.trim();
       } else {
-        const realIp = headerList.get("x-real-ip");
-        if (realIp) rawIp = realIp.trim();
+        const forwardedFor = headerList.get("x-forwarded-for");
+        if (forwardedFor) {
+          rawIp = forwardedFor.split(",")[0].trim();
+        } else {
+          const realIp = headerList.get("x-real-ip");
+          if (realIp) rawIp = realIp.trim();
+        }
       }
     }
 

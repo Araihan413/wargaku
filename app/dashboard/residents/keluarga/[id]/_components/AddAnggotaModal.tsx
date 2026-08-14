@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X, User, CreditCard, Calendar, Phone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,12 +10,14 @@ import { uploadFileToCloudinary } from "@/lib/upload-helper";
 import { KtpUploadInput } from "@/components/KtpUploadInput";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { commonOccupations, commonEducations, genderOptions, relationshipOptions, religionOptions } from "@/lib/constants";
+import { calculateAge } from "@/lib/date-format";
 
 interface AddAnggotaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   familyId: number;
+  isRentalFamily?: boolean;
 }
 
 export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
@@ -23,6 +25,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
   onClose,
   onSuccess,
   familyId,
+  isRentalFamily = false,
 }) => {
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
   const [isUploadingKtp, setIsUploadingKtp] = useState(false);
@@ -51,6 +54,10 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
     },
   });
 
+  const birthDateValue = useWatch({ control, name: "birthDate" }) as string | undefined;
+  const age = calculateAge(birthDateValue);
+  const isKtpRequired = Boolean(isRentalFamily && age >= 18);
+
   const handleClose = () => {
     reset();
     setKtpFile(null);
@@ -58,6 +65,11 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
   };
 
   const onSubmit = async (data: any) => {
+    if (isKtpRequired && !ktpFile) {
+      toast.error("Scan KTP wajib diunggah untuk anggota keluarga penyewa berusia 18 tahun ke atas");
+      return;
+    }
+
     setIsUploadingKtp(true);
     try {
       let finalKtpUrl = null;
@@ -77,12 +89,12 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
       const payload = {
         ...data,
         familyId: Number(familyId),
-        birthPlace: data.birthPlace || null,
+        birthPlace: data.birthPlace ? data.birthPlace.trim() : "",
         birthDate: data.birthDate || null,
-        occupation: data.occupation || null,
-        educationLevel: data.educationLevel || null,
-        religion: data.religion || null,
-        phone: data.phone || null,
+        occupation: data.occupation ? data.occupation.trim() : "",
+        educationLevel: data.educationLevel ? data.educationLevel.trim() : "",
+        religion: data.religion || "Islam",
+        phone: data.phone ? data.phone.trim() : null,
         ktpFile: finalKtpUrl,
       };
 
@@ -149,6 +161,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
               type="text"
               required={true}
               placeholder="16 digit nomor NIK"
+              maxLength={16}
               registerProps={register("nik")}
               icon={CreditCard}
               error={errors.nik?.message}
@@ -164,7 +177,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
                     <CustomSelect
                       label="Jenis Kelamin"
                       required={true}
-                      value={field.value}
+                      value={field.value || ""}
                       onChange={(val) => field.onChange(val)}
                       options={genderOptions}
                       placeholder="Pilih..."
@@ -187,7 +200,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
                     <CustomSelect
                       label="Hubungan Keluarga"
                       required={true}
-                      value={field.value}
+                      value={field.value || ""}
                       onChange={(val) => field.onChange(val)}
                       options={relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")}
                       placeholder="Pilih..."
@@ -208,6 +221,7 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
                 id="birthPlace"
                 label="Tempat Lahir"
                 type="text"
+                required={true}
                 placeholder="Contoh: Jakarta"
                 registerProps={register("birthPlace")}
                 icon={User}
@@ -219,7 +233,9 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
                 id="birthDate"
                 label="Tanggal Lahir"
                 type="date"
+                required={true}
                 placeholder=""
+                note={birthDateValue ? `Usia: ${age} thn` : undefined}
                 registerProps={register("birthDate")}
                 icon={Calendar}
                 error={errors.birthDate?.message}
@@ -235,13 +251,19 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
                   render={({ field }) => (
                     <CustomSelect
                       label="Agama"
-                      value={field.value || ""}
+                      required={true}
+                      value={field.value || "Islam"}
                       onChange={(val) => field.onChange(val)}
                       options={religionOptions}
                       placeholder="Pilih..."
                     />
                   )}
                 />
+                {errors.religion && (
+                  <p className="text-xs font-semibold text-error mt-0.5">
+                    {errors.religion.message}
+                  </p>
+                )}
               </div>
 
               {/* Phone */}
@@ -259,14 +281,13 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
             <div className="grid grid-cols-2 gap-4">
               {/* Occupation */}
               <div className="space-y-1">
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  Pekerjaan
-                </label>
                 <Controller
                   name="occupation"
                   control={control}
                   render={({ field }) => (
                     <AutocompleteInput
+                      label="Pekerjaan"
+                      required={true}
                       value={field.value || ""}
                       onChange={field.onChange}
                       suggestions={commonOccupations}
@@ -283,14 +304,13 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
 
               {/* Education Level */}
               <div className="space-y-1">
-                <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
-                  Pendidikan Terakhir
-                </label>
                 <Controller
                   name="educationLevel"
                   control={control}
                   render={({ field }) => (
                     <AutocompleteInput
+                      label="Pendidikan Terakhir"
+                      required={true}
                       value={field.value || ""}
                       onChange={field.onChange}
                       suggestions={commonEducations}
@@ -311,7 +331,8 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
               <KtpUploadInput
                 value={ktpFile}
                 onChange={setKtpFile}
-                label="Berkas Scan KTP Anggota"
+                label={isKtpRequired ? "Berkas Scan KTP Anggota (Wajib untuk usia 18+ thn)" : "Berkas Scan KTP Anggota"}
+                required={isKtpRequired}
               />
             </div>
           </div>
@@ -322,23 +343,19 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
               type="button"
               onClick={handleClose}
               disabled={isSubmitting || isUploadingKtp}
-              className="px-4 py-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-sm font-semibold text-gray-secondary-text cursor-pointer transition-colors"
+              className="rounded-xl border border-gray-border px-4 py-2 text-xs font-semibold text-gray-secondary-text hover:bg-gray-sidebar-hover cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting || isUploadingKtp}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-900 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-all"
+              className="rounded-xl bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary-900 cursor-pointer disabled:opacity-60 flex items-center gap-1.5 shadow-sm"
             >
-              {isSubmitting || isUploadingKtp ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Menambahkan...
-                </>
-              ) : (
-                "Tambah Anggota"
+              {(isSubmitting || isUploadingKtp) && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               )}
+              <span>Tambah Anggota</span>
             </button>
           </div>
         </form>

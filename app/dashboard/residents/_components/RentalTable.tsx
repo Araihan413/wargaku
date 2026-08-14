@@ -8,7 +8,6 @@ export interface RentalResidentItem {
   nik: string;
   phone?: string | null;
   tenantType: "perorangan" | "keluarga";
-  roomNumber?: string | null;
   checkInDate: string;
   checkOutDate?: string | null;
   verificationStatus: "draft" | "pending" | "verified" | "rejected";
@@ -102,7 +101,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                       <div>
                         <div className="font-medium text-gray-heading-main">{r.propertyName}</div>
                         <div className="text-xs text-gray-secondary-text mt-0.5">
-                          {addressStr} {r.roomNumber ? `- Kamar ${r.roomNumber}` : ""}
+                          {addressStr}
                         </div>
                       </div>
                     </td>

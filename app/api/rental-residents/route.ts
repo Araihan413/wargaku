@@ -223,7 +223,6 @@ export async function POST(request: Request) {
       contractId = await createFamilyTenantWithUser(
         {
           rentalPropertyId: rentalPropId,
-          roomNumber: validatedData.roomNumber || '',
           tenantType: 'family',
           name: validatedData.name,
           email: validatedData.email,
@@ -231,19 +230,20 @@ export async function POST(request: Request) {
           phone: validatedData.phone,
           dwellingId: property.dwellingId,
           checkInDate,
+          autoDeductVacantRoom: validatedData.autoDeductVacantRoom,
         },
         requestOrigin
       );
     } else {
       contractId = await createTenantContract({
         rentalPropertyId: rentalPropId,
-        roomNumber: validatedData.roomNumber || '',
         tenantType: 'individual',
         individualName: validatedData.name,
         individualNik: validatedData.nik,
         individualPhone: validatedData.phone,
         individualKtpFile: validatedData.ktpFile,
         checkInDate,
+        autoDeductVacantRoom: validatedData.autoDeductVacantRoom,
       });
     }
 

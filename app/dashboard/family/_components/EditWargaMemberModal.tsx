@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { WargaFamilyMember } from "../types";
 import { X, Loader2, Edit2 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { KtpUploadInput } from "@/components/KtpUploadInput";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { CustomSelect } from "@/components/CustomSelect";
 import { commonOccupations, commonEducations, relationshipOptions, religionOptions, genderOptions } from "@/lib/constants";
+import { formatDateForInput, calculateAge } from "@/lib/date-format";
 
 interface EditWargaMemberModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface EditWargaMemberModalProps {
   onSuccess: () => void;
   member: WargaFamilyMember | null;
   isLocked?: boolean;
+  isRentalFamily?: boolean;
   onCustomSubmit?: (data: any) => Promise<boolean>;
 }
 
@@ -26,85 +28,87 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
   onSuccess,
   member,
   isLocked = false,
+  isRentalFamily = false,
   onCustomSubmit,
 }) => {
-  const [prevMember, setPrevMember] = useState<WargaFamilyMember | null>(null);
-
-  const [name, setName] = useState("");
-  const [nik, setNik] = useState("");
-  const [relationship, setRelationship] = useState<"Kepala_Keluarga" | "Suami" | "Istri" | "Anak" | "Orang_Tua" | "Mertua" | "Sepupu" | "Lainnya">("Istri");
-  const [gender, setGender] = useState<"L" | "P">("L");
-  const [birthPlace, setBirthPlace] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [occupation, setOccupation] = useState("");
-  const [educationLevel, setEducationLevel] = useState("");
-  const [religion, setReligion] = useState("Islam");
-  const [phone, setPhone] = useState("");
-  const [ktpFile, setKtpFile] = useState<File | string | null>(null);
+  const [name, setName] = useState(member?.name || "");
+  const [nik, setNik] = useState(member?.nik || "");
+  const [relationship, setRelationship] = useState<"Kepala_Keluarga" | "Suami" | "Istri" | "Anak" | "Orang_Tua" | "Mertua" | "Sepupu" | "Lainnya">(
+    (member?.relationship as any) || "Istri"
+  );
+  const [gender, setGender] = useState<"L" | "P">(member?.gender || "L");
+  const [birthPlace, setBirthPlace] = useState(member?.birthPlace ?? (member as any)?.birth_place ?? "");
+  const [birthDate, setBirthDate] = useState(formatDateForInput(member?.birthDate ?? (member as any)?.birth_date));
+  const [occupation, setOccupation] = useState(member?.occupation || "");
+  const [educationLevel, setEducationLevel] = useState(member?.educationLevel ?? (member as any)?.education_level ?? "");
+  const [religion, setReligion] = useState((member?.religion as any) || "Islam");
+  const [phone, setPhone] = useState(member?.phone || "");
+  const [ktpFile, setKtpFile] = useState<File | string | null>(member?.ktpFile ?? (member as any)?.ktp_file ?? null);
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Synchronize form state with props during render without useEffect to prevent cascading renders
-  if (member && member !== prevMember) {
-    setPrevMember(member);
-    if (member) {
+  useEffect(() => {
+    if (isOpen && member) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(member.name || "");
       setNik(member.nik || "");
-      setRelationship(member.relationship as any || "Istri");
+      setRelationship((member.relationship as any) || "Istri");
       setGender(member.gender || "L");
-      setBirthPlace(member.birthPlace || "");
-      setBirthDate(member.birthDate ? member.birthDate.split("T")[0] : "");
+      setBirthPlace(member.birthPlace ?? (member as any)?.birth_place ?? "");
+      setBirthDate(formatDateForInput(member.birthDate ?? (member as any)?.birth_date));
       setOccupation(member.occupation || "");
-      setEducationLevel(member.educationLevel || "");
-      setReligion(member.religion || "Islam");
+      setEducationLevel(member.educationLevel ?? (member as any)?.education_level ?? "");
+      setReligion((member.religion as any) || "Islam");
       setPhone(member.phone || "");
-      setKtpFile(member.ktpFile || null);
+      setKtpFile(member.ktpFile ?? (member as any)?.ktp_file ?? null);
     }
-  }
+  }, [isOpen, member]);
 
   if (!isOpen || !member) return null;
 
-  const checkHasChanges = () => {
-    if (!member) return false;
-
-    const normalize = (val: string | null | undefined) => (val || "").trim().toLowerCase();
-
-    const isNameChanged = normalize(name) !== normalize(member.name);
-    const isNikChanged = normalize(nik) !== normalize(member.nik);
-    const isRelationshipChanged = normalize(relationship) !== normalize(member.relationship);
-    const isGenderChanged = normalize(gender) !== normalize(member.gender);
-    const isBirthPlaceChanged = normalize(birthPlace) !== normalize(member.birthPlace);
-
-    const cleanDate = (d: string | null | undefined) => (d ? d.split("T")[0] : "");
-    const isBirthDateChanged = cleanDate(birthDate) !== cleanDate(member.birthDate);
-
-    const isOccupationChanged = normalize(occupation) !== normalize(member.occupation);
-    const isEducationChanged = normalize(educationLevel) !== normalize(member.educationLevel);
-    const isReligionChanged = normalize(religion) !== normalize(member.religion);
-    const isPhoneChanged = normalize(phone) !== normalize(member.phone);
-
-    const isKtpChanged =
-      ktpFile instanceof File || normalize(ktpFile as string) !== normalize(member.ktpFile);
-
-    return (
-      isNameChanged ||
-      isNikChanged ||
-      isRelationshipChanged ||
-      isGenderChanged ||
-      isBirthPlaceChanged ||
-      isBirthDateChanged ||
-      isOccupationChanged ||
-      isEducationChanged ||
-      isReligionChanged ||
-      isPhoneChanged ||
-      isKtpChanged
-    );
-  };
-
+  const age = calculateAge(birthDate);
+  const isKtpRequired = Boolean(isRentalFamily && age >= 18);
   const isHead = member.relationship === "Kepala_Keluarga";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isHead && !isLocked) {
+      if (!name.trim() || !nik.trim()) {
+        toast.error("Nama dan NIK wajib diisi");
+        return;
+      }
+      if (nik.length !== 16) {
+        toast.error("NIK harus 16 digit angka");
+        return;
+      }
+    }
+
+    if (!birthPlace.trim()) {
+      toast.error("Tempat Lahir wajib diisi");
+      return;
+    }
+
+    if (!birthDate) {
+      toast.error("Tanggal Lahir wajib diisi");
+      return;
+    }
+
+    if (!educationLevel.trim()) {
+      toast.error("Pendidikan Terakhir wajib diisi / dipilih");
+      return;
+    }
+
+    if (!occupation.trim()) {
+      toast.error("Pekerjaan wajib diisi / dipilih");
+      return;
+    }
+
+    if (isKtpRequired && !ktpFile) {
+      toast.error("Scan KTP wajib diunggah untuk anggota keluarga penyewa berusia 18 tahun ke atas");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -124,16 +128,16 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
       }
 
       const payload = {
-        name,
-        nik,
-        relationship,
-        gender,
-        birthPlace: birthPlace || null,
-        birthDate: birthDate || null,
-        occupation: occupation || null,
-        educationLevel: educationLevel || null,
-        religion: religion || null,
-        phone: phone || null,
+        name: isHead && isLocked ? member.name : name.trim(),
+        nik: isHead && isLocked ? member.nik : nik.trim(),
+        relationship: isHead ? "Kepala_Keluarga" : relationship,
+        gender: isHead && isLocked ? member.gender : gender,
+        birthPlace: birthPlace.trim(),
+        birthDate,
+        occupation: occupation.trim(),
+        educationLevel: educationLevel.trim(),
+        religion,
+        phone: phone.trim() || null,
         ktpFile: finalKtpUrl,
       };
 
@@ -187,7 +191,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 Edit Data Anggota Keluarga
               </h3>
               <p className="text-xs text-gray-secondary-text">
-                Perbarui biodata dan berkas Scan KTP untuk {member.name}.
+                Perbarui biodata lengkap dan berkas Scan KTP untuk {member.name}.
               </p>
             </div>
           </div>
@@ -202,31 +206,25 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
 
         {/* Body Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-thin">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Locked Info Banner */}
-            {isLocked && (
-              <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl mb-2 space-y-1 text-left sm:col-span-2">
-                <span className="text-xs font-bold text-blue-800 block">Mode Pembaruan Kontak Warga:</span>
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  Data kependudukan resmi telah terverifikasi oleh RT. Anda dapat memperbarui <strong>Nomor HP / WhatsApp</strong> secara langsung. Untuk mengubah nama, NIK, pekerjaan, atau data lainnya, silakan gunakan tombol <strong>&ldquo;Ajukan Perubahan Data&rdquo;</strong> di halaman utama.
-                </p>
-              </div>
-            )}
+          {isHead && (
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-50/50 dark:bg-amber-950/20 p-3 text-xs text-amber-800 dark:text-amber-300">
+              Peran sebagai <strong>Kepala Keluarga</strong> terhubung dengan akun utama keluarga ini.
+            </div>
+          )}
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Nama */}
             <div className="space-y-1 sm:col-span-2">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 Nama Lengkap <span className="text-red-500 ml-0.5">*</span>
-                {isHead && <span className="float-right text-[10px] font-normal text-gray-placeholder flex items-center gap-1">Kepala Keluarga</span>}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                disabled={isLocked}
-                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
-                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
-                }`}
+                placeholder="Contoh: Siti Rahmawati"
+                disabled={isHead && isLocked}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -235,36 +233,44 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
             <div className="space-y-1">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 NIK (16 Digit) <span className="text-red-500 ml-0.5">*</span>
-                {isHead && <span className="float-right text-[10px] font-normal text-gray-placeholder flex items-center gap-1">Kepala Keluarga</span>}
               </label>
               <input
                 type="text"
                 maxLength={16}
                 value={nik}
                 onChange={(e) => setNik(e.target.value.replace(/\D/g, ""))}
-                disabled={isLocked}
-                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm font-mono text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
-                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
-                }`}
+                placeholder="327301..."
+                disabled={isHead && isLocked}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm font-mono text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 required
               />
             </div>
 
             {/* Hubungan */}
             <div className="space-y-1">
-              <CustomSelect
-                label="Hubungan Keluarga"
-                required={true}
-                value={relationship}
-                onChange={(val) => setRelationship(val as any)}
-                options={
-                  member?.relationship === "Kepala_Keluarga"
-                    ? relationshipOptions
-                    : relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")
-                }
-                placeholder="-- Pilih Hubungan --"
-                disabled={isHead || isLocked}
-              />
+              {isHead ? (
+                <div>
+                  <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                    Hubungan Keluarga <span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value="Kepala Keluarga"
+                    disabled
+                    className="w-full bg-gray-sidebar-hover/40 border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-secondary-text cursor-not-allowed"
+                  />
+                </div>
+              ) : (
+                <CustomSelect
+                  label="Hubungan Keluarga"
+                  required={true}
+                  value={relationship}
+                  onChange={(val) => setRelationship(val as any)}
+                  options={relationshipOptions.filter((opt) => opt.value !== "Kepala_Keluarga")}
+                  placeholder="-- Pilih Hubungan --"
+                  disabled={isLocked}
+                />
+              )}
             </div>
 
             {/* Gender */}
@@ -276,48 +282,41 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
                 onChange={(val) => setGender(val as any)}
                 options={genderOptions}
                 placeholder="-- Pilih Jenis Kelamin --"
-                disabled={isLocked}
-              />
-            </div>
-
-            {/* No HP */}
-            <div className="space-y-1">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">No. HP / WA</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="081234..."
-                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                disabled={isHead && isLocked}
               />
             </div>
 
             {/* Tempat Lahir */}
             <div className="space-y-1">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tempat Lahir</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Tempat Lahir <span className="text-red-500 ml-0.5">*</span>
+              </label>
               <input
                 type="text"
                 value={birthPlace}
                 onChange={(e) => setBirthPlace(e.target.value)}
                 placeholder="Contoh: Bandung"
-                disabled={isLocked}
-                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
-                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
-                }`}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                required
               />
             </div>
 
             {/* Tanggal Lahir */}
             <div className="space-y-1">
-              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">Tanggal Lahir</label>
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                Tanggal Lahir <span className="text-red-500 ml-0.5">*</span>
+                {birthDate && (
+                  <span className="text-xs text-gray-secondary-text font-normal ml-1.5">
+                    (Usia: {age} thn)
+                  </span>
+                )}
+              </label>
               <input
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                disabled={isLocked}
-                className={`w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
-                  isLocked ? "bg-gray-sidebar-hover/50 opacity-70 cursor-not-allowed" : ""
-                }`}
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                required
               />
             </div>
 
@@ -325,35 +324,49 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
             <div className="space-y-1">
               <AutocompleteInput
                 label="Pekerjaan"
+                required={true}
                 value={occupation}
                 onChange={setOccupation}
                 suggestions={commonOccupations}
-                placeholder="Contoh: Wiraswasta"
-                disabled={isLocked}
+                placeholder="Contoh: Karyawan Swasta"
               />
             </div>
 
             {/* Pendidikan */}
             <div className="space-y-1">
               <AutocompleteInput
-                label="Pendidikan"
+                label="Pendidikan Terakhir"
+                required={true}
                 value={educationLevel}
                 onChange={setEducationLevel}
                 suggestions={commonEducations}
                 placeholder="Contoh: S1 / SMA"
-                disabled={isLocked}
               />
             </div>
 
             {/* Agama */}
-            <div className="space-y-1 sm:col-span-2">
+            <div className="space-y-1">
               <CustomSelect
                 label="Agama"
+                required={true}
                 value={religion}
                 onChange={(val) => setReligion(val)}
                 options={religionOptions}
                 placeholder="-- Pilih Agama --"
-                disabled={isLocked}
+              />
+            </div>
+
+            {/* No HP */}
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
+                No. HP / WhatsApp
+              </label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Contoh: 081234567890"
+                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
@@ -362,8 +375,9 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
               <KtpUploadInput
                 value={ktpFile}
                 onChange={setKtpFile}
-                label="Berkas Scan KTP Anggota"
-                disabled={isLocked}
+                label={isKtpRequired ? "Unggah Scan KTP (Wajib untuk usia 18+ thn)" : "Unggah Scan KTP"}
+                required={isKtpRequired}
+                existingUrl={typeof ktpFile === "string" ? ktpFile : undefined}
               />
             </div>
           </div>
@@ -379,8 +393,8 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isLoading || !checkHasChanges()}
-              className="rounded-xl bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary-900 cursor-pointer disabled:opacity-60 flex items-center gap-1.5 shadow-sm disabled:cursor-not-allowed"
+              disabled={isLoading}
+              className="rounded-xl bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary-900 cursor-pointer disabled:opacity-60 flex items-center gap-1.5 shadow-sm"
             >
               {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Simpan Perubahan

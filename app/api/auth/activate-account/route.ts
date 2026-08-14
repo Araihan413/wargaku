@@ -77,14 +77,12 @@ export async function GET(request: Request) {
 
     let userName = "Penyewa";
     let propertyName = "Properti Kos";
-    let roomNumber = "";
 
     if (tokenData.rentalContractId) {
       const [contract] = await db
         .select({
           individualName: rentalContracts.individualName,
           individualNik: rentalContracts.individualNik,
-          roomNumber: rentalContracts.roomNumber,
           propertyName: rentalProperties.name,
         })
         .from(rentalContracts)
@@ -95,7 +93,6 @@ export async function GET(request: Request) {
       if (contract) {
         userName = contract.individualName || userName;
         propertyName = contract.propertyName || propertyName;
-        roomNumber = contract.roomNumber || "";
       }
     }
 
@@ -105,7 +102,6 @@ export async function GET(request: Request) {
       nik: tokenData.nik,
       userName,
       propertyName,
-      roomNumber,
     });
   } catch (error: any) {
     console.error("Error in GET /api/auth/activate-account:", error);
@@ -204,6 +200,7 @@ export async function POST(request: Request) {
         individualName: rentalContracts.individualName,
         individualNik: rentalContracts.individualNik,
         individualPhone: rentalContracts.individualPhone,
+        individualKtpFile: rentalContracts.individualKtpFile,
         dwellingId: rentalProperties.dwellingId,
       })
       .from(rentalContracts)
@@ -282,6 +279,7 @@ export async function POST(request: Request) {
         phone: userPhone,
         gender: "L",
         relationship: "Kepala_Keluarga",
+        ktpFile: contract.individualKtpFile || null,
         isActive: true,
       });
       // Jika NIK sudah ada → MySQL ER_DUP_ENTRY (unique: nik) → FULL ROLLBACK otomatis

@@ -7,7 +7,6 @@ import { PropertyDetails, RentalResidentItem } from "../types";
 interface ResidentsTabProps {
   property: PropertyDetails;
   activeResidents: RentalResidentItem[];
-  parsedRooms: string[];
   isCoordinator: boolean;
   onCheckOut: (resident: RentalResidentItem) => void;
   onEdit: (resident: RentalResidentItem) => void;
@@ -19,7 +18,6 @@ interface ResidentsTabProps {
 export function ResidentsTab({
   property: _property,
   activeResidents,
-  parsedRooms,
   isCoordinator,
   onCheckOut,
   onEdit,
@@ -35,8 +33,7 @@ export function ResidentsTab({
     return activeResidents.filter((res) => {
       const matchesSearch =
         (res.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-        (res.nik || "").includes(searchQuery) ||
-        (res.roomNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+        (res.nik || "").includes(searchQuery);
 
       const matchesStatus =
         filterStatus === "all" || res.verificationStatus === filterStatus;
@@ -47,15 +44,13 @@ export function ResidentsTab({
 
   return (
     <div className="space-y-6">
-    
-
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-gray-card border border-gray-border p-4 rounded-3xl shadow-sm">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-placeholder" />
           <input
             type="text"
-            placeholder="Cari nama penyewa atau nomor kamar..."
+            placeholder="Cari nama atau NIK penyewa..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-gray-sidebar-hover/10 border border-gray-border rounded-xl pl-9 pr-4 py-2 text-xs text-gray-heading-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
@@ -110,95 +105,6 @@ export function ResidentsTab({
         </div>
       </div>
 
-      {/* Visual Room Grid */}
-      {parsedRooms.length > 0 && (
-        <div className="bg-gray-card border border-gray-border p-6 rounded-3xl shadow-sm space-y-4">
-          <div>
-            <h3 className="text-sm font-bold text-gray-heading-main">Denah Grid Kamar</h3>
-            <p className="text-[10px] text-gray-secondary-text leading-relaxed">
-              Klik nomor kamar untuk memfokuskan pencarian ke kamar tersebut.
-            </p>
-          </div>
-
-          <div className="max-h-105 sm:max-h-51 overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-              {parsedRooms.map((roomNum: string) => {
-                const residentsInRoom = activeResidents.filter(r => r.roomNumber === roomNum);
-                
-                let gridStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100";
-                let roomStatusText = "Kosong";
-                let residentsName = "";
-
-                if (residentsInRoom.length === 1) {
-                  const res = residentsInRoom[0];
-                  residentsName = res.name;
-                  if (res.verificationStatus === "verified") {
-                    gridStyle = "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100";
-                    roomStatusText = "Terisi";
-                  } else if (res.verificationStatus === "pending") {
-                    gridStyle = "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100";
-                    roomStatusText = "Pending";
-                  } else if (res.verificationStatus === "rejected") {
-                    gridStyle = "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100";
-                    roomStatusText = "Ditolak";
-                  }
-                } else if (residentsInRoom.length > 1) {
-                  gridStyle = "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100";
-                  roomStatusText = `${residentsInRoom.length} Orang`;
-                  residentsName = residentsInRoom.map(r => r.name).join(", ");
-                }
-
-                return (
-                  <button
-                    key={roomNum}
-                    type="button"
-                    onClick={() => setSearchQuery(roomNum)}
-                    className={`flex flex-col items-center justify-between p-3.5 rounded-2xl border text-center h-24 cursor-pointer select-none transition-all ${gridStyle}`}
-                    title={residentsName ? `Penyewa: ${residentsName}` : "Kamar Kosong"}
-                  >
-                    <span className="text-lg font-bold tracking-tight">{roomNum}</span>
-                    <div className="space-y-0.5 w-full">
-                      <span className="text-[9px] font-bold block uppercase tracking-wider leading-none opacity-85">
-                        {roomStatusText}
-                      </span>
-                      {residentsName && (
-                        <span className="text-[9px] block truncate font-semibold leading-none opacity-90 w-full max-w-20 mx-auto">
-                          {residentsInRoom[0].name}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Grid Legend */}
-          <div className="flex flex-wrap gap-4 pt-2 text-[10px] font-semibold text-gray-secondary-text justify-center sm:justify-start">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3.5 h-3.5 rounded-md bg-emerald-50 border border-emerald-200" />
-              <span>Kosong</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3.5 h-3.5 rounded-md bg-indigo-50 border border-indigo-200" />
-              <span>Terisi (Verified)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3.5 h-3.5 rounded-md bg-amber-50 border border-amber-200" />
-              <span>Pending RT</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3.5 h-3.5 rounded-md bg-rose-50 border border-rose-200" />
-              <span>Ditolak RT</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3.5 h-3.5 rounded-md bg-orange-50 border border-orange-200" />
-              <span>Room Sharing</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* List of active residents */}
       {filteredResidents.length === 0 ? (
         <div className="rounded-3xl border border-gray-border bg-gray-card p-12 text-center shadow-sm">
@@ -221,8 +127,8 @@ export function ResidentsTab({
                     <h4 className="font-bold text-gray-heading-main line-clamp-1">{res.name}</h4>
                     <span className="text-[10px] text-gray-secondary-text font-mono uppercase">NIK: {res.nik}</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold font-mono">
-                    {res.roomNumber || "No Room"}
+                  <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold capitalize">
+                    {res.tenantType || "Perorangan"}
                   </span>
                 </div>
 
@@ -262,7 +168,7 @@ export function ResidentsTab({
                     ? "bg-rose-50 text-rose-600 border border-rose-100"
                     : res.verificationStatus === "draft"
                     ? "bg-gray-100 text-gray-600 border border-gray-200"
-                    : "bg-amber-50 text-amber-600 border border-amber-100 lse"
+                    : "bg-amber-50 text-amber-600 border border-amber-100"
                 }`}>
                   {res.verificationStatus === "draft" ? "Draf (KK)" : res.verificationStatus}
                 </span>
