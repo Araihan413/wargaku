@@ -124,7 +124,7 @@ export function WargaFeeWidget() {
             </div>
             <p className="text-[11px] text-gray-secondary-text">
               {isCurrentMonthPaid
-                ? "Iuran bulan ini telah lunas 🟢"
+                ? "Iuran bulan ini telah lunas"
                 : `Total sisa tagihan tunggakan: ${formatRupiah(feeData.totalUnpaidBalance)}`}
             </p>
           </div>
