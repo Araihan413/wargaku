@@ -109,6 +109,8 @@ export const createRentalResidentBaseSchema = z.object({
         : 'Format tanggal check-in tidak valid',
   })),
   
+  isKtpSameVillage: z.boolean().default(false).optional(),
+  ktpAddress: z.preprocess((val) => (val === '' ? null : val), z.string().max(255).optional().nullable()),
   ktpFile: z.preprocess((val) => (val === '' ? null : val), z.string().max(255).optional().nullable()),
   notes: z.preprocess((val) => (val === '' ? null : val), z.string().optional().nullable()),
   autoDeductVacantRoom: z.boolean().default(true).optional(),
@@ -138,6 +140,8 @@ export const updateRentalResidentSchema = z.object({
   name: z.string().min(1, 'Nama lengkap wajib diisi').max(100).optional().nullable(),
   nik: z.string().length(16, 'NIK harus 16 digit angka').optional().nullable(),
   phone: z.string().optional().nullable(),
+  isKtpSameVillage: z.boolean().optional(),
+  ktpAddress: z.preprocess((val) => (val === '' ? null : val), z.string().max(255).optional().nullable()),
   ktpFile: z.string().optional().nullable(),
   checkInDate: z.preprocess((arg) => {
     if (arg === '' || arg === null || arg === undefined) return null;

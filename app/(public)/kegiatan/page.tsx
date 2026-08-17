@@ -136,8 +136,8 @@ export default function ActivitiesPublicPage() {
             });
           }
         } else {
-          const err = await res.json();
-          if (!isCancelled) setErrorMessage(err.error || "Gagal mengambil agenda kegiatan.");
+          const err = await res.json().catch(() => ({}));
+          if (!isCancelled) setErrorMessage(err?.error || "Gagal mengambil agenda kegiatan.");
         }
       } catch (err) {
         if (!isCancelled) {

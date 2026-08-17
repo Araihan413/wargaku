@@ -193,16 +193,23 @@ async function main() {
       id: 1,
       rtName: '001',
       rwName: '005',
-      villageName: 'Sukamaju',
-      subdistrict: 'Cilodong',
-      city: 'Kota Depok',
-      secretariatAddress: 'Jl. Merdeka No. 123, Depok',
+      villageName: 'Argorejo',
+      subdistrict: 'Sedayu',
+      city: 'Kabupaten Bantul',
+      secretariatAddress: 'Dusun Polaman, Kepuhan',
       officialEmail: 'rt001rw005@wargaku.local',
       emergencyContacts: [
-        { id: '1', name: 'Ketua RT', phone: '081234567890', subtitle: 'Pak Ahmad' },
-        { id: '2', name: 'Polsek Perumahan', phone: '110', subtitle: 'Layanan 24 Jam' }
+        { id: '1', name: 'Ketua RT', phone: '081234567890', subtitle: 'Pak RT' },
+        { id: '2', name: 'Polsek Sedayu', phone: '110', subtitle: 'Layanan 24 Jam' }
       ]
     });
+  } else {
+    await db.update(schema.systemSettings).set({
+      villageName: 'Argorejo',
+      subdistrict: 'Sedayu',
+      city: 'Kabupaten Bantul',
+      secretariatAddress: 'Dusun Polaman, Kepuhan',
+    }).where(eq(schema.systemSettings.id, 1));
   }
 
   console.log('🎉 Proses seeding selesai dengan sukses!');

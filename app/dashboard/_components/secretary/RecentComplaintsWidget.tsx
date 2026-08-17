@@ -56,9 +56,9 @@ export const RecentComplaintsWidget: React.FC<RecentComplaintsWidgetProps> = ({
 
   return (
     <div className="rounded-2xl border border-gray-border bg-gray-card p-5 shadow-sm space-y-4">
-      <div className="flex items-center justify-between border-b border-gray-border pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-border pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="rounded-xl bg-rose-500/10 p-2 text-rose-600">
+          <div className="rounded-xl bg-rose-500/10 p-2 text-rose-600 shrink-0">
             <MessageSquare className="h-5 w-5" />
           </div>
           <div>
@@ -73,10 +73,10 @@ export const RecentComplaintsWidget: React.FC<RecentComplaintsWidgetProps> = ({
 
         <Link
           href="/dashboard/complaints"
-          className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline cursor-pointer"
+          className="inline-flex items-center self-end sm:self-auto gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0"
         >
           <span>Kelola</span>
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 

@@ -152,7 +152,10 @@ export async function generateTagihanForRule(ruleId: number) {
 // ==========================================
 
 export async function listPayments(ruleId: number, period?: string | null, searchQuery?: string) {
-  const conditions: any[] = [eq(schema.feePayments.feeRuleId, ruleId)];
+  const conditions: any[] = [
+    eq(schema.feePayments.feeRuleId, ruleId),
+    eq(schema.families.isActive, true),
+  ];
   if (period) conditions.push(eq(schema.feePayments.period, period));
 
   const payments = await db
@@ -305,7 +308,12 @@ export async function recordPayment(
 }
 
 export async function listUnpaidByFamily(ruleId?: number | null) {
-  const conditions: any[] = [ne(schema.feePayments.status, 'paid'), eq(schema.feePayments.isMandatory, true)];
+  const conditions: any[] = [
+    ne(schema.feePayments.status, 'paid'),
+    eq(schema.feePayments.isMandatory, true),
+    eq(schema.families.isActive, true),
+    eq(schema.families.verificationStatus, 'verified'),
+  ];
   if (ruleId) conditions.push(eq(schema.feePayments.feeRuleId, ruleId));
 
   const unpaidPayments = await db

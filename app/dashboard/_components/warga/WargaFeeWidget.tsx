@@ -146,12 +146,19 @@ export function WargaFeeWidget() {
                 </span>
               )}
             </div>
-            <div className="text-xl font-black text-gray-heading-main">
-              {feeData.lastPaymentAmount > 0 ? formatRupiah(feeData.lastPaymentAmount) : "-"}
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-xl font-black text-gray-heading-main">
+                {feeData.lastPaymentAmount > 0 ? formatRupiah(feeData.lastPaymentAmount) : "-"}
+              </span>
+              {feeData.lastPaymentRuleName && (
+                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 truncate max-w-37.5 capitalize">
+                  {feeData.lastPaymentRuleName}
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-gray-secondary-text">
               {feeData.lastPaymentDate
-                ? `Setoran pada ${formatDate(feeData.lastPaymentDate)} oleh Bendahara RT`
+                ? `Setoran ${feeData.lastPaymentRuleName ? `(${feeData.lastPaymentRuleName}) ` : ''}pada ${formatDate(feeData.lastPaymentDate)} oleh Bendahara RT`
                 : "Belum ada riwayat setoran tercatat"}
             </p>
           </div>

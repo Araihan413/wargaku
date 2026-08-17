@@ -176,6 +176,8 @@ export const createWargaSchema = z.object({
     .or(z.literal(''))
     .or(z.literal(null)),
     
+  isKtpSameVillage: z.boolean().default(true),
+  ktpAddress: z.string().max(255, 'Alamat KTP maksimal 255 karakter').optional().nullable().or(z.literal('')),
   ktpFile: z.string().max(255).optional().nullable(),
 });
 

@@ -14,6 +14,8 @@ export interface WargaFamilyMember {
   religion?: "Islam" | "Kristen" | "Katolik" | "Hindu" | "Buddha" | "Khonghucu" | "Lainnya" | null;
   phone?: string | null;
   ktpFile?: string | null;
+  isKtpSameVillage?: boolean;
+  ktpAddress?: string | null;
   inactiveNote?: string | null;
   isActive: boolean;
   _action?: "keep" | "create" | "update" | "delete";

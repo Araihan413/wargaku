@@ -146,7 +146,21 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                 </div>
               </div>
 
-
+              <div className="flex gap-3 items-start">
+                <MapPin className="h-5 w-5 text-gray-placeholder shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-gray-placeholder block font-bold uppercase tracking-wider">Status Domisili KTP</span>
+                  <span className="text-xs font-semibold text-gray-heading-main">
+                    {resident.isKtpSameVillage === false ? (
+                      <span className="text-orange-700 font-bold">
+                        KTP Luar Kelurahan {resident.ktpAddress ? `(${resident.ktpAddress})` : ""}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-700 font-bold">KTP Kelurahan Setempat</span>
+                    )}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

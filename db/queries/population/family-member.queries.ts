@@ -18,6 +18,8 @@ export interface CreateFamilyMemberInput {
   educationLevel?: string | null;
   religion?: 'Islam' | 'Kristen' | 'Katolik' | 'Hindu' | 'Buddha' | 'Khonghucu' | 'Lainnya' | null;
   phone?: string | null;
+  isKtpSameVillage?: boolean;
+  ktpAddress?: string | null;
   ktpFile?: string | null;
   userId?: string | null;
 }
@@ -33,6 +35,8 @@ export interface UpdateFamilyMemberInput {
   educationLevel?: string | null;
   religion?: 'Islam' | 'Kristen' | 'Katolik' | 'Hindu' | 'Buddha' | 'Khonghucu' | 'Lainnya' | null;
   phone?: string | null;
+  isKtpSameVillage?: boolean;
+  ktpAddress?: string | null;
   ktpFile?: string | null;
   isActive?: boolean;
 }
@@ -247,6 +251,8 @@ export async function createFamilyMember(data: CreateFamilyMemberInput) {
     occupation: data.occupation ?? null,
     educationLevel: data.educationLevel ?? null,
     religion: data.religion ?? null,
+    isKtpSameVillage: data.isKtpSameVillage ?? true,
+    ktpAddress: data.ktpAddress ?? null,
     ktpFile: data.ktpFile ?? null,
     isActive: true,
   });

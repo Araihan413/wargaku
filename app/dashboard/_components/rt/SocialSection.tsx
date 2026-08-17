@@ -1,4 +1,5 @@
 import React, { useSyncExternalStore, useMemo } from "react";
+import { Briefcase, GraduationCap, Users } from "lucide-react";
 import {
   ResponsiveContainer,
   PieChart,
@@ -61,7 +62,10 @@ export function SocialSection({
           <h3 className="text-lg font-bold text-gray-heading-main">Pekerjaan Terbanyak Warga (Top 8)</h3>
         </div>
         {sortedOccupations.length === 0 ? (
-          <p className="text-sm text-gray-secondary-text text-center py-10">Tidak ada data pekerjaan</p>
+          <div className="h-68 flex flex-col items-center justify-center text-gray-secondary-text gap-2 bg-gray-sidebar-hover/30 rounded-xl border border-dashed border-gray-border p-6">
+            <Briefcase className="w-8 h-8 text-gray-placeholder stroke-1" />
+            <p className="text-xs font-medium">Belum ada data pekerjaan terdaftar</p>
+          </div>
         ) : isMounted ? (
           <div className="h-68 w-full pt-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -109,7 +113,10 @@ export function SocialSection({
           <h3 className="text-lg font-bold text-gray-heading-main">Tingkat Pendidikan Warga</h3>
         </div>
         {educationDistribution.length === 0 ? (
-          <p className="text-sm text-gray-secondary-text text-center py-10">Tidak ada data pendidikan</p>
+          <div className="h-68 flex flex-col items-center justify-center text-gray-secondary-text gap-2 bg-gray-sidebar-hover/30 rounded-xl border border-dashed border-gray-border p-6">
+            <GraduationCap className="w-8 h-8 text-gray-placeholder stroke-1" />
+            <p className="text-xs font-medium">Belum ada data pendidikan terdaftar</p>
+          </div>
         ) : isMounted ? (
           <div className="h-68 w-full pt-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -154,7 +161,12 @@ export function SocialSection({
       {/* 3. Sebaran Agama (2-Column Span) */}
       <div className="rounded-2xl border border-gray-border bg-gray-card p-6 shadow-sm lg:col-span-2">
         <h3 className="text-lg font-bold text-gray-heading-main mb-4 border-b border-gray-divider pb-2">Sebaran Agama Warga</h3>
-        {isMounted ? (
+        {religionDistribution.length === 0 ? (
+          <div className="h-52 flex flex-col items-center justify-center text-gray-secondary-text gap-2 bg-gray-sidebar-hover/30 rounded-xl border border-dashed border-gray-border p-6">
+            <Users className="w-8 h-8 text-gray-placeholder stroke-1" />
+            <p className="text-xs font-medium">Belum ada data agama terdaftar</p>
+          </div>
+        ) : isMounted ? (
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-2">
             <div className="h-52 w-52 shrink-0">
               <ResponsiveContainer width="100%" height="100%">

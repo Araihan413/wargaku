@@ -35,6 +35,8 @@ export interface FamilyMemberItem {
   religion?: "Islam" | "Kristen" | "Katolik" | "Hindu" | "Buddha" | "Khonghucu" | "Lainnya" | null;
   phone?: string | null;
   ktpFile?: string | null;
+  isKtpSameVillage?: boolean;
+  ktpAddress?: string | null;
   isActive: boolean;
   inactiveNote?: string | null;
   createdAt?: string;

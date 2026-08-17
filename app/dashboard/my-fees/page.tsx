@@ -52,6 +52,7 @@ interface WargaFeeData {
   lastPaymentDate: string | null;
   lastPaymentAmount: number;
   lastPaymentStatus: string | null;
+  lastPaymentRuleName: string | null;
   activeRules: ActiveRule[];
   history: FeeHistoryItem[];
 }
@@ -338,12 +339,19 @@ function WargaMyFeesContent() {
                   <Calendar className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-lg font-bold text-gray-heading-main pt-2">
-                {formatDate(data.lastPaymentDate)}
+              <div className="flex items-baseline gap-2 pt-2 flex-wrap">
+                <span className="text-lg font-bold text-gray-heading-main">
+                  {formatDate(data.lastPaymentDate)}
+                </span>
+                {data.lastPaymentRuleName && (
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 capitalize">
+                    {data.lastPaymentRuleName}
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-gray-secondary-text">
                 {data.lastPaymentAmount > 0
-                  ? `Nominal Setoran: ${formatRupiah(data.lastPaymentAmount)}`
+                  ? `Nominal: ${formatRupiah(data.lastPaymentAmount)}`
                   : "Belum Ada Setoran Dicatat"}
               </p>
             </div>

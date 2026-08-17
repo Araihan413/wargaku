@@ -58,6 +58,7 @@ export function KetuaRTDashboard() {
 
   const {
     summary,
+    ktpDistribution,
     genderDistribution,
     ageDistribution,
     occupationDistribution,
@@ -90,8 +91,9 @@ export function KetuaRTDashboard() {
       {/* Row 1: Mutasi Penduduk — bagian Statistik Utama Kependudukan (PRD A) */}
       <MutationSection populationMutations={populationMutations} />
 
-      {/* Row 2: Demografi Utama (Gender & Usia) */}
+      {/* Row 2: Demografi Utama (Domisili KTP, Gender & Usia) */}
       <DemographySection
+        ktpDistribution={ktpDistribution}
         genderDistribution={genderDistribution}
         ageDistribution={ageDistribution}
         totalWargaAktif={summary.totalWargaAktif}

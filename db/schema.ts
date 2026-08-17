@@ -142,6 +142,8 @@ export const familyMembers = mysqlTable('family_members', {
   occupation: varchar('occupation', { length: 50 }),
   educationLevel: varchar('education_level', { length: 50 }),
   religion: mysqlEnum('religion', ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya']),
+  isKtpSameVillage: boolean('is_ktp_same_village').notNull().default(true),
+  ktpAddress: text('ktp_address'),
   ktpFile: varchar('ktp_file', { length: 255 }),
   inactiveNote: varchar('inactive_note', { length: 255 }),
   isActive: boolean('is_active').notNull().default(true),
@@ -151,6 +153,7 @@ export const familyMembers = mysqlTable('family_members', {
   familyIdx: index('family_members_family_idx').on(table.familyId),
   userIdIdx: index('family_members_user_idx').on(table.userId),
   relationshipIdx: index('family_members_relationship_idx').on(table.relationship),
+  isKtpSameVillageIdx: index('family_members_ktp_village_idx').on(table.isKtpSameVillage),
 }));
 
 // 2.3.1 Family Change Requests (Staging Draft Usulan Perubahan Data KK)
@@ -205,6 +208,8 @@ export const rentalContracts = mysqlTable('rental_contracts', {
   individualNik: varchar('individual_nik', { length: 16 }),
   individualPhone: varchar('individual_phone', { length: 15 }),
   individualKtpFile: varchar('individual_ktp_file', { length: 255 }),
+  isKtpSameVillage: boolean('is_ktp_same_village').notNull().default(false),
+  ktpAddress: text('ktp_address'),
   checkInDate: date('check_in_date').notNull(),
   checkOutDate: date('check_out_date'),
   checkOutNote: text('check_out_note'),
@@ -222,6 +227,7 @@ export const rentalContracts = mysqlTable('rental_contracts', {
   isActiveIdx: index('rental_contracts_is_active_idx').on(table.isActive),
   checkInDateIdx: index('rental_contracts_check_in_idx').on(table.checkInDate),
   individualNikIdx: index('rental_contracts_individual_nik_idx').on(table.individualNik),
+  isKtpSameVillageIdx: index('rental_contracts_ktp_village_idx').on(table.isKtpSameVillage),
 }));
 
 // ==========================================

@@ -167,6 +167,8 @@ export async function PUT(
         individualName: validatedData.name,
         individualNik: validatedData.nik,
         individualKtpFile: validatedData.ktpFile,
+        isKtpSameVillage: validatedData.isKtpSameVillage,
+        ktpAddress: validatedData.ktpAddress,
         checkInDate: validatedData.checkInDate,
       })
     });

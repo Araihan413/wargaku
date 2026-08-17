@@ -101,9 +101,25 @@ export const AnggotaTable: React.FC<AnggotaTableProps> = ({
                   >
                     <td className="py-4 px-5">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-gray-heading-main">
-                          {m.name}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-gray-heading-main">
+                            {m.name}
+                          </span>
+                          {m.isActive && (
+                            m.isKtpSameVillage === false ? (
+                              <span
+                                className="inline-flex items-center text-[9px] font-bold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200"
+                                title={m.ktpAddress || "KTP Luar Kelurahan"}
+                              >
+                                KTP Luar
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                KTP Setempat
+                              </span>
+                            )
+                          )}
+                        </div>
                         {m.phone && (
                           <span className="text-xs text-gray-secondary-text">
                             {m.phone}

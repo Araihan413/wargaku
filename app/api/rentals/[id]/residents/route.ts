@@ -266,6 +266,8 @@ export async function POST(
       individualNik: validatedData.nik,
       individualPhone: validatedData.phone,
       individualKtpFile: validatedData.ktpFile,
+      isKtpSameVillage: validatedData.isKtpSameVillage ?? false,
+      ktpAddress: validatedData.ktpAddress ?? null,
       checkInDate,
       autoDeductVacantRoom: validatedData.autoDeductVacantRoom,
     });

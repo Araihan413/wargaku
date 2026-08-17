@@ -14,6 +14,8 @@ export interface RentalResidentItem {
   isActive: boolean;
   verificationNote?: string | null;
   ktpFile?: string | null;
+  isKtpSameVillage?: boolean;
+  ktpAddress?: string | null;
   gender?: "L" | "P" | null;
   birthPlace?: string | null;
   birthDate?: string | null;
@@ -92,7 +94,21 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                   >
                     <td className="py-4 px-5">
                       <div>
-                        <div className="font-semibold text-gray-heading-main">{r.name}</div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-gray-heading-main">{r.name}</span>
+                          {r.isKtpSameVillage === false ? (
+                            <span
+                              className="inline-flex items-center text-[9px] font-bold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200"
+                              title={r.ktpAddress || "KTP Luar Kelurahan"}
+                            >
+                              KTP Luar
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                              KTP Setempat
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-gray-placeholder font-mono mt-0.5">{r.nik}</div>
                         {r.phone && <div className="text-[10px] text-gray-secondary-text mt-0.5">{r.phone}</div>}
                       </div>

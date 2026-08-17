@@ -29,6 +29,26 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
 }) => {
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
   const [isUploadingKtp, setIsUploadingKtp] = useState(false);
+  const [isKtpSameVillage, setIsKtpSameVillage] = useState<boolean>(true);
+  const [ktpAddress, setKtpAddress] = useState("");
+  const [villageName, setVillageName] = useState<string>("");
+
+  React.useEffect(() => {
+    async function loadVillageInfo() {
+      try {
+        const res = await fetch("/api/public/portal");
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.settings?.villageName) {
+            setVillageName(data.settings.villageName);
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    loadVillageInfo();
+  }, []);
 
   const {
     register,
@@ -95,6 +115,8 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
         educationLevel: data.educationLevel ? data.educationLevel.trim() : "",
         religion: data.religion || "Islam",
         phone: data.phone ? data.phone.trim() : null,
+        isKtpSameVillage,
+        ktpAddress: !isKtpSameVillage ? ktpAddress.trim() : null,
         ktpFile: finalKtpUrl,
       };
 
@@ -324,6 +346,62 @@ export const AddAnggotaModal: React.FC<AddAnggotaModalProps> = ({
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Status Domisili KTP (Ramah Orang Tua) */}
+            <div className="rounded-2xl border border-gray-border bg-gray-sidebar-hover/40 p-4 space-y-3">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider">
+                Status Alamat KTP <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <p className="text-xs text-gray-secondary-text">
+                Apakah alamat pada KTP warga ini berada di {villageName ? `Kelurahan ${villageName}` : "Kelurahan setempat"}?
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isKtpSameVillage ? "border-primary bg-primary/5 text-primary-900 font-semibold" : "border-gray-border bg-gray-card text-gray-heading-main hover:bg-gray-sidebar-hover"}`}>
+                  <input
+                    type="radio"
+                    name="addAnggotaIsKtpSameVillage"
+                    checked={isKtpSameVillage === true}
+                    onChange={() => {
+                      setIsKtpSameVillage(true);
+                      setKtpAddress("");
+                    }}
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs">
+                    YA, KTP {villageName ? `Kel. ${villageName}` : "Kelurahan Setempat"}
+                  </span>
+                </label>
+
+                <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${!isKtpSameVillage ? "border-primary bg-primary/5 text-primary-900 font-semibold" : "border-gray-border bg-gray-card text-gray-heading-main hover:bg-gray-sidebar-hover"}`}>
+                  <input
+                    type="radio"
+                    name="addAnggotaIsKtpSameVillage"
+                    checked={isKtpSameVillage === false}
+                    onChange={() => setIsKtpSameVillage(false)}
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs">
+                    TIDAK, KTP Luar Kelurahan
+                  </span>
+                </label>
+              </div>
+
+              {!isKtpSameVillage && (
+                <div className="pt-2 animate-in fade-in duration-200">
+                  <label className="block text-xs font-semibold text-gray-heading-main mb-1.5">
+                    Alamat / Kota Asal Sesuai KTP <span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={ktpAddress}
+                    onChange={(e) => setKtpAddress(e.target.value)}
+                    placeholder="Contoh: Jl. Dago No. 10, Kel. Dago, Kota Bandung"
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    required={!isKtpSameVillage}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Scan KTP File Upload */}

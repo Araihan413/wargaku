@@ -32,6 +32,26 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
   });
 
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
+  const [isKtpSameVillage, setIsKtpSameVillage] = useState<boolean>(false);
+  const [ktpAddress, setKtpAddress] = useState<string>("");
+  const [villageName, setVillageName] = useState<string>("");
+
+  useEffect(() => {
+    async function loadVillageInfo() {
+      try {
+        const res = await fetch("/api/public/portal");
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.settings?.villageName) {
+            setVillageName(data.settings.villageName);
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    loadVillageInfo();
+  }, []);
 
   // Populate data when resident changes or modal opens
   useEffect(() => {
@@ -44,6 +64,8 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
       });
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setKtpFile(resident.ktpFile || null);
+      setIsKtpSameVillage((resident as any).isKtpSameVillage ?? (resident as any).is_ktp_same_village ?? false);
+      setKtpAddress((resident as any).ktpAddress ?? (resident as any).ktp_address ?? "");
     }
   }, [isOpen, resident, reset]);
 
@@ -73,6 +95,8 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
           body: JSON.stringify({
             ...data,
             checkInDate: checkInDateStr,
+            isKtpSameVillage,
+            ktpAddress: !isKtpSameVillage ? ktpAddress.trim() : null,
             ktpFile: finalKtpUrl || (typeof ktpFile === "string" ? ktpFile : null),
           }),
         }),
@@ -179,6 +203,62 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({
                 registerProps={register("checkInDate", { valueAsDate: true })}
                 error={errors.checkInDate?.message as string}
               />
+            </div>
+
+            {/* Status Domisili KTP */}
+            <div className="rounded-2xl border border-gray-border bg-gray-sidebar-hover/40 p-4 space-y-3">
+              <label className="block text-sm font-semibold text-black/80 tracking-wider">
+                Status Alamat KTP <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <p className="text-xs text-gray-secondary-text">
+                Apakah alamat pada KTP penyewa ini berada di {villageName ? `Kelurahan ${villageName}` : "Kelurahan setempat"}?
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${!isKtpSameVillage ? "border-primary bg-primary/5 text-primary-900 font-semibold" : "border-gray-border bg-gray-card text-gray-heading-main hover:bg-gray-sidebar-hover"}`}>
+                  <input
+                    type="radio"
+                    name="editTenantIsKtpSameVillage"
+                    checked={isKtpSameVillage === false}
+                    onChange={() => setIsKtpSameVillage(false)}
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs">
+                    KTP Luar Kelurahan
+                  </span>
+                </label>
+
+                <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isKtpSameVillage ? "border-primary bg-primary/5 text-primary-900 font-semibold" : "border-gray-border bg-gray-card text-gray-heading-main hover:bg-gray-sidebar-hover"}`}>
+                  <input
+                    type="radio"
+                    name="editTenantIsKtpSameVillage"
+                    checked={isKtpSameVillage === true}
+                    onChange={() => {
+                      setIsKtpSameVillage(true);
+                      setKtpAddress("");
+                    }}
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs">
+                    KTP {villageName ? `Kel. ${villageName}` : "Kelurahan Setempat"}
+                  </span>
+                </label>
+              </div>
+
+              {!isKtpSameVillage && (
+                <div className="pt-2 animate-in fade-in duration-200">
+                  <label className="block text-xs font-semibold text-gray-heading-main mb-1.5">
+                    Alamat / Kota Asal Sesuai KTP <span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={ktpAddress}
+                    onChange={(e) => setKtpAddress(e.target.value)}
+                    placeholder="Contoh: Kota Cirebon / Kec. Kesambi"
+                    className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    required={!isKtpSameVillage}
+                  />
+                </div>
+              )}
             </div>
 
             {/* KTP Upload Component */}

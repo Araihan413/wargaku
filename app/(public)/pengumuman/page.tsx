@@ -123,8 +123,8 @@ export default function AnnouncementsPublicPage() {
             });
           }
         } else {
-          const err = await res.json();
-          if (!isCancelled) setErrorMessage(err.error || "Gagal mengambil daftar pengumuman.");
+          const err = await res.json().catch(() => ({}));
+          if (!isCancelled) setErrorMessage(err?.error || "Gagal mengambil daftar pengumuman.");
         }
       } catch (err) {
         if (!isCancelled) {

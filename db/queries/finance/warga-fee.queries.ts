@@ -18,6 +18,7 @@ export interface WargaFeeSummary {
   lastPaymentDate: string | null;
   lastPaymentAmount: number;
   lastPaymentStatus: string | null;
+  lastPaymentRuleName: string | null;
   activeRules: Array<{
     id: number;
     name: string;
@@ -113,6 +114,7 @@ export async function getMyFamilyFees(userId: string): Promise<WargaFeeSummary> 
       lastPaymentDate: null,
       lastPaymentAmount: 0,
       lastPaymentStatus: null,
+      lastPaymentRuleName: null,
       activeRules,
       history: [],
     };
@@ -182,11 +184,21 @@ export async function getMyFamilyFees(userId: string): Promise<WargaFeeSummary> 
     .filter((p) => p.period.startsWith(currentYearPrefix))
     .reduce((sum, p) => sum + p.amountPaid, 0);
 
-  // Transaksi setoran terakhir yang pernah tercatat di sistem
-  const lastPayment = history.find((p) => p.paymentDate || p.createdAt);
-  const lastPaymentDate = lastPayment?.paymentDate || (lastPayment?.createdAt ? lastPayment.createdAt.split('T')[0] : null);
+  // Transaksi setoran terakhir yang benar-benar pernah disetorkan/dibayar (amountPaid > 0 dan paymentDate valid)
+  const paidHistory = history
+    .filter((p) => p.amountPaid > 0 && p.paymentDate)
+    .sort((a, b) => {
+      const dateA = a.paymentDate || '';
+      const dateB = b.paymentDate || '';
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      return b.period.localeCompare(a.period);
+    });
+
+  const lastPayment = paidHistory[0] || null;
+  const lastPaymentDate = lastPayment?.paymentDate || null;
   const lastPaymentAmount = lastPayment?.amountPaid ?? 0;
   const lastPaymentStatus = lastPayment?.status ?? null;
+  const lastPaymentRuleName = lastPayment?.feeRuleName ?? null;
 
   return {
     hasFamily: true,
@@ -203,6 +215,7 @@ export async function getMyFamilyFees(userId: string): Promise<WargaFeeSummary> 
     lastPaymentDate,
     lastPaymentAmount,
     lastPaymentStatus,
+    lastPaymentRuleName,
     activeRules,
     history,
   };

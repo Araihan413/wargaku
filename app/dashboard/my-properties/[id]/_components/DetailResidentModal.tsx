@@ -96,7 +96,7 @@ export const DetailResidentModal: React.FC<DetailResidentModalProps> = ({
               <div className="flex gap-2.5 items-start">
                 <FileText className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[10px] text-gray-secondary-text block">NIK</span>
+                  <span className="text-[10px] text-gray-secondary-text block">NIK / No. Identitas</span>
                   <span className="text-sm font-semibold font-mono text-gray-heading-main">{resident.nik}</span>
                 </div>
               </div>
@@ -118,31 +118,48 @@ export const DetailResidentModal: React.FC<DetailResidentModalProps> = ({
               </div>
 
               <div className="flex gap-2.5 items-start">
-                <User className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
+                <MapPin className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[10px] text-gray-secondary-text block">Jenis Kelamin</span>
-                  <span className="text-sm font-semibold text-gray-heading-main">
-                    {resident.gender === "L" ? "Laki-Laki" : resident.gender === "P" ? "Perempuan" : "-"}
+                  <span className="text-[10px] text-gray-secondary-text block">Status Asal KTP</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold mt-0.5 ${
+                    resident.isKtpSameVillage
+                      ? "bg-blue-50 text-blue-700 border border-blue-100"
+                      : "bg-amber-50 text-amber-700 border border-amber-100"
+                  }`}>
+                    {resident.isKtpSameVillage ? "Warga Lokal (Satu Kelurahan)" : "Warga Pendatang (Luar Kelurahan)"}
                   </span>
                 </div>
               </div>
 
-              <div className="flex gap-2.5 items-start">
-                <MapPin className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] text-gray-secondary-text block">Tempat Lahir</span>
-                  <span className="text-sm font-semibold text-gray-heading-main">{resident.birthPlace || "-"}</span>
+              {resident.ktpAddress && (
+                <div className="flex gap-2.5 items-start sm:col-span-2">
+                  <MapPin className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] text-gray-secondary-text block">Alamat KTP</span>
+                    <span className="text-sm font-semibold text-gray-heading-main">{resident.ktpAddress}</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="flex gap-2.5 items-start">
-                <Calendar className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] text-gray-secondary-text block">Tanggal Lahir</span>
-                  <span className="text-sm font-semibold text-gray-heading-main">{formatDate(resident.birthDate)}</span>
+              {resident.checkOutDate && (
+                <div className="flex gap-2.5 items-start">
+                  <Calendar className="h-4.5 w-4.5 text-rose-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] text-gray-secondary-text block">Tanggal Keluar (Check-Out)</span>
+                    <span className="text-sm font-semibold text-rose-600">{formatDate(resident.checkOutDate)}</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
+              {resident.checkOutNote && (
+                <div className="flex gap-2.5 items-start sm:col-span-2">
+                  <FileText className="h-4.5 w-4.5 text-gray-placeholder shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] text-gray-secondary-text block">Catatan Check-Out</span>
+                    <span className="text-sm font-semibold text-gray-heading-main italic">&ldquo;{resident.checkOutNote}&rdquo;</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

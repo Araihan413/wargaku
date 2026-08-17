@@ -50,6 +50,19 @@ export interface PublicDemographicsData {
   totalRenters: number;
   genderStats: { male: number; female: number };
   genderRatio: { male: number; female: number; malePct: number; femalePct: number };
+  ktpDistribution?: {
+    villageName: string;
+    totalLocal: number;
+    totalNonLocal: number;
+    localPercentage: number;
+    nonLocalPercentage: number;
+    total: number;
+    nonLocalBreakdown?: {
+      individualKos: number;
+      familyRenters: number;
+      permanentResidents: number;
+    };
+  };
   ageDistribution: DemographicDistributionItem[];
   educationDistribution: DemographicDistributionItem[];
   occupationDistribution: DemographicDistributionItem[];
@@ -433,6 +446,9 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
     eduGroupRes,
     occGroupRes,
     complaintsGroupRes,
+    ktpMemStatsRes,
+    ktpTenStatsRes,
+    sysSettingsRes,
   ] = await Promise.all([
     db.select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(schema.families)
@@ -444,7 +460,7 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
 
     db.select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(schema.rentalContracts)
-      .where(eq(schema.rentalContracts.isActive, true)),
+      .where(and(eq(schema.rentalContracts.isActive, true), eq(schema.rentalContracts.tenantType, 'individual'))),
 
     db.select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(schema.dwellings)
@@ -458,35 +474,43 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
       .where(eq(schema.familyMembers.isActive, true)),
 
     db.select({
-      anak: sql<number>`COALESCE(SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) < 18 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
-      dewasa: sql<number>`COALESCE(SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) BETWEEN 18 AND 59 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
-      lansia: sql<number>`COALESCE(SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) >= 60 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      anak: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NOT NULL AND TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) < 12 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      remaja: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NOT NULL AND TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) BETWEEN 12 AND 17 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      dewasa: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NOT NULL AND TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) BETWEEN 18 AND 59 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      lansia: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NOT NULL AND TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) >= 60 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      belumTerdata: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
     })
       .from(schema.familyMembers)
       .where(eq(schema.familyMembers.isActive, true)),
 
+    // Status Hunian (Terisi Tetap vs Kos/Homestay vs Kosong)
     db.select({
-      permanen: sql<number>`COALESCE(SUM(CASE WHEN ${schema.dwellings.type} = 'permanen' THEN 1 ELSE 0 END), 0)`.mapWith(Number),
-      kos: sql<number>`COALESCE(SUM(CASE WHEN ${schema.dwellings.type} = 'kos' OR ${schema.dwellings.type} = 'homestay' THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      terisi: sql<number>`COALESCE(SUM(CASE WHEN ${schema.dwellings.type} = 'permanen' AND f.id IS NOT NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      kos: sql<number>`COALESCE(SUM(CASE WHEN ${schema.dwellings.type} IN ('kos', 'homestay') THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      kosong: sql<number>`COALESCE(SUM(CASE WHEN ${schema.dwellings.type} = 'permanen' AND f.id IS NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
     })
       .from(schema.dwellings)
+      .leftJoin(
+        sql`(SELECT DISTINCT dwelling_id as id FROM families WHERE is_active = 1 AND dwelling_id IS NOT NULL) f`,
+        sql`${schema.dwellings.id} = f.id`
+      )
       .where(eq(schema.dwellings.isActive, true)),
 
     db.select({
-      educationLevel: schema.familyMembers.educationLevel,
+      educationLevel: sql<string>`COALESCE(NULLIF(${schema.familyMembers.educationLevel}, ''), 'Belum Terdata')`.mapWith(String),
       count: sql<number>`count(*)`.mapWith(Number),
     })
       .from(schema.familyMembers)
       .where(eq(schema.familyMembers.isActive, true))
-      .groupBy(schema.familyMembers.educationLevel),
+      .groupBy(sql`COALESCE(NULLIF(${schema.familyMembers.educationLevel}, ''), 'Belum Terdata')`),
 
     db.select({
-      occupation: schema.familyMembers.occupation,
+      occupation: sql<string>`COALESCE(NULLIF(${schema.familyMembers.occupation}, ''), 'Belum Terdata')`.mapWith(String),
       count: sql<number>`count(*)`.mapWith(Number),
     })
       .from(schema.familyMembers)
       .where(eq(schema.familyMembers.isActive, true))
-      .groupBy(schema.familyMembers.occupation),
+      .groupBy(sql`COALESCE(NULLIF(${schema.familyMembers.occupation}, ''), 'Belum Terdata')`),
 
     db.select({
       category: schema.complaints.category,
@@ -494,7 +518,51 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
     })
       .from(schema.complaints)
       .groupBy(schema.complaints.category),
+
+    // KTP Distribution - Family Members (dengan breakdown Warga Tetap vs Keluarga Pengontrak)
+    db.select({
+      local: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.isKtpSameVillage} = TRUE THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      nonLocalPermanent: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.isKtpSameVillage} = FALSE AND rc.id IS NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      nonLocalFamilyRental: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.isKtpSameVillage} = FALSE AND rc.id IS NOT NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+    })
+      .from(schema.familyMembers)
+      .leftJoin(
+        sql`(SELECT DISTINCT family_id as id FROM rental_contracts WHERE is_active = 1 AND tenant_type = 'family' AND family_id IS NOT NULL) rc`,
+        sql`${schema.familyMembers.familyId} = rc.id`
+      )
+      .where(eq(schema.familyMembers.isActive, true)),
+
+    // KTP Distribution - Anak Kos Individu (Rental Contracts)
+    db.select({
+      local: sql<number>`COALESCE(SUM(CASE WHEN ${schema.rentalContracts.isKtpSameVillage} = TRUE THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      nonLocalIndividualKos: sql<number>`COALESCE(SUM(CASE WHEN ${schema.rentalContracts.isKtpSameVillage} = FALSE THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+    })
+      .from(schema.rentalContracts)
+      .where(and(
+        eq(schema.rentalContracts.isActive, true),
+        eq(schema.rentalContracts.tenantType, 'individual')
+      )),
+
+    // System Settings (Nama Kelurahan)
+    db.select({ villageName: schema.systemSettings.villageName }).from(schema.systemSettings).limit(1),
   ]);
+
+  const [ktpMemRes] = ktpMemStatsRes || [null];
+  const [ktpTenRes] = ktpTenStatsRes || [null];
+  const [sysSet] = sysSettingsRes || [null];
+
+  const localMembers = ktpMemRes?.local ?? 0;
+  const localTenants = ktpTenRes?.local ?? 0;
+  const nonLocalIndividualKos = ktpTenRes?.nonLocalIndividualKos ?? 0;
+  const nonLocalFamilyRental = ktpMemRes?.nonLocalFamilyRental ?? 0;
+  const nonLocalPermanent = ktpMemRes?.nonLocalPermanent ?? 0;
+
+  const totalLocalKtp = localMembers + localTenants;
+  const totalNonLocalKtp = nonLocalIndividualKos + nonLocalFamilyRental + nonLocalPermanent;
+  const totalKtpAnalyzed = totalLocalKtp + totalNonLocalKtp;
+
+  const localPercentage = totalKtpAnalyzed > 0 ? Math.round((totalLocalKtp / totalKtpAnalyzed) * 100) : 0;
+  const nonLocalPercentage = totalKtpAnalyzed > 0 ? (100 - localPercentage) : 0;
 
   const totalM = genderStatsRes?.male ?? 0;
   const totalF = genderStatsRes?.female ?? 0;
@@ -506,15 +574,27 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
   const totalDwells = totalDwell?.count ?? 0;
 
   const anakCount = ageStatsRes?.anak ?? 0;
+  const remajaCount = ageStatsRes?.remaja ?? 0;
   const dewasaCount = ageStatsRes?.dewasa ?? 0;
   const lansiaCount = ageStatsRes?.lansia ?? 0;
-  const totalAgeCount = anakCount + dewasaCount + lansiaCount || 1;
+  const belumTerdataAgeCount = ageStatsRes?.belumTerdata ?? 0;
+  const totalAgeCount = anakCount + remajaCount + dewasaCount + lansiaCount + belumTerdataAgeCount || 1;
 
-  const ageDistribution: DemographicDistributionItem[] = [
-    { category: 'Anak (0-17)', label: 'Anak (0-17)', count: anakCount, percentage: Math.round((anakCount / totalAgeCount) * 100), color: '#2563eb' },
-    { category: 'Dewasa (18-59)', label: 'Dewasa (18-59)', count: dewasaCount, percentage: Math.round((dewasaCount / totalAgeCount) * 100), color: '#10b981' },
-    { category: 'Lansia (60+)', label: 'Lansia (60+)', count: lansiaCount, percentage: Math.round((lansiaCount / totalAgeCount) * 100), color: '#f97316' },
-  ];
+  const ageDistribution: DemographicDistributionItem[] = totalMems === 0
+    ? []
+    : [
+        { category: 'Anak (0-11)', label: 'Anak (0-11 thn)', count: anakCount, percentage: Math.round((anakCount / totalAgeCount) * 100), color: '#2563eb' },
+        { category: 'Remaja (12-17)', label: 'Remaja (12-17 thn)', count: remajaCount, percentage: Math.round((remajaCount / totalAgeCount) * 100), color: '#8b5cf6' },
+        { category: 'Dewasa (18-59)', label: 'Dewasa (18-59 thn)', count: dewasaCount, percentage: Math.round((dewasaCount / totalAgeCount) * 100), color: '#10b981' },
+        { category: 'Lansia (60+)', label: 'Lansia (60+ thn)', count: lansiaCount, percentage: Math.round((lansiaCount / totalAgeCount) * 100), color: '#f97316' },
+        ...(belumTerdataAgeCount > 0 ? [{
+          category: 'Belum Terdata',
+          label: 'Belum Terdata',
+          count: belumTerdataAgeCount,
+          percentage: Math.round((belumTerdataAgeCount / totalAgeCount) * 100),
+          color: '#94a3b8',
+        }] : []),
+      ];
 
   const safeTotalMems = totalMems || 1;
   const educationColorMap: Record<string, string> = {
@@ -529,11 +609,12 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
     'S1': '#06b6d4',
     'S2': '#14b8a6',
     'S3': '#10b981',
+    'Belum Terdata': '#94a3b8',
   };
 
   const educationDistribution: DemographicDistributionItem[] = eduGroupRes.length > 0
     ? eduGroupRes.map((item) => {
-        const label = item.educationLevel || 'Lainnya';
+        const label = item.educationLevel || 'Belum Terdata';
         return {
           category: label,
           label,
@@ -542,22 +623,22 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
           color: educationColorMap[label] || '#64748b',
         };
       })
-    : [
-        { category: 'SD / SMP', label: 'SD / SMP', count: 0, percentage: 0, color: '#8b5cf6' },
-        { category: 'SMA / SMK', label: 'SMA / SMK', count: 0, percentage: 0, color: '#ec4899' },
-        { category: 'Diploma / Sarjana', label: 'Diploma / Sarjana', count: 0, percentage: 0, color: '#06b6d4' },
-      ];
+    : [];
 
   const occupationColorMap: Record<string, string> = {
     'Karyawan Swasta': '#2563eb',
     'Wiraswasta': '#10b981',
     'PNS / BUMN': '#f97316',
+    'Pelajar / Mahasiswa': '#06b6d4',
+    'Ibu Rumah Tangga': '#ec4899',
+    'Belum / Tidak Bekerja': '#a855f7',
     'Lainnya': '#8b5cf6',
+    'Belum Terdata': '#94a3b8',
   };
 
   const occupationDistribution: DemographicDistributionItem[] = occGroupRes.length > 0
     ? occGroupRes.map((item) => {
-        const label = item.occupation || 'Lainnya';
+        const label = item.occupation || 'Belum Terdata';
         return {
           category: label,
           label,
@@ -566,14 +647,13 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
           color: occupationColorMap[label] || '#64748b',
         };
       })
-    : [
-        { category: 'Karyawan Swasta', label: 'Karyawan Swasta', count: 0, percentage: 0, color: '#2563eb' },
-        { category: 'Wiraswasta', label: 'Wiraswasta', count: 0, percentage: 0, color: '#10b981' },
-        { category: 'PNS / BUMN', label: 'PNS / BUMN', count: 0, percentage: 0, color: '#f97316' },
-        { category: 'Lainnya', label: 'Lainnya', count: 0, percentage: 0, color: '#8b5cf6' },
-      ];
+    : [];
 
-  const totalComplaints = complaintsGroupRes.reduce((sum, item) => sum + item.count, 0) || 1;
+  const rawTotalComplaints = complaintsGroupRes.reduce((sum, item) => sum + item.count, 0);
+  const totalComplaints = rawTotalComplaints || 1;
+  const complaintCountsMap = new Map<string, number>(complaintsGroupRes.map((c) => [c.category, c.count]));
+
+  const ALL_COMPLAINT_CATEGORIES = ['Infrastruktur', 'Kebersihan', 'Keamanan', 'Sosial', 'Lainnya'] as const;
   const complaintColorMap: Record<string, string> = {
     'Infrastruktur': '#f43f5e',
     'Kebersihan': '#10b981',
@@ -582,23 +662,22 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
     'Lainnya': '#64748b',
   };
 
-  const complaintsByCategory: DemographicDistributionItem[] = complaintsGroupRes.length > 0
-    ? complaintsGroupRes.map((item) => ({
-        category: item.category,
-        label: item.category,
-        count: item.count,
-        percentage: Math.round((item.count / totalComplaints) * 100),
-        color: complaintColorMap[item.category] || '#64748b',
-      }))
-    : [
-        { category: 'Fasilitas Umum', label: 'Fasilitas Umum', count: 0, percentage: 0, color: '#f43f5e' },
-        { category: 'Keamanan', label: 'Keamanan', count: 0, percentage: 0, color: '#eab308' },
-        { category: 'Kebersihan', label: 'Kebersihan', count: 0, percentage: 0, color: '#10b981' },
-      ];
+  const complaintsByCategory: DemographicDistributionItem[] = rawTotalComplaints > 0
+    ? ALL_COMPLAINT_CATEGORIES.map((cat) => {
+        const count = complaintCountsMap.get(cat) ?? 0;
+        return {
+          category: cat,
+          label: cat,
+          count,
+          percentage: Math.round((count / totalComplaints) * 100),
+          color: complaintColorMap[cat] || '#64748b',
+        };
+      })
+    : [];
 
-  const totalPermanen = dwellingTypesRes?.permanen ?? 0;
-  const totalKos = dwellingTypesRes?.kos ?? 0;
-  const totalKosong = Math.max(0, totalDwells - totalPermanen - totalKos);
+  const totalTerisi = dwellingTypesRes?.terisi ?? 0;
+  const totalKosHomestay = dwellingTypesRes?.kos ?? 0;
+  const totalKosong = dwellingTypesRes?.kosong ?? 0;
 
   return {
     totalFamilies: totalFams,
@@ -606,7 +685,7 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
     totalTenants: totalTens,
     totalDwellings: totalDwells,
     totalHouses: totalDwells,
-    totalResidents: totalMems,
+    totalResidents: totalMems + totalTens,
     totalRenters: totalTens,
     genderStats: { male: totalM, female: totalF },
     genderRatio: {
@@ -615,12 +694,25 @@ export async function getPublicDemographicsData(): Promise<PublicDemographicsDat
       malePct: Math.round((totalM / totalG) * 100),
       femalePct: Math.round((totalF / totalG) * 100),
     },
+    ktpDistribution: {
+      villageName: sysSet?.villageName || 'Kelurahan Setempat',
+      totalLocal: totalLocalKtp,
+      totalNonLocal: totalNonLocalKtp,
+      localPercentage,
+      nonLocalPercentage,
+      total: totalKtpAnalyzed,
+      nonLocalBreakdown: {
+        individualKos: nonLocalIndividualKos,
+        familyRenters: nonLocalFamilyRental,
+        permanentResidents: nonLocalPermanent,
+      },
+    },
     ageDistribution,
     educationDistribution,
     occupationDistribution,
     dwellingStatus: {
-      terisi: totalPermanen,
-      kos: totalKos,
+      terisi: totalTerisi,
+      kos: totalKosHomestay,
       kosong: totalKosong,
     },
     complaintsByCategory,

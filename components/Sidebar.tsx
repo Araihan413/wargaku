@@ -228,16 +228,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const [pendingRegCount, setPendingRegCount] = useState<number>(0);
   const [pendingDocCount, setPendingDocCount] = useState<number>(0);
+  const [pendingComplaintCount, setPendingComplaintCount] = useState<number>(0);
 
   useEffect(() => {
-    if (currentRoleId !== 2 && currentRoleId !== 3) return;
+    if (currentRoleId !== 1 && currentRoleId !== 2 && currentRoleId !== 3) return;
 
     const fetchCounts = async () => {
       try {
-        const [regRes, familyDocRes, rentalDocRes] = await Promise.all([
+        const [regRes, familyDocRes, rentalDocRes, complaintRes] = await Promise.all([
           fetch("/api/approvals/registration"),
           fetch("/api/approvals/documents?type=family&status=pending"),
-          fetch("/api/approvals/documents?type=rental_resident&status=pending")
+          fetch("/api/approvals/documents?type=rental_resident&status=pending"),
+          fetch("/api/complaints")
         ]);
 
         if (regRes.ok) {
@@ -258,8 +260,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
 
         setPendingDocCount(familyCount + rentalCount);
+
+        if (complaintRes.ok) {
+          const complaintData = await complaintRes.json();
+          setPendingComplaintCount(complaintData.stats?.menunggu || 0);
+        }
       } catch (err) {
-        console.error("Error fetching approvals count:", err);
+        console.error("Error fetching sidebar counts:", err);
       }
     };
 
@@ -273,7 +280,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const getBadgeCount = (href: string) => {
     if (href === "/dashboard/approvals/registration") return pendingRegCount;
     if (href === "/dashboard/approvals/documents") return pendingDocCount;
+    if (href === "/dashboard/complaints") return pendingComplaintCount;
     return 0;
+  };
+
+  const formatBadgeCount = (count: number) => {
+    if (count > 99) return "99+";
+    return count.toString();
   };
 
   const isUnlockedStatus =
@@ -520,7 +533,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div className={iconContainerClassName}>
                       <div className="relative shrink-0">
                         <Icon className="h-5 w-5" />
-                        {item.title === "Antrean Persetujuan" && totalPendingApprovals > 0 && isCollapsed && (
+                        {((item.title === "Antrean Persetujuan" && totalPendingApprovals > 0) ||
+                          (item.title === "Portal Informasi & Layanan" && pendingComplaintCount > 0)) &&
+                          isCollapsed && (
                           <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-rose-600 border border-white" />
                         )}
                       </div>
@@ -532,8 +547,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         {item.title}
                       </span>
                       {item.title === "Antrean Persetujuan" && totalPendingApprovals > 0 && !isCollapsed && (
-                        <span className="ml-2 inline-flex items-center justify-center px-1 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
-                          {totalPendingApprovals}
+                        <span className="ml-2 inline-flex items-center justify-center min-w-4.5 px-1.5 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
+                          {formatBadgeCount(totalPendingApprovals)}
+                        </span>
+                      )}
+                      {item.title === "Portal Informasi & Layanan" && pendingComplaintCount > 0 && !isCollapsed && (
+                        <span className="ml-2 inline-flex items-center justify-center min-w-4.5 px-1.5 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
+                          {formatBadgeCount(pendingComplaintCount)}
                         </span>
                       )}
                       <ChevronDown
@@ -624,8 +644,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <span className="flex items-center gap-2">
                               {sub.title}
                               {getBadgeCount(sub.href) > 0 && (
-                                <span className="inline-flex items-center justify-center px-1 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
-                                  {getBadgeCount(sub.href)}
+                                <span className="inline-flex items-center justify-center min-w-4.5 px-1.5 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
+                                  {formatBadgeCount(getBadgeCount(sub.href))}
                                 </span>
                               )}
                             </span>
@@ -755,8 +775,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <span className="flex items-center gap-2">
                             {sub.title}
                             {getBadgeCount(sub.href) > 0 && (
-                              <span className="inline-flex items-center justify-center px-1 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
-                                {getBadgeCount(sub.href)}
+                              <span className="inline-flex items-center justify-center min-w-4.5 px-1.5 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
+                                {formatBadgeCount(getBadgeCount(sub.href))}
                               </span>
                             )}
                           </span>

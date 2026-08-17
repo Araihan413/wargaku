@@ -208,7 +208,7 @@ export default function FinancialReportPage() {
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               <Printer className="h-4 w-4" />
-              <span>Cetak Laporan Resmi (PDF)</span>
+              <span>Cetak Laporan (PDF)</span>
             </button>
           </div>
         </div>

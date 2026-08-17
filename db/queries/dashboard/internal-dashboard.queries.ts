@@ -35,8 +35,8 @@ export async function getSuperAdminDashboardStats() {
     // Total Anggota Keluarga (Warga Tetap)
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)),
 
-    // Total Penyewa Aktif
-    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.rentalContracts).where(eq(schema.rentalContracts.isActive, true)),
+    // Total Pendatang / Anak Kos Individu Aktif
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.rentalContracts).where(and(eq(schema.rentalContracts.isActive, true), eq(schema.rentalContracts.tenantType, 'individual'))),
 
     // Total KK Aktif
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(eq(schema.families.isActive, true)),
@@ -136,14 +136,17 @@ export async function getRtDashboardStats() {
     [totalFamilies],
     [totalMembers],
     [totalTenants],
+    [totalDwellings],
     genderCounts,
-    ageCounts,
+    [ageStatsRes],
     occupationCounts,
     educationCounts,
     religionCounts,
-    dwellingTypeCounts,
+    [dwellingTypesRes],
     [cashAggregate],
-    [duesAggregate],
+    [duesAmountAggregate],
+    [mandatoryRulesCount],
+    fullyPaidFamiliesRows,
     complaintCounts,
     topCategories,
     allFamilyCheckIns,
@@ -154,6 +157,9 @@ export async function getRtDashboardStats() {
     monthlyExpense,
     [totalRoomsAgg],
     [filledRoomsAgg],
+    ktpMemberStats,
+    ktpTenantStats,
+    sysSettingRes,
   ] = await Promise.all([
     // Total KK Aktif
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(eq(schema.families.isActive, true)),
@@ -161,8 +167,11 @@ export async function getRtDashboardStats() {
     // Total Warga Tetap
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)),
 
-    // Total Pendatang / Penyewa
-    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.rentalContracts).where(eq(schema.rentalContracts.isActive, true)),
+    // Total Pendatang / Anak Kos Individu Aktif
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.rentalContracts).where(and(eq(schema.rentalContracts.isActive, true), eq(schema.rentalContracts.tenantType, 'individual'))),
+
+    // Total Rumah / Dwellings Aktif
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.dwellings).where(eq(schema.dwellings.isActive, true)),
 
     // Gender Distribution
     db.select({
@@ -170,43 +179,47 @@ export async function getRtDashboardStats() {
       count: sql<number>`count(*)`.mapWith(Number),
     }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)).groupBy(schema.familyMembers.gender),
 
-    // Age Distribution
+    // Age Distribution Stats
     db.select({
-      range: sql<string>`
-        CASE 
-          WHEN ${schema.familyMembers.birthDate} IS NULL THEN 'Belum Diisi'
-          WHEN TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) < 6 THEN '0-5 tahun'
-          WHEN TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) BETWEEN 6 AND 17 THEN '6-17 tahun'
-          WHEN TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) BETWEEN 18 AND 59 THEN '18-59 tahun'
-          ELSE '60+ tahun'
-        END
-      `.as('age_range'),
-      count: sql<number>`count(*)`.mapWith(Number),
-    }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)).groupBy(sql`age_range`),
+      anak: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NOT NULL AND TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) < 12 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      remaja: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NOT NULL AND TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) BETWEEN 12 AND 17 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      dewasa: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NOT NULL AND TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) BETWEEN 18 AND 59 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      lansia: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NOT NULL AND TIMESTAMPDIFF(YEAR, ${schema.familyMembers.birthDate}, CURDATE()) >= 60 THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      belumTerdata: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.birthDate} IS NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+    })
+      .from(schema.familyMembers)
+      .where(eq(schema.familyMembers.isActive, true)),
 
     // Occupation Distribution
     db.select({
-      occupation: schema.familyMembers.occupation,
+      occupation: sql<string>`COALESCE(NULLIF(${schema.familyMembers.occupation}, ''), 'Belum Terdata')`.as('occupation'),
       count: sql<number>`count(*)`.mapWith(Number),
-    }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)).groupBy(schema.familyMembers.occupation).limit(5),
+    }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)).groupBy(sql`COALESCE(NULLIF(${schema.familyMembers.occupation}, ''), 'Belum Terdata')`).orderBy(desc(sql`count(*)`)),
 
     // Education Distribution
     db.select({
-      education: schema.familyMembers.educationLevel,
+      education: sql<string>`COALESCE(NULLIF(${schema.familyMembers.educationLevel}, ''), 'Belum Terdata')`.as('education'),
       count: sql<number>`count(*)`.mapWith(Number),
-    }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)).groupBy(schema.familyMembers.educationLevel),
+    }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)).groupBy(sql`COALESCE(NULLIF(${schema.familyMembers.educationLevel}, ''), 'Belum Terdata')`),
 
     // Religion Distribution
     db.select({
-      religion: schema.familyMembers.religion,
+      religion: sql<string>`COALESCE(NULLIF(${schema.familyMembers.religion}, ''), 'Belum Terdata')`.as('religion'),
       count: sql<number>`count(*)`.mapWith(Number),
-    }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)).groupBy(schema.familyMembers.religion),
+    }).from(schema.familyMembers).where(eq(schema.familyMembers.isActive, true)).groupBy(sql`COALESCE(NULLIF(${schema.familyMembers.religion}, ''), 'Belum Terdata')`),
 
-    // Dwelling Type Distribution
+    // Status Hunian (Terisi Tetap vs Kos/Homestay vs Kosong)
     db.select({
-      type: schema.dwellings.type,
-      count: sql<number>`count(*)`.mapWith(Number),
-    }).from(schema.dwellings).where(eq(schema.dwellings.isActive, true)).groupBy(schema.dwellings.type),
+      terisi: sql<number>`COALESCE(SUM(CASE WHEN ${schema.dwellings.type} = 'permanen' AND f.id IS NOT NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      kos: sql<number>`COALESCE(SUM(CASE WHEN ${schema.dwellings.type} IN ('kos', 'homestay') THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      kosong: sql<number>`COALESCE(SUM(CASE WHEN ${schema.dwellings.type} = 'permanen' AND f.id IS NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+    })
+      .from(schema.dwellings)
+      .leftJoin(
+        sql`(SELECT DISTINCT dwelling_id as id FROM families WHERE is_active = 1 AND dwelling_id IS NOT NULL) f`,
+        sql`${schema.dwellings.id} = f.id`
+      )
+      .where(eq(schema.dwellings.isActive, true)),
 
     // Cash Aggregate (Total Balance)
     db.select({
@@ -214,13 +227,35 @@ export async function getRtDashboardStats() {
       totalExpense: sql<number>`COALESCE(SUM(CASE WHEN ${schema.cashTransactions.type} = 'expense' THEN ${schema.cashTransactions.amount} ELSE 0 END), 0)`.mapWith(Number),
     }).from(schema.cashTransactions),
 
-    // Dues Compliance Aggregate for Current Period
+    // Dues Amount Aggregate for Current Period
     db.select({
       billed: sql<number>`COALESCE(SUM(${schema.feePayments.amountBilled}), 0)`.mapWith(Number),
       paid: sql<number>`COALESCE(SUM(${schema.feePayments.amountPaid}), 0)`.mapWith(Number),
-      paidCount: sql<number>`COALESCE(SUM(CASE WHEN ${schema.feePayments.status} = 'paid' THEN 1 ELSE 0 END), 0)`.mapWith(Number),
-      totalCount: sql<number>`count(*)`.mapWith(Number),
     }).from(schema.feePayments).where(eq(schema.feePayments.period, currentPeriod)),
+
+    // Mandatory Fee Rules Count
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) })
+      .from(schema.feeRules)
+      .where(and(eq(schema.feeRules.isActive, true), eq(schema.feeRules.isMandatory, true))),
+
+    // Fully Paid Families for Current Period
+    db.select({
+      familyId: schema.feePayments.familyId,
+      paidCount: sql<number>`COUNT(DISTINCT ${schema.feePayments.feeRuleId})`.mapWith(Number),
+    })
+    .from(schema.feePayments)
+    .innerJoin(schema.feeRules, eq(schema.feePayments.feeRuleId, schema.feeRules.id))
+    .innerJoin(schema.families, eq(schema.feePayments.familyId, schema.families.id))
+    .where(
+      and(
+        eq(schema.feePayments.period, currentPeriod),
+        eq(schema.feePayments.status, 'paid'),
+        eq(schema.feeRules.isMandatory, true),
+        eq(schema.feeRules.isActive, true),
+        eq(schema.families.isActive, true)
+      )
+    )
+    .groupBy(schema.feePayments.familyId),
 
     // Complaint Status Summary
     db.select({
@@ -232,7 +267,7 @@ export async function getRtDashboardStats() {
     db.select({
       category: schema.complaints.category,
       count: sql<number>`count(*)`.mapWith(Number),
-    }).from(schema.complaints).groupBy(schema.complaints.category).orderBy(desc(sql`count(*)`)).limit(5),
+    }).from(schema.complaints).groupBy(schema.complaints.category).orderBy(desc(sql`count(*)`)),
 
     // 1. All Family Members Check-ins (Mencakup Seluruh Warga Berkeluarga, Baik Tetap Maupun Kos)
     db.select({
@@ -302,6 +337,7 @@ export async function getRtDashboardStats() {
     .groupBy(sql`DATE_FORMAT(${schema.cashTransactions.createdAt}, '%Y-%m')`),
 
     // Total Rooms in Rental Properties
+    // Total Rooms in Rental Properties
     db.select({
       total: sql<number>`COALESCE(SUM(${schema.rentalProperties.totalRooms}), 0)`.mapWith(Number),
     })
@@ -314,7 +350,59 @@ export async function getRtDashboardStats() {
     })
     .from(schema.rentalContracts)
     .where(eq(schema.rentalContracts.isActive, true)),
+
+    // KTP Distribution - Family Members (dengan breakdown Warga Tetap vs Keluarga Pengontrak)
+    db.select({
+      local: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.isKtpSameVillage} = TRUE THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      nonLocalPermanent: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.isKtpSameVillage} = FALSE AND rc.id IS NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      nonLocalFamilyRental: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.isKtpSameVillage} = FALSE AND rc.id IS NOT NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      totalLocalPermanent: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.isKtpSameVillage} = TRUE AND rc.id IS NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      totalLocalFamilyRental: sql<number>`COALESCE(SUM(CASE WHEN ${schema.familyMembers.isKtpSameVillage} = TRUE AND rc.id IS NOT NULL THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+    })
+    .from(schema.familyMembers)
+    .leftJoin(
+      sql`(SELECT DISTINCT family_id as id FROM rental_contracts WHERE is_active = 1 AND tenant_type = 'family' AND family_id IS NOT NULL) rc`,
+      sql`${schema.familyMembers.familyId} = rc.id`
+    )
+    .where(eq(schema.familyMembers.isActive, true)),
+
+    // KTP Distribution - Penghuni Sewa / Anak Kos Individu (Rental Contracts)
+    db.select({
+      local: sql<number>`COALESCE(SUM(CASE WHEN ${schema.rentalContracts.isKtpSameVillage} = TRUE THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+      nonLocalIndividualKos: sql<number>`COALESCE(SUM(CASE WHEN ${schema.rentalContracts.isKtpSameVillage} = FALSE THEN 1 ELSE 0 END), 0)`.mapWith(Number),
+    })
+    .from(schema.rentalContracts)
+    .where(and(
+      eq(schema.rentalContracts.isActive, true),
+      eq(schema.rentalContracts.tenantType, 'individual')
+    )),
+
+    // System Settings (untuk Nama Kelurahan)
+    db.select({
+      villageName: schema.systemSettings.villageName,
+      rtName: schema.systemSettings.rtName,
+      rwName: schema.systemSettings.rwName,
+    })
+    .from(schema.systemSettings)
+    .limit(1),
   ]);
+
+  const [ktpMemberRes] = ktpMemberStats || [null];
+  const [ktpTenantRes] = ktpTenantStats || [null];
+  const [sysSetting] = sysSettingRes || [null];
+
+  const localMembers = ktpMemberRes?.local ?? 0;
+  const localTenants = ktpTenantRes?.local ?? 0;
+  const nonLocalIndividualKos = ktpTenantRes?.nonLocalIndividualKos ?? 0;
+  const nonLocalFamilyRental = ktpMemberRes?.nonLocalFamilyRental ?? 0;
+  const nonLocalPermanent = ktpMemberRes?.nonLocalPermanent ?? 0;
+
+  const totalLocalKtp = localMembers + localTenants;
+  const totalNonLocalKtp = nonLocalIndividualKos + nonLocalFamilyRental + nonLocalPermanent;
+  const totalKtpAnalyzed = totalLocalKtp + totalNonLocalKtp;
+
+  const localPercentage = totalKtpAnalyzed > 0 ? Math.round((totalLocalKtp / totalKtpAnalyzed) * 100) : 0;
+  const nonLocalPercentage = totalKtpAnalyzed > 0 ? (100 - localPercentage) : 0;
 
   const checkInMap: Record<string, number> = {};
   const checkOutMap: Record<string, number> = {};
@@ -373,9 +461,12 @@ export async function getRtDashboardStats() {
     });
   }
 
-  const paidCount = duesAggregate?.paidCount ?? 0;
-  const totalDuesCount = duesAggregate?.totalCount ?? 0;
-  const rawParticipation = totalDuesCount > 0 ? Math.round((paidCount / totalDuesCount) * 100) : 0;
+  const totalKK = totalFamilies?.count ?? 0;
+  const mandatoryCount = mandatoryRulesCount?.count ?? 0;
+  const fullyPaidCount = mandatoryCount > 0
+    ? fullyPaidFamiliesRows.filter((r) => r.paidCount >= mandatoryCount).length
+    : 0;
+  const rawParticipation = totalKK > 0 ? Math.round((fullyPaidCount / totalKK) * 100) : 0;
   const participationRate = Number.isNaN(rawParticipation) ? 0 : rawParticipation;
 
   const totalRooms = totalRoomsAgg?.total ?? 0;
@@ -383,18 +474,36 @@ export async function getRtDashboardStats() {
   const rawOccupancy = totalRooms > 0 ? Math.min(100, Math.round((filledRooms / totalRooms) * 100)) : 0;
   const occupancyPercent = Number.isNaN(rawOccupancy) ? 0 : rawOccupancy;
 
-  const dwellingLabelMap: Record<string, string> = {
-    permanen: 'Warga Tetap (Permanen)',
-    kos: 'Kos / Homestay',
-    rental: 'Kontrakan / Sewa',
-  };
-
   return {
     summary: {
+      totalRumah: totalDwellings?.count ?? 0,
       totalWargaAktif,
       totalKK: totalFamilies?.count ?? 0,
       totalWargaTetap,
       totalPendatang,
+    },
+    ktpDistribution: {
+      villageName: sysSetting?.villageName || 'Kelurahan Setempat',
+      totalLocal: totalLocalKtp,
+      totalNonLocal: totalNonLocalKtp,
+      localPercentage,
+      nonLocalPercentage,
+      total: totalKtpAnalyzed,
+      nonLocalBreakdown: {
+        individualKos: nonLocalIndividualKos,
+        familyRenters: nonLocalFamilyRental,
+        permanentResidents: nonLocalPermanent,
+      },
+      breakdown: {
+        wargaTetap: {
+          local: ktpMemberRes?.totalLocalPermanent ?? 0,
+          nonLocal: nonLocalPermanent,
+        },
+        penghuniSewa: {
+          local: (ktpMemberRes?.totalLocalFamilyRental ?? 0) + localTenants,
+          nonLocal: nonLocalIndividualKos + nonLocalFamilyRental,
+        },
+      },
     },
     genderDistribution: (() => {
       const maleObj = (genderCounts || []).find((g) => g.gender === "L");
@@ -404,14 +513,23 @@ export async function getRtDashboardStats() {
         { gender: "Perempuan", count: femaleObj ? femaleObj.count : 0 },
       ];
     })(),
-    ageDistribution: (ageCounts || []).map((a) => ({ range: a.range || "Belum Diisi", count: a.count || 0 })),
-    occupationDistribution: occupationCounts.map((o) => ({ occupation: o.occupation || 'Lainnya', count: o.count })),
-    educationDistribution: educationCounts.map((e) => ({ education: e.education || 'Lainnya', count: e.count })),
-    religionDistribution: religionCounts.map((r) => ({ religion: r.religion || 'Lainnya', count: r.count })),
-    dwellingDistribution: dwellingTypeCounts.map((d) => ({
-      type: dwellingLabelMap[String(d.type)] || String(d.type || 'Lainnya'),
-      count: d.count,
-    })),
+    ageDistribution: totalWargaTetap === 0
+      ? []
+      : [
+          { range: 'Anak (0-11 thn)', count: ageStatsRes?.anak ?? 0 },
+          { range: 'Remaja (12-17 thn)', count: ageStatsRes?.remaja ?? 0 },
+          { range: 'Dewasa (18-59 thn)', count: ageStatsRes?.dewasa ?? 0 },
+          { range: 'Lansia (60+ thn)', count: ageStatsRes?.lansia ?? 0 },
+          ...((ageStatsRes?.belumTerdata ?? 0) > 0 ? [{ range: 'Belum Terdata', count: ageStatsRes?.belumTerdata ?? 0 }] : []),
+        ],
+    occupationDistribution: occupationCounts.map((o) => ({ occupation: o.occupation || 'Belum Terdata', count: o.count })),
+    educationDistribution: educationCounts.map((e) => ({ education: e.education || 'Belum Terdata', count: e.count })),
+    religionDistribution: religionCounts.map((r) => ({ religion: r.religion || 'Belum Terdata', count: r.count })),
+    dwellingDistribution: [
+      { type: 'Terisi (Tetap)', count: dwellingTypesRes?.terisi ?? 0 },
+      { type: 'Kos & Homestay', count: dwellingTypesRes?.kos ?? 0 },
+      { type: 'Hunian Kosong', count: dwellingTypesRes?.kosong ?? 0 },
+    ],
     occupancyRate: {
       totalRooms,
       filledRooms,
@@ -419,13 +537,33 @@ export async function getRtDashboardStats() {
     },
     cashSummary: {
       currentBalance: (cashAggregate?.totalIncome ?? 0) - (cashAggregate?.totalExpense ?? 0),
-      billedIuran: duesAggregate?.billed ?? 0,
-      paidIuran: duesAggregate?.paid ?? 0,
+      billedIuran: duesAmountAggregate?.billed ?? 0,
+      paidIuran: duesAmountAggregate?.paid ?? 0,
       participationRate,
     },
     cashflowTrend,
-    complaintSummary: complaintCounts.map((c) => ({ status: c.status, count: c.count })),
-    topComplaintCategories: topCategories.map((tc) => ({ category: tc.category, count: tc.count })),
+    complaintSummary: (() => {
+      const STATUSES = ['menunggu', 'proses', 'selesai', 'ditolak'] as const;
+      const statusMap = new Map<string, number>(complaintCounts.map((c) => [c.status, c.count]));
+      const statusLabelMap: Record<string, string> = {
+        menunggu: 'Menunggu',
+        proses: 'Proses',
+        selesai: 'Selesai',
+        ditolak: 'Ditolak',
+      };
+      return STATUSES.map((st) => ({
+        status: statusLabelMap[st] || st,
+        count: statusMap.get(st) ?? 0,
+      }));
+    })(),
+    topComplaintCategories: (() => {
+      const ALL_CATEGORIES = ['Infrastruktur', 'Kebersihan', 'Keamanan', 'Sosial', 'Lainnya'] as const;
+      const catMap = new Map<string, number>(topCategories.map((c) => [c.category, c.count]));
+      return ALL_CATEGORIES.map((cat) => ({
+        category: cat,
+        count: catMap.get(cat) ?? 0,
+      }));
+    })(),
     populationMutations,
   };
 }
@@ -539,7 +677,8 @@ export async function getTreasurerDashboardStats() {
     [cashAggregate],
     [thisMonthCash],
     [totalFamiliesCount],
-    [duesAggregate],
+    [mandatoryRulesCount],
+    fullyPaidFamiliesRows,
     recentTransactions,
   ] = await Promise.all([
     // Saldo Total
@@ -557,11 +696,29 @@ export async function getTreasurerDashboardStats() {
     // Total KK Aktif
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(schema.families).where(eq(schema.families.isActive, true)),
 
-    // Kepatuhan Iuran Bulan Ini
+    // Jumlah Aturan Iuran Wajib Aktif
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) })
+      .from(schema.feeRules)
+      .where(and(eq(schema.feeRules.isActive, true), eq(schema.feeRules.isMandatory, true))),
+
+    // KK yang Membayar Seluruh Iuran Wajib Bulan Ini
     db.select({
-      paidCount: sql<number>`COALESCE(SUM(CASE WHEN ${schema.feePayments.status} = 'paid' THEN 1 ELSE 0 END), 0)`.mapWith(Number),
-      unpaidCount: sql<number>`COALESCE(SUM(CASE WHEN ${schema.feePayments.status} IN ('unpaid', 'partially_paid') THEN 1 ELSE 0 END), 0)`.mapWith(Number),
-    }).from(schema.feePayments).where(eq(schema.feePayments.period, currentPeriod)),
+      familyId: schema.feePayments.familyId,
+      paidCount: sql<number>`COUNT(DISTINCT ${schema.feePayments.feeRuleId})`.mapWith(Number),
+    })
+    .from(schema.feePayments)
+    .innerJoin(schema.feeRules, eq(schema.feePayments.feeRuleId, schema.feeRules.id))
+    .innerJoin(schema.families, eq(schema.feePayments.familyId, schema.families.id))
+    .where(
+      and(
+        eq(schema.feePayments.period, currentPeriod),
+        eq(schema.feePayments.status, 'paid'),
+        eq(schema.feeRules.isMandatory, true),
+        eq(schema.feeRules.isActive, true),
+        eq(schema.families.isActive, true)
+      )
+    )
+    .groupBy(schema.feePayments.familyId),
 
     // 5 Transaksi Terbaru
     db.select({
@@ -583,8 +740,11 @@ export async function getTreasurerDashboardStats() {
   const totalBalance = totalInc - totalExp;
 
   const totalFamilies = totalFamiliesCount?.count ?? 0;
-  const paidFamilies = duesAggregate?.paidCount ?? 0;
-  const unpaidFamilies = duesAggregate?.unpaidCount ?? 0;
+  const mandatoryCount = mandatoryRulesCount?.count ?? 0;
+  const paidFamilies = mandatoryCount > 0
+    ? fullyPaidFamiliesRows.filter((r) => r.paidCount >= mandatoryCount).length
+    : 0;
+  const unpaidFamilies = Math.max(0, totalFamilies - paidFamilies);
   const duesPaidPct = totalFamilies > 0 ? Math.round((paidFamilies / totalFamilies) * 100) : 0;
 
   return {
@@ -853,7 +1013,8 @@ export async function getWargaDashboard(userId: string) {
     pendingPayments,
     recentAnnouncements,
     [unreadNotifCount],
-    [totalWargaRes],
+    [totalFamilyMembersRes],
+    [totalIndividualRentersRes],
     [totalFamiliesRes],
     [cashAggr],
     recentActivities,
@@ -900,11 +1061,17 @@ export async function getWargaDashboard(userId: string) {
       .from(schema.notifications)
       .where(and(eq(schema.notifications.userId, userId), eq(schema.notifications.isRead, false))),
 
-    // Total Warga (Warga Tetap + Penyewa Aktif)
+    // Total Warga Tetap (KK)
     db
       .select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(schema.familyMembers)
       .where(eq(schema.familyMembers.isActive, true)),
+
+    // Total Anak Kos / Penyewa Individu Aktif
+    db
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
+      .from(schema.rentalContracts)
+      .where(and(eq(schema.rentalContracts.isActive, true), eq(schema.rentalContracts.tenantType, 'individual'))),
 
     // Total Kartu Keluarga Aktif
     db
@@ -1004,7 +1171,7 @@ export async function getWargaDashboard(userId: string) {
       balance,
     },
     stats: {
-      totalWarga: totalWargaRes?.count ?? 0,
+      totalWarga: (totalFamilyMembersRes?.count ?? 0) + (totalIndividualRentersRes?.count ?? 0),
       totalKK: totalFamiliesRes?.count ?? 0,
     },
     officerContacts: officerList.map((o) => ({

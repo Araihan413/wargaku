@@ -207,6 +207,25 @@ export const DetailAnggotaModal: React.FC<DetailAnggotaModalProps> = ({
               </div>
             </div>
 
+            {/* Status Domisili KTP */}
+            <div className="flex items-start gap-3 p-3 border border-gray-border/50 rounded-xl bg-gray-card md:col-span-2">
+              <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <span className="text-[11px] font-bold text-gray-placeholder uppercase tracking-wider block">
+                  Status Domisili KTP
+                </span>
+                <span className="text-sm font-semibold text-gray-heading-main block mt-0.5">
+                  {member.isKtpSameVillage === false ? (
+                    <span className="text-orange-700 font-bold">
+                      KTP Luar Kelurahan {member.ktpAddress ? `(${member.ktpAddress})` : ""}
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold">KTP Kelurahan Setempat (KTP Setempat)</span>
+                  )}
+                </span>
+              </div>
+            </div>
+
             {/* Catatan Penonaktifan (Khusus Nonaktif) */}
             {!member.isActive && (
               <div className="flex items-start gap-3 p-3 border border-gray-border/50 rounded-xl bg-gray-card md:col-span-2">

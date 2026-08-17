@@ -6,15 +6,15 @@ export interface RentalResidentItem {
   tenantType?: "perorangan" | "keluarga";
   checkInDate: string;
   checkOutDate?: string | null;
+  checkOutNote?: string | null;
+  isKtpSameVillage?: boolean;
+  ktpAddress?: string | null;
   verificationStatus: "draft" | "pending" | "verified" | "rejected";
   verificationNote?: string | null;
   isActive: boolean;
   propertyName?: string;
   blockNumber?: string;
   houseNumber?: string;
-  gender?: "L" | "P" | null;
-  birthPlace?: string | null;
-  birthDate?: string | null;
   ktpFile?: string | null;
 }
 

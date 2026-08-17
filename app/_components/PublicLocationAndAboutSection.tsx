@@ -43,7 +43,7 @@ export const PublicLocationAndAboutSection: React.FC<PublicLocationAndAboutSecti
             </div>
 
             <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <p className="text-xs font-bold text-slate-700">Alamat Sekretariat (Rumah Ketua RT)</p>
+              <p className="text-xs font-bold text-slate-700">Alamat Sekretariat</p>
               <p className="text-xs text-slate-600 leading-relaxed font-medium">
                 {fullAddress}
               </p>

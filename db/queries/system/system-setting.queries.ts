@@ -38,11 +38,11 @@ export async function getSystemSettings() {
     // Default fallback
     return {
       id: 1,
-      rtName: 'RT 001',
-      rwName: 'RW 005',
-      villageName: 'Kelurahan Sukamaju',
-      subdistrict: 'Kecamatan Cilodong',
-      city: 'Kota Depok',
+      rtName: '001',
+      rwName: '005',
+      villageName: 'Argorejo',
+      subdistrict: 'Sedayu',
+      city: 'Kabupaten Bantul',
       logoPath: null,
       officialEmail: 'rt001@example.com',
       officialRtPhone: '08123456789',
@@ -51,7 +51,7 @@ export async function getSystemSettings() {
       emergencyContacts: [],
       latitude: null,
       longitude: null,
-      secretariatAddress: null,
+      secretariatAddress: 'Dusun Polaman, Kepuhan',
       createdAt: new Date(),
       updatedAt: new Date(),
     };

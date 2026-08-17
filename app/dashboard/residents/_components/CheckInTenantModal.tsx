@@ -45,6 +45,9 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split("T")[0]);
+  const [isKtpSameVillage, setIsKtpSameVillage] = useState<boolean>(false);
+  const [ktpAddress, setKtpAddress] = useState("");
+  const [villageName, setVillageName] = useState<string>("");
   const [ktpFile, setKtpFile] = useState<File | string | null>(null);
   const [autoDeductVacantRoom, setAutoDeductVacantRoom] = useState(true);
 
@@ -57,9 +60,23 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
   const [isFamilySearching, setIsFamilySearching] = useState(false);
   const [searchError, setSearchError] = useState("");
 
-  // Fetch Properties on Mount
+  // Fetch Properties & Village info on Mount
   useEffect(() => {
     if (!isOpen) return;
+    const fetchPortalInfo = async () => {
+      try {
+        const res = await fetch("/api/public/portal");
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.settings?.villageName) {
+            setVillageName(data.settings.villageName);
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    };
+    fetchPortalInfo();
     const fetchProperties = async () => {
       setIsLoadingProperties(true);
       try {
@@ -216,6 +233,8 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
               nik,
               phone: phone ? phone.trim() : undefined,
               email: tenantType === "keluarga" ? email.trim() : undefined,
+              isKtpSameVillage,
+              ktpAddress: !isKtpSameVillage ? ktpAddress.trim() : null,
               checkInDate: new Date(checkInDate),
               ktpFile: ktpUrl || (typeof ktpFile === "string" ? ktpFile : null),
               autoDeductVacantRoom,
@@ -243,6 +262,8 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
     setPhone("");
     setEmail("");
     setCheckInDate(new Date().toISOString().split("T")[0]);
+    setIsKtpSameVillage(false);
+    setKtpAddress("");
     setKtpFile(null);
     setAutoDeductVacantRoom(true);
     setTenantType("perorangan");
@@ -493,6 +514,62 @@ export const CheckInTenantModal: React.FC<CheckInTenantModalProps> = ({
                         />
                       </div>
                     )}
+
+                    {/* Status Domisili KTP */}
+                    <div className="rounded-2xl border border-gray-border bg-gray-sidebar-hover/40 p-4 space-y-3">
+                      <label className="block text-sm font-semibold text-black/80 tracking-wider">
+                        Status Alamat KTP <span className="text-red-500 ml-0.5">*</span>
+                      </label>
+                      <p className="text-xs text-gray-secondary-text">
+                        Apakah alamat pada KTP penyewa ini berada di {villageName ? `Kelurahan ${villageName}` : "Kelurahan setempat"}?
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${!isKtpSameVillage ? "border-primary bg-primary/5 text-primary-900 font-semibold" : "border-gray-border bg-gray-card text-gray-heading-main hover:bg-gray-sidebar-hover"}`}>
+                          <input
+                            type="radio"
+                            name="tenantIsKtpSameVillage"
+                            checked={isKtpSameVillage === false}
+                            onChange={() => setIsKtpSameVillage(false)}
+                            className="w-4 h-4 text-primary focus:ring-primary"
+                          />
+                          <span className="text-xs">
+                            KTP Luar Kelurahan
+                          </span>
+                        </label>
+
+                        <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isKtpSameVillage ? "border-primary bg-primary/5 text-primary-900 font-semibold" : "border-gray-border bg-gray-card text-gray-heading-main hover:bg-gray-sidebar-hover"}`}>
+                          <input
+                            type="radio"
+                            name="tenantIsKtpSameVillage"
+                            checked={isKtpSameVillage === true}
+                            onChange={() => {
+                              setIsKtpSameVillage(true);
+                              setKtpAddress("");
+                            }}
+                            className="w-4 h-4 text-primary focus:ring-primary"
+                          />
+                          <span className="text-xs">
+                            KTP {villageName ? `Kel. ${villageName}` : "Kelurahan Setempat"}
+                          </span>
+                        </label>
+                      </div>
+
+                      {!isKtpSameVillage && (
+                        <div className="pt-2 animate-in fade-in duration-200">
+                          <label className="block text-xs font-semibold text-gray-heading-main mb-1.5">
+                            Alamat / Kota Asal Sesuai KTP <span className="text-red-500 ml-0.5">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={ktpAddress}
+                            onChange={(e) => setKtpAddress(e.target.value)}
+                            placeholder="Contoh: Kota Cirebon / Kec. Kesambi"
+                            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            required={!isKtpSameVillage}
+                          />
+                        </div>
+                      )}
+                    </div>
 
                     {/* KTP Upload */}
                     <div className="space-y-1.5">

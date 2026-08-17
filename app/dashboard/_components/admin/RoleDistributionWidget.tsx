@@ -1,5 +1,5 @@
 import React from "react";
-import { ShieldAlert, UserCheck } from "lucide-react";
+import { ShieldAlert, UserCheck, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { RoleDistribution } from "./types";
 
@@ -21,9 +21,9 @@ export const RoleDistributionWidget: React.FC<RoleDistributionWidgetProps> = ({ 
 
   return (
     <div className="border border-gray-border bg-gray-card rounded-2xl p-5 shadow-xs space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-gray-border">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-border">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
             <UserCheck className="w-5 h-5" />
           </div>
           <div>
@@ -38,9 +38,10 @@ export const RoleDistributionWidget: React.FC<RoleDistributionWidgetProps> = ({ 
 
         <Link
           href="/dashboard/permissions"
-          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-bold"
+          className="inline-flex items-center self-end sm:self-auto gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0"
         >
           <span>Matriks Permission</span>
+          <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 

@@ -181,6 +181,8 @@ export async function getFamilyById(id: number) {
       occupation: schema.familyMembers.occupation,
       educationLevel: schema.familyMembers.educationLevel,
       ktpFile: schema.familyMembers.ktpFile,
+      isKtpSameVillage: schema.familyMembers.isKtpSameVillage,
+      ktpAddress: schema.familyMembers.ktpAddress,
       inactiveNote: schema.familyMembers.inactiveNote,
       isActive: schema.familyMembers.isActive,
     })

@@ -18,6 +18,8 @@ export interface CreateTenantInput {
   individualNik?: string;
   individualPhone?: string | null;
   individualKtpFile?: string | null;
+  isKtpSameVillage?: boolean;
+  ktpAddress?: string | null;
   // Untuk family tenant
   familyId?: number | null;
   userId?: string | null;
@@ -34,6 +36,8 @@ export interface UpdateTenantInput {
   individualNik?: string | null;
   individualPhone?: string | null;
   individualKtpFile?: string | null;
+  isKtpSameVillage?: boolean;
+  ktpAddress?: string | null;
   checkInDate?: string | Date;
   checkOutDate?: string | Date | null;
   verificationStatus?: 'pending' | 'verified' | 'rejected';
@@ -83,8 +87,11 @@ export async function listTenantContracts(options: {
       individualNik: schema.rentalContracts.individualNik,
       individualPhone: schema.rentalContracts.individualPhone,
       individualKtpFile: schema.rentalContracts.individualKtpFile,
+      isKtpSameVillage: schema.rentalContracts.isKtpSameVillage,
+      ktpAddress: schema.rentalContracts.ktpAddress,
       checkInDate: schema.rentalContracts.checkInDate,
       checkOutDate: schema.rentalContracts.checkOutDate,
+      checkOutNote: schema.rentalContracts.checkOutNote,
       verificationStatus: schema.rentalContracts.verificationStatus,
       verificationNote: schema.rentalContracts.verificationNote,
       isActive: schema.rentalContracts.isActive,
@@ -112,9 +119,12 @@ export async function listTenantContracts(options: {
       name: c.individualName || c.userName || 'Penyewa',
       nik: c.individualNik || c.familyNumber || '-',
       phone: c.individualPhone || c.userPhone || null,
+      isKtpSameVillage: c.isKtpSameVillage ?? false,
+      ktpAddress: c.ktpAddress || null,
       ktpFile: c.individualKtpFile || null,
       checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
       checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
+      checkOutNote: c.checkOutNote || null,
       verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
       verificationNote: c.verificationNote || null,
       isActive: c.isActive,
@@ -184,6 +194,8 @@ export async function listAllTenantContracts(options: {
       individualNik: schema.rentalContracts.individualNik,
       individualPhone: schema.rentalContracts.individualPhone,
       individualKtpFile: schema.rentalContracts.individualKtpFile,
+      isKtpSameVillage: schema.rentalContracts.isKtpSameVillage,
+      ktpAddress: schema.rentalContracts.ktpAddress,
       checkInDate: schema.rentalContracts.checkInDate,
       checkOutDate: schema.rentalContracts.checkOutDate,
       verificationStatus: schema.rentalContracts.verificationStatus,
@@ -218,6 +230,8 @@ export async function listAllTenantContracts(options: {
       name: c.individualName || c.userName || 'Penyewa',
       nik: c.individualNik || c.familyNumber || '-',
       phone: c.individualPhone || c.userPhone || null,
+      isKtpSameVillage: c.isKtpSameVillage ?? false,
+      ktpAddress: c.ktpAddress || null,
       ktpFile: c.individualKtpFile || c.familyKkFile || null,
       checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
       checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
@@ -285,6 +299,8 @@ export async function createTenantContract(data: CreateTenantInput) {
       individualNik: data.individualNik ?? null,
       individualPhone: data.individualPhone ?? null,
       individualKtpFile: data.individualKtpFile ?? null,
+      isKtpSameVillage: data.isKtpSameVillage ?? false,
+      ktpAddress: data.ktpAddress ?? null,
       checkInDate,
       isActive: true,
     });
@@ -425,6 +441,8 @@ export async function updateTenantContract(id: number, data: UpdateTenantInput) 
   if (data.individualNik !== undefined) payload.individualNik = data.individualNik;
   if (data.individualPhone !== undefined) payload.individualPhone = data.individualPhone;
   if (data.individualKtpFile !== undefined) payload.individualKtpFile = data.individualKtpFile;
+  if (data.isKtpSameVillage !== undefined) payload.isKtpSameVillage = data.isKtpSameVillage;
+  if (data.ktpAddress !== undefined) payload.ktpAddress = data.ktpAddress;
   if (data.checkInDate !== undefined) payload.checkInDate = data.checkInDate instanceof Date ? data.checkInDate : new Date(String(data.checkInDate));
   if (data.checkOutDate !== undefined) payload.checkOutDate = data.checkOutDate ? (data.checkOutDate instanceof Date ? data.checkOutDate : new Date(String(data.checkOutDate))) : null;
   if (data.verificationStatus !== undefined) payload.verificationStatus = data.verificationStatus;

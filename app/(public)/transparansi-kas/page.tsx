@@ -134,8 +134,8 @@ export default function PublicFinancePage() {
             });
           }
         } else {
-          const err = await res.json();
-          if (!isCancelled) setErrorMessage(err.error || "Gagal mengambil data laporan kas.");
+          const err = await res.json().catch(() => ({}));
+          if (!isCancelled) setErrorMessage(err?.error || "Gagal mengambil data laporan kas.");
         }
       } catch (err) {
         if (!isCancelled) {
