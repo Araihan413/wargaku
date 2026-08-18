@@ -15,7 +15,7 @@ import { ZodError } from 'zod';
  * /api/rentals:
  *   get:
  *     summary: Mendapatkan daftar semua properti sewa Kos
- *     description: Mengambil daftar properti kos (dwellingType: kos). Membutuhkan izin manage-boarding. Koordinator Kos (Role 5) hanya akan melihat properti yang ia kelola.
+ *     description: "Mengambil daftar properti kos (dwellingType: kos). Membutuhkan izin manage-boarding. Koordinator Kos (Role 5) hanya akan melihat properti yang ia kelola."
  *     tags:
  *       - Properti & Sewa
  *     security:

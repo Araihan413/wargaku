@@ -58,7 +58,7 @@ export async function GET() {
  * /api/fee-rules:
  *   post:
  *     summary: Membuat aturan iuran baru dan tagihan massal
- *     description: Membuat aturan iuran baru (contoh: Iuran Agustus) dan langsung men-generate tagihan (bills) ke seluruh KK yang aktif pada periode berjalan, serta mengirim notifikasi.
+ *     description: "Membuat aturan iuran baru (contoh: Iuran Agustus) dan langsung men-generate tagihan (bills) ke seluruh KK yang aktif pada periode berjalan, serta mengirim notifikasi."
  *     tags:
  *       - Iuran & Keuangan
  *     security:
