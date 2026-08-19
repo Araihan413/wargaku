@@ -1,97 +1,106 @@
 # Panduan Peran & Fitur: Ketua RT
 
-Ketua RT adalah pemimpin utama di wilayah Rukun Tetangga yang memiliki hak pengesahan administrasi kependudukan, permohonan surat pengantar, pengeluaran keuangan kas, dan verifikasi warga.
+Ketua RT adalah pemimpin utama di wilayah Rukun Tetangga yang memiliki kewenangan penuh dalam pengesahan data kependudukan, verifikasi pendaftaran dan berkas warga, pengelolaan kas & iuran RT, publikasi informasi kegiatan lingkungan, serta penanganan keluhan warga.
 
 ---
 
 ## 1. Navigasi & Struktur Menu (Sitemap)
 
-Ketika Ketua RT login, menu sidebar utama meliputi:
-*   **Dashboard Utama:** Panel ringkasan statistik kependudukan RT, keuangan kas, pengaduan aktif, dan antrean persetujuan.
-*   **Kelola Kependudukan:** (Menu Utama)
-    *   **Data Warga & Hunian:** (Sub-menu) CRUD data warga tetap, KK, properti sewa, dan data penghuni sewa.
-    *   **Kelompok Warga (Smart Group):** (Sub-menu) Pengelompokan warga dinamis berbasis kriteria kustom.
-    *   **Cetak QR Code:** (Sub-menu) Mengunduh & mencetak QR Code hunian massal/individual.
-*   **Antrean Persetujuan:** (Menu Utama)
-    *   **Persetujuan Registrasi:** (Sub-menu / Tab) Approval pendaftaran akun warga baru.
-    *   **Verifikasi Dokumen KK/KTP:** (Sub-menu / Tab) Approval berkas KK/KTP warga.
-*   **Keuangan & Kas:** (Menu Utama)
-    *   **Laporan Kas RT:** (Sub-menu) Pemantauan seluruh kas masuk dan kas keluar (read-only).
-    *   **Otorisasi Pengeluaran:** (Sub-menu) Menyetujui/menolak draf pengeluaran yang diajukan Bendahara.
-*   **Portal Informasi:** (Menu Utama)
-    *   **Kelola Pengumuman:** (Sub-menu) CRUD pengumuman warga untuk publik & dashboard.
-    *   **Kelola Kegiatan:** (Sub-menu) CRUD jadwal kegiatan RT.
-*   **Otorisasi Surat:** (Menu Utama - Direct Link) Meninjau antrean permohonan surat masuk untuk dicetak & ditandatangani offline.
-*   **Kelola Pengaduan:** (Menu Utama - Direct Link) Memperbarui status aduan masuk (Proses/Selesai).
+Ketika Ketua RT login ke sistem, menu navigasi sidebar meliputi:
+
+*   **Dashboard:** Panel komprehensif metrik demografi, keuangan kas RT, mutasi penduduk, okupansi hunian, dan rekapitulasi pengaduan warga (`/dashboard`).
+*   **Modul Kependudukan & Hunian RT:** (Menu Dropdown Accordion)
+    *   **Data Warga & Hunian:** Pengelolaan data Kartu Keluarga (KK), warga tetap, penyewa kontrak/kos, data hunian fisik, dan akun koordinator kos (`/dashboard/residents`).
+    *   **Kelompok Warga:** Pembuatan kelompok warga dinamis berbasis kriteria kustom terfilter (Smart Groups) (`/dashboard/smart-groups`).
+    *   **Cetak QR Code RT:** Pembuatan, pengunduhan individual, dan pencetakan massal PDF QR Code hunian & sekretariat (`/dashboard/qr-codes`).
+*   **Antrean Persetujuan:** (Menu Dropdown Accordion)
+    *   **Persetujuan Registrasi:** Verifikasi permohonan pendaftaran akun warga baru (`/dashboard/approvals/registration`).
+    *   **Verifikasi Kependudukan:** Verifikasi berkas scan KK dan KTP warga serta penyewa kos (`/dashboard/approvals/documents`).
+*   **Kas RT (Cashflow):** (Menu Dropdown Accordion)
+    *   **Catat Pemasukan Kas:** Pencatatan dan pengelolaan kas masuk RT di luar iuran warga (`/dashboard/kas/income`).
+    *   **Catat Pengeluaran Kas:** Pencatatan dan pengelolaan kas keluar RT disertai unggah bukti nota kuitansi (`/dashboard/kas/expense`).
+    *   **Laporan Keuangan Kas RT:** Rekapitulasi kas bulanan, grafik per kategori, dan ekspor cetak PDF laporan keuangan resmi ber-kop surat RT (`/dashboard/kas/reports`).
+*   **Iuran Warga:** (Menu Dropdown Accordion)
+    *   **Kelola & Setor Iuran:** Pengaturan aturan tarif iuran dan pencatatan setoran iuran warga per periode (`/dashboard/iuran/manage`).
+    *   **Laporan Tunggakan Iuran:** Rekapitulasi status pelunasan dan data tunggakan iuran seluruh KK (`/dashboard/iuran/tunggakan`).
+*   **Portal Informasi & Layanan:** (Menu Dropdown Accordion)
+    *   **Kelola Pengumuman:** Pembuatan, penyuntingan, dan penerbitan pengumuman warga (`/dashboard/announcements`).
+    *   **Kelola Kegiatan RT:** Penjadwalan agenda kegiatan dan event lingkungan RT (`/dashboard/activities`).
+    *   **Tanggapan Pengaduan Warga:** Penanganan, penulisan respon, dan pembaruan status laporan keluhan warga (`/dashboard/complaints`).
+*   **Kelola Penyewa Kos:** Pengawasan dan pengelolaan data rumah sewa, unit kos, dan penghuni sewa (`/dashboard/rentals`).
+*   **Fitur Personal (Mode Warga):** Melalui fitur *Switch Role* di Navbar, Ketua RT dapat beralih ke *Mode Warga Personal* untuk mengelola data keluarga pribadi (`/dashboard/family`), melihat direktori tetangga (`/dashboard/neighborhood`), histori iuran mandiri (`/dashboard/my-fees`), dan aset properti milik sendiri (`/dashboard/my-properties`).
 
 ---
 
 ## 2. Fitur & Tugas Utama
 
 *   **KT-01: Dashboard Utama & Statistik Wilayah (Komprehensif)**
-    Menampilkan visualisasi data statistik wilayah RT secara real-time dan interaktif untuk membantu Ketua RT mengambil keputusan kebijakan, yang dikelompokkan menjadi:
-    *   **A. Statistik Utama Kependudukan:**
-        *   `Total Warga Aktif`: Jumlah gabungan warga tetap dan penghuni sewa yang berstatus aktif terverifikasi.
-        *   `Total Kepala Keluarga (KK)`: Jumlah KK terdaftar (KK warga tetap dan KK warga sewa).
-        *   `Total Warga Tetap`: Jumlah warga yang memiliki status KK setempat.
-        *   `Total Pendatang (Penyewa Sewaan)`: Jumlah total warga yang berstatus sebagai penyewa (kos/kontrakan).
-        *   `Mutasi Penduduk`: Grafik tren jumlah warga baru masuk (check-in) vs warga keluar/pindah (check-out) per bulan sepanjang tahun berjalan.
-    *   **B. Demografi & Sosial Warga:**
-        *   `Rasio Gender`: Grafik lingkaran perbandingan jumlah warga Laki-laki vs Perempuan.
-        *   `Distribusi Usia (Piramida Usia)`: Pengelompokan usia warga (Balita: 0-5 th, Anak: 6-12 th, Remaja: 13-18 th, Produktif: 19-59 th, Lansia: >=60 th).
-        *   `Sebaran Pekerjaan`: Persentase jenis pekerjaan warga (PNS, Swasta, Wiraswasta, TNI/Polri, Pelajar/Mahasiswa, Tidak Bekerja, dll.).
-        *   `Tingkat Pendidikan`: Persentase pendidikan terakhir warga (SD, SMP, SMA, Diploma, S1, S2/S3).
-        *   `Sebaran Agama`: Jumlah pemeluk agama di wilayah RT untuk kerukunan sosial.
-    *   **C. Statistik Properti & Hunian:**
-        *   `Status Hunian Rumah`: Jumlah rumah fisik terisi keluarga tetap, aktif disewakan (kos/kontrakan), aktif homestay, dan rumah kosong tak berpenghuni.
-        *   `Rasio Okupansi Kamar Kos/Kontrakan`: Persentase jumlah kamar sewa terisi vs total kapasitas kamar sewa keseluruhan di wilayah RT.
-    *   **D. Ringkasan Keuangan Kas RT:**
-        *   `Saldo Kas Saat Ini`: Total saldo kas aktual (Pemasukan dikurangi Pengeluaran disetujui).
-        *   `Rasio Partisipasi Iuran`: Persentase Kepala Keluarga yang tertib membayar iuran bulanan berjalan vs menunggak.
-        *   `Tren Arus Kas (Cashflow)`: Grafik batang bulanan pemasukan kas vs pengeluaran kas.
-    *   **E. Statistik Pengaduan (Laporan):**
-        *   `Status Aduan`: Jumlah aduan berkategori `Menunggu`, `Proses`, dan `Selesai`.
-        *   `Topik Aduan Terbanyak`: Kategori aduan yang paling sering dilaporkan warga (Keamanan, Kebersihan, Ketertiban, Fasilitas Umum).
-*   **KT-02: Kelola Kependudukan & Verifikasi Dokumen**
-    *   **CRUD Data Kependudukan:** Mengelola data rumah tinggal (`dwellings`), Kartu Keluarga (`families`), data warga tetap (`family_members`), properti sewa (`rental_properties`), dan data penghuni sewa (`rental_residents`).
-    *   **Verifikasi Dokumen KK & KTP:** Memeriksa scan KK/KTP yang diunggah warga atau berkas (KTP/KK) penyewa yang diinput Koordinator Sewa. Mengubah status berkas menjadi `Verified` atau `Rejected`.
-*   **KT-03: Kelola Keuangan (Otorisasi Pengeluaran Kas)**
-    Meninjau bukti nota pengeluaran kas yang diinput oleh Bendahara. Ketua RT berwenang memberikan otorisasi (menyetujui atau menolak) pengeluaran tersebut agar saldo kas RT resmi berkurang di pembukuan sistem.
-*   **KT-04: Kelola Pengumuman**
-    Membuat, mengedit, atau menghapus informasi/pengumuman penting warga yang akan tampil di halaman Beranda Publik dan Dashboard Warga.
-*   **KT-05: Kelola Kegiatan**
-    Membuat, mengedit, atau menghapus jadwal kegiatan RT (seperti rapat warga, kerja bakti, posyandu, siskamling) agar warga bisa melihat dan mendapat notifikasi pengingat.
-*   **KT-06: Administrasi Surat Pengantar (Hybrid)**
-    *   **Menyetujui & Memproses Surat (Offline):** Ketua RT meninjau antrean permohonan surat masuk (status `Menunggu Review`) atau memproses draf fisik yang disodorkan Sekretaris (status `Sedang Diproses`).
-    *   **Tanda Tangan & Stempel Basah:** Ketua RT menandatangani dan membubuhkan stempel basah pada surat pengantar fisik secara manual (offline).
-*   **KT-07: Kelola Pengaduan Warga**
-    Memantau laporan pengaduan masalah warga (kebersihan, ketertiban, infrastruktur rusak) yang masuk melalui portal publik atau login warga, serta memperbarui status penanganannya (`Proses` atau `Selesai`).
-*   **KT-08: Verifikasi Registrasi Warga**
-    Menyetujui pendaftaran mandiri Kepala Keluarga baru. Mengubah status akun mereka dari `Pending` menjadi `Active` untuk membuka akses dashboard.
-*   **KT-09: Cetak QR Code Rumah**
-    *   Mengunduh berkas gambar/PDF QR Code untuk setiap rumah (`dwelling`) di wilayahnya untuk dipasang di dinding luar rumah warga.
-    *   **Menu Akses Unduh QR Code:** Pengurus RT dapat melihat, mengunduh secara individual, atau mengunduh massal seluruh QR Code wilayah melalui **Menu: Cetak QR Code** -> Pilih Rumah/Properti -> Klik Tombol **`[Unduh QR Code]`** or **`[Cetak Massal PDF]`**.
-*   **KT-10: Pengelompokan Warga Dinamis (Smart Grouping) & Ekspor Data**
-    Menyajikan fitur pencarian dan pengelompokan warga secara dinamis bagi Ketua RT untuk berbagai keperluan (seperti pendataan calon penerima bantuan, sensus kelompok tertentu, atau kegiatan sosial) menggunakan antarmuka **Visual Rule Builder**:
-    *   **Visual Rule Builder & Pembobotan Kelayakan:** Ketua RT dapat membuat kelompok warga (misal: *Grup Calon Penerima Sembako*, *Grup Lansia Mandiri*) dengan menyusun kriteria penyaringan kustom:
-        *   *Kolom Kependudukan (Field):* Memilih kolom data dari dropdown yang mencakup dua tingkat data:
-            *   *Tingkat Individu:* Nama, NIK, Usia, Pekerjaan, Hubungan Keluarga (Kepala Keluarga, Istri, Anak, dll.), Pendidikan Terakhir, Agama.
-            *   *Tingkat Keluarga (Relasional Lintas-Tabel):* Pekerjaan Kepala Keluarga (sangat berguna untuk menyaring anak/anggota keluarga berdasarkan pekerjaan kepala keluarganya), Status Iuran Keluarga (Lancar/Menunggak), Jumlah Tanggungan KK (Jumlah Anggota KK).
-        *   *Operator Logika:* Memilih operator perbandingan lengkap:
-            *   Sama dengan (`==`)
-            *   Tidak sama dengan (`!=`)
-            *   Lebih besar (`>`) atau Lebih besar sama dengan (`>=`)
-            *   Kurang dari (`<`) atau Kurang dari sama dengan (`<=`)
-            *   Di dalam daftar (`IN`) atau Tidak di dalam daftar (`NOT IN`)
-        *   *Nilai (Value):* Menginput nilai pembanding (misal angka usia `12`) atau memilih beberapa opsi sekaligus (misal pada operator `IN`: memilih `Petani` dan `Buruh` secara bersamaan).
-        *   *Bobot Poin (Weight - Opsional):* Menentukan skor nilai tambah jika kriteria tersebut terpenuhi (misal: +40 poin) untuk mengurutkan warga dari yang paling mendekati kriteria.
-    *   **Penumpukan Filter (Filter Stacking):** RT dapat menumpuk lebih dari satu baris filter kriteria sekaligus dengan dua mode pengaturan logika utama:
-        1.  **Gerbang Logika Global (Global Operator):** Ketua RT dapat memilih hubungan logika antarfiber yang ditumpuk di bagian atas form:
-            *   **Mode "DAN (AND)":** Warga wajib memenuhi **seluruh** kriteria filter yang ditumpuk agar masuk ke dalam kelompok (cocok untuk saringan ketat).
-            *   **Mode "ATAU (OR)":** Warga cukup memenuhi **salah satu** saja dari kriteria filter yang ditumpuk agar masuk ke dalam kelompok (cocok untuk saringan longgar).
-        2.  **Mode Prioritas Skor (Cumulative dengan Bobot Poin):** Jika kolom Bobot Poin diisi pada baris filter, sistem secara kumulatif menjumlahkan poin dari setiap kriteria yang cocok pada warga, lalu mengurutkannya dari skor tertinggi ke terendah (sangat berguna untuk mengurutkan prioritas kelayakan penerima bantuan sosial).
-    *   **Penyimpanan Template Kelompok:** Ketua RT dapat menyimpan aturan filter ini sebagai "Nama Kelompok" (misal: *Kelompok Sembako RT*). Kapan pun menu kelompok tersebut dibuka, sistem secara otomatis menyaring data kependudukan teraktual warga yang memenuhi kriteria tersebut.
-    *   **Ekspor Data:** Ketua RT dapat langsung mengekspor daftar warga di dalam kelompok tersebut ke format Excel atau PDF untuk dicetak atau diserahkan ke pihak kelurahan/dinas sosial.
+    Menampilkan analitik data wilayah RT secara real-time dan interaktif:
+    *   **A. KPI Cards Ringkasan:**
+        *   `Total Rumah`: Jumlah total bangunan fisik rumah terdaftar di RT.
+        *   `Total Penduduk`: Jumlah kumulatif warga aktif (warga tetap + penyewa aktif).
+        *   `Kepala Keluarga`: Total Kartu Keluarga (KK) yang aktif terdaftar.
+        *   `Anak Kos`: Total penyewa kos/kontrakan perorangan yang aktif menghuni.
+    *   **B. Mutasi Penduduk:**
+        *   Grafik batang mutasi 6 bulan terakhir: Perbandingan warga baru masuk (*check-in*) vs warga keluar/pindah (*check-out*).
+    *   **C. Demografi & Sosial Warga:**
+        *   `Sebaran Domisili KTP`: Analisis persentase warga ber-KTP Kelurahan Setempat vs Luar Kelurahan dengan rincian breakdown warga tetap dan penyewa.
+        *   `Rasio Gender`: Grafik perbandingan Laki-laki vs Perempuan.
+        *   `Kelompok Usia`: Pengelompokan usia warga (Anak 0-11 th, Remaja 12-17 th, Dewasa 18-59 th, Lansia 60+ th).
+        *   `Keberagaman Sosial`: Diagram sebaran Agama, Tingkat Pendidikan, dan Jenis Pekerjaan warga.
+    *   **D. Keuangan & Hunian:**
+        *   `Ringkasan Arus Kas`: Saldo kas riil saat ini, nominal iuran tertagih vs terbayar, rasio partisipasi iuran KK, dan grafik tren arus kas bulanan (*Income vs Expense*).
+        *   `Status Hunian & Okupansi`: Jumlah hunian terisi tetap, kos/homestay, hunian kosong, serta rasio okupansi kamar kos terisi vs kapasitas total.
+    *   **E. Pengaduan Warga:**
+        *   Rekapitulasi status aduan (*Menunggu, Proses, Selesai, Ditolak*) dan 5 kategori aduan terbanyak (Infrastruktur, Kebersihan, Keamanan, Sosial, dll.).
+
+*   **KT-02: Pengelolaan Kependudukan & Hunian RT (`/dashboard/residents`)**
+    *   **Manajemen Kartu Keluarga (KK):** Tambah data KK dan akun Kepala Keluarga, edit biodata keluarga, nonaktifkan KK (pindah/meninggal), dan aktifkan kembali data KK.
+    *   **Manajemen Penyewa (Kos/Kontrakan):** Input *check-in* penyewa baru, verifikasi berkas identitas penyewa, pembaruan data sewa, dan pemrosesan *check-out*.
+    *   **Manajemen Hunian Fisik:** Pendaftaran nomor rumah/blok, tipe hunian (permanen/kos/homestay), dan status hunian.
+    *   **Manajemen Koordinator Kos:** Penunjukan akun koordinator kos baru, pembaruan data, dan penonaktifan akses koordinator.
+
+*   **KT-03: Kelompok Warga Dinamis (Smart Groups) & Ekspor Data (`/dashboard/smart-groups`)**
+    Menyajikan fitur penyaringan dan pencarian data warga terpadu secara akurat, instan, dan mudah dikustomisasi:
+    *   **Filter Terpadu Multi-Kriteria:**
+        *   `Pencarian Instan`: Cari cepat berdasarkan Nama Warga atau NIK (16 digit).
+        *   `Rentang Usia`: Filter batas usia minimum (misal: 17 th) dan batas usia maksimum (misal: 60 th).
+        *   `Jenis Kelamin`: Semua, Laki-laki (L), atau Perempuan (P).
+        *   `Status Iuran RT`: Semua, Lunas (Lancar), atau Menunggak.
+        *   `Tipe Tempat Tinggal`: Semua, Warga Tetap (Permanen), atau Kos / Sewa.
+        *   `Blok Rumah`: Semua atau spesifik blok (Blok A, B, C, D, E).
+        *   `Agama`: Semua atau pilihan agama resmi (Islam, Kristen, Katolik, Hindu, Buddha, Khonghucu).
+        *   `Pekerjaan`: Input pencarian jenis pekerjaan (misal: Swasta, PNS, Wiraswasta, Buruh, Pelajar).
+        *   `Hubungan Dalam Keluarga`: Multi-select checkbox (Kepala Keluarga, Suami, Istri, Anak, Orang Tua / Mertua, Lainnya).
+    *   **Manajemen Preset Filter Favorit (Saved Groups):**
+        *   *Simpan Sebagai Preset Baru:* Menyimpan kombinasi filter aktif dengan nama kustom (misal: *"Warga Lansia Menunggak Blok A"* atau *"Penerima Bantuan Sembako"*).
+        *   *Buka Preset Tersimpan:* Memuat kembali konfigurasi filter tersimpan hanya dengan satu klik dari dropdown.
+        *   *Perbarui Preset:* Mengupdate kriteria pada preset filter yang sedang aktif.
+        *   *Hapus Preset:* Menghapus preset yang sudah tidak digunakan.
+        *   *Reset Filter:* Mengembalikan seluruh kontrol filter ke kondisi default awal.
+    *   **Hasil Penyaringan & Ekspor CSV/Excel:**
+        *   Tabel hasil menampilkan rekapitulasi data warga terfilter (Nama, NIK, L/P, Usia, Hubungan, Blok & Rumah, Agama, Pekerjaan, dan Status Iuran).
+        *   Tombol **`[Ekspor Excel]`** untuk mengunduh seluruh data warga yang tersaring ke format file CSV/Excel bertanda UTF-8 BOM (`daftar_warga_terfilter_[tanggal].csv`).
+
+*   **KT-04: Antrean Persetujuan & Verifikasi Dokumen (`/dashboard/approvals`)**
+    *   **Persetujuan Registrasi:** Meninjau dan menyetujui/menolak permohonan pendaftaran mandiri akun warga (`pending` -> `active` / `rejected`).
+    *   **Verifikasi Berkas KK/KTP:** Memeriksa berkas scan KK dan KTP warga/penyewa untuk memastikan keabsahan data kependudukan (`pending` -> `verified` / `rejected`).
+
+*   **KT-05: Pengelolaan Kas RT & Iuran Warga (`/dashboard/kas` & `/dashboard/iuran`)**
+    *   **Pencatatan Kas Masuk & Keluar:** Input transaksi pemasukan kas lain-lain dan pengeluaran kas operasional RT disertai bukti kuitansi fisik.
+    *   **Laporan Keuangan Resmi:** Laporan buku kas bulanan dengan visualisasi diagram kategori dan fitur cetak dokumen PDF resmi bertanda tangan digital pengurus.
+    *   **Iuran Warga:** Pembuatan aturan iuran (wajib/sukarela), input pembayaran iuran per periode, serta pemantauan rekapitulasi tunggakan iuran warga.
+
+*   **KT-06: Portal Informasi & Penanganan Aduan Warga (`/dashboard/announcements`, `activities`, `complaints`)**
+    *   **Kelola Pengumuman:** Publikasi berita, himbauan, dan informasi resmi warga dengan opsi *pin/unpin* pengumuman penting.
+    *   **Kelola Agenda Kegiatan:** Penjadwalan jadwal kerja bakti, rapat warga, posyandu, atau peringatan hari besar.
+    *   **Tanggapan Aduan Warga:** Penanganan laporan keluhan warga, pengisian catatan tindak lanjut, dan perubahan status aduan (*Menunggu* -> *Proses* -> *Selesai* / *Ditolak*).
+
+*   **KT-07: Cetak QR Code RT (`/dashboard/qr-codes`)**
+    *   Pencetakan dan pengunduhan QR Code nomor rumah/hunian warga dan sekretariat RT, baik secara satuan maupun cetak massal format PDF.
+
+*   **KT-08: Fitur Dual Role (Mode Warga Personal)**
+    *   Ketua RT dapat berganti peran secara instan ke *Mode Warga Personal* untuk mengelola data anggota keluarganya sendiri, memantau iuran pribadi, dan melihat aset sewa pribadi tanpa perlu keluar dari akun.
 
 ---
 
@@ -99,79 +108,142 @@ Ketika Ketua RT login, menu sidebar utama meliputi:
 
 ```mermaid
 flowchart TD
-    A[Ketua RT Login] --> B[Masuk Dashboard Pengurus]
-    B --> C{Pilih Tindakan}
+    A[Ketua RT Login] --> B[Masuk Dashboard Utama RT]
+    B --> C{Pilih Menu Tindakan}
     
-    C -->|Verifikasi Registrasi| D[Setujui Registrasi Akun Warga Baru]
-    C -->|Verifikasi Dokumen| E[Periksa KK/KTP Warga & KTP Anak Kos]
-    C -->|Otorisasi Keuangan| F[Approve Draf Pengeluaran dari Bendahara]
-    C -->|Cetak QR| H[Unduh QR Code Rumah untuk Dipasang]
+    C -->|Verifikasi & Approval| D[Persetujuan Akun Warga & Berkas KK/KTP]
+    C -->|Kelola Kependudukan| E[Kelola KK, Warga Tetap, Penyewa & Hunian]
+    C -->|Smart Groups & QR| F[Saring Kelompok Warga / Cetak QR Code Rumah]
+    C -->|Keuangan & Iuran| G[Catat Kas Masuk/Keluar & Rekap Iuran Warga]
+    C -->|Informasi & Layanan| H[Kelola Pengumuman, Agenda & Tanggapi Aduan]
+    C -->|Kebutuhan Pribadi| I[Beralih ke Mode Warga Personal]
     
-    D --> I[Selesai]
-    E --> I
-    F --> I
-    G --> I
-    H --> I
+    D --> J[Selesai]
+    E --> J
+    F --> J
+    G --> J
+    H --> J
+    I --> J
 ```
 
 ---
 
 ## 4. Alur Kerja Detail (User Flow)
 
-### 4.1 Flow Verifikasi Pendaftaran & Login
+### 4.1 Flow Persetujuan Registrasi Akun Warga Baru
 
 ```mermaid
 flowchart TD
-    A[Mulai Registrasi] --> B{Pilih Metode}
+    A[Warga Mendaftar Akun Secara Mandiri] --> B[Sistem Catat Akun Berstatus: Pending]
+    B --> C[Ketua RT Buka Menu 'Persetujuan Registrasi']
+    C --> D[Ketua RT Meninjau Nama, Email, NIK, dan Alamat Warga]
+    D --> E{Apakah Data Valid & Warga Terkonfirmasi?}
     
-    B -->|Metode 1: Dibuatkan RT| C[Ketua RT / Admin input data warga]
-    C --> D[Sistem buat akun status: Active]
-    D --> E[User terima kredensial default & login]
+    E -->|Ya| F[Ketua RT Klik 'Setujui Registrasi']
+    F --> G[Status Akun Menjadi 'Active' & User Dapat Login ke Dashboard]
     
-    B -->|Metode 2: Mandiri| F[User registrasi via form publik]
-    F --> G[Sistem buat akun status: Pending][Ketua RT terima notifikasi & verifikasi data]
-    H --> I{RT Setujui?}
-    I -->|Ya| J[RT Approve -> Status akun menjadi Active]
-    I -->|Tidak| K[RT Reject -> Pendaftaran ditolak]
-    J --> E
-    E --> L[User login & Ganti password default]
-    L --> M[Selesai]
+    E -->|Tidak| H[Ketua RT Klik 'Tolak / Tangguhkan']
+    H --> I[Status Akun Menjadi 'Suspended / Rejected']
+    
+    G --> J[Selesai]
+    I --> J
 ```
 
-### 4.2 Flow Pengelolaan Data Kependudukan (Ketua RT)
+### 4.2 Flow Pengelolaan Data Kependudukan & Hunian (Ketua RT)
 
 ```mermaid
 flowchart TD
-    A[Mulai] --> B[Ketua RT buka menu Kependudukan]
-    B --> C{Pilih aksi}
-    C -->|Tambah KK| D[Isi form data KK & data Kepala Keluarga]
-    C -->|Tambah Anggota| E[Pilih KK, isi form anggota]
-    C -->|Edit Data| F[Cari data, klik edit, ubah field]
-    C -->|Nonaktifkan| G[Pilih data, klik nonaktifkan karena pindah/meninggal]
-    D --> H[Simpan]
-    E --> H
-    F --> H
-    H --> I[Data tersimpan di database]
-    I --> J[Selesai]
+    A[Mulai] --> B[Ketua RT Buka Menu 'Data Warga & Hunian']
+    B --> C{Pilih Tab Operasional}
+    
+    %% Tab KK
+    C -->|Tab Kartu Keluarga| D[Pilih Tambah KK / Tambah Anggota / Nonaktifkan KK]
+    D --> E[Isi Data KK & Kepala Keluarga -> Simpan ke Database]
+    
+    %% Tab Penyewa
+    C -->|Tab Penyewa| F[Pilih Check-In Penyewa Baru / Verifikasi Berkas / Check-Out]
+    F --> G[Isi Data Kontrak Sewa & Identitas -> Simpan ke Database]
+    
+    %% Tab Hunian
+    C -->|Tab Hunian| H[Pilih Tambah Hunian / Edit Blok & No. Rumah]
+    H --> I[Simpan Data Hunian Fisik]
+    
+    E --> J[Data Kependudukan Terupdate Real-Time di Dashboard]
+    G --> J
+    I --> J
+    J --> K[Selesai]
 ```
 
-### 4.3 Flow Administrasi Surat Pengantar (Hybrid)
+### 4.3 Flow Pencatatan Kas RT & Laporan Keuangan
 
 ```mermaid
 flowchart TD
-    A[Warga Mengajukan Surat Pengantar Online] --> B[Sistem catat pengajuan: Menunggu Review]
-    B --> C[Sekretaris / Ketua RT buka menu Surat]
-    C --> D[Ubah status menjadi: Sedang Diproses & Salin data warga per kolom / gabungan]
-    D --> E[Pengurus paste ke template Word offline & print secara manual]
-    E --> F[Ketua RT tanda tangan & stempel basah pada surat fisik]
-    F --> G[Pengurus isi nomor surat & klik 'Tandai Siap Diambil'][Sistem ubah status: Siap Diambil & kirim Email Notifikasi]
-    H --> I[Warga datang mengambil surat fisik di rumah pengurus]
-    I --> J[Pengurus klik 'Tandai Diserahkan' di sistem]
-    J --> K[Sistem ubah status: Selesai]
-    K --> L[Selesai]
+    A[Mulai] --> B[Ketua RT Buka Menu 'Kas RT']
+    B --> C{Pilih Aksi Kas}
     
-    %% Alur Penolakan
-    C -->|Kriteria Tidak Sesuai| M[Pengurus klik Tolak & beri alasan]
-    M --> N[Sistem ubah status: Ditolak & kirim Email ke Warga]
-    N --> L
+    %% Kas Masuk
+    C -->|Pemasukan| D[Buka 'Catat Pemasukan Kas' -> Klik 'Catat Pemasukan Baru']
+    D --> E[Input Kategori, Nominal, Tanggal & Keterangan -> Simpan]
+    
+    %% Kas Keluar
+    C -->|Pengeluaran| F[Buka 'Catat Pengeluaran Kas' -> Klik 'Catat Pengeluaran Baru']
+    F --> G[Input Nominal, Kategori, Keterangan & Unggah Foto Kuitansi -> Simpan]
+    
+    %% Laporan
+    C -->|Laporan Resmi| H[Buka 'Laporan Keuangan Kas RT']
+    H --> I[Pilih Periode Bulan & Tahun -> Tinjau Arus Kas]
+    I --> J[Klik 'Cetak Laporan PDF' untuk Cetak Berkas Resmi RT]
+    
+    E --> K[Saldo Kas RT Otomatis Terkalkulasi di Dashboard]
+    G --> K
+    J --> L[Selesai]
+    K --> L
 ```
+
+### 4.4 Flow Penanganan & Respon Pengaduan Warga
+
+```mermaid
+flowchart TD
+    A[Warga Mengirim Laporan Aduan] --> B[Sistem Catat Status: Menunggu]
+    B --> C[Ketua RT Buka Menu 'Tanggapan Pengaduan Warga']
+    C --> D[Ketua RT Meninjau Kategori, Deskripsi, Foto & Lokasi Aduan]
+    D --> E{Apakah Aduan Layak Ditindaklanjuti?}
+    
+    E -->|Ya| F[Ubah Status Menjadi 'Proses' & Tulis Catatan Tindak Lanjut]
+    F --> G[Pengurus Menangani Masalah di Lapangan]
+    G --> H[Ubah Status Menjadi 'Selesai' & Beri Catatan Penyelesaian]
+    
+    E -->|Tidak / Hoax| I[Ubah Status Menjadi 'Ditolak' & Beri Alasan Penolakan]
+    
+    H --> J[Warga Menerima Notifikasi Status Penanganan]
+    I --> J
+    J --> K[Selesai]
+```
+
+### 4.5 Flow Penyaringan Warga & Manajemen Preset (Smart Groups)
+
+```mermaid
+flowchart TD
+    A[Mulai] --> B[Ketua RT Buka Menu 'Kelompok Warga']
+    B --> C{Pilih Metode Penyaringan}
+    
+    %% Metode Preset
+    C -->|Buka Preset Favorit| D[Pilih Preset Tersimpan dari Dropdown]
+    D --> E[Form Filter Otomatis Terisi Sesuai Kriteria Preset]
+    
+    %% Metode Manual
+    C -->|Filter Kustom Manual| F[Atur Kriteria: Pencarian, Usia, Gender, Status Iuran, Blok, Agama, Hubungan KK]
+    F --> G[Tabel Hasil Otomatis Menyaring Data Warga secara Real-Time]
+    
+    E --> G
+    
+    G --> H{Aksi Lanjutan}
+    H -->|Simpan Preset| I[Klik 'Simpan Sebagai Preset Baru' -> Beri Nama -> Simpan]
+    H -->|Perbarui Preset| J[Klik 'Simpan Perubahan' pada Preset Aktif]
+    H -->|Ekspor Data| K[Klik 'Ekspor Excel' -> Sistem Unduh File CSV]
+    
+    I --> L[Selesai]
+    J --> L
+    K --> L
+```
+

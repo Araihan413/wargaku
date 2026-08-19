@@ -28,7 +28,7 @@ Pengunjung yang membuka domain utama web RT akan menemui navigasi publik:
     *   **Statistik & Demografi Kependudukan Agregat** (Tanpa data individu sensitif untuk menjaga privasi):
         *   **Total Warga Aktif:** Jumlah total gabungan warga tetap dan penghuni sewa yang berstatus aktif.
         *   **Total Kepala Keluarga (KK):** Jumlah KK terdaftar di wilayah RT.
-        *   **Demografi/Sebaran Usia:** Grafik pembagian kelompok usia (Balita: 0-5 th, Anak: 6-12 th, Remaja: 13-18 th, Dewasa/Produktif: 19-59 th, Lansia: >=60 th).
+        *   **Demografi/Sebaran Usia:** Grafik pembagian kelompok usia (Balita: 0-5 th, Anak: 6-12 th, Remaja: 12-18 th, Dewasa/Produktif: 19-59 th, Lansia: >=60 th).
         *   **Sebaran Pekerjaan Warga:** Persentase jenis pekerjaan warga (contoh: PNS, Karyawan Swasta, Wiraswasta, Pelajar/Mahasiswa, Tidak Bekerja, dll.).
         *   **Sebaran Pendidikan:** Persentase tingkat pendidikan terakhir warga (Belum Sekolah, SD, SMP, SMA, Diploma, S1, S2/S3).
         *   **Status Hunian Properti:** Rasio hunian rumah (Terisi Keluarga Tetap, Rumah Kos/Kontrakan Aktif, Hunian Kosong).

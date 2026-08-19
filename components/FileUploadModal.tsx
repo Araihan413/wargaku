@@ -118,7 +118,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
       window.gapi.load("picker", () => {
         const tokenClient = window.google.accounts.oauth2.initTokenClient({
           client_id: clientId,
-          scope: "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file",
+          scope: "https://www.googleapis.com/auth/drive.file",
           callback: async (response: any) => {
             if (response.error !== undefined) {
               console.error(response);

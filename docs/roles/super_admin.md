@@ -1,67 +1,107 @@
 # Panduan Peran & Fitur: Super Admin
 
-Super Admin adalah pemilik sistem (developer/administrator teknis) yang memiliki hak akses mutlak untuk mengonfigurasi sistem, memantau aktivitas, dan mengelola akun-akun tingkat pengurus RT.
+Super Admin adalah pemilik dan pengelola sistem (teknis/administrator utama) yang memiliki hak akses tertinggi untuk mengonfigurasi sistem, mengatur hak akses (RBAC), memantau aktivitas audit keamanan, mengelola akun pengguna, serta memantau operasional lingkungan RT secara menyeluruh.
 
 ---
 
 ## 1. Navigasi & Struktur Menu (Sitemap)
 
-Ketika Super Admin login, menu sidebar utama meliputi:
-*   **Dashboard Utama:** Ringkasan statistik sistem global (jumlah RT aktif, total pengguna, audit status).
-*   **Keamanan & Otoritas:** (Menu Utama)
-    *   **Manajemen Pengguna:** (Sub-menu) Daftar seluruh akun pengguna (CRUD, reset password, mutasi peran).
-    *   **Role & Permission (RBAC):** (Sub-menu) Pengaturan hak akses dinamis bagi masing-masing role.
-    *   **Log Aktivitas (Audit Trail):** (Sub-menu) Riwayat pencatatan aksi/mutasi krusial pengguna untuk keamanan.
-*   **Pemantauan Wilayah (Read-Only):** (Menu Utama)
-    *   **Data Kependudukan:** (Sub-menu) Melihat seluruh data KK & warga di tingkat RT.
-    *   **Laporan Keuangan Kas:** (Sub-menu) Memantau rekaman kas masuk/keluar Bendahara.
-    *   **Postingan & Pengaduan:** (Sub-menu) Memantau seluruh pengumuman aktif & laporan aduan warga.
-*   **Konfigurasi Sistem:** (Menu Utama - Direct Link) Setelan nama desa, kelurahan, logo aplikasi, dan informasi kontak official.
+Ketika Super Admin login, menu sidebar navigasi mencakup:
+
+*   **Dashboard:** Ringkasan statistik performa global, distribusi peran, identitas wilayah, dan log audit keamanan terkini (`/dashboard`).
+*   **Manajemen Pengguna:** Pengelolaan seluruh akun pengguna sistem (CRUD, edit profil, mutasi jabatan pengurus, reset password sementara, toggle suspend/aktifkan) (`/dashboard/users`).
+*   **Keamanan & Otoritas:** (Menu Dropdown Accordion)
+    *   **Role & Permission:** Matriks pengelolaan hak akses izin dinamis (RBAC Matrix) untuk 6 role (`/dashboard/permissions`).
+    *   **Log Aktivitas Audit:** Catatan rekam jejak audit trail seluruh aksi & mutasi data dalam sistem (`/dashboard/audit-logs`).
+*   **Laporan Pengaduan Global:** Rekapitulasi pemantauan seluruh laporan aduan warga tingkat wilayah (`/dashboard/complaints-report`).
+*   **Konfigurasi Sistem:** Pengaturan identitas wilayah RT/RW, branding logo kop surat, alamat sekretariat, kontak official pengurus, dan kontak darurat warga (`/dashboard/system-config`).
+*   **Broadcast Sistem:** Pengelolaan siaran darurat / pengumuman banner global yang tampil di atas dashboard seluruh pengguna (`/dashboard/system-broadcast`).
+*   **Modul Kependudukan & Hunian RT:** (Menu Dropdown Accordion)
+    *   **Data Warga & Hunian:** Pemantauan data KK, warga tetap, penyewa kos, hunian, dan koordinator kos (`/dashboard/residents`).
+    *   **Kelompok Warga:** Pengelompokan warga dinamis berbasis filter kriteria (Smart Groups) (`/dashboard/smart-groups`).
+    *   **Cetak QR Code RT:** Pembuatan dan pencetakan QR Code penanda rumah & hunian (`/dashboard/qr-codes`).
+*   **Antrean Persetujuan:** (Menu Dropdown Accordion)
+    *   **Persetujuan Registrasi:** Verifikasi permohonan pendaftaran akun pengguna baru (`/dashboard/approvals/registration`).
+    *   **Verifikasi Kependudukan:** Verifikasi berkas scan KK dan KTP warga (`/dashboard/approvals/documents`).
+*   **Kas RT (Cashflow):** (Menu Dropdown Accordion)
+    *   **Catat Pemasukan Kas:** Pencatatan dan monitoring kas masuk RT (`/dashboard/kas/income`).
+    *   **Catat Pengeluaran Kas:** Pencatatan dan monitoring kas keluar RT (`/dashboard/kas/expense`).
+    *   **Laporan Keuangan Kas RT:** Rekapitulasi arus kas, grafik kategori, dan cetak PDF laporan keuangan (`/dashboard/kas/reports`).
+*   **Iuran Warga:** (Menu Dropdown Accordion)
+    *   **Kelola & Setor Iuran:** Pengaturan aturan tarif dan input setoran iuran warga (`/dashboard/iuran/manage`).
+    *   **Laporan Tunggakan Iuran:** Rekapitulasi status pembayaran dan tunggakan iuran KK (`/dashboard/iuran/tunggakan`).
+*   **Portal Informasi & Layanan:** (Menu Dropdown Accordion)
+    *   **Kelola Pengumuman:** Pembuatan dan penerbitan pengumuman warga (`/dashboard/announcements`).
+    *   **Kelola Kegiatan RT:** Agenda jadwal kegiatan dan event lingkungan RT (`/dashboard/activities`).
+    *   **Tanggapan Pengaduan Warga:** Tindak lanjut dan penanganan laporan keluhan warga (`/dashboard/complaints`).
+*   **Kelola Penyewa Kos:** Pengelolaan data rumah sewa, kamar kos, dan penyewa (`/dashboard/rentals`).
 
 ---
 
 ## 2. Fitur & Tugas Utama
 
 *   **SA-01: Dashboard Ringkasan Utama (Global Overview Dashboard)**
-    Menyajikan metrik performa operasional dan kesehatan finansial RT secara menyeluruh dalam satu layar:
-    *   `Total Warga Terdaftar`: Jumlah kumulatif warga tetap dan penyewa aktif.
-    *   `Keluarga Aktif`: Total Kepala Keluarga (KK) yang status datanya `Verified`.
-    *   `Saldo Kas RT Terkini`: Jumlah nominal saldo kas riil (sinkronisasi dari dashboard Bendahara).
-    *   `Antrean Dokumen Pending`: Jumlah KK baru yang mengunggah scan berkas dan butuh verifikasi.
-    *   `Aduan Warga Aktif`: Laporan keluhan warga yang berstatus `Menunggu` atau `Proses`.
+    Menyajikan metrik performa operasional, demografi, dan kesehatan finansial RT secara menyeluruh dalam satu layar:
+    *   `Total Warga`: Jumlah kumulatif warga tetap (anggota keluarga aktif) dan penyewa aktif perorangan.
+    *   `KK Terverifikasi`: Total Kartu Keluarga (KK) yang aktif di sistem.
+    *   `Saldo Kas RT`: Saldo kas riil saat ini (total pemasukan dikurangi total pengeluaran).
+    *   `Verifikasi Pending`: Jumlah antrean berkas KK/warga yang menunggu verifikasi + akun registrasi pending.
+    *   `Aduan Aktif`: Total laporan pengaduan warga dengan status `Menunggu` atau `Proses`.
+    *   `Audit Log Hari Ini`: Jumlah mutasi atau aktivitas sistem yang terekam pada hari berjalan.
+    *   `Admin Quick Actions Grid`: Pintasan cepat menuju Tambah Pengguna, Role & Permission, Konfigurasi Sistem, dan Log Audit.
+    *   `Identitas Wilayah Card`: Ringkasan instan nama RT/RW, kelurahan, kecamatan, kota, alamat sekretariat, dan email resmi.
+    *   `Distribusi Peran Pengguna (RBAC Widget)`: Visualisasi sebaran total akun per peran (Super Admin, Ketua RT, Sekretaris, Bendahara, Koordinator Kost, Warga).
+    *   `Log Audit Terkini`: Tabel 10 aktivitas mutasi sistem terbaru secara real-time.
+
 *   **SA-02: Manajemen Pengguna (User Account Management - CRUD)**
-    Pengelolaan siklus hidup akun pengguna sistem Wargaku:
-    *   **Tambah Pengguna Manual:** Pengisian form (Nama, Email, NIK unik, Pilihan Role) untuk registrasi cepat. Maksimal 2 akun Super Admin aktif/pending di sistem.
-    *   **Suspend / Aktivasi Akun:** Tombol toggle untuk menangguhkan akun secara sementara sehingga tidak bisa login. Akun Super Admin tidak dapat ditangguhkan oleh diri sendiri atau oleh sesama Super Admin (status dilindungi). Proses aktivasi kembali (*unsuspend*) akun Super Admin divalidasi agar tidak melebihi batas maksimal 2 akun aktif.
-    *   **Reset Password:** Mekanisme pemulihan akun yang aman menggunakan prinsip *Zero-Knowledge* dengan pembagian alur:
-        *   **Alur A (Warga, Pengurus, & Admin Biasa):** Super Admin menginisiasi pengiriman Link Reset unik (aktif 30 menit) ke email/WA pengguna tanpa mengetahui password baru. Pengguna mengisi password baru secara mandiri.
-        *   **Alur B (Super Admin):** Super Admin A menginisiasi reset untuk Super Admin B. Link Reset otomatis dikirim ke email Super Admin B. Jika email tidak tersedia (misal akun dummy dev), sistem melakukan *forced random password generation* yang hanya ditampilkan sekali di layar Super Admin A untuk diserahkan secara offline/lisan kepada Super Admin B.
-    *   **Mutasi Peran (Role Mutation):** Mengubah wewenang/hak akses warga/pengurus secara langsung (misal mempromosikan warga biasa menjadi Sekretaris atau Bendahara). Fitur mutasi ini terkunci untuk akun Super Admin: pilihan "Super Admin" dihilangkan dari dropdown mutasi peran, akun Super Admin tidak dapat dimutasi ke peran operasional lain, dan peran operasional tidak dapat dimutasi menjadi Super Admin (Super Admin baru hanya bisa dibuat secara bersih via Tambah Pengguna Baru). Perubahan peran operasional **hanya memperbarui kolom `role` di tabel `users`** tanpa mengganggu data kependudukan mereka di tabel `families` maupun `family_members`.
+    Pengelolaan siklus hidup dan otoritas akun pengguna sistem Wargaku:
+    *   **Tambah Pengguna Manual:** Pendaftaran akun baru melalui form (Nama, Email, Telepon, Role). Mendukung pembuatan akun sekaligus penautan data keluarga/NIK. Sistem memberlakukan validasi kuota maksimal **2 akun Super Admin** aktif/pending.
+    *   **Edit Data Pengguna:** Pembaruan nama lengkap, email, dan nomor kontak pengguna.
+    *   **Suspend / Aktivasi Akun:** Penangguhan akun sementara (user tidak bisa login ke dashboard). Akun Super Admin dilindungi dengan mekanisme *mutual protection* (tidak dapat menangguhkan diri sendiri atau sesama Super Admin).
+    *   **Reset Password (Kredensial Sementara):** Mekanisme pemulihan akun di mana sistem membangkitkan *temporary password* acak baru yang aman, memperbarui akun, mengirim email notifikasi resmi berisi kredensial ke user, dan menampilkan modal salin password di layar admin untuk diserahkan langsung jika diperlukan.
+    *   **Mutasi Jabatan Pengurus RT:** Penunjukan dan pergantian jabatan struktural pengurus dinas:
+        *   Pilihan peran dinas: *Ketua RT (Role 2)*, *Sekretaris RT (Role 3)*, *Bendahara RT (Role 4)*, atau *Purna Tugas / Non-Pengurus (Role 6/Warga)*.
+        *   Tiap pengguna hanya dapat memegang maksimal 1 jabatan dinas RT.
+        *   Peran Super Admin terkunci (tidak bisa dimutasi ke jabatan operasional, dan peran operasional tidak dapat dimutasi menjadi Super Admin via modal mutasi).
+        *   Perubahan jabatan hanya memperbarui data wewenang di tabel `user_roles` tanpa mengganggu data kependudukan mereka di tabel `families` maupun `family_members`.
+
 *   **SA-03: Manajemen Role & Permission (Dynamic RBAC Matrix)**
-    Mengatur pembagian hak akses fitur secara modular dan dinamis:
-    *   **Matriks Hak Akses:** Tabel visual dengan baris berisi 6 role (Super Admin, Ketua RT, Sekretaris, Bendahara, Koordinator Properti Sewa, Warga) dan kolom berisi izin modul (`read_kependudukan`, `write_kependudukan`, `read_kas`, `write_kas`, `approve_kas`, `manage_properti`, `manage_complaint`, dll.).
-    *   **Pembaruan Instan:** Men-centang atau menghapus centang langsung memperbarui aturan otorisasi di backend (API middleware) dan frontend (visibilitas menu sidebar) secara real-time.
-*   **SA-04: Lihat Kependudukan (Read-Only)**
-    Melihat seluruh data warga, KK, properti sewa, dan data anak kos dari tingkat RT secara read-only guna mengawasi keakuratan data kependudukan secara teknis tanpa berwenang mengubahnya.
-*   **SA-05: Lihat Keuangan (Read-Only)**
-    Melihat seluruh mutasi arus kas masuk, kas keluar, dan iuran bulanan yang diinput Bendahara secara read-only untuk memantau integritas data kas RT.
-*   **SA-06: Lihat Pengumuman & Laporan (Read-Only)**
-    Melihat seluruh daftar postingan pengumuman, agenda kegiatan, serta laporan aduan warga yang masuk di tingkat RT secara read-only.
-*   **SA-07: Pengaturan Sistem (Identitas Wilayah)**
-    Mengatur kustomisasi branding dan metadata wilayah:
-    *   `Nama RT/RW` (misal: RT 03 / RW 08).
-    *   `Kelurahan / Desa` (misal: Kelurahan Mulyorejo).
-    *   `Kecamatan & Kota/Kabupaten` (misal: Kec. Sukolilo, Kota Surabaya).
-    *   `Logo RT / Korp`: Upload berkas gambar (.png/.jpg) untuk ditampilkan di header aplikasi.
-    *   `Alamat Sekretariat RT`, `Email Resmi RT`, & `Kontak Pengurus` (Nomor HP/WA Official Ketua RT, Sekretaris, & Bendahara).
-*   **SA-08: Log Aktivitas (Audit Trail & Security Log)**
-    Catatan riwayat transaksi data yang tidak dapat dimanipulasi oleh pengguna lain untuk melacak kebocoran data atau kecurangan keuangan:
-    *   **Deteksi Aksi:** Log merekam aksi login, tambah data, edit data, hapus data, serta perubahan status verifikasi dokumen/kas.
-    *   **Metadata Log:** Setiap log mencantumkan `Timestamp` (waktu), `Pelaku` (Nama & NIK), `Modul terkait` (Kependudukan, Keuangan), `Deskripsi Detail` (contoh: *"Mengubah saldo kas keluar Rp 500.000 menjadi Approved"*), serta `IP Address & User Agent` pelaku.
-*   **SA-09: Isolasi Peran & Integrasi NIK Profil (Role Isolation & Profile NIK)**
-    Pencegahan pencampuran data operasional dan data administratif:
-    *   **Lock Mode Tampilan:** Akun Super Admin terkunci sepenuhnya pada mode administrasi global. Menu switch role (beralih mode tampilan ke Warga/Pengurus) dinonaktifkan seluruhnya dari dropdown profil.
-    *   **Integrasi NIK Profil:** Jika Super Admin memiliki NIK yang terdaftar sebagai warga di wilayah RT setempat (tabel `family_members`), data kependudukan pribadi miliknya (anggota keluarga, KK, alamat) dapat dibaca secara otomatis di profilnya dalam format read-only tanpa harus berpindah ke dashboard warga.
+    Pengaturan matriks hak akses fitur modular dan dinamis untuk 6 role:
+    *   **Matriks Visual Hak Akses:** Tabel matriks terkelompok per modul (`kependudukan`, `hunian`, `verifikasi`, `kas_rt`, `iuran_warga`, `pengumuman`, `kegiatan`, `laporan`, `properti`, `pengguna`, `warga`).
+    *   **Proteksi Hak Akses Kritis:**
+        *   Permission otoritas keamanan sistem (`manage-users`, `manage-roles`, `view-audit-logs`, `view-complaints-report`, `manage-system-config`) dikunci khusus Super Admin.
+        *   Permission untuk Koordinator Kost (Role 5) dan Warga (Role 6) bersifat paten dan dilindungi sistem.
+    *   **Penyimpanan Dinamis:** Mengubah centang permission dan menekan tombol *Simpan* langsung memperbarui tabel `role_permissions` di database dan berdampak instan pada otorisasi API serta menu navigasi sidebar.
+
+*   **SA-04: Log Aktivitas (Audit Trail Keamanan)**
+    Pencatatan riwayat transaksi dan mutasi sistem yang tidak dapat dimanipulasi untuk kebutuhan investigasi dan akuntabilitas:
+    *   **Perekaman Mutasi:** Mencatat aksi login, create, update, delete, suspend, aktivasi, reset password, persetujuan berkas, dan transaksi kas.
+    *   **Metadata Log:** Menampilkan Waktu (*Timestamp*), Pelaku, Modul Terkait, Deskripsi Mutasi Detail, dan Alamat IP Pelaku.
+    *   **Filter & Pencarian:** Filter berdasarkan modul, pencarian kata kunci, serta rentang tanggal.
+    *   **Ekspor Data:** Fitur pengunduhan laporan log audit ke format file CSV.
+    *   **Modal Detail Log:** Peninjauan rincian log audit secara mendalam.
+
+*   **SA-05: Laporan Pengaduan Global**
+    Pemantauan terpusat seluruh aduan keluhan warga lintas kategori (Infrastruktur, Kebersihan, Keamanan, Sosial, dll.) serta status tindak lanjutnya.
+
+*   **SA-06: Pengaturan Sistem (Identitas Wilayah & Branding)**
+    Konfigurasi identitas resmi lingkungan RT dan branding kop surat:
+    *   `Nama RT / RW` (misal: RT 001 / RW 005).
+    *   `Desa / Kelurahan`, `Kecamatan`, dan `Kota / Kabupaten`.
+    *   `Koordinat Wilayah` (Latitude & Longitude).
+    *   `Logo RT / Wilayah`: Upload berkas gambar logo untuk kop surat dan branding aplikasi.
+    *   `Alamat Sekretariat RT` dan `Email Resmi RT`.
+    *   `Kontak Official Pengurus`: Nomor WhatsApp/telepon resmi Ketua RT, Sekretaris, dan Bendahara.
+    *   `Kontak Darurat Warga`: Pengelolaan daftar kontak darurat lingkungan (Polsek, Pemadam Kebakaran, Ambulans, Puskesmas, Babinsa, dll.).
+
+*   **SA-07: Broadcast Banner Sistem**
+    Penerbitan notifikasi darurat / pengumuman banner global sistem yang tampil mencolok di bagian atas dashboard seluruh pengguna yang sedang aktif.
+
+*   **SA-08: Profil & Keamanan Akun Super Admin**
+    *   **Isolasi Peran:** Super Admin fokus pada administrasi global sistem tanpa fitur berpindah mode (switch role) ke Warga/Pengurus dari profil.
+    *   **Kelola Data Diri:** Pengubahan nama, nomor telepon, dan unggah foto profil (avatar).
+    *   **Keamanan Sandi:** Penggantian password mandiri dengan verifikasi password lama.
+    *   **Notifikasi:** Konfigurasi langganan Web Push Notification (OneSignal).
 
 ---
 
@@ -69,18 +109,22 @@ Ketika Super Admin login, menu sidebar utama meliputi:
 
 ```mermaid
 flowchart TD
-    A[Super Admin Login] --> B[Masuk Dashboard Admin]
-    B --> C{Pilih Menu}
+    A[Super Admin Login] --> B[Masuk Dashboard Utama]
+    B --> C{Pilih Menu Tindakan}
     
-    C -->|Kelola User| D[Tambah/Edit/Reset Password Pengguna]
-    C -->|Kelola Akses| E[Centang/Hapus Permission per Role]
-    C -->|Konfigurasi| F[Ubah Nama Wilayah/RT & Logo]
-    C -->|Audit Sistem| G[Lihat Riwayat Log Aktivitas Audit]
+    C -->|Manajemen Akun| D[Kelola Pengguna, Mutasi Role & Reset Sandi]
+    C -->|Otoritas Akses| E[Atur Matriks Role & Permission RBAC]
+    C -->|Audit Keamanan| F[Pantau & Ekspor CSV Log Aktivitas]
+    C -->|Identitas & Branding| G[Konfigurasi Nama Wilayah, Logo & Kontak]
+    C -->|Siaran Darurat| H[Kirim Broadcast Banner Sistem]
+    C -->|Monitoring Operasional| I[Pantau Kependudukan, Kas & Pengaduan]
     
-    D --> H[Selesai]
-    E --> H
-    F --> H
-    G --> H
+    D --> J[Selesai]
+    E --> J
+    F --> J
+    G --> J
+    H --> J
+    I --> J
 ```
 
 ---
@@ -91,84 +135,84 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Mulai] --> B[Super Admin buka menu Manajemen Role & Permission]
-    B --> C[Tampil tabel: Row = Role, Column = Permission]
-    C --> D[Super Admin centang/hapus centang permission per role]
-    D --> E[Klik Simpan]
-    E --> F[Sistem update tabel role_permissions di database]
-    F --> G[Sistem otomatis memperbarui hak akses pengguna secara dinamis]
-    G --> H[Semua user dengan role tersebut langsung terpengaruh]
-    H --> I[Selesai]
+    A[Mulai] --> B[Buka Menu 'Role & Permission']
+    B --> C[Tampil Matriks Hak Akses: 6 Peran x Modul Permission]
+    C --> D[Ubah centang permission pada peran yang diinginkan]
+    D --> E[Klik 'Simpan Hak Akses']
+    E --> F[Sistem memperbarui tabel role_permissions di database]
+    F --> G[Hak akses API & visibilitas sidebar pengguna terupdate instan]
+    G --> H[Selesai]
 ```
 
-### 4.2 Flow Manajemen Pengguna & Mutasi Peran (Super Admin)
+### 4.2 Flow Manajemen Pengguna, Mutasi & Suspend (Super Admin)
 
 ```mermaid
 flowchart TD
-    A[Mulai] --> B[Super Admin Buka Menu Manajemen Pengguna]
-    B --> C{Pilih Tindakan}
+    A[Mulai] --> B[Buka Menu 'Manajemen Pengguna']
+    B --> C{Pilih Aksi}
     
-    %% Opsi 1: Tambah User
+    %% Tambah Pengguna
     C -->|Tambah User| D[Klik 'Tambah Pengguna Baru']
-    D --> E[Isi form: Nama, Email, NIK & Pilih Peran/Role]
-    E --> F[Klik Simpan -> Sistem buat akun & kirim email aktivasi]
+    D --> E[Isi Nama, Email, Telepon, & Pilih Role]
+    E --> F{Apakah Role Super Admin?}
+    F -->|Ya| G{Apakah sudah ada 2 Super Admin?}
+    G -->|Ya| H[Sistem tolak: Batas 2 Super Admin tercapai]
+    G -->|Tidak| I[Buat akun, generate password sementara & kirim email]
+    F -->|Tidak| I
     
-    %% Opsi 2: Mutasi Peran
-    C -->|Mutasi Peran| G[Cari nama user -> Klik 'Edit Peran']
-    G --> H[Pilih Peran baru dari dropdown]
-    H --> I[Klik Simpan -> Perubahan langsung mereset otorisasi user secara instan]
+    %% Mutasi Jabatan
+    C -->|Mutasi Jabatan| J[Klik tombol 'Mutasi Peran' pada user]
+    J --> K[Pilih Jabatan Dinas: Ketua RT / Sekretaris / Bendahara / Purna Tugas]
+    K --> L[Klik 'Simpan Jabatan' -> update user_roles di database]
     
-    %% Opsi 3: Suspend Akun
-    C -->|Suspend Akun| J[Cari nama user -> Klik toggle 'Suspend']
-    J --> K[Akun terkunci -> User ditolak login di halaman Sign In]
+    %% Suspend / Aktivasi
+    C -->|Suspend / Aktifkan| M[Klik tombol Suspend / Aktivasi]
+    M --> N{Apakah Akun Super Admin?}
+    N -->|Ya| O[Aksi diblokir: Super Admin terlindungi]
+    N -->|Tidak| P[Status akun berubah & dicatat pada Audit Log]
     
-    F --> L[Selesai]
-    I --> L
-    K --> L
+    I --> Q[Selesai]
+    L --> Q
+    P --> Q
+    H --> Q
+    O --> Q
 ```
 
-### 4.3 Flow Audit Trail Keamanan (Super Admin)
+### 4.3 Flow Reset Password Pengguna
 
 ```mermaid
 flowchart TD
-    A[Mulai] --> B[Super Admin buka menu Log Aktivitas]
-    B --> C[Tampil tabel riwayat log audit terurut dari teraktual]
-    C --> D{Apakah terindikasi kecurigaan fraud / kebocoran data?}
-    D -->|Ya| E[Gunakan filter pencarian berdasarkan modul atau pelaku/NIK]
-    E --> F[Sistem menyajikan detail IP, aksi, dan detail record data yang diubah]
-    F --> G[Unduh laporan log ke Excel/CSV untuk barang bukti investigasi]
-    D -->|Tidak| H[Sistem terus merekam aktivitas secara pasif]
-    G --> I[Selesai]
-    H --> I
+    A[Mulai] --> B[Super Admin klik tombol 'Reset Password' pada user]
+    B --> C[Sistem men-generate password baru sementara secara acak]
+    C --> D[Sistem menyimpan password baru ter-hash ke database]
+    D --> E[Sistem mengirim email notifikasi kredensial baru ke pengguna]
+    E --> F[Sistem mencatat aksi ke Audit Log]
+    F --> G[Tampil modal 'Password Berhasil Di-Reset' di layar Super Admin]
+    G --> H[Super Admin dapat menyalin password temporary untuk diserahkan ke user]
+    H --> I[Pengguna login menggunakan password temporary lalu menggantinya]
+    I --> J[Selesai]
 ```
 
-### 4.4 Flow Reset Password (Zero-Knowledge)
+### 4.4 Flow Audit Trail Keamanan & Ekspor CSV
 
 ```mermaid
 flowchart TD
-    A[Mulai] --> B[Super Admin klik Reset Password di detail/profil user]
-    B --> C{Apakah target user memiliki peran Super Admin?}
+    A[Mulai] --> B[Super Admin buka menu 'Log Aktivitas Audit']
+    B --> C[Tampil tabel riwayat aktivitas terurut waktu teraktual]
+    C --> D{Pilih Aksi Investigasi}
     
-    %% Alur A: Warga, Pengurus & Admin Biasa
-    C -->|Tidak - Alur A| D[Tampil Modal Konfirmasi: Kirim link reset ke email/WA?]
-    D --> E[Super Admin klik Konfirmasi]
-    E --> F[Sistem bangkitkan Token unik exp. 30 menit]
-    F --> G[Sistem kirim LINK reset ke email/WA user]
-    G --> H[Super Admin melihat notifikasi terkirim]
-    H --> I[User klik link -> Diarahkan ke halaman Buat Password Baru]
-    I --> J[User input password baru min. 8 karakter & Simpan]
-    J --> K[Password terupdate & User bisa login]
+    D -->|Filter Data| E[Gunakan pencarian nama/pelaku atau filter modul & rentang tanggal]
+    E --> F[Tabel menyajikan data log terfilter]
     
-    %% Alur B: Target adalah Super Admin B
-    C -->|Ya - Alur B| L{Apakah Super Admin B memiliki email terdaftar?}
-    L -->|Ya| M[Sistem langsung kirim Link Reset ke email Super Admin B]
-    M --> I
-    L -->|Tidak/Dummy Dev| N[Sistem paksa generate password random secara otomatis]
-    N --> O[Sistem menampilkan password baru di layar Super Admin A HANYA 1 kali]
-    O --> P[Super Admin A menyerahkan password secara lisan/offline ke Super Admin B]
-    P --> Q[Super Admin B login menggunakan password random tersebut]
+    D -->|Lihat Detail| G[Klik baris log untuk membuka Modal Rincian Log]
+    G --> H[Tampil detail aksi, modul, deskripsi mutasi, IP address & timestamp]
     
-    K --> R[Selesai]
-    Q --> R
+    D -->|Ekspor Bukti| I[Klik tombol 'Ekspor CSV']
+    I --> J[Sistem mengunduh berkas CSV laporan log audit ke perangkat]
+    
+    F --> K[Selesai]
+    H --> K
+    J --> K
 ```
+
 

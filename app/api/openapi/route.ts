@@ -33,6 +33,11 @@ const options: swaggerJSDoc.Options = {
 const spec = swaggerJSDoc(options);
 
 export async function GET() {
+  // 🔒 Nonaktifkan endpoint OpenAPI di server produksi
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+  }
+
   try {
     return NextResponse.json(spec);
   } catch (error: any) {

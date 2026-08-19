@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:seed": "tsx db/seed.ts"
+    "db:seed": "tsx db/seed.ts",
+    "test": "vitest run",
+    "test:security": "vitest run tests/security",
+    "test:workflows": "vitest run tests/workflows",
+    "audit:endpoints": "tsx scripts/scan-api-security.ts",
+    "security:all": "npm run audit:endpoints && npm run test:security"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.23",
@@ -25,7 +30,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^1.24.0",
     "mysql2": "^3.22.6",
-    "next": "16.2.10",
+    "next": "^16.3.1",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
@@ -50,9 +55,10 @@
     "@types/swagger-ui-react": "^5.18.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "^16.3.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }
