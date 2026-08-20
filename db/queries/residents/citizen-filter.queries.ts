@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, or, like, gte, lte, inArray, desc } from "drizzle-orm";
+import { eq, and, or, like, gte, lte, inArray, desc, sql } from "drizzle-orm";
 
 export interface CitizenFilterOptions {
   searchQuery?: string;
@@ -10,6 +10,7 @@ export interface CitizenFilterOptions {
   relationships?: string[];
   religion?: string;
   occupation?: string;
+  educationLevel?: string;
   dwellingType?: string;
   blockNumber?: string;
   feeStatus?: "paid" | "unpaid" | "partially_paid" | "all" | "";
@@ -69,9 +70,19 @@ export async function filterCitizens(options: CitizenFilterOptions = {}) {
     conditions.push(eq(schema.familyMembers.gender, options.gender));
   }
 
-  // 4. Hubungan Keluarga (Multi-Select)
+  // 4. Hubungan Keluarga (Multi-Select dengan ekspansi enum lengkap)
   if (options.relationships && options.relationships.length > 0) {
-    conditions.push(inArray(schema.familyMembers.relationship, options.relationships as any));
+    const expandedRelationships: string[] = [];
+    for (const rel of options.relationships) {
+      if (rel === "Orang_Tua" || rel === "Orang_Tua_Mertua") {
+        expandedRelationships.push("Orang_Tua", "Mertua");
+      } else if (rel === "Lainnya") {
+        expandedRelationships.push("Sepupu", "Lainnya");
+      } else {
+        expandedRelationships.push(rel);
+      }
+    }
+    conditions.push(inArray(schema.familyMembers.relationship, expandedRelationships as any));
   }
 
   // 5. Agama
@@ -82,6 +93,11 @@ export async function filterCitizens(options: CitizenFilterOptions = {}) {
   // 6. Pekerjaan
   if (options.occupation && options.occupation.trim() !== "") {
     conditions.push(like(schema.familyMembers.occupation, `%${options.occupation.trim()}%`));
+  }
+
+  // 7. Pendidikan
+  if (options.educationLevel && options.educationLevel.trim() !== "") {
+    conditions.push(like(schema.familyMembers.educationLevel, `%${options.educationLevel.trim()}%`));
   }
 
   // 7. Tipe Hunian
@@ -98,9 +114,25 @@ export async function filterCitizens(options: CitizenFilterOptions = {}) {
     conditions.push(eq(schema.dwellings.blockNumber, options.blockNumber.trim()));
   }
 
-  // 9. Status Iuran
+  // 9. Status Iuran (Akumulatif via Subquery - Tanpa Duplikasi Baris)
   if (options.feeStatus && options.feeStatus !== "all") {
-    conditions.push(eq(schema.feePayments.status, options.feeStatus as any));
+    if (options.feeStatus === "unpaid") {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${schema.feePayments} 
+          WHERE ${schema.feePayments.familyId} = ${schema.families.id} 
+          AND ${schema.feePayments.status} IN ('unpaid', 'partially_paid')
+        )`
+      );
+    } else if (options.feeStatus === "paid") {
+      conditions.push(
+        sql`NOT EXISTS (
+          SELECT 1 FROM ${schema.feePayments} 
+          WHERE ${schema.feePayments.familyId} = ${schema.families.id} 
+          AND ${schema.feePayments.status} IN ('unpaid', 'partially_paid')
+        )`
+      );
+    }
   }
 
   const whereClause = and(...conditions);
@@ -121,12 +153,18 @@ export async function filterCitizens(options: CitizenFilterOptions = {}) {
       dwellingBlock: schema.dwellings.blockNumber,
       dwellingHouse: schema.dwellings.houseNumber,
       dwellingType: schema.dwellings.type,
-      feeStatus: schema.feePayments.status,
+      feeStatus: sql<string>`(
+        SELECT CASE 
+          WHEN COUNT(CASE WHEN ${schema.feePayments.status} IN ('unpaid', 'partially_paid') THEN 1 END) > 0 THEN 'unpaid'
+          ELSE 'paid'
+        END
+        FROM ${schema.feePayments} 
+        WHERE ${schema.feePayments.familyId} = ${schema.families.id}
+      )`.as('fee_status'),
     })
     .from(schema.familyMembers)
     .innerJoin(schema.families, eq(schema.familyMembers.familyId, schema.families.id))
     .leftJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
-    .leftJoin(schema.feePayments, eq(schema.families.id, schema.feePayments.familyId))
     .where(whereClause)
     .orderBy(desc(schema.familyMembers.id))
     .limit(limit)

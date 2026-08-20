@@ -172,10 +172,11 @@ async function main() {
 
     await db.insert(schema.accounts).values({
       id: 'admin-credential-id',
-      accountId: adminEmail,
+      accountId: '1',
       providerId: 'credential',
       userId: '1',
       password: hashedPassword,
+      issuer: 'local:credential',
     });
 
     console.log(`✅ Default Super Admin berhasil dibuat!`);

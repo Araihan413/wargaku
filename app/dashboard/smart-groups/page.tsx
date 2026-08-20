@@ -22,6 +22,7 @@ const initialFilterState: CitizenFilterOptions = {
   relationships: [],
   religion: "",
   occupation: "",
+  educationLevel: "",
   dwellingType: "",
   blockNumber: "",
   feeStatus: "",
@@ -369,10 +370,14 @@ export default function SmartGroupsPage() {
                   <th className="py-3.5 px-4">Usia</th>
                   <th className="py-3.5 px-4">Hubungan</th>
                   <th className="py-3.5 px-4">Blok & Rumah</th>
+                  <th className="py-3.5 px-4">Agama</th>
+                  <th className="py-3.5 px-4">Pendidikan</th>
+                  <th className="py-3.5 px-4">Pekerjaan</th>
+                  <th className="py-3.5 px-4 text-center">Status Iuran</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-border">
-                <TableSkeleton rowCount={5} colCount={6} showActionButtons={false} cellPadding="py-3 px-4" />
+                <TableSkeleton rowCount={5} colCount={10} showActionButtons={false} cellPadding="py-3 px-4" />
               </tbody>
             </table>
           </div>
@@ -388,6 +393,7 @@ export default function SmartGroupsPage() {
                   <th className="py-3.5 px-4">Hubungan</th>
                   <th className="py-3.5 px-4">Blok & Rumah</th>
                   <th className="py-3.5 px-4">Agama</th>
+                  <th className="py-3.5 px-4">Pendidikan</th>
                   <th className="py-3.5 px-4">Pekerjaan</th>
                   <th className="py-3.5 px-4 text-center">Status Iuran</th>
                 </tr>
@@ -420,6 +426,7 @@ export default function SmartGroupsPage() {
                         )}
                       </td>
                       <td className="py-3 px-4">{c.religion || "-"}</td>
+                      <td className="py-3 px-4">{c.educationLevel || "-"}</td>
                       <td className="py-3 px-4">{c.occupation || "-"}</td>
                       <td className="py-3 px-4 text-center">
                         {c.feeStatus === "paid" ? (
@@ -436,7 +443,7 @@ export default function SmartGroupsPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={9} className="text-center py-12 text-xs text-gray-secondary-text">
+                    <td colSpan={10} className="text-center py-12 text-xs text-gray-secondary-text">
                       Tidak ada warga yang sesuai dengan kriteria filter yang Anda terapkan.
                     </td>
                   </tr>

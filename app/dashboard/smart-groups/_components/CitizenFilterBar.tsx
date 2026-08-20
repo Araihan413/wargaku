@@ -3,6 +3,8 @@
 import React from "react";
 import { SearchInput } from "@/components/SearchInput";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { AutocompleteInput } from "@/components/AutocompleteInput";
+import { commonOccupations, commonEducations } from "@/lib/constants";
 import { RotateCcw, Save, FolderOpen, RefreshCw } from "lucide-react";
 import { CitizenFilterOptions } from "@/db/queries/residents/citizen-filter.queries";
 import { SavedSmartGroup } from "@/db/queries/system/smart-group.queries";
@@ -33,21 +35,13 @@ const RELIGION_OPTIONS: SelectOption[] = [
   { value: "Hindu", label: "Hindu" },
   { value: "Buddha", label: "Buddha" },
   { value: "Khonghucu", label: "Khonghucu" },
+  { value: "Lainnya", label: "Lainnya / Penghayat" },
 ];
 
 const DWELLING_TYPE_OPTIONS: SelectOption[] = [
   { value: "all", label: "Semua Status Tempat Tinggal" },
   { value: "permanen", label: "Warga Tetap (Permanen)" },
   { value: "kos", label: "Kos / Sewa" },
-];
-
-const BLOCK_OPTIONS: SelectOption[] = [
-  { value: "all", label: "Semua Blok Rumah" },
-  { value: "A", label: "Blok A" },
-  { value: "B", label: "Blok B" },
-  { value: "C", label: "Blok C" },
-  { value: "D", label: "Blok D" },
-  { value: "E", label: "Blok E" },
 ];
 
 const FEE_STATUS_OPTIONS: SelectOption[] = [
@@ -76,6 +70,41 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
   onUpdatePreset,
   isSaving,
 }) => {
+  const [availableBlocks, setAvailableBlocks] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    async function fetchBlocks() {
+      try {
+        const res = await fetch("/api/dwellings");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            const blocks = Array.from(
+              new Set(data.map((d: any) => d.blockNumber).filter(Boolean))
+            ).sort((a: any, b: any) =>
+              String(a).localeCompare(String(b), undefined, { numeric: true })
+            );
+            setAvailableBlocks(blocks as string[]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch dwelling blocks:", err);
+      }
+    }
+    fetchBlocks();
+  }, []);
+
+  const blockOptions: SelectOption[] = React.useMemo(() => {
+    const defaultOption: SelectOption = { value: "all", label: "Semua Blok Rumah" };
+    return [
+      defaultOption,
+      ...availableBlocks.map((b) => ({
+        value: b,
+        label: `Blok ${b}`,
+      })),
+    ];
+  }, [availableBlocks]);
+
   const savedGroupOptions: SelectOption[] = [
     { value: "none", label: "-- Pilih Preset Tersimpan --" },
     ...savedGroups.map((g) => ({
@@ -202,7 +231,7 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
           </div>
         </div>
 
-        {/* Jenis Kelamin */}
+        {/* Jenis Kelamin (1 col) */}
         <div>
           <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
             Jenis Kelamin
@@ -217,8 +246,34 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
           />
         </div>
 
-        {/* Status Iuran */}
+        {/* Agama (1 col) */}
         <div>
+          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
+            Agama
+          </label>
+          <CustomSelect
+            options={RELIGION_OPTIONS}
+            value={filter.religion || "all"}
+            onChange={(val) => onChange({ ...filter, religion: val === "all" ? "" : val })}
+            placeholder="Pilih Agama"
+          />
+        </div>
+
+        {/* Blok Rumah (2 cols) */}
+        <div className="sm:col-span-2 lg:col-span-2">
+          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
+            Blok Rumah
+          </label>
+          <CustomSelect
+            options={blockOptions}
+            value={filter.blockNumber || "all"}
+            onChange={(val) => onChange({ ...filter, blockNumber: val === "all" ? "" : val })}
+            placeholder="Pilih Blok Rumah"
+          />
+        </div>
+
+        {/* Status Iuran (2 cols) */}
+        <div className="sm:col-span-1 lg:col-span-2">
           <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
             Status Iuran RT
           </label>
@@ -232,8 +287,8 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
           />
         </div>
 
-        {/* Tipe Hunian */}
-        <div>
+        {/* Tipe Tempat Tinggal (2 cols) */}
+        <div className="sm:col-span-1 lg:col-span-2">
           <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
             Tipe Tempat Tinggal
           </label>
@@ -245,43 +300,29 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
           />
         </div>
 
-        {/* Blok Rumah */}
-        <div>
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Blok Rumah
-          </label>
-          <CustomSelect
-            options={BLOCK_OPTIONS}
-            value={filter.blockNumber || "all"}
-            onChange={(val) => onChange({ ...filter, blockNumber: val === "all" ? "" : val })}
-            placeholder="Pilih Blok Rumah"
-          />
-        </div>
-
-        {/* Agama */}
-        <div>
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Agama
-          </label>
-          <CustomSelect
-            options={RELIGION_OPTIONS}
-            value={filter.religion || "all"}
-            onChange={(val) => onChange({ ...filter, religion: val === "all" ? "" : val })}
-            placeholder="Pilih Agama"
-          />
-        </div>
-
-        {/* Pekerjaan */}
-        <div>
+        {/* Pekerjaan (2 cols) */}
+        <div className="sm:col-span-1 lg:col-span-2">
           <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
             Pekerjaan
           </label>
-          <input
-            type="text"
-            placeholder="Cari Pekerjaan (misal: Swasta, PNS)..."
+          <AutocompleteInput
             value={filter.occupation || ""}
-            onChange={(e) => onChange({ ...filter, occupation: e.target.value })}
-            className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-xs text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            onChange={(val) => onChange({ ...filter, occupation: val })}
+            suggestions={commonOccupations}
+            placeholder="Cari Pekerjaan (misal: Swasta, PNS)..."
+          />
+        </div>
+
+        {/* Pendidikan (2 cols) */}
+        <div className="sm:col-span-1 lg:col-span-2">
+          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
+            Pendidikan Terakhir
+          </label>
+          <AutocompleteInput
+            value={filter.educationLevel || ""}
+            onChange={(val) => onChange({ ...filter, educationLevel: val })}
+            suggestions={commonEducations}
+            placeholder="Cari Pendidikan (misal: S1, SMA)..."
           />
         </div>
       </div>

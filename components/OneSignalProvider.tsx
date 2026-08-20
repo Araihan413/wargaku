@@ -17,6 +17,12 @@ export function OneSignalProvider() {
 
     async function initOneSignal() {
       try {
+        const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+        if (!appId) {
+          // Lewati inisialisasi jika OneSignal App ID tidak diatur di .env
+          return;
+        }
+
         const res = await fetch("/api/user/notification-preference");
         if (!res.ok) return;
 
@@ -31,8 +37,8 @@ export function OneSignalProvider() {
           if (!OneSignal.initialized) {
             try {
               await OneSignal.init({
-                appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "4b65889e-4def-48b9-926c-187e0d2fe7f7",
-                allowLocalhostAsSecureOrigin: true,
+                appId,
+                allowLocalhostAsSecureOrigin: process.env.NODE_ENV === "development",
               });
             } catch (err: any) {
               if (!err?.message?.includes("already initialized")) {

@@ -1,34 +1,76 @@
 # Wargaku - Sistem Informasi Pengelolaan RT/RW
 
-**Wargaku** adalah platform full-stack berbasis web untuk digitalisasi, transparansi, dan efisiensi pengelolaan administrasi kependudukan, keuangan kas/iuran, pengaduan laporan warga, serta layanan surat-menyurat di tingkat Rukun Tetangga (RT) dan Rukun Warga (RW).
+**Wargaku** adalah platform web modern full-stack (*production-grade*) yang dirancang untuk digitalisasi, transparansi, dan efisiensi tata kelola administrasi kependudukan, keuangan kas & iuran, pengelolaan properti sewa/kos, komunikasi warga, serta penanganan pengaduan masyarakat di tingkat Rukun Tetangga (RT) dan Rukun Warga (RW).
 
 ---
 
-## 🚀 Fitur Utama (MVP)
+## 🚀 Fitur Utama (Berdasarkan Ruang Lingkup Sistem)
 
-1.  **Kependudukan Terpusat:** Pengelolaan data Kartu Keluarga (KK), warga tetap, properti sewa (kos/kontrakan), dan penghuni sewa secara detail.
-2.  **Autentikasi & RBAC (Role-Based Access Control):** Sistem login aman menggunakan **Better Auth** dengan pembagian 6 peran (*roles*): Super Admin, Ketua RT, Sekretaris, Bendahara, Koordinator Kost, dan Warga.
-3.  **Transparansi Keuangan & Iuran Bulanan:** Pencatatan otomatis tagihan iuran wajib bulanan per KK, pencatatan kas masuk/keluar oleh Bendahara, dan persetujuan pengeluaran oleh Ketua RT.
-4.  **Administrasi Surat Pengantar (Hybrid):** Warga mengajukan surat secara online, Sekretaris memproses data dengan fitur satu-klik salin data, dan Ketua RT melakukan approval secara fisik/sistem.
-5.  **Pengaduan Laporan Publik:** Formulir pelaporan warga tanpa login yang dilengkapi dengan Cloudflare Turnstile (CAPTCHA) dan pelacakan status laporan menggunakan Kode Tracking.
-6.  **Scan QR Code Hunian:** Cetak dan pindai QR Code fisik di rumah warga untuk melihat informasi dasar properti bagi tamu umum, serta informasi detail bagi warga terdaftar/pengurus.
-7.  **Smart Grouping Warga:** Fitur pembobotan kustom untuk pengelompokan warga secara dinamis berdasarkan kriteria tertentu (misal: bantuan sosial) dan ekspor ke Excel/PDF.
+1. **Autentikasi Aman & RBAC (Role-Based Access Control):**
+   * Otentikasi sesi berbasis **Better Auth** dengan pembagian 6 peran pengguna (*Super Admin, Ketua RT, Sekretaris, Bendahara, Koordinator Kos, dan Warga*).
+   * Matriks otorisasi granular dengan **24 Permission** terperinci.
+   * Fitur **Role Switcher (Dual-Role)** di Navbar untuk pengurus RT agar dapat beralih secara instan ke Mode Warga Personal (mengelola profil keluarga & iuran pribadi).
+
+2. **Kependudukan & Hunian Terpadu:**
+   * Pengelolaan data Kartu Keluarga (KK), biodata anggota keluarga, data hunian fisik, dan integrasi rumah tinggal dengan nomor blok/rumah.
+   * Alur verifikasi dokumen scan KK & KTP serta persetujuan pendaftaran akun warga mandiri.
+   * Pengajuan perubahan/pemutakhiran data keluarga (*Family Change Request*) dengan validasi pengurus.
+
+3. **Manajemen Properti Sewa (Kos & Kontrakan):**
+   * Panel operasional khusus **Koordinator Kos** untuk memantau kapasitas unit dan rasio okupansi kamar.
+   * Fitur *Quick Capacity Edit*, pendaftaran *check-in* penyewa (perorangan dengan scan KTP atau sewa keluarga), serta alur resmi *check-out*.
+
+4. **Transparansi Keuangan & Iuran Warga:**
+   * Pencatatan kas masuk & keluar disertai unggahan foto bukti nota/kuitansi fisik ke cloud.
+   * Alur persetujuan (*approval*) pengeluaran kas berjenjang oleh Ketua RT.
+   * Pembuatan aturan tarif iuran, *generate* tagihan otomatis bulanan per KK, pencatatan setoran, dan rekapitulasi tunggakan.
+   * Ekspor **Laporan Keuangan Resmi & Cetak PDF** ber-kop surat resmi RT.
+
+5. **Kelompok Warga Cerdas (Smart Groups):**
+   * Penyaringan data kependudukan terpadu multi-kriteria (`CitizenFilterBar`) berdasarkan usia, pekerjaan, agama, status verifikasi, dan tipe hunian.
+   * Penyimpanan preset filter kustom dan ekspor data daftar warga terfilter ke format **CSV/Excel**.
+
+6. **Pusat Komunikasi & Partisipasi Lingkungan:**
+   * Papan pengumuman warga resmi dengan kategori (*Umum, Penting, Mendesak*) dan fitur pin prioritas.
+   * Kalender jadwal agenda kegiatan lingkungan (kerja bakti, rapat warga, posyandu).
+   * Siaran notifikasi sistem (*System Broadcasts*) dan notifikasi internal (Personal & Dinas).
+
+7. **Pengaduan Laporan Publik:**
+   * Formulir pelaporan keluhan warga publik tanpa perlu login, terproteksi dari bot/spam menggunakan **Cloudflare Turnstile (CAPTCHA)**.
+   * Penerbitan **Kode Tracking Instan** untuk pelacakan perkembangan status penanganan laporan secara real-time.
+   * Manajemen tindak lanjut pengaduan oleh pengurus RT (Menunggu $\rightarrow$ Proses $\rightarrow$ Selesai / Ditolak).
+
+8. **QR Code Penanda Hunian:**
+   * Generator token QR unik untuk setiap rumah dan lokasi properti sewa.
+   * Pengunduhan individual dan pencetakan massal berkas PDF QR Code untuk stiker fisik hunian.
+   * Pemindaian QR Code interaktif langsung via kamera browser (tamu umum melihat info dasar properti; warga/pengurus login melihat data kependudukan).
+
+9. **Peta Spasial, Pengaturan Sistem & Audit Trail:**
+   * Peta interaktif berbasis **Leaflet** untuk visualisasi sebaran rumah tinggal, fasilitas umum, dan batas wilayah RT.
+   * Konfigurasi identitas RT (nama RT/RW, kelurahan, alamat sekretariat, logo resmi, dan kontak darurat lingkungan).
+   * *Audit Trail Log* untuk merekam jejak aktivitas pengguna dan modul yang diakses demi akuntabilitas keamanan.
 
 ---
 
 ## 🛠️ Tech Stack
 
-*   **Framework Utama:** [Next.js 16 (App Router)](https://nextjs.org/) & React 19
-*   **Bahasa Pemrograman:** [TypeScript 5](https://www.typescriptlang.org/)
-*   **Database & Driver:** MySQL 8+ & [mysql2](https://github.com/sidorares/node-mysql2)
-*   **ORM (Object-Relational Mapper):** [Drizzle ORM](https://orm.drizzle.team/)
-*   **Sistem Autentikasi:** [Better Auth](https://www.better-auth.com/)
-*   **Validasi Skema:** [Zod 4](https://zod.dev/)
-*   **Desain & UI Styling:** [Tailwind CSS v4](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
-*   **State Management:** [Zustand](https://zustand-demo.pmnd.rs/)
-*   **Visualisasi Grafik:** [Recharts](https://recharts.org/)
-*   **Peta Interaktif:** [Leaflet](https://leafletjs.com/) & `react-leaflet`
-*   **Dokumentasi API:** Swagger UI (`swagger-jsdoc` & `swagger-ui-react`)
+* **Framework Utama:** [Next.js 16 (App Router)](https://nextjs.org/) & React 19
+* **Bahasa Pemrograman:** [TypeScript 5](https://www.typescriptlang.org/)
+* **Database & Driver:** MySQL 8+ & [mysql2](https://github.com/sidorares/node-mysql2)
+* **ORM (Object-Relational Mapper):** [Drizzle ORM](https://orm.drizzle.team/) & `drizzle-kit`
+* **Sistem Autentikasi:** [Better Auth](https://www.better-auth.com/)
+* **Validasi Skema:** [Zod 4](https://zod.dev/) & `react-hook-form`
+* **Desain & Styling:** [Tailwind CSS v4](https://tailwindcss.com/), Radix UI Primitives, & [Lucide Icons](https://lucide.dev/)
+* **State Management:** [Zustand](https://zustand-demo.pmnd.rs/)
+* **Visualisasi Grafik:** [Recharts](https://recharts.org/)
+* **Peta Spasial:** [Leaflet](https://leafletjs.com/) & `react-leaflet`
+* **Ekspor & Generator:** `jspdf`, `html-to-image`, `qrcode`, & `qr-scanner`
+* **Integrasi Layanan Cloud:**
+  * **Penyimpanan Berkas / Foto:** Cloudinary
+  * **Email Transaksional:** Brevo (Sendinblue)
+  * **Anti-Bot Security:** Cloudflare Turnstile
+  * **Push Notification:** OneSignal
+* **Pengujian (Testing):** [Vitest](https://vitest.dev/)
 
 ---
 
@@ -36,26 +78,56 @@
 
 ```text
 wargaku/
-├── app/                  # Direktori Next.js App Router (UI Pages & API)
-│   ├── api/              # API Route Handlers (Auth, Kependudukan, dll.)
-│   ├── unauthorized/     # Halaman penolakan hak akses (RBAC)
-│   ├── globals.css       # Konfigurasi CSS global (Tailwind v4)
-│   ├── layout.tsx        # Layout utama aplikasi
-│   └── page.tsx          # Beranda utama
-├── db/                   # Konfigurasi Database Drizzle
-│   ├── index.ts          # Inisialisasi koneksi pool database (MySQL)
-│   ├── schema.ts         # Skema 20 tabel database lengkap
-│   └── seed.ts           # Script pengisian data awal (Roles, Permissions, & Super Admin)
-├── lib/                  # Utilitas dan Helper kode
-│   ├── auth.ts           # Konfigurasi server Better Auth
-│   ├── auth-client.ts    # Inisialisasi client Better Auth (FE)
-│   ├── rbac.ts           # Helper pengecekan hak akses di server
-│   └── validations/      # Skema Zod untuk validasi input
-├── public/               # Aset statis (gambar, icon, logo)
-├── drizzle.config.ts     # Konfigurasi Drizzle Kit untuk MySQL
-├── proxy.ts              # Next.js 16+ Route Proxy (Proteksi sesi & redirect rute)
-├── package.json          # Manajemen dependensi dan script npm
-└── tsconfig.json         # Konfigurasi TypeScript
+├── app/                      # Next.js App Router (UI Pages, Components & Handlers)
+│   ├── (auth)/               # Halaman otentikasi (login, register, forgot-password)
+│   ├── (public)/             # Portal publik (landing page, /lapor, tracking aduan, scan QR)
+│   ├── activate-account/     # Alur aktivasi akun baru warga / penyewa sewa
+│   ├── api/                  # API Route Handlers (Auth, Kependudukan, Kas, Laporan, dll.)
+│   ├── api-docs/             # Dokumentasi Swagger UI OpenAPI
+│   ├── dashboard/            # Modul Dashboard Pengurus & Warga
+│   │   ├── activities/       # Agenda & kegiatan RT
+│   │   ├── announcements/    # Manajemen pengumuman
+│   │   ├── approvals/        # Antrean verifikasi registrasi & berkas dokumen
+│   │   ├── audit-logs/       # Log aktivitas audit sistem (Super Admin)
+│   │   ├── complaints/       # Manajemen tindak lanjut pengaduan
+│   │   ├── family/           # Profil biodata Kartu Keluarga & anggota
+│   │   ├── iuran/            # Tagihan iuran & setoran bulanan
+│   │   ├── kas/              # Buku kas masuk, kas keluar & Cetak Laporan PDF
+│   │   ├── my-fees/          # Histori iuran personal warga
+│   │   ├── my-properties/    # Manajemen properti sewa pribadi
+│   │   ├── neighborhood/     # Peta spasial lingkungan & direktori tetangga
+│   │   ├── notifications/    # Notifikasi in-app
+│   │   ├── permissions/      # Matriks otorisasi RBAC (Super Admin)
+│   │   ├── qr-codes/         # Generator & cetak QR Code hunian
+│   │   ├── rentals/          # Panel Koordinator Kos & manajemen penghuni
+│   │   ├── residents/        # Master data kependudukan & mutasi
+│   │   ├── smart-groups/     # Kelompok warga cerdas & ekspor data
+│   │   ├── system-broadcast/ # Siaran notifikasi darurat/pemeliharaan sistem
+│   │   ├── system-config/    # Konfigurasi identitas RT & kontak darurat
+│   │   └── users/            # Manajemen pengguna (Super Admin)
+│   ├── globals.css           # Konfigurasi CSS Tailwind v4
+│   └── layout.tsx            # Root Layout
+├── components/               # Komponen UI global, modal dialog, formulir & provider
+├── db/                       # Konfigurasi Database Drizzle ORM
+│   ├── index.ts              # Connection pool MySQL
+│   ├── schema.ts             # Skema 20 tabel basis data
+│   └── seed.ts               # Script seeding Roles, Permissions, Pengaturan & Super Admin
+├── docs/                     # Dokumentasi Lengkap Sistem
+│   ├── roles/                # Dokumen alur peran (super_admin, ketua_rt, sekretaris, bendahara, koordinator_kos, warga, publik)
+│   └── security/             # Standar implementasi keamanan & hak akses
+├── lib/                      # Helper, utilitas & integrasi layanan pihak ketiga
+│   ├── auth.ts               # Konfigurasi Better Auth server
+│   ├── cloudinary.ts         # Helper upload media Cloudinary
+│   ├── mail.ts               # Helper pengiriman email transaksional Brevo
+│   ├── rbac.ts               # Helper validasi hak akses permission
+│   └── turnstile.ts          # Helper validasi token CAPTCHA Cloudflare Turnstile
+├── public/                   # Aset statis (gambar, logo, icon)
+├── scripts/                  # Skrip utilitas pengembang (security scanner)
+├── tests/                    # Pengujian otomatis Vitest (security & workflow tests)
+├── drizzle.config.ts         # Konfigurasi Drizzle Kit
+├── .env.example              # Template variabel lingkungan sistem
+├── package.json              # Manajemen dependensi dan script npm
+└── tsconfig.json             # Konfigurasi TypeScript
 ```
 
 ---
@@ -69,43 +141,71 @@ cd wargaku
 ```
 
 ### 2. Instalasi Dependensi
-Gunakan flag `--legacy-peer-deps` karena proyek menggunakan React 19:
 ```bash
-npm install --legacy-peer-deps
+npm install
 ```
 
 ### 3. Konfigurasi Environment Variables (`.env`)
-Buat berkas `.env` di tingkat root proyek dan masukkan kredensial koneksi database MySQL Anda serta rahasia autentikasi:
-```env
-DATABASE_URL="mysql://username:password@127.0.0.1:3306/wargaku"
-
-BETTER_AUTH_SECRET="masukkan_random_secret_anda"
-BETTER_AUTH_URL="http://localhost:3000"
+Salin berkas `.env.example` menjadi `.env`:
+```bash
+cp .env.example .env
 ```
+Sesuaikan konfigurasi koneksi database MySQL, kunci rahasia Better Auth, serta kredensial layanan pihak ketiga (Brevo, Cloudinary, Turnstile).
 
-### 4. Sinkronisasi Database (Drizzle Kit)
-Jalankan perintah berikut untuk membuat 20 tabel skema aplikasi secara otomatis di database MySQL Anda:
+### 4. Sinkronisasi Skema Database (Drizzle Kit)
+Jalankan perintah berikut untuk mengeksekusi migrasi skema tabel ke database MySQL:
 ```bash
 npx drizzle-kit push
 ```
 
-### 5. Seeding Data Awal (Roles, Permissions & Admin User)
-Masukkan data dasar hak akses dan akun Super Admin utama dengan mengeksekusi script seed:
+### 5. Seeding Data Awal
+Eksekusi script seeding untuk mengisi master roles, 24 permissions, pengaturan RT default, dan akun Super Admin:
 ```bash
 npm run db:seed
 ```
-*   **Akun Default Login Super Admin:**
-    *   **Email:** `admin@wargaku.local`
-    *   **Password:** `admin123`
+
+* **Akun Default Super Admin:**
+  * **Email:** `admin@wargaku.local`
+  * **Password:** `admin123`
 
 ### 6. Menjalankan Server Lokal (Development)
 ```bash
 npm run dev
 ```
-Buka [http://localhost:3000](http://localhost:3000) di browser Anda untuk melihat sistem yang berjalan.
+Akses aplikasi melalui browser di [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 📖 Dokumentasi API (Swagger)
-Ketika server lokal sedang berjalan, Anda dapat mengakses dokumentasi API yang interaktif dan dapat diuji langsung di:
-*   [http://localhost:3000/api-docs](http://localhost:3000/api-docs) (Segera hadir di Minggu 2)
+## 🧪 Pengujian & Audit Keamanan
+
+Proyek ini dilengkapi dengan serangkaian pengujian otomatis menggunakan **Vitest** serta audit keamanan endpoint API:
+
+```bash
+# Menjalankan seluruh pengujian unit & integrasi
+npm run test
+
+# Menjalankan pengujian keamanan otorisasi & proteksi endpoint
+npm run test:security
+
+# Menjalankan pengujian alur kerja (workflow)
+npm run test:workflows
+
+# Menjalankan scanner audit keamanan endpoint API
+npm run audit:endpoints
+
+# Menjalankan seluruh rangkaian uji keamanan & audit secara bersamaan
+npm run security:all
+```
+
+---
+
+## 📚 Dokumentasi Panduan Peran (Role Guides)
+
+Panduan operasional dan alur kerja detail per peran dapat dilihat pada direktori `docs/roles/`:
+* [Super Admin Guide](docs/roles/super_admin.md)
+* [Ketua RT Guide](docs/roles/ketua_rt.md)
+* [Sekretaris Guide](docs/roles/sekretaris.md)
+* [Bendahara Guide](docs/roles/bendahara.md)
+* [Koordinator Kos Guide](docs/roles/koordinator_kos.md)
+* [Warga Guide](docs/roles/warga.md)
+* [Publik Guide](docs/roles/publik.md)

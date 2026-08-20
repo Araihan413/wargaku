@@ -505,10 +505,11 @@ export async function createUserWithAccount(input: CreateUserInput) {
     // 3. Insert Account
     await tx.insert(schema.accounts).values({
       id: randomUUID(),
-      accountId: input.email,
+      accountId: userId,
       providerId: 'credential',
       userId,
       password: hashedPassword,
+      issuer: 'local:credential',
     });
 
     // 4. Auto-Link jika role Warga (6) dan input.nik ada
@@ -858,13 +859,13 @@ export async function resetUserPassword(id: string, defaultPassword: string) {
         .set({ password: hashedPassword, updatedAt: new Date() })
         .where(and(eq(schema.accounts.userId, id), eq(schema.accounts.providerId, 'credential')));
     } else {
-      const [u] = await tx.select({ email: schema.users.email }).from(schema.users).where(eq(schema.users.id, id)).limit(1);
       await tx.insert(schema.accounts).values({
         id: randomUUID(),
-        accountId: u?.email ?? '',
+        accountId: id,
         providerId: 'credential',
         userId: id,
         password: hashedPassword,
+        issuer: 'local:credential',
       });
     }
   });
@@ -1110,9 +1111,10 @@ export async function createCoordinator(input: { name: string; email: string; ph
     await db.insert(schema.accounts).values({
       id: randomUUID(),
       userId: newUserId,
-      accountId: input.email,
+      accountId: newUserId,
       providerId: 'credential',
       password: hashedPassword,
+      issuer: 'local:credential',
       createdAt: new Date(),
       updatedAt: new Date(),
     });

@@ -132,9 +132,9 @@ const sidebarItems: SidebarItem[] = [
     ],
   },
 
-  // 6. Modul Portal Informasi & Layanan (Dynamic Permitted)
+  // 6. Modul Portal Portal Informasi (Dynamic Permitted)
   {
-    title: "Portal Informasi & Layanan",
+    title: "Portal Informasi",
     icon: Megaphone,
     subItems: [
       { title: "Kelola Pengumuman", href: "/dashboard/announcements", permission: "manage-announcements" },
@@ -534,7 +534,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div className="relative shrink-0">
                         <Icon className="h-5 w-5" />
                         {((item.title === "Antrean Persetujuan" && totalPendingApprovals > 0) ||
-                          (item.title === "Portal Informasi & Layanan" && pendingComplaintCount > 0)) &&
+                          (item.title === "Portal Informasi" && pendingComplaintCount > 0)) &&
                           isCollapsed && (
                           <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-rose-600 border border-white" />
                         )}
@@ -551,7 +551,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           {formatBadgeCount(totalPendingApprovals)}
                         </span>
                       )}
-                      {item.title === "Portal Informasi & Layanan" && pendingComplaintCount > 0 && !isCollapsed && (
+                      {item.title === "Portal Informasi" && pendingComplaintCount > 0 && !isCollapsed && (
                         <span className="ml-2 inline-flex items-center justify-center min-w-4.5 px-1.5 py-0.5 text-[8px] font-bold leading-none text-white bg-rose-600 rounded-full shrink-0">
                           {formatBadgeCount(pendingComplaintCount)}
                         </span>

@@ -366,10 +366,11 @@ export async function createFamilyTenantWithUser(
 
     await tx.insert(schema.accounts).values({
       id: randomUUID(),
-      accountId: data.email,
+      accountId: userId,
       providerId: 'credential',
       userId,
       password: hashedPassword,
+      issuer: 'local:credential',
     });
 
     // 2. Buat KK untuk penyewa keluarga
