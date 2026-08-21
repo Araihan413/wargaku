@@ -128,7 +128,7 @@ export default function RegisterPage() {
   const step2Fields = [
     {
       id: "name",
-      label: accountType === "coordinator" ? "Nama Lengkap Koordinator / Pengelola" : "Nama Lengkap Kepala Keluarga",
+      label: accountType === "coordinator" ? "Nama Lengkap Pengelola" : "Nama Lengkap Kepala Keluarga",
       type: "text",
       required: true,
       placeholder: "Nama lengkap sesuai KTP",
@@ -299,8 +299,10 @@ export default function RegisterPage() {
             <Image 
               src={wargakuText}
               alt="Text Wargaku"
+              width={160}
+              height={40}
               priority
-              className="w-40"
+              className="w-40 h-10 object-contain"
             />
           </div>
           
@@ -371,7 +373,7 @@ export default function RegisterPage() {
                   }`}
                 >
                   <Building2 className="h-5 w-5" />
-                  Koordinator Kos
+                  Pengelola Kos
                 </button>
               </div>
             </div>

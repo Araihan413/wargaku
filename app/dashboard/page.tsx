@@ -18,7 +18,8 @@ export default function Dashboard() {
   const router = useRouter();
 
   const [assignedRoles, setAssignedRoles] = useState<number[]>([]);
-  const userBaseRoleId = session?.user?.roleId ?? (assignedRoles.length > 0 ? assignedRoles[0] : null);
+  const [primaryRoleId, setPrimaryRoleId] = useState<number | null>(null);
+  const userBaseRoleId = primaryRoleId ?? session?.user?.roleId ?? (assignedRoles.length > 0 ? assignedRoles[0] : null);
   const [isRolesLoaded, setIsRolesLoaded] = useState(false);
 
   useEffect(() => {
@@ -37,14 +38,17 @@ export default function Dashboard() {
           const data = await res.json();
           if (isMounted && Array.isArray(data.allowedRoles)) {
             setAssignedRoles(data.allowedRoles);
+            if (typeof data.primaryRoleId === "number") {
+              setPrimaryRoleId(data.primaryRoleId);
+            }
             
             // Initialize useRoleStore synchronously before re-rendering
             // to ensure activeRoleId is populated properly for new sessions
-            const baseRole = session.user.roleId ?? (data.allowedRoles.length > 0 ? data.allowedRoles[0] : null);
+            const baseRole = data.primaryRoleId ?? session.user.roleId ?? (data.allowedRoles.length > 0 ? data.allowedRoles[0] : null);
             const isOfficer = typeof baseRole === 'number' && baseRole >= 2 && baseRole <= 4;
             const fetchedAllowedRoles = Array.from(
               new Set([...data.allowedRoles, isOfficer ? 6 : null].filter((r): r is number => typeof r === 'number'))
-            ).sort((a: any, b: any) => a - b);
+            );
             
             useRoleStore.getState().initialize(baseRole, fetchedAllowedRoles);
             

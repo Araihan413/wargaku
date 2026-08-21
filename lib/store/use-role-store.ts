@@ -69,8 +69,7 @@ export const useRoleStore = create<RoleState>((set) => ({
       if (defaultRoleId && allowedRoles.includes(defaultRoleId)) {
         candidateRoleId = defaultRoleId;
       } else {
-        const sorted = [...allowedRoles].sort((a, b) => a - b);
-        candidateRoleId = sorted[0];
+        candidateRoleId = allowedRoles[0];
       }
     }
 

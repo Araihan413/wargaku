@@ -210,6 +210,7 @@ export default function ProfilePage() {
           profile={profile}
           isSubmitting={isSubmitting}
           onSubmit={handleUpdateProfile}
+          onProfileUpdate={setProfile}
         />
       )}
 

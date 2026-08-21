@@ -41,7 +41,8 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
               alt="Logo RT"
               width={40}
               height={40}
-              className="w-10 object-contain group-hover:scale-105 transition-transform"
+              priority
+              className="w-10 h-10 object-contain group-hover:scale-105 transition-transform shrink-0"
               unoptimized
             />
           ) : (
@@ -50,17 +51,19 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
               alt="Logo RT"
               width={40}
               height={40}
-              className="w-10 object-contain group-hover:scale-105 transition-transform"
+              priority
+              className="w-10 h-10 object-contain group-hover:scale-105 transition-transform shrink-0"
               unoptimized
             />
           )}
           <div className="flex flex-col gap-0.5 items-center">
             <Image
               src={WargakuText}
-              alt="Logo RT"
-              width={40}
-              height={40}
-              className="w-30 object-contain"
+              alt="Logo Wargaku"
+              width={120}
+              height={32}
+              priority
+              className="w-30 h-8 object-contain"
               unoptimized
             />
           </div>

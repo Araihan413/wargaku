@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { getPermissionsByRoleId } from '@/db/queries/system/permission.queries';
-import { getUserRoles } from '@/db/queries/auth/user.queries';
+import { getUserRoles, getUserPrimaryRoleId } from '@/db/queries/auth/user.queries';
 import { getEffectiveRoleId } from '@/lib/rbac';
 
 /**
@@ -46,6 +46,7 @@ export async function GET(request: Request) {
 
     const effectiveRoleId = await getEffectiveRoleId(session);
     const allowedRoles = await getUserRoles(session.user.id);
+    const primaryRoleId = (await getUserPrimaryRoleId(session.user.id)) || allowedRoles[0] || null;
     let targetRoleId = effectiveRoleId;
 
     if (requestedRoleId && !isNaN(Number(requestedRoleId))) {
@@ -67,6 +68,7 @@ export async function GET(request: Request) {
     if (!targetRoleId) {
       return NextResponse.json({
         roleId: null,
+        primaryRoleId,
         allowedRoles: [],
         permissions: [],
       });
@@ -76,6 +78,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       roleId: targetRoleId,
+      primaryRoleId,
       allowedRoles,
       permissions,
     });

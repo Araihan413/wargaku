@@ -20,6 +20,13 @@ export interface ResidentInfo {
   name: string;
 }
 
+export interface UserRoleItem {
+  roleId: number;
+  isPrimary: boolean;
+  roleName: string;
+  roleSlug: string;
+}
+
 export interface UserProfileData {
   id: string;
   name: string;
@@ -31,6 +38,7 @@ export interface UserProfileData {
   photo: string | null;
   roleId: number;
   roleIds?: number[];
+  roles?: UserRoleItem[];
   roleName: string | null;
   roleSlug: string | null;
   status: "pending" | "active" | "suspended";

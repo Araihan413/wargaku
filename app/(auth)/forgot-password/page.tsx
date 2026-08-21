@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
             width={200}
             height={200}
             priority
-            className="rounded-lg w-48 md:w-72 drop-shadow-2xl"
+            className="rounded-lg w-48 md:w-72 h-48 md:h-72 object-contain drop-shadow-2xl"
           />
         </div>
       </div>

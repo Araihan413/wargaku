@@ -21,9 +21,9 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
           {/* Col 1: Brand & Tagline (4 cols) */}
           <div className="lg:col-span-4 space-y-2">
-            <Link href="/" className="flex items-center gap-2 ">
+            <Link href="/" className="flex items-center gap-2 w-max ">
             <div className="w-max">
-              <Image src={LogoTextPutih} alt="Logo Wargaku" className="w-38" />
+              <Image src={LogoTextPutih} alt="Logo Wargaku" className="w-40 h-auto" />
             </div>
             </Link>
 

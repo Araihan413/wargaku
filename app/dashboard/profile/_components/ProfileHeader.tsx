@@ -65,6 +65,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               src={profile.image}
               alt={profile.name}
               fill
+              priority
               className="object-cover"
               unoptimized
             />

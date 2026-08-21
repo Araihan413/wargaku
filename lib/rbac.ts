@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { getUserRoles } from '@/db/queries/auth/user.queries';
+import { getUserRoles, getUserPrimaryRoleId } from '@/db/queries/auth/user.queries';
 
 /**
  * Mengambil roleId efektif pengguna dengan memperhitungkan mode active_role_id (Role Switcher).
@@ -18,7 +18,7 @@ export async function getEffectiveRoleId(session: any): Promise<number | null> {
   const userAllowedRoles = await getUserRoles(session.user.id);
   if (userAllowedRoles.length === 0) return null;
 
-  const primaryRoleId = userAllowedRoles[0] || null;
+  const primaryRoleId = (await getUserPrimaryRoleId(session.user.id)) || userAllowedRoles[0] || null;
 
   try {
     const reqCookies = await cookies();

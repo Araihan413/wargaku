@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, or, like, desc, ne, sql, inArray, notInArray, isNull } from 'drizzle-orm';
+import { eq, and, or, like, desc, asc, ne, sql, inArray, notInArray, isNull } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
 import { randomUUID } from 'crypto';
 import { notifyRoles } from '@/lib/notifications';
@@ -367,6 +367,7 @@ export async function getUserFullProfile(userId: string) {
     roleName: primaryRole?.roleName ?? 'Warga',
     roleSlug: primaryRole?.roleSlug ?? 'warga',
     roleIds: roles.map((r) => r.roleId),
+    roles,
     familyInfo: familyData ?? null,
     dwellingInfo,
     memberInfo: memberInfo ?? null,
@@ -375,14 +376,15 @@ export async function getUserFullProfile(userId: string) {
 }
 
 /**
- * Ambil daftar semua role yang dimiliki seorang user (via user_roles).
+ * Ambil daftar semua role yang dimiliki seorang user (via user_roles) dengan prioritas isPrimary di urutan pertama.
  */
 export async function getUserRoles(userId: string): Promise<number[]> {
   try {
     const records = await db
       .select({ roleId: schema.userRoles.roleId })
       .from(schema.userRoles)
-      .where(eq(schema.userRoles.userId, userId));
+      .where(eq(schema.userRoles.userId, userId))
+      .orderBy(desc(schema.userRoles.isPrimary), asc(schema.userRoles.roleId));
 
     if (records.length > 0) {
       return records.map((r) => r.roleId);
@@ -391,6 +393,57 @@ export async function getUserRoles(userId: string): Promise<number[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Mengambil roleId utama (is_primary = true) dari pengguna.
+ */
+export async function getUserPrimaryRoleId(userId: string): Promise<number | null> {
+  try {
+    const [record] = await db
+      .select({ roleId: schema.userRoles.roleId })
+      .from(schema.userRoles)
+      .where(and(eq(schema.userRoles.userId, userId), eq(schema.userRoles.isPrimary, true)))
+      .limit(1);
+
+    if (record) return record.roleId;
+
+    const roles = await getUserRoles(userId);
+    return roles[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mengubah role utama (isPrimary: true) bagi pengguna multi-role.
+ */
+export async function setUserPrimaryRole(userId: string, targetRoleId: number) {
+  const allowedRoles = await getUserRoles(userId);
+  if (!allowedRoles.includes(targetRoleId)) {
+    throw new Error('ROLE_NOT_OWNED');
+  }
+
+  await db.transaction(async (tx) => {
+    // 1. Set semua role user menjadi isPrimary = false
+    await tx
+      .update(schema.userRoles)
+      .set({ isPrimary: false })
+      .where(eq(schema.userRoles.userId, userId));
+
+    // 2. Set targetRoleId menjadi isPrimary = true
+    await tx
+      .update(schema.userRoles)
+      .set({ isPrimary: true })
+      .where(
+        and(
+          eq(schema.userRoles.userId, userId),
+          eq(schema.userRoles.roleId, targetRoleId)
+        )
+      );
+  });
+
+  return true;
 }
 
 /**
