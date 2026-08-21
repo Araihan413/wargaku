@@ -140,29 +140,72 @@ export function SystemBroadcastBanner() {
     <div
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className={`relative overflow-hidden rounded-2xl border ${style.border} ${style.bg} p-4 transition-all duration-300 shadow-sm`}
+      className={`relative overflow-hidden rounded-2xl border ${style.border} ${style.bg} p-4 transition-all duration-300 shadow-xs`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         {/* Main Content Area */}
         <div className="flex items-start gap-3 min-w-0 flex-1">
-          <div className="mt-0.5">{style.icon}</div>
+          <div className="mt-0.5 shrink-0">{style.icon}</div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md ${style.badge}`}>
-                {style.label}
-              </span>
-              <h4 className={`text-xs font-bold ${style.textTitle} truncate`}>
-                {currentItem.title}
-              </h4>
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <span className={`text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md shrink-0 ${style.badge}`}>
+                  {style.label}
+                </span>
+                <h4 className={`text-xs font-bold ${style.textTitle} truncate`}>
+                  {currentItem.title}
+                </h4>
+              </div>
+
+              {/* Close Button on Mobile (Top Right) */}
+              <button
+                type="button"
+                onClick={() => handleDismiss(currentItem.id)}
+                className="sm:hidden p-1 text-gray-placeholder hover:text-rose-600 rounded-lg transition-all cursor-pointer shrink-0 -mr-1 -mt-1"
+                title="Tutup pengumuman ini"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <p className={`text-xs ${style.textBody} mt-1 leading-relaxed`}>
+
+            <p className={`text-xs ${style.textBody} mt-1.5 leading-relaxed`}>
               {currentItem.message}
             </p>
+
+            {/* Mobile Carousel Controls (Below Message) */}
+            {broadcasts.length > 1 && (
+              <div className="flex sm:hidden items-center justify-between gap-2 mt-3 pt-2.5 border-t border-black/5 dark:border-white/5">
+                <span className="text-[10px] text-gray-secondary-text font-medium">
+                  Siaran Sistem
+                </span>
+                <div className="flex items-center gap-1.5 bg-white/80 dark:bg-black/40 backdrop-blur-xs rounded-lg px-2 py-0.5 border border-gray-border/50 text-[11px] font-bold text-gray-heading-main">
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    className="p-1 hover:text-primary transition-colors cursor-pointer"
+                    title="Sebelumnya"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-1 text-[10px]">
+                    {safeCurrentIndex + 1} / {broadcasts.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="p-1 hover:text-primary transition-colors cursor-pointer"
+                    title="Selanjutnya"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Action Controls: Nav Carousel & Dismiss Button */}
-        <div className="flex items-center gap-1.5 shrink-0 self-center">
+        {/* Desktop Action Controls: Nav Carousel & Dismiss Button */}
+        <div className="hidden sm:flex items-center gap-1.5 shrink-0 self-center">
           {broadcasts.length > 1 && (
             <div className="flex items-center gap-1 bg-white/70 dark:bg-black/30 backdrop-blur-xs rounded-xl px-2 py-1 border border-gray-border/50 text-[11px] font-bold text-gray-heading-main mr-1">
               <button
