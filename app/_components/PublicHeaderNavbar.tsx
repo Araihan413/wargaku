@@ -136,69 +136,79 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
         </button>
       </div>
 
-      {/* Mobile Menu Dropdown (Absolute Positioning) */}
+      {/* Mobile Menu Dropdown & Backdrop */}
       {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-b border-slate-200 p-4 space-y-3 shadow-xl animate-in fade-in slide-in-from-top-2 z-50">
-          <nav className="flex flex-col gap-2.5 text-sm">
-            <Link
-              href="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isHome ? mobileActiveStyle : mobileInactiveStyle}
-            >
-              Beranda
-            </Link>
+        <>
+          {/* Backdrop Overlay (Dim background & tap outside to close) */}
+          <div
+            className="lg:hidden h-screen fixed inset-0 top-20 bg-black/50 z-40 transition-all animate-in fade-in duration-200"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
 
-            <Link
-              href="/pengumuman"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isPengumuman ? mobileActiveStyle : mobileInactiveStyle}
-            >
-              Pengumuman
-            </Link>
+          {/* Solid White Mobile Menu */}
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-slate-200 p-4 space-y-3 shadow-2xl animate-in fade-in slide-in-from-top-2 z-50">
+            <nav className="flex flex-col gap-2 text-sm">
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className={isHome ? mobileActiveStyle : mobileInactiveStyle}
+              >
+                Beranda
+              </Link>
 
-            <Link
-              href="/kegiatan"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isKegiatan ? mobileActiveStyle : mobileInactiveStyle}
-            >
-              Agenda Kegiatan
-            </Link>
+              <Link
+                href="/pengumuman"
+                onClick={() => setMobileMenuOpen(false)}
+                className={isPengumuman ? mobileActiveStyle : mobileInactiveStyle}
+              >
+                Pengumuman
+              </Link>
 
-            <Link
-              href="/transparansi-kas"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isKas ? mobileActiveStyle : mobileInactiveStyle}
-            >
-              Transparansi Kas
-            </Link>
+              <Link
+                href="/kegiatan"
+                onClick={() => setMobileMenuOpen(false)}
+                className={isKegiatan ? mobileActiveStyle : mobileInactiveStyle}
+              >
+                Agenda Kegiatan
+              </Link>
 
-            <Link
-              href="/lapor"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isLapor ? mobileActiveStyle : mobileInactiveStyle}
-            >
-              Lapor Pengaduan Warga
-            </Link>
+              <Link
+                href="/transparansi-kas"
+                onClick={() => setMobileMenuOpen(false)}
+                className={isKas ? mobileActiveStyle : mobileInactiveStyle}
+              >
+                Transparansi Kas
+              </Link>
 
-            <Link
-              href="/scan-qr"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isQr ? mobileActiveStyle : mobileInactiveStyle}
-            >
-              Scan QR Rumah
-            </Link>
-          </nav>
-          <div className="pt-2 border-t border-slate-100">
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
-            >
-              <User className="w-4 h-4" />
-              <span>Masuk Aplikasi</span>
-            </Link>
+              <Link
+                href="/lapor"
+                onClick={() => setMobileMenuOpen(false)}
+                className={isLapor ? mobileActiveStyle : mobileInactiveStyle}
+              >
+                Lapor Pengaduan Warga
+              </Link>
+
+              <Link
+                href="/scan-qr"
+                onClick={() => setMobileMenuOpen(false)}
+                className={isQr ? mobileActiveStyle : mobileInactiveStyle}
+              >
+                Scan QR Rumah
+              </Link>
+            </nav>
+            <div className="pt-2 border-t border-slate-100">
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              >
+                <User className="w-4 h-4" />
+                <span>Masuk Aplikasi</span>
+              </Link>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </header>
   );

@@ -23,7 +23,7 @@ export const BrandingLogoFormSection: React.FC<BrandingLogoFormSectionProps> = (
     if (!file) return;
 
     try {
-      const result = await uploadFile(file, FILE_PRESETS.LOGO.folder);
+      const result = await uploadFile(file, FILE_PRESETS.LOGO.folder, form.logoPath);
       if (result) {
         onChange("logoPath", result.url);
         toast.success("Logo berhasil diunggah.");
@@ -35,9 +35,22 @@ export const BrandingLogoFormSection: React.FC<BrandingLogoFormSectionProps> = (
     }
   };
 
-  const handleRemoveLogo = () => {
+  const handleRemoveLogo = async () => {
+    const currentLogo = form.logoPath;
     onChange("logoPath", null);
     toast.info("Logo dihapus.");
+
+    if (currentLogo) {
+      try {
+        await fetch("/api/upload", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: currentLogo }),
+        });
+      } catch (err) {
+        console.error("Gagal menghapus logo dari Cloudinary:", err);
+      }
+    }
   };
 
   return (
@@ -58,7 +71,7 @@ export const BrandingLogoFormSection: React.FC<BrandingLogoFormSectionProps> = (
         </div>
       </div>
 
-      <div className="p-6 flex flex-col sm:flex-row items-start gap-6">
+      <div className="p-6 flex flex-col sm:flex-row gap-6">
         {/* Logo Preview Box */}
         <div className="shrink-0">
           <div className="w-36 h-36 rounded-2xl border-2 border-dashed border-gray-border bg-gray-50 flex items-center justify-center overflow-hidden">
@@ -134,14 +147,6 @@ export const BrandingLogoFormSection: React.FC<BrandingLogoFormSectionProps> = (
             className="hidden"
           />
 
-          {/* URL Aktif */}
-          {form.logoPath && (
-            <div className="mt-2 p-2.5 bg-gray-100/80 border border-gray-border rounded-xl">
-              <p className="text-[10px] text-gray-secondary-text font-mono truncate">
-                URL Aktif: {form.logoPath}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>

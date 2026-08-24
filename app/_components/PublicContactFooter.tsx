@@ -103,17 +103,17 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
             <div className="space-y-2.5 text-xs text-slate-400 font-medium">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{addressText}</span>
+                <span className="leading-relaxed">{addressText || "Belum Tersedia"}</span>
               </div>
 
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>{settings?.officialEmail || "creativemu1922@gmail.com"}</span>
+                <span>{settings?.officialEmail || "Belum Tersedia"}</span>
               </div>
 
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>{settings?.officialRtPhone || "0812-3219-2245"}</span>
+                <span>{settings?.officialRtPhone || "Belum Tersedia"}</span>
               </div>
             </div>
           </div>

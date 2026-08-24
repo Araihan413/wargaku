@@ -146,7 +146,7 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({ mode, scanResult
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-3 md:col-span-2">
             <div className="flex items-center gap-2 text-slate-700 font-bold text-xs">
               <User className="w-4 h-4 text-blue-600" />
-              <span>Pemilik / Kepala Keluarga</span>
+              <span>Pemilik Hunian</span>
             </div>
             <p className="text-base font-extrabold text-slate-900">
               {ownerName || "Data Pemilik Belum Terdaftar"}

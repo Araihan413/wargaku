@@ -183,7 +183,7 @@ function WargaMyFeesContent() {
           <h1 className="text-3xl font-extrabold text-gray-heading-main flex items-center gap-2.5">
             Status & Histori Iuran Warga
           </h1>
-          <p className="text-xs text-gray-secondary-text mt-1">
+          <p className="text-sm text-gray-secondary-text mt-1">
             Pantau catatan kelunasan dan riwayat pembayaran iuran keluarga yang telah dicatat oleh Bendahara RT.
           </p>
         </div>
@@ -294,8 +294,8 @@ function WargaMyFeesContent() {
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-extrabold inline-block border ${
                     data.currentMonthRemaining === 0
-                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                      : "bg-rose-100 text-rose-800 border-rose-300"
+                      ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                      : "bg-rose-100 text-rose-700 border-rose-300"
                   }`}
                 >
                   {data.currentMonthRemaining === 0 ? "Lunas" : "Belum Lunas"}
@@ -321,7 +321,7 @@ function WargaMyFeesContent() {
                   <CreditCard className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-purple-700 pt-2">
+              <div className="text-xl font-black text-purple-600 pt-2">
                 {formatRupiah(data.totalPaidThisYear)}
               </div>
               <p className="text-[11px] text-gray-secondary-text">
@@ -340,7 +340,7 @@ function WargaMyFeesContent() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2 pt-2 flex-wrap">
-                <span className="text-lg font-bold text-gray-heading-main">
+                <span className="text-xl font-black text-blue-600">
                   {formatDate(data.lastPaymentDate)}
                 </span>
                 {data.lastPaymentRuleName && (
