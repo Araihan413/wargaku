@@ -3,13 +3,14 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 import {
   getRentalPropertyById,
   updateRentalProperty,
   deleteRentalProperty,
   isPropertyOwner,
+  cleanupOldCoordinatorRole,
 } from '@/db/queries/property/rental-property.queries';
 import { findOrCreatePendingCoordinatorByPhone, getUserFullProfile } from '@/db/queries/auth/user.queries';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
@@ -194,41 +195,23 @@ export async function PUT(
     }
 
     // 1. Auto-assign Role 5 to new coordinator
-    await db.insert(schema.userRoles).values({
-      userId: newCoordinatorId,
-      roleId: 5,
-      isPrimary: false,
-    }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
-
-    // 2. If coordinator changed, remove Role 5 from old coordinator if no remaining active properties
-    if (oldCoordinatorId && oldCoordinatorId !== newCoordinatorId) {
-      const remainingManaged = await db
-        .select({ id: schema.rentalProperties.id })
-        .from(schema.rentalProperties)
-        .where(
-          and(
-            eq(schema.rentalProperties.coordinatorUserId, oldCoordinatorId),
-            ne(schema.rentalProperties.id, propertyId),
-            eq(schema.rentalProperties.isActive, true)
-          )
-        );
-
-      if (remainingManaged.length === 0) {
-        await db
-          .delete(schema.userRoles)
-          .where(
-            and(
-              eq(schema.userRoles.userId, oldCoordinatorId),
-              eq(schema.userRoles.roleId, 5)
-            )
-          );
-      }
+    if (newCoordinatorId) {
+      await db.insert(schema.userRoles).values({
+        userId: newCoordinatorId,
+        roleId: 5,
+        isPrimary: false,
+      }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
     }
 
     await updateRentalProperty(propertyId, {
       ...validated,
       coordinatorUserId: newCoordinatorId,
     });
+
+    // If coordinator changed, cleanup old coordinator's Role 5 if no remaining active properties
+    if (oldCoordinatorId && oldCoordinatorId !== newCoordinatorId) {
+      await cleanupOldCoordinatorRole(oldCoordinatorId);
+    }
 
     return NextResponse.json({ message: 'Properti pribadi berhasil diperbarui' });
 
@@ -305,6 +288,10 @@ export async function DELETE(
     }
 
     await deleteRentalProperty(propertyId);
+
+    if (property.coordinatorUserId) {
+      await cleanupOldCoordinatorRole(property.coordinatorUserId);
+    }
 
     return NextResponse.json({ message: 'Properti pribadi berhasil dinonaktifkan' });
   } catch (error: any) {

@@ -24,7 +24,7 @@ const actions: QuickActionItem[] = [
     href: "/dashboard/family",
     icon: Users,
     bgGradient: "hover:border-blue-200 hover:bg-blue-50/50",
-    iconBg: "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",
+    iconBg: "bg-blue-500 text-white shadow-xs",
     iconColor: "text-blue-600",
   },
   {
@@ -34,7 +34,7 @@ const actions: QuickActionItem[] = [
     icon: Receipt,
     badge: "Iuran",
     bgGradient: "hover:border-emerald-200 hover:bg-emerald-50/50",
-    iconBg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",
+    iconBg: "bg-emerald-500 text-white shadow-xs",
     iconColor: "text-emerald-600",
     requiresVerification: true,
   },
@@ -44,7 +44,7 @@ const actions: QuickActionItem[] = [
     href: "/lapor",
     icon: AlertCircle,
     bgGradient: "hover:border-amber-200 hover:bg-amber-50/50",
-    iconBg: "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",
+    iconBg: "bg-amber-500 text-white shadow-xs",
     iconColor: "text-amber-600",
   },
   {
@@ -53,7 +53,7 @@ const actions: QuickActionItem[] = [
     href: "/transparansi-kas",
     icon: Wallet,
     bgGradient: "hover:border-purple-200 hover:bg-purple-50/50",
-    iconBg: "bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400",
+    iconBg: "bg-purple-500 text-white shadow-xs",
     iconColor: "text-purple-600",
   },
   {
@@ -62,7 +62,7 @@ const actions: QuickActionItem[] = [
     href: "/dashboard/neighborhood",
     icon: Search,
     bgGradient: "hover:border-indigo-200 hover:bg-indigo-50/50",
-    iconBg: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400",
+    iconBg: "bg-indigo-500 text-white shadow-xs",
     iconColor: "text-indigo-600",
     requiresVerification: true,
   },
@@ -113,7 +113,7 @@ export function WargaQuickActions({ isVerified = true }: WargaQuickActionsProps)
                       <Lock className="h-3 w-3" /> Terkunci
                     </span>
                   ) : action.badge ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                       {action.badge}
                     </span>
                   ) : (

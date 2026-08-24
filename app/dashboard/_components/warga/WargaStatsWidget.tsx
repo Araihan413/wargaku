@@ -35,7 +35,7 @@ export function WargaStatsWidget({ stats, finance }: WargaStatsWidgetProps) {
           <span className="text-xs font-semibold text-gray-secondary-text">Total Penduduk RT</span>
           <p className="text-2xl font-black text-gray-heading-main">{totalWarga} Warga</p>
         </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
           <Users className="h-5 w-5" />
         </div>
       </div>
@@ -46,7 +46,7 @@ export function WargaStatsWidget({ stats, finance }: WargaStatsWidgetProps) {
           <span className="text-xs font-semibold text-gray-secondary-text">Kartu Keluarga (KK)</span>
           <p className="text-2xl font-black text-gray-heading-main">{totalKK} KK</p>
         </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
           <Home className="h-5 w-5" />
         </div>
       </div>
@@ -61,11 +61,11 @@ export function WargaStatsWidget({ stats, finance }: WargaStatsWidgetProps) {
             <span className="text-xs font-semibold text-gray-secondary-text">Saldo Kas RT Transparan</span>
             <ArrowUpRight className="h-3.5 w-3.5 text-gray-400 group-hover:text-purple-600 transition-colors" />
           </div>
-          <p className="text-xl font-black text-purple-700 dark:text-purple-300">
+          <p className="text-xl font-black text-purple-700">
             {formatRupiah(balance)}
           </p>
         </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400 group-hover:scale-110 transition-transform">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-100 text-purple-600 group-hover:scale-110 transition-transform">
           <Wallet className="h-5 w-5" />
         </div>
       </Link>

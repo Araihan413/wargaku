@@ -321,7 +321,7 @@ function WargaMyFeesContent() {
                   <CreditCard className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-purple-700 dark:text-purple-300 pt-2">
+              <div className="text-2xl font-black text-purple-700 pt-2">
                 {formatRupiah(data.totalPaidThisYear)}
               </div>
               <p className="text-[11px] text-gray-secondary-text">

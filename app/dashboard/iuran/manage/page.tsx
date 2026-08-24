@@ -333,8 +333,7 @@ function KelolaManagedContent() {
         title="Hapus Aturan Iuran"
         description={
           <span>
-            Anda yakin ingin menghapus aturan iuran <strong>&quot;{deletingRule?.name}&quot;</strong>?{" "}
-            <span className="text-rose-600">Seluruh riwayat tagihan terkait juga akan dihapus permanen.</span>
+            Anda yakin ingin menghapus aturan iuran <strong>&quot;{deletingRule?.name}&quot;</strong>? Tagihan yang belum dibayar akan dibersihkan. Jika sudah ada pembayaran lunas, riwayat pembukuan kas tetap tersimpan aman di arsip.
           </span>
         }
         confirmText="Hapus Aturan"

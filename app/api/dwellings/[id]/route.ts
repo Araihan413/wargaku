@@ -140,6 +140,8 @@ export async function PUT(
       latitude: validatedData.latitude,
       longitude: validatedData.longitude,
       ownerUserId: validatedData.ownerUserId,
+      ownerName: validatedData.ownerName,
+      ownerPhone: validatedData.ownerPhone,
     });
 
     const ipAddress = await getClientIp(request);

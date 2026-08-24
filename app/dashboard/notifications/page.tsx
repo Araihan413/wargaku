@@ -215,7 +215,7 @@ export default function NotificationsPage() {
     const lowercaseTitle = title.toLowerCase();
     if (lowercaseTitle.includes("ditolak") || lowercaseTitle.includes("tolak")) {
       return (
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
           <AlertCircle className="h-5 w-5" />
         </div>
       );
@@ -226,20 +226,20 @@ export default function NotificationsPage() {
       lowercaseTitle.includes("berhasil")
     ) {
       return (
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
           <CheckCircle className="h-5 w-5" />
         </div>
       );
     }
     if (category === "dinas") {
       return (
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
           <Bell className="h-5 w-5" />
         </div>
       );
     }
     return (
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
         <Info className="h-5 w-5" />
       </div>
     );
@@ -377,8 +377,8 @@ export default function NotificationsPage() {
                     </span>
                     <span className={`text-[9px] uppercase px-1.5 py-0.5 font-bold rounded-md tracking-wider ${
                       notif.category === "dinas"
-                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950/20"
-                        : "bg-blue-50 text-blue-700 dark:bg-blue-950/20"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-blue-50 text-blue-700"
                     }`}>
                       {notif.category}
                     </span>

@@ -231,7 +231,7 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
         {/* Body Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-thin">
           {isHead && (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-50/50 dark:bg-amber-950/20 p-3 text-xs text-amber-800 dark:text-amber-300">
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-50/50 p-3 text-xs text-amber-800">
               Peran sebagai <strong>Kepala Keluarga</strong> terhubung dengan akun utama keluarga ini.
             </div>
           )}

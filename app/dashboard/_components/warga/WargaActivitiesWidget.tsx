@@ -34,7 +34,7 @@ export function WargaActivitiesWidget({ activities }: WargaActivitiesWidgetProps
     <div className="rounded-3xl border border-gray-border bg-gray-card p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
             <CalendarDays className="h-5 w-5" />
           </div>
           <div>
@@ -67,10 +67,10 @@ export function WargaActivitiesWidget({ activities }: WargaActivitiesWidgetProps
                 className="flex items-start gap-3.5 rounded-2xl border border-gray-border/60 bg-gray-sidebar-hover p-3.5 transition-all hover:border-gray-border hover:bg-gray-card"
               >
                 {/* Date Badge */}
-                <div className="flex flex-col items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-900/40 text-primary px-3 py-2 shrink-0 min-w-[54px]">
+                <div className="flex flex-col items-center justify-center rounded-xl bg-primary-100 text-primary px-3 py-2 shrink-0 min-w-13.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider">{month}</span>
                   <span className="text-lg font-black leading-tight">{day}</span>
-                  <span className="text-[10px] font-medium text-primary-700 dark:text-primary-300">{dayName}</span>
+                  <span className="text-[10px] font-medium text-primary-700">{dayName}</span>
                 </div>
 
                 <div className="flex-1 min-w-0">

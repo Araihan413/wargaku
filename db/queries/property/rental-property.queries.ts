@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, like, desc, sql } from 'drizzle-orm';
+import { eq, and, like, desc, asc, sql } from 'drizzle-orm';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -215,9 +215,14 @@ export async function deleteRentalProperty(id: number) {
 /**
  * Cleanup koordinator lama jika tidak lagi menjadi koordinator manapun.
  * Via user_roles: jika koordinator tidak lagi punya properti aktif, hapus role 5 dari user_roles.
+ * Jika role 5 yang dihapus sebelumnya adalah role primer (isPrimary: true),
+ * otomatis tentukan role lain milik user (atau Role 6 Warga) sebagai role primer.
  */
-export async function cleanupOldCoordinatorRole(oldCoordinatorId: string) {
-  const [res] = await db
+export async function cleanupOldCoordinatorRole(oldCoordinatorId: string, tx?: any) {
+  if (!oldCoordinatorId) return;
+  const runner = tx || db;
+
+  const [res] = await runner
     .select({ count: sql<number>`count(*)` })
     .from(schema.rentalProperties)
     .where(and(eq(schema.rentalProperties.coordinatorUserId, oldCoordinatorId), eq(schema.rentalProperties.isActive, true)));
@@ -225,9 +230,43 @@ export async function cleanupOldCoordinatorRole(oldCoordinatorId: string) {
   const activeCount = Number(res?.count ?? 0);
 
   if (activeCount === 0) {
+    // Cek apakah user memiliki Role 5 dengan status isPrimary: true
+    const [primaryRole5] = await runner
+      .select({ id: schema.userRoles.id })
+      .from(schema.userRoles)
+      .where(and(eq(schema.userRoles.userId, oldCoordinatorId), eq(schema.userRoles.roleId, 5), eq(schema.userRoles.isPrimary, true)))
+      .limit(1);
+
     // Hapus role koordinator (5) dari user_roles
-    await db
+    await runner
       .delete(schema.userRoles)
       .where(and(eq(schema.userRoles.userId, oldCoordinatorId), eq(schema.userRoles.roleId, 5)));
+
+    // Jika Role 5 yang dihapus tadi adalah isPrimary, pastikan user tetap memiliki 1 primary role
+    if (primaryRole5) {
+      const remainingRoles = await runner
+        .select({ id: schema.userRoles.id, roleId: schema.userRoles.roleId })
+        .from(schema.userRoles)
+        .where(eq(schema.userRoles.userId, oldCoordinatorId))
+        .orderBy(asc(schema.userRoles.roleId));
+
+      if (remainingRoles.length > 0) {
+        // Set role pertama yang tersisa sebagai primary
+        await runner
+          .update(schema.userRoles)
+          .set({ isPrimary: true })
+          .where(eq(schema.userRoles.id, remainingRoles[0].id));
+      } else {
+        // Jika tidak ada role lain, tambahkan Role 6 (Warga) sebagai primary
+        await runner
+          .insert(schema.userRoles)
+          .values({
+            userId: oldCoordinatorId,
+            roleId: 6,
+            isPrimary: true,
+          })
+          .onDuplicateKeyUpdate({ set: { isPrimary: true } });
+      }
+    }
   }
 }

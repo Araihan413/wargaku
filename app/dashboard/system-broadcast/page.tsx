@@ -295,7 +295,7 @@ export default function SystemBroadcastPage() {
                         {b.message}
                       </p>
                       {b.expiresAt && (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 mt-2 font-semibold">
+                        <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 mt-2 font-semibold">
                           <Calendar className="w-3 h-3" /> Expired: {new Date(b.expiresAt).toLocaleString("id-ID")}
                         </span>
                       )}

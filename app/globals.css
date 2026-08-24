@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Default background & foreground mapped to page bg & heading main */
   --background: #F8FAFC;

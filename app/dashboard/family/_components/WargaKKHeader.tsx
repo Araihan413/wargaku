@@ -243,32 +243,32 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({
 
               {/* Status Badge */}
               {isChangeDraftActive && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
                   <Edit3 className="h-3.5 w-3.5" /> Mode Draf Perubahan Data
                 </span>
               )}
               {isChangePending && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-950 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:text-blue-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
                   <Clock className="h-3.5 w-3.5" /> Perubahan Menunggu Verifikasi RT
                 </span>
               )}
               {!activeChangeReq && family.verificationStatus === "verified" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Terverifikasi RT
                 </span>
               )}
               {!activeChangeReq && family.verificationStatus === "pending" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
                   <Clock className="h-3.5 w-3.5" /> Menunggu Verifikasi RT
                 </span>
               )}
               {!activeChangeReq && family.verificationStatus === "rejected" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-950 px-2.5 py-0.5 text-xs font-bold text-red-700 dark:text-red-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
                   <AlertTriangle className="h-3.5 w-3.5" /> Ditolak RT
                 </span>
               )}
               {!activeChangeReq && family.verificationStatus === "draft" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-950 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:text-blue-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
                   <FileText className="h-3.5 w-3.5" /> Draf Registrasi Awal
                 </span>
               )}
@@ -393,7 +393,7 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({
           {/* Status Berkas */}
           <div className="flex items-center gap-2.5 text-xs">
             <div className={`flex h-8 w-8 items-center justify-center rounded-xl shrink-0 ${
-              family.kkFile ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-gray-sidebar-hover text-gray-placeholder"
+              family.kkFile ? "bg-emerald-100 text-emerald-700" : "bg-gray-sidebar-hover text-gray-placeholder"
             }`}>
               <FileText className="h-4 w-4" />
             </div>

@@ -251,6 +251,8 @@ export async function POST(request: Request) {
         latitude: validatedData.latitude,
         longitude: validatedData.longitude,
         ownerUserId: validatedData.ownerUserId,
+        ownerName: validatedData.ownerName,
+        ownerPhone: validatedData.ownerPhone,
       });
 
       const ipAddress = await getClientIp(request);

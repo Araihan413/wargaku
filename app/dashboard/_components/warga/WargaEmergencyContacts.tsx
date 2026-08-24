@@ -26,7 +26,7 @@ export function WargaEmergencyContacts({ contacts }: WargaEmergencyContactsProps
   return (
     <div className="rounded-3xl border border-gray-border bg-gray-card p-5 sm:p-6 shadow-sm space-y-4">
       <div className="flex items-center gap-2.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
           <PhoneCall className="h-5 w-5" />
         </div>
         <div>
@@ -51,7 +51,7 @@ export function WargaEmergencyContacts({ contacts }: WargaEmergencyContactsProps
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="inline-block rounded-md bg-primary-100 dark:bg-primary-950 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    <span className="inline-block rounded-md bg-primary-100 px-2 py-0.5 text-[10px] font-bold text-primary">
                       {officer.role}
                     </span>
                     <h4 className="text-sm font-bold text-gray-heading-main mt-1">
@@ -79,7 +79,7 @@ export function WargaEmergencyContacts({ contacts }: WargaEmergencyContactsProps
                     </a>
                     <a
                       href={`tel:${officer.phone}`}
-                      className="inline-flex items-center justify-center rounded-xl border border-gray-border bg-gray-card hover:bg-gray-100 dark:hover:bg-gray-800 p-2 text-gray-700 dark:text-gray-200 transition-colors"
+                      className="inline-flex items-center justify-center rounded-xl border border-gray-border bg-gray-card hover:bg-gray-100 p-2 text-gray-700 transition-colors"
                       title="Telepon Langsung"
                     >
                       <Phone className="h-3.5 w-3.5" />

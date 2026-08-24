@@ -93,42 +93,42 @@ export function SystemBroadcastBanner() {
     switch (type) {
       case "maintenance":
         return {
-          bg: "bg-amber-500/10 dark:bg-amber-950/40",
+          bg: "bg-amber-500/10",
           border: "border-amber-500/30",
-          textTitle: "text-amber-900 dark:text-amber-200",
-          textBody: "text-amber-800/90 dark:text-amber-300/90",
+          textTitle: "text-amber-900",
+          textBody: "text-amber-800/90",
           badge: "bg-amber-500 text-white",
-          icon: <Wrench className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />,
+          icon: <Wrench className="w-4 h-4 text-amber-600 shrink-0" />,
           label: "Maintenance",
         };
       case "warning":
         return {
-          bg: "bg-rose-500/10 dark:bg-rose-950/40",
+          bg: "bg-rose-500/10",
           border: "border-rose-500/30",
-          textTitle: "text-rose-900 dark:text-rose-200",
-          textBody: "text-rose-800/90 dark:text-rose-300/90",
+          textTitle: "text-rose-900",
+          textBody: "text-rose-800/90",
           badge: "bg-rose-600 text-white",
-          icon: <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />,
+          icon: <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />,
           label: "Peringatan",
         };
       case "feature":
         return {
-          bg: "bg-emerald-500/10 dark:bg-emerald-950/40",
+          bg: "bg-emerald-500/10",
           border: "border-emerald-500/30",
-          textTitle: "text-emerald-900 dark:text-emerald-200",
-          textBody: "text-emerald-800/90 dark:text-emerald-300/90",
+          textTitle: "text-emerald-900",
+          textBody: "text-emerald-800/90",
           badge: "bg-emerald-600 text-white",
-          icon: <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />,
+          icon: <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />,
           label: "Fitur Baru",
         };
       default:
         return {
-          bg: "bg-blue-500/10 dark:bg-blue-950/40",
+          bg: "bg-blue-500/10",
           border: "border-blue-500/30",
-          textTitle: "text-blue-900 dark:text-blue-200",
-          textBody: "text-blue-800/90 dark:text-blue-300/90",
+          textTitle: "text-blue-900",
+          textBody: "text-blue-800/90",
           badge: "bg-blue-600 text-white",
-          icon: <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />,
+          icon: <Info className="w-4 h-4 text-blue-600 shrink-0" />,
           label: "Informasi",
         };
     }
@@ -174,11 +174,11 @@ export function SystemBroadcastBanner() {
 
             {/* Mobile Carousel Controls (Below Message) */}
             {broadcasts.length > 1 && (
-              <div className="flex sm:hidden items-center justify-between gap-2 mt-3 pt-2.5 border-t border-black/5 dark:border-white/5">
+              <div className="flex sm:hidden items-center justify-between gap-2 mt-3 pt-2.5 border-t border-black/5">
                 <span className="text-[10px] text-gray-secondary-text font-medium">
                   Siaran Sistem
                 </span>
-                <div className="flex items-center gap-1.5 bg-white/80 dark:bg-black/40 backdrop-blur-xs rounded-lg px-2 py-0.5 border border-gray-border/50 text-[11px] font-bold text-gray-heading-main">
+                <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-xs rounded-lg px-2 py-0.5 border border-gray-border/50 text-[11px] font-bold text-gray-heading-main">
                   <button
                     type="button"
                     onClick={handlePrev}
@@ -207,7 +207,7 @@ export function SystemBroadcastBanner() {
         {/* Desktop Action Controls: Nav Carousel & Dismiss Button */}
         <div className="hidden sm:flex items-center gap-1.5 shrink-0 self-center">
           {broadcasts.length > 1 && (
-            <div className="flex items-center gap-1 bg-white/70 dark:bg-black/30 backdrop-blur-xs rounded-xl px-2 py-1 border border-gray-border/50 text-[11px] font-bold text-gray-heading-main mr-1">
+            <div className="flex items-center gap-1 bg-white/70 backdrop-blur-xs rounded-xl px-2 py-1 border border-gray-border/50 text-[11px] font-bold text-gray-heading-main mr-1">
               <button
                 type="button"
                 onClick={handlePrev}
@@ -233,7 +233,7 @@ export function SystemBroadcastBanner() {
           <button
             type="button"
             onClick={() => handleDismiss(currentItem.id)}
-            className="p-1.5 text-gray-placeholder hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all cursor-pointer"
+            className="p-1.5 text-gray-placeholder hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
             title="Tutup pengumuman ini"
           >
             <X className="w-4 h-4" />

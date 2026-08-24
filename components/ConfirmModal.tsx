@@ -32,20 +32,20 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     switch (variant) {
       case "danger":
         return {
-          iconBg: "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400",
+          iconBg: "bg-red-50 text-red-600",
           icon: <AlertTriangle className="h-5 w-5" />,
           confirmBtn: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
         };
       case "warning":
         return {
-          iconBg: "bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400",
+          iconBg: "bg-amber-50 text-amber-600",
           icon: <AlertTriangle className="h-5 w-5" />,
           confirmBtn: "bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500",
         };
       case "primary":
       default:
         return {
-          iconBg: "bg-primary/10 text-primary dark:bg-primary/20",
+          iconBg: "bg-primary/10 text-primary",
           icon: <HelpCircle className="h-5 w-5" />,
           confirmBtn: "bg-primary hover:bg-primary-900 text-white focus:ring-primary",
         };

@@ -146,7 +146,7 @@ export const FamilyChangeDiffViewer: React.FC<FamilyChangeDiffViewerProps> = ({
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold">
               +{createdMembers.length}
             </span>
-            <h4 className="text-sm font-bold text-emerald-900 dark:text-emerald-300">
+            <h4 className="text-sm font-bold text-emerald-900">
               Anggota Baru yang Ditambahkan
             </h4>
           </div>
@@ -155,7 +155,7 @@ export const FamilyChangeDiffViewer: React.FC<FamilyChangeDiffViewerProps> = ({
             {createdMembers.map((m, idx) => (
               <div
                 key={m.tempId || idx}
-                className="rounded-2xl border border-emerald-300 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 relative"
+                className="rounded-2xl border border-emerald-300 bg-emerald-50/40 p-4 relative"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-2 border-b border-emerald-200/60">
                   <div className="flex items-center gap-2.5">
@@ -216,7 +216,7 @@ export const FamilyChangeDiffViewer: React.FC<FamilyChangeDiffViewerProps> = ({
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 text-amber-700 text-xs font-bold">
               ~{updatedMembers.length}
             </span>
-            <h4 className="text-sm font-bold text-amber-900 dark:text-amber-300">
+            <h4 className="text-sm font-bold text-amber-900">
               Biodata Anggota yang Diedit
             </h4>
           </div>
@@ -228,7 +228,7 @@ export const FamilyChangeDiffViewer: React.FC<FamilyChangeDiffViewerProps> = ({
               return (
                 <div
                   key={m.id}
-                  className="rounded-2xl border border-amber-300 bg-amber-50/40 dark:bg-amber-950/20 p-4 space-y-3"
+                  className="rounded-2xl border border-amber-300 bg-amber-50/40 p-4 space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-200/60">
                     <div className="flex items-center gap-2.5">
@@ -350,7 +350,7 @@ export const FamilyChangeDiffViewer: React.FC<FamilyChangeDiffViewerProps> = ({
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-100 text-red-700 text-xs font-bold">
               -{deletedMembers.length}
             </span>
-            <h4 className="text-sm font-bold text-red-900 dark:text-red-300">
+            <h4 className="text-sm font-bold text-red-900">
               Anggota yang Dinonaktifkan
             </h4>
           </div>
@@ -359,7 +359,7 @@ export const FamilyChangeDiffViewer: React.FC<FamilyChangeDiffViewerProps> = ({
             {deletedMembers.map((m) => (
               <div
                 key={m.id || m.tempId}
-                className="rounded-2xl border border-red-200 bg-red-50/40 dark:bg-red-950/20 p-4 space-y-2"
+                className="rounded-2xl border border-red-200 bg-red-50/40 p-4 space-y-2"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">

@@ -2,6 +2,7 @@ import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql, ne } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
+import { cleanupOldCoordinatorRole } from '@/db/queries/property/rental-property.queries';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -266,6 +267,19 @@ export async function getDwellingOwner(dwellingId: number) {
   return dwelling ?? null;
 }
 
+export interface UpdateDwellingInput {
+  blockNumber: string;
+  houseNumber: string;
+  type: 'permanen' | 'kos' | 'homestay';
+  isActive?: boolean;
+  notes?: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+  ownerPhone?: string | null;
+}
+
 // ==========================================
 // WRITE QUERIES
 // ==========================================
@@ -278,33 +292,90 @@ const cleanNullableString = (val?: string | null) => {
 
 /**
  * Buat hunian baru.
+ * Jika tipe 'kos' atau 'homestay', otomatis buatkan 1 record rental_properties.
+ * Khusus tipe 'kos', owner otomatis menjadi coordinatorUserId dan diberi Role 5 (Koordinator Kos).
  */
 export async function createDwelling(data: CreateDwellingInput) {
-  const [existing] = await db
-    .select({ id: schema.dwellings.id })
-    .from(schema.dwellings)
-    .where(and(eq(schema.dwellings.blockNumber, data.blockNumber), eq(schema.dwellings.houseNumber, data.houseNumber)))
-    .limit(1);
+  const cleanOwnerId = cleanNullableString(data.ownerUserId);
 
-  if (existing) throw new Error(`DWELLING_ADDRESS_EXISTS:${data.blockNumber}:${data.houseNumber}`);
+  return await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: schema.dwellings.id })
+      .from(schema.dwellings)
+      .where(and(eq(schema.dwellings.blockNumber, data.blockNumber), eq(schema.dwellings.houseNumber, data.houseNumber)))
+      .limit(1);
 
-  const [result] = await db.insert(schema.dwellings).values({
-    blockNumber: data.blockNumber,
-    houseNumber: data.houseNumber,
-    type: data.type,
-    qrToken: `qr-dwelling-${randomUUID()}`,
-    isActive: true,
-    notes: cleanNullableString(data.notes),
-    latitude: cleanNullableString(data.latitude),
-    longitude: cleanNullableString(data.longitude),
-    ownerUserId: cleanNullableString(data.ownerUserId),
+    if (existing) throw new Error(`DWELLING_ADDRESS_EXISTS:${data.blockNumber}:${data.houseNumber}`);
+
+    const [result] = await tx.insert(schema.dwellings).values({
+      blockNumber: data.blockNumber,
+      houseNumber: data.houseNumber,
+      type: data.type,
+      qrToken: `qr-dwelling-${randomUUID()}`,
+      isActive: true,
+      notes: cleanNullableString(data.notes),
+      latitude: cleanNullableString(data.latitude),
+      longitude: cleanNullableString(data.longitude),
+      ownerUserId: cleanOwnerId,
+    });
+
+    const dwellingId = result.insertId;
+
+    // Otomasi pembuatan rental_properties untuk tipe kos & homestay
+    if (data.type === 'kos' || data.type === 'homestay') {
+      let contactPerson = cleanNullableString(data.ownerName);
+      let phone = cleanNullableString(data.ownerPhone);
+
+      // Jika ownerUserId ada tapi nama/telp belum diteruskan, ambil dari users
+      if (cleanOwnerId && (!contactPerson || !phone)) {
+        const [ownerUser] = await tx
+          .select({ name: schema.users.name, phone: schema.users.phone })
+          .from(schema.users)
+          .where(eq(schema.users.id, cleanOwnerId))
+          .limit(1);
+
+        if (ownerUser) {
+          contactPerson = contactPerson || ownerUser.name;
+          phone = phone || ownerUser.phone;
+        }
+      }
+
+      const defaultName = data.type === 'kos'
+        ? `Kos Blok ${data.blockNumber} No. ${data.houseNumber}`
+        : `Homestay Blok ${data.blockNumber} No. ${data.houseNumber}`;
+
+      // Khusus tipe kos: owner otomatis jadi coordinatorUserId. Tipe homestay: coordinatorUserId diset null.
+      const coordinatorUserId = data.type === 'kos' ? cleanOwnerId : null;
+
+      await tx.insert(schema.rentalProperties).values({
+        dwellingId,
+        name: defaultName,
+        coordinatorUserId,
+        contactPerson,
+        phone,
+        totalRooms: 1,
+        occupiedRooms: 0,
+        isActive: true,
+        notes: cleanNullableString(data.notes),
+      });
+
+      // Khusus tipe kos: jika ada owner, berikan role Koordinator Kos (Role ID 5)
+      if (data.type === 'kos' && cleanOwnerId) {
+        await tx.insert(schema.userRoles).values({
+          userId: cleanOwnerId,
+          roleId: 5,
+          isPrimary: false,
+        }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+      }
+    }
+
+    return dwellingId;
   });
-
-  return result.insertId;
 }
 
 /**
  * Buat banyak hunian sekaligus (bulk).
+ * Jika tipe 'kos' atau 'homestay', otomatis buatkan rental_properties untuk masing-masing unit.
  */
 export async function createDwellingsBulk(data: {
   blockNumber: string;
@@ -330,7 +401,26 @@ export async function createDwellingsBulk(data: {
           qrToken: `qr-dwelling-${randomUUID()}`,
           isActive: true,
         });
-        inserted.push(result.insertId);
+        const dwellingId = result.insertId;
+        inserted.push(dwellingId);
+
+        // Otomasi pembuatan rental_properties bulk untuk kos & homestay
+        if (data.type === 'kos' || data.type === 'homestay') {
+          const defaultName = data.type === 'kos'
+            ? `Kos Blok ${data.blockNumber} No. ${houseNumber}`
+            : `Homestay Blok ${data.blockNumber} No. ${houseNumber}`;
+
+          await tx.insert(schema.rentalProperties).values({
+            dwellingId,
+            name: defaultName,
+            coordinatorUserId: null,
+            contactPerson: null,
+            phone: null,
+            totalRooms: 1,
+            occupiedRooms: 0,
+            isActive: true,
+          });
+        }
       }
     }
     return inserted;
@@ -339,39 +429,147 @@ export async function createDwellingsBulk(data: {
 
 /**
  * Perbarui data hunian.
+ * Otomatis sinkronisasi dengan rental_properties dan Role 5 (Koordinator Kos) jika tipe kos / homestay.
+ * Membersihkan Role 5 dari koordinator lama jika tidak lagi mengelola kos aktif manapun.
  */
 export async function updateDwelling(id: number, data: UpdateDwellingInput) {
-  const [existing] = await db
-    .select({ id: schema.dwellings.id })
-    .from(schema.dwellings)
-    .where(and(eq(schema.dwellings.blockNumber, data.blockNumber), eq(schema.dwellings.houseNumber, data.houseNumber), ne(schema.dwellings.id, id)))
-    .limit(1);
+  const cleanOwnerId = cleanNullableString(data.ownerUserId);
 
-  if (existing) throw new Error(`DWELLING_ADDRESS_EXISTS:${data.blockNumber}:${data.houseNumber}`);
+  return await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: schema.dwellings.id })
+      .from(schema.dwellings)
+      .where(and(eq(schema.dwellings.blockNumber, data.blockNumber), eq(schema.dwellings.houseNumber, data.houseNumber), ne(schema.dwellings.id, id)))
+      .limit(1);
 
-  await db
-    .update(schema.dwellings)
-    .set({
-      blockNumber: data.blockNumber,
-      houseNumber: data.houseNumber,
-      type: data.type,
-      isActive: data.isActive ?? true,
-      notes: cleanNullableString(data.notes),
-      latitude: cleanNullableString(data.latitude),
-      longitude: cleanNullableString(data.longitude),
-      ownerUserId: cleanNullableString(data.ownerUserId),
-    })
-    .where(eq(schema.dwellings.id, id));
+    if (existing) throw new Error(`DWELLING_ADDRESS_EXISTS:${data.blockNumber}:${data.houseNumber}`);
 
-  return true;
+    await tx
+      .update(schema.dwellings)
+      .set({
+        blockNumber: data.blockNumber,
+        houseNumber: data.houseNumber,
+        type: data.type,
+        isActive: data.isActive ?? true,
+        notes: cleanNullableString(data.notes),
+        latitude: cleanNullableString(data.latitude),
+        longitude: cleanNullableString(data.longitude),
+        ownerUserId: cleanOwnerId,
+      })
+      .where(eq(schema.dwellings.id, id));
+
+    const [existingRental] = await tx
+      .select()
+      .from(schema.rentalProperties)
+      .where(eq(schema.rentalProperties.dwellingId, id))
+      .limit(1);
+
+    const previousCoordinatorId = existingRental?.coordinatorUserId;
+
+    // Sinkronisasi dengan rental_properties jika tipe kos / homestay
+    if (data.type === 'kos' || data.type === 'homestay') {
+      let contactPerson = cleanNullableString(data.ownerName);
+      let phone = cleanNullableString(data.ownerPhone);
+
+      if (cleanOwnerId && (!contactPerson || !phone)) {
+        const [ownerUser] = await tx
+          .select({ name: schema.users.name, phone: schema.users.phone })
+          .from(schema.users)
+          .where(eq(schema.users.id, cleanOwnerId))
+          .limit(1);
+
+        if (ownerUser) {
+          contactPerson = contactPerson || ownerUser.name;
+          phone = phone || ownerUser.phone;
+        }
+      }
+
+      // Khusus tipe kos: coordinatorUserId diisi cleanOwnerId jika ada. Tipe homestay: null.
+      const targetCoordinatorId = data.type === 'kos' ? cleanOwnerId : null;
+
+      if (!existingRental) {
+        const defaultName = data.type === 'kos'
+          ? `Kos Blok ${data.blockNumber} No. ${data.houseNumber}`
+          : `Homestay Blok ${data.blockNumber} No. ${data.houseNumber}`;
+
+        await tx.insert(schema.rentalProperties).values({
+          dwellingId: id,
+          name: defaultName,
+          coordinatorUserId: targetCoordinatorId,
+          contactPerson,
+          phone,
+          totalRooms: 1,
+          occupiedRooms: 0,
+          isActive: true,
+          notes: cleanNullableString(data.notes),
+        });
+      } else {
+        await tx
+          .update(schema.rentalProperties)
+          .set({
+            coordinatorUserId: targetCoordinatorId,
+            contactPerson: contactPerson || existingRental.contactPerson,
+            phone: phone || existingRental.phone,
+            isActive: data.isActive ?? existingRental.isActive,
+          })
+          .where(eq(schema.rentalProperties.id, existingRental.id));
+      }
+
+      // Khusus tipe kos: jika ada ownerUserId baru, berikan Role 5 (Koordinator Kos)
+      if (data.type === 'kos' && cleanOwnerId) {
+        await tx.insert(schema.userRoles).values({
+          userId: cleanOwnerId,
+          roleId: 5,
+          isPrimary: false,
+        }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+      }
+
+      // Jika koordinator berganti, periksa dan bersihkan Role 5 koordinator lama jika ia tidak punya kos lain
+      if (previousCoordinatorId && previousCoordinatorId !== targetCoordinatorId) {
+        await cleanupOldCoordinatorRole(previousCoordinatorId, tx);
+      }
+    } else {
+      // Jika tipe hunian diubah ke 'permanen', nonaktifkan rental_properties jika ada
+      if (existingRental) {
+        await tx
+          .update(schema.rentalProperties)
+          .set({ isActive: false })
+          .where(eq(schema.rentalProperties.id, existingRental.id));
+
+        if (previousCoordinatorId) {
+          await cleanupOldCoordinatorRole(previousCoordinatorId, tx);
+        }
+      }
+    }
+
+    return true;
+  });
 }
 
 /**
  * Soft-delete hunian (nonaktifkan).
+ * Juga menonaktifkan rental_properties dan membersihkan Role 5 koordinator jika tidak memegang kos lain.
  */
 export async function deleteDwelling(id: number) {
-  await db.update(schema.dwellings).set({ isActive: false }).where(eq(schema.dwellings.id, id));
-  return true;
+  return await db.transaction(async (tx) => {
+    await tx.update(schema.dwellings).set({ isActive: false }).where(eq(schema.dwellings.id, id));
+
+    const [rental] = await tx
+      .select({ id: schema.rentalProperties.id, coordinatorUserId: schema.rentalProperties.coordinatorUserId })
+      .from(schema.rentalProperties)
+      .where(eq(schema.rentalProperties.dwellingId, id))
+      .limit(1);
+
+    if (rental) {
+      await tx.update(schema.rentalProperties).set({ isActive: false }).where(eq(schema.rentalProperties.id, rental.id));
+
+      if (rental.coordinatorUserId) {
+        await cleanupOldCoordinatorRole(rental.coordinatorUserId, tx);
+      }
+    }
+
+    return true;
+  });
 }
 
 /**

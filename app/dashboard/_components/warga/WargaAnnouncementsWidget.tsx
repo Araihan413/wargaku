@@ -23,19 +23,19 @@ export function WargaAnnouncementsWidget({ announcements }: WargaAnnouncementsWi
     switch (category) {
       case "mendesak":
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
             <AlertCircle className="h-3 w-3" /> Mendesak
           </span>
         );
       case "penting":
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
             <AlertCircle className="h-3 w-3" /> Penting
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
             <Info className="h-3 w-3" /> Umum
           </span>
         );
@@ -59,7 +59,7 @@ export function WargaAnnouncementsWidget({ announcements }: WargaAnnouncementsWi
     <div className="rounded-3xl border border-gray-border bg-gray-card p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-100 text-primary dark:bg-primary-900/40">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-100 text-primary">
             <Megaphone className="h-5 w-5" />
           </div>
           <div>
