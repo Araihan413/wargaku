@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
-import { db } from "@/db";
-import { families, familyMembers, rentalContracts, cashTransactions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getEffectiveRoleId } from "@/lib/rbac";
+import { getDocumentAccess } from "@/db/queries/system/document.queries";
 import { generateSignedUrl, extractPublicIdFromUrl } from "@/lib/cloudinary";
 
 /**
@@ -88,107 +86,21 @@ export async function GET(request: Request) {
     }
 
     const effectiveRoleId = await getEffectiveRoleId(session);
-    let fileUrl: string | null = null;
-    let defaultFilename = `dokumen-${type}-${id}.pdf`;
+    const accessResult = await getDocumentAccess(type, id, session.user.id, effectiveRoleId);
 
-    // 2. Otorisasi Berdasarkan Tipe Dokumen
-    if (type === "kk") {
-      const family = await db.query.families.findFirst({
-        where: eq(families.id, id),
-        columns: { id: true, kkFile: true, headUserId: true, familyNumber: true },
-      });
-
-      if (!family) return NextResponse.json({ error: "Data Kartu Keluarga tidak ditemukan." }, { status: 404 });
-      if (!family.kkFile) return NextResponse.json({ error: "Berkas Scan KK belum diunggah." }, { status: 404 });
-
-      const hasViewPerm = await hasPermission(effectiveRoleId, "view-residents");
-      const isOwner = family.headUserId === session.user.id;
-
-      if (!hasViewPerm && !isOwner) {
-        if (isHtmlRequest) {
-          return new NextResponse(
-            renderAccessDeniedHtml("Anda tidak memiliki izin untuk mengakses dokumen Kartu Keluarga ini.", false),
-            { status: 403, headers: { "Content-Type": "text/html; charset=utf-8" } }
-          );
-        }
-        return NextResponse.json({ error: "Akses ditolak. Anda tidak memiliki izin untuk melihat dokumen ini." }, { status: 403 });
+    if (!accessResult.success || !accessResult.fileUrl) {
+      if (isHtmlRequest && accessResult.status === 403) {
+        return new NextResponse(
+          renderAccessDeniedHtml(accessResult.errorMessage || "Anda tidak memiliki izin untuk mengakses dokumen ini.", false),
+          { status: 403, headers: { "Content-Type": "text/html; charset=utf-8" } }
+        );
       }
-
-      fileUrl = family.kkFile;
-      defaultFilename = `Kartu-Keluarga-${family.familyNumber || id}.pdf`;
-
-    } else if (type === "ktp-member") {
-      const member = await db.query.familyMembers.findFirst({
-        where: eq(familyMembers.id, id),
-        columns: { id: true, ktpFile: true, familyId: true, userId: true, name: true, nik: true },
-      });
-
-      if (!member) return NextResponse.json({ error: "Data anggota keluarga tidak ditemukan." }, { status: 404 });
-      if (!member.ktpFile) return NextResponse.json({ error: "Berkas KTP anggota keluarga belum diunggah." }, { status: 404 });
-
-      const family = await db.query.families.findFirst({
-        where: eq(families.id, member.familyId),
-        columns: { id: true, headUserId: true },
-      });
-
-      const hasViewPerm = await hasPermission(effectiveRoleId, "view-residents");
-      const isHeadOfFamily = family?.headUserId === session.user.id;
-      const isOwnKtp = member.userId === session.user.id;
-
-      if (!hasViewPerm && !isHeadOfFamily && !isOwnKtp) {
-        if (isHtmlRequest) {
-          return new NextResponse(
-            renderAccessDeniedHtml("Anda tidak memiliki izin untuk mengakses dokumen KTP anggota keluarga ini.", false),
-            { status: 403, headers: { "Content-Type": "text/html; charset=utf-8" } }
-          );
-        }
-        return NextResponse.json({ error: "Akses ditolak. Anda tidak memiliki izin untuk melihat KTP ini." }, { status: 403 });
-      }
-
-      fileUrl = member.ktpFile;
-      defaultFilename = `KTP-${(member.name || "Warga").replace(/\s+/g, "_")}-${member.nik || id}.pdf`;
-
-    } else if (type === "ktp-tenant") {
-      const contract = await db.query.rentalContracts.findFirst({
-        where: eq(rentalContracts.id, id),
-        columns: { id: true, individualKtpFile: true, userId: true },
-      });
-
-      if (!contract) return NextResponse.json({ error: "Data kontrak sewa tidak ditemukan." }, { status: 404 });
-      if (!contract.individualKtpFile) return NextResponse.json({ error: "Berkas KTP penyewa belum diunggah." }, { status: 404 });
-
-      const hasBoardingPerm = await hasPermission(effectiveRoleId, "manage-boarding");
-      const hasViewPerm = await hasPermission(effectiveRoleId, "view-residents");
-      const isOwnContract = contract.userId === session.user.id;
-
-      if (!hasBoardingPerm && !hasViewPerm && !isOwnContract) {
-        if (isHtmlRequest) {
-          return new NextResponse(
-            renderAccessDeniedHtml("Anda tidak memiliki izin untuk mengakses dokumen KTP penyewa ini.", false),
-            { status: 403, headers: { "Content-Type": "text/html; charset=utf-8" } }
-          );
-        }
-        return NextResponse.json({ error: "Akses ditolak. Anda tidak memiliki izin untuk melihat KTP penyewa ini." }, { status: 403 });
-      }
-
-      fileUrl = contract.individualKtpFile;
-      defaultFilename = `KTP-Penyewa-${id}.pdf`;
-
-    } else if (type === "receipt") {
-      const transaction = await db.query.cashTransactions.findFirst({
-        where: eq(cashTransactions.id, id),
-        columns: { id: true, receiptFile: true, category: true },
-      });
-
-      if (!transaction) return NextResponse.json({ error: "Data transaksi kas tidak ditemukan." }, { status: 404 });
-      if (!transaction.receiptFile) return NextResponse.json({ error: "Bukti nota untuk transaksi ini belum diunggah." }, { status: 404 });
-
-      fileUrl = transaction.receiptFile;
-      defaultFilename = `Nota-${transaction.category.replace(/\s+/g, "_")}-${id}.pdf`;
-
-    } else {
-      return NextResponse.json({ error: `Tipe dokumen '${type}' tidak didukung.` }, { status: 400 });
+      return NextResponse.json({ error: accessResult.errorMessage }, { status: accessResult.status });
     }
+
+    const fileUrl = accessResult.fileUrl;
+    const defaultFilename = accessResult.defaultFilename || `dokumen-${type}-${id}.pdf`;
+
 
     // 3. Ambil Berkas dari Cloudinary (Server-to-Server)
     const publicId = extractPublicIdFromUrl(fileUrl, true);

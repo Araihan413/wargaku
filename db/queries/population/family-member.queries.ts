@@ -2,6 +2,9 @@ import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql, ne } from 'drizzle-orm';
 
+
+import { encryptPII, decryptPII, hashPII } from '@/lib/crypto-pii';
+
 // ==========================================
 // TYPE DEFINITIONS
 // ==========================================
@@ -68,15 +71,17 @@ export async function getFamilyMemberById(id: number) {
 }
 
 /**
- * Ambil anggota keluarga berdasarkan NIK.
+ * Ambil anggota keluarga berdasarkan NIK (exact match via blind index).
  */
 export async function getFamilyMemberByNik(nik: string) {
+  const nikHash = hashPII(nik);
   const [member] = await db
     .select()
     .from(schema.familyMembers)
-    .where(eq(schema.familyMembers.nik, nik))
+    .where(eq(schema.familyMembers.nikHash, nikHash))
     .limit(1);
-  return member ?? null;
+  if (!member) return null;
+  return { ...member, nik: decryptPII(member.nik) };
 }
 
 /**
@@ -114,13 +119,17 @@ export async function listFamilyMembers(options: ListFamilyMembersOptions = {}) 
   if (options.gender !== undefined) conditions.push(eq(schema.familyMembers.gender, options.gender));
   if (options.familyId !== undefined) conditions.push(eq(schema.familyMembers.familyId, options.familyId));
   if (options.query) {
+    const trimmed = options.query.trim();
+    const queryHash = hashPII(trimmed);
+    // Pencarian berdasarkan nama warga (LIKE) ATAU NIK exact match (Blind Index Hash)
     conditions.push(
       or(
-        like(schema.familyMembers.name, `%${options.query}%`),
-        like(schema.familyMembers.nik, `%${options.query}%`)
+        like(schema.familyMembers.name, `%${trimmed}%`),
+        eq(schema.familyMembers.nikHash, queryHash)
       )
     );
   }
+
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -161,7 +170,7 @@ export async function listFamilyMembers(options: ListFamilyMembersOptions = {}) 
     .where(whereClause);
 
   return {
-    data,
+    data: data.map(m => ({ ...m, nik: decryptPII(m.nik) })),
     metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
   };
 }
@@ -171,7 +180,7 @@ export async function listFamilyMembers(options: ListFamilyMembersOptions = {}) 
  * Berguna untuk form Tambah Akun di Menu Warga.
  */
 export async function listFamilyMembersWithoutAccount() {
-  return db
+  const rows = await db
     .select({
       id: schema.familyMembers.id,
       name: schema.familyMembers.name,
@@ -186,6 +195,7 @@ export async function listFamilyMembersWithoutAccount() {
       )
     )
     .orderBy(schema.familyMembers.name);
+  return rows.map(r => ({ ...r, nik: decryptPII(r.nik) }));
 }
 
 // ==========================================
@@ -198,8 +208,13 @@ export async function listFamilyMembersWithoutAccount() {
  * Auto-connect ke user account jika NIK terdaftar.
  */
 export async function createFamilyMember(data: CreateFamilyMemberInput) {
-  // Cek duplikasi NIK
-  const existing = await getFamilyMemberByNik(data.nik);
+  // Cek duplikasi NIK via blind index
+  const nikHash = hashPII(data.nik);
+  const [existing] = await db
+    .select({ id: schema.familyMembers.id, familyId: schema.familyMembers.familyId, isActive: schema.familyMembers.isActive })
+    .from(schema.familyMembers)
+    .where(eq(schema.familyMembers.nikHash, nikHash))
+    .limit(1);
   if (existing) {
     if (existing.familyId === data.familyId && !existing.isActive) {
       throw new Error(`NIK ${data.nik} sudah terdaftar sebagai anggota non-aktif di KK ini. Silakan gunakan tombol "Aktifkan" pada tabel anggota keluarga.`);
@@ -229,20 +244,21 @@ export async function createFamilyMember(data: CreateFamilyMemberInput) {
   // Auto-connect: cek apakah NIK ini punya user account
   let linkedUserId: string | null = data.userId ?? null;
   if (!linkedUserId) {
-    // Cari NIK di family_members lain untuk ambil userId
     const [existingMemberWithUser] = await db
       .select({ userId: schema.familyMembers.userId })
       .from(schema.familyMembers)
-      .where(and(eq(schema.familyMembers.nik, data.nik), ne(schema.familyMembers.isActive, false)))
+      .where(and(eq(schema.familyMembers.nikHash, nikHash), ne(schema.familyMembers.isActive, false)))
       .limit(1);
     linkedUserId = existingMemberWithUser?.userId ?? null;
   }
 
+  const nikEncrypted = encryptPII(data.nik);
   const [insertResult] = await db.insert(schema.familyMembers).values({
     familyId: data.familyId,
     userId: linkedUserId,
     name: data.name,
-    nik: data.nik,
+    nik: nikEncrypted,
+    nikHash,
     gender: data.gender,
     birthPlace: data.birthPlace ?? null,
     birthDate: data.birthDate ? new Date(data.birthDate) : null,
@@ -295,6 +311,11 @@ export async function updateFamilyMember(id: number, data: UpdateFamilyMemberInp
   const updateData: any = { ...data, updatedAt: new Date() };
   if (typeof data.birthDate === 'string') {
     updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
+  }
+  // Enkripsi NIK jika ada perubahan NIK
+  if (data.nik) {
+    updateData.nik = encryptPII(data.nik);
+    updateData.nikHash = hashPII(data.nik);
   }
 
   await db.transaction(async (tx) => {

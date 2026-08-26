@@ -118,6 +118,9 @@ export async function GET(
  *       500:
  *         description: Kesalahan server internal
  */
+import { updateComplaintStatusSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -138,7 +141,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
-
     const { id } = await params;
     const complaintId = parseInt(id, 10);
 
@@ -147,12 +149,15 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { status, responseNote } = body;
+    const validated = updateComplaintStatusSchema.parse(body);
 
-    await updateComplaintStatus(complaintId, { status, responseNote }, session.user.id);
+    await updateComplaintStatus(complaintId, { status: validated.status, responseNote: validated.responseNote || null }, session.user.id);
 
     return NextResponse.json({ message: 'Status pengaduan berhasil diperbarui' });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     if (error instanceof Error && error.message === "NOT_FOUND") {
       return NextResponse.json({ error: 'Data pengaduan tidak ditemukan' }, { status: 404 });
     }
@@ -163,6 +168,7 @@ export async function PATCH(
     );
   }
 }
+
 
 /**
  * @openapi

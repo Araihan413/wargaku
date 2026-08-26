@@ -87,6 +87,9 @@ export async function GET() {
  *       500:
  *         description: Kesalahan server internal
  */
+import { createSmartGroupSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -104,22 +107,22 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, description, criteria } = body;
-
-    if (!name || !criteria) {
-      return NextResponse.json({ error: "Nama kelompok dan kriteria aturan wajib diisi" }, { status: 400 });
-    }
+    const validated = createSmartGroupSchema.parse(body);
 
     const smartGroupId = await createSmartGroup({
-      name,
-      description,
-      criteria,
+      name: validated.name,
+      description: validated.description || undefined,
+      criteria: validated.criteria,
       createdBy: session.user.id,
     });
 
     return NextResponse.json({ id: smartGroupId, message: "Kelompok warga berhasil disimpan" });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("Error in POST /api/smart-groups:", error);
     return NextResponse.json({ error: error.message || "Kesalahan server internal" }, { status: 500 });
   }
 }
+

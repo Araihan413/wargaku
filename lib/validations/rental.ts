@@ -159,3 +159,37 @@ export const updateRentalResidentSchema = z.object({
   }, z.date().optional().nullable()),
   notes: z.string().optional().nullable(),
 });
+
+export const checkoutRentalResidentSchema = z.object({
+  checkOutDate: z.preprocess((arg) => {
+    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+    return arg;
+  }, z.date().optional()),
+  checkOutNote: z.string().max(500).optional().nullable(),
+});
+
+export const reactivateRentalResidentSchema = z.object({
+  checkInDate: z.preprocess((arg) => {
+    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+    return arg;
+  }, z.date().optional()),
+});
+
+export const resubmitRentalResidentSchema = z.object({
+  individualName: z.string().min(2, 'Nama minimal 2 karakter').max(100).optional(),
+  individualNik: z.string().regex(nikRegex, 'NIK harus 16 digit angka').optional(),
+  individualPhone: z.string().optional().nullable(),
+  individualKtpFile: z.string().optional().nullable(),
+  isKtpSameVillage: z.boolean().optional(),
+  ktpAddress: z.string().optional().nullable(),
+});
+
+export const resendInvitationSchema = z.object({
+  contractId: z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'ID Kontrak wajib diisi'
+        : 'ID Kontrak harus berupa angka',
+  }).int().positive(),
+});
+

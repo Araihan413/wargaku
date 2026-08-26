@@ -1,7 +1,11 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, inArray, desc, or, like, sql } from 'drizzle-orm';
+import { eq, and, or, inArray, desc, like, sql } from 'drizzle-orm';
+
 import { getFamilyById } from './family.queries';
+import { decryptPII, hashPII } from '@/lib/crypto-pii';
+
+
 import { getFamilyMemberByNik } from './family-member.queries';
 import { notifyUser } from '@/lib/notifications';
 import { deleteCloudinaryFileByUrl } from '@/lib/cloudinary';
@@ -117,15 +121,17 @@ export async function listFamilyChangeRequests(options: ListFamilyChangeRequests
     conditions.push(eq(schema.familyChangeRequests.status, options.status));
   }
   if (options.query) {
-    const v = `%${options.query}%`;
+    const v = options.query.trim();
+    const vHash = hashPII(v);
+    // Pencarian berdasarkan nama Kepala Keluarga (LIKE) ATAU Nomor KK exact match (Blind Index Hash)
     conditions.push(
       or(
-        like(schema.familyChangeRequests.familyNumber, v),
-        like(schema.families.familyNumber, v),
-        like(schema.users.name, v)
+        like(schema.users.name, `%${v}%`),
+        eq(schema.families.familyNumberHash, vHash)
       )
     );
   }
+
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -163,6 +169,7 @@ export async function listFamilyChangeRequests(options: ListFamilyChangeRequests
     const activeDraftMembers = parsedDraft?.members ? parsedDraft.members.filter((m) => m.isActive && m._action !== 'delete') : [];
     return {
       ...item,
+      familyNumber: decryptPII(item.familyNumber),
       draftData: parsedDraft,
       memberCount: activeDraftMembers.length,
     };

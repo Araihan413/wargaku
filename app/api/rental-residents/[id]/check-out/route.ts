@@ -49,6 +49,9 @@ import { getClientIp } from '@/lib/audit-logger';
  *       500:
  *         description: Kesalahan server internal
  */
+import { checkoutRentalResidentSchema } from '@/lib/validations/rental';
+import { ZodError } from 'zod';
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -92,8 +95,9 @@ export async function POST(
       return NextResponse.json({ error: 'Akses ditolak. Anda tidak berhak melakukan operasi ini.' }, { status: 403 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const checkOutDate = body.checkOutDate ? new Date(body.checkOutDate) : new Date();
+    const rawBody = await request.json().catch(() => ({}));
+    const validated = checkoutRentalResidentSchema.parse(rawBody);
+    const checkOutDate = validated.checkOutDate ? new Date(validated.checkOutDate) : new Date();
 
     if (contract.checkInDate) {
       const contractCheckIn = new Date(contract.checkInDate);
@@ -109,8 +113,8 @@ export async function POST(
 
     await checkOutTenant(contractId, {
       checkOutDate,
-      notes: body.notes || null,
-      autoFreeVacantRoom: body.autoFreeVacantRoom !== undefined ? body.autoFreeVacantRoom : true,
+      notes: validated.checkOutNote || null,
+      autoFreeVacantRoom: (rawBody as any).autoFreeVacantRoom !== undefined ? (rawBody as any).autoFreeVacantRoom : true,
     });
 
     const ipAddress = await getClientIp(request);
@@ -124,7 +128,11 @@ export async function POST(
 
     return NextResponse.json({ message: 'Penyewa berhasil diajukan check-out' });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in POST /api/rental-residents/[id]/check-out:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
+

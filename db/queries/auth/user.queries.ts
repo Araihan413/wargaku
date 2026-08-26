@@ -1,10 +1,13 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, or, like, desc, asc, ne, sql, inArray, notInArray, isNull } from 'drizzle-orm';
+import { eq, and, or, like, desc, asc, ne, sql, inArray, notInArray } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
 import { randomUUID } from 'crypto';
 import { notifyRoles } from '@/lib/notifications';
 import { z } from 'zod';
+import { encryptPII, hashPII, decryptPII } from '@/lib/crypto-pii';
+
+
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -359,19 +362,26 @@ export async function getUserFullProfile(userId: string) {
       }
     : null;
 
+  const decryptedFamilyData = familyData
+    ? { ...familyData, familyNumber: decryptPII(familyData.familyNumber) }
+    : null;
+  const decryptedMemberInfo = memberInfo
+    ? { ...memberInfo, nik: decryptPII(memberInfo.nik) }
+    : null;
+
   return {
     ...user,
-    nik: memberInfo?.nik ?? null,
-    familyNumber: familyData?.familyNumber ?? null,
+    nik: decryptedMemberInfo?.nik ?? null,
+    familyNumber: decryptedFamilyData?.familyNumber ?? null,
     roleId: primaryRole?.roleId ?? 6,
     roleName: primaryRole?.roleName ?? 'Warga',
     roleSlug: primaryRole?.roleSlug ?? 'warga',
     roleIds: roles.map((r) => r.roleId),
     roles,
-    familyInfo: familyData ?? null,
+    familyInfo: decryptedFamilyData,
     dwellingInfo,
-    memberInfo: memberInfo ?? null,
-    residentInfo: memberInfo ?? null,
+    memberInfo: decryptedMemberInfo,
+    residentInfo: decryptedMemberInfo,
   };
 }
 
@@ -454,7 +464,7 @@ export async function getPendingCoordInfo(id: string) {
     .select({ id: schema.users.id, name: schema.users.name, phone: schema.users.phone })
     .from(schema.users)
     .innerJoin(schema.userRoles, and(eq(schema.users.id, schema.userRoles.userId), eq(schema.userRoles.roleId, 5)))
-    .where(and(eq(schema.users.id, id), isNull(schema.users.password)))
+    .where(and(eq(schema.users.id, id), eq(schema.users.status, 'pending')))
     .limit(1);
 
   return user ?? null;
@@ -540,7 +550,6 @@ export async function createUserWithAccount(input: CreateUserInput) {
       id: userId,
       name: input.name,
       email: input.email,
-      password: hashedPassword,
       phone: input.phone ?? null,
       status: userStatus,
       emailVerified: userStatus === 'active',
@@ -569,6 +578,7 @@ export async function createUserWithAccount(input: CreateUserInput) {
     let isAutoLinked = false;
     if (roleIds.includes(6) && input.nik && input.nik.trim() !== '') {
       const cleanNik = input.nik.trim();
+      const nikHash = hashPII(cleanNik);
       const [existingMember] = await tx
         .select({
           id: schema.familyMembers.id,
@@ -578,7 +588,7 @@ export async function createUserWithAccount(input: CreateUserInput) {
           isActive: schema.familyMembers.isActive,
         })
         .from(schema.familyMembers)
-        .where(eq(schema.familyMembers.nik, cleanNik))
+        .where(eq(schema.familyMembers.nikHash, nikHash))
         .limit(1);
 
       if (existingMember) {
@@ -615,12 +625,12 @@ export async function createUserWithAccount(input: CreateUserInput) {
       
       const cleanNik = input.nik ? input.nik.trim() : `${Date.now()}`.slice(0, 16);
 
-      // Cek duplikasi Nomor KK
+      // Cek duplikasi Nomor KK via blind index
       if (input.familyNumber && input.familyNumber.trim() !== '') {
         const [existingFam] = await tx
           .select({ id: schema.families.id, headUserId: schema.families.headUserId })
           .from(schema.families)
-          .where(and(eq(schema.families.familyNumber, familyNo), eq(schema.families.isActive, true)))
+          .where(and(eq(schema.families.familyNumberHash, hashPII(familyNo)), eq(schema.families.isActive, true)))
           .limit(1);
 
         if (existingFam && existingFam.headUserId) {
@@ -632,7 +642,8 @@ export async function createUserWithAccount(input: CreateUserInput) {
       const initialVerification = userStatus === 'active' ? 'verified' : 'draft';
 
       const [newFamRes] = await tx.insert(schema.families).values({
-        familyNumber: familyNo,
+        familyNumber: encryptPII(familyNo),
+        familyNumberHash: hashPII(familyNo),
         headUserId: userId,
         dwellingId: input.dwellingId,
         verificationStatus: initialVerification,
@@ -644,7 +655,8 @@ export async function createUserWithAccount(input: CreateUserInput) {
       await tx.insert(schema.familyMembers).values({
         familyId: familyId,
         userId: userId,
-        nik: cleanNik,
+        nik: encryptPII(cleanNik),
+        nikHash: hashPII(cleanNik),
         name: input.name,
         gender: input.gender ?? 'L',
         relationship: 'Kepala_Keluarga',
@@ -733,10 +745,11 @@ export async function claimWargaForExistingUser(
 
     // 2. Auto-Link jika NIK sudah ada di sistem fisik (Dibuat Pak RT)
     if (cleanNik) {
+      const nikHash2 = hashPII(cleanNik);
       const [existingNikMember] = await tx
         .select({ id: schema.familyMembers.id, familyId: schema.familyMembers.familyId, userId: schema.familyMembers.userId, relationship: schema.familyMembers.relationship, isActive: schema.familyMembers.isActive })
         .from(schema.familyMembers)
-        .where(eq(schema.familyMembers.nik, cleanNik))
+        .where(eq(schema.familyMembers.nikHash, nikHash2))
         .limit(1);
 
       if (existingNikMember) {
@@ -759,10 +772,11 @@ export async function claimWargaForExistingUser(
     }
 
     // 3. Jika NIK tidak ditemukan atau bukan Kepala Keluarga, buat KK Baru
+    const cleanFamilyNoHash = hashPII(cleanFamilyNo);
     const [existingFam] = await tx
       .select({ id: schema.families.id, headUserId: schema.families.headUserId })
       .from(schema.families)
-      .where(and(eq(schema.families.familyNumber, cleanFamilyNo), eq(schema.families.isActive, true)))
+      .where(and(eq(schema.families.familyNumberHash, cleanFamilyNoHash), eq(schema.families.isActive, true)))
       .limit(1);
       
     if (existingFam && existingFam.headUserId) {
@@ -771,7 +785,8 @@ export async function claimWargaForExistingUser(
 
     // Buat keluarga baru secara mandiri, status wajib DRAFT
     const [newFamRes] = await tx.insert(schema.families).values({
-      familyNumber: cleanFamilyNo,
+      familyNumber: encryptPII(cleanFamilyNo),
+      familyNumberHash: hashPII(cleanFamilyNo),
       headUserId: userId,
       dwellingId: input.dwellingId,
       verificationStatus: 'draft',
@@ -782,7 +797,8 @@ export async function claimWargaForExistingUser(
     await tx.insert(schema.familyMembers).values({
       familyId,
       userId,
-      nik: cleanNik,
+      nik: encryptPII(cleanNik),
+      nikHash: hashPII(cleanNik),
       name: user.name,
       gender: input.gender ?? 'L',
       relationship: 'Kepala_Keluarga',
@@ -897,7 +913,7 @@ export async function resetUserPassword(id: string, defaultPassword: string) {
   await db.transaction(async (tx) => {
     await tx
       .update(schema.users)
-      .set({ password: hashedPassword, updatedAt: new Date() })
+      .set({ updatedAt: new Date() })
       .where(eq(schema.users.id, id));
 
     const [existingAccount] = await tx
@@ -932,7 +948,7 @@ export async function registerCoord(id: string, email: string, nik: string, pass
     .select()
     .from(schema.users)
     .innerJoin(schema.userRoles, and(eq(schema.users.id, schema.userRoles.userId), eq(schema.userRoles.roleId, 5)))
-    .where(and(eq(schema.users.id, id), isNull(schema.users.password)))
+    .where(and(eq(schema.users.id, id), eq(schema.users.status, 'pending')))
     .limit(1);
 
   if (!user) throw new Error('NOT_FOUND');
@@ -947,10 +963,34 @@ export async function registerCoord(id: string, email: string, nik: string, pass
     if (conflict.email === email) throw new Error('EMAIL_EXISTS');
   }
 
-  await db
-    .update(schema.users)
-    .set({ email, password: passwordHash, emailVerified: true, updatedAt: new Date() })
-    .where(eq(schema.users.id, id));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.users)
+      .set({ email, status: 'active', emailVerified: true, updatedAt: new Date() })
+      .where(eq(schema.users.id, id));
+
+    const [existingAccount] = await tx
+      .select({ id: schema.accounts.id })
+      .from(schema.accounts)
+      .where(and(eq(schema.accounts.userId, id), eq(schema.accounts.providerId, 'credential')))
+      .limit(1);
+
+    if (existingAccount) {
+      await tx
+        .update(schema.accounts)
+        .set({ password: passwordHash, updatedAt: new Date() })
+        .where(and(eq(schema.accounts.userId, id), eq(schema.accounts.providerId, 'credential')));
+    } else {
+      await tx.insert(schema.accounts).values({
+        id: randomUUID(),
+        accountId: id,
+        providerId: 'credential',
+        userId: id,
+        password: passwordHash,
+        issuer: 'local:credential',
+      });
+    }
+  });
 
   try {
     await notifyRoles(['ketua-rt', 'sekretaris'], {
@@ -1251,3 +1291,125 @@ export async function revokeCoordinatorFromProperties(coordinatorUserId: string,
 
   return propertiesToRevoke.length;
 }
+
+/**
+ * Mengambil preferensi notifikasi pengguna.
+ */
+export async function getUserNotificationPreference(userId: string): Promise<boolean> {
+  const [user] = await db
+    .select({ pushNotificationsEnabled: schema.users.pushNotificationsEnabled })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId));
+
+  return user?.pushNotificationsEnabled ?? true;
+}
+
+/**
+ * Memperbarui preferensi notifikasi pengguna.
+ */
+export async function updateUserNotificationPreference(userId: string, enabled: boolean): Promise<void> {
+  await db
+    .update(schema.users)
+    .set({
+      pushNotificationsEnabled: enabled,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.users.id, userId));
+}
+
+/**
+ * Menetapkan role registrasi awal secara eksklusif (misal: 5 = Koordinator, 6 = Warga).
+ */
+export async function setInitialRegistrationRole(userId: string, roleId: number): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, userId));
+    await tx.insert(schema.userRoles).values({
+      userId,
+      roleId,
+      isPrimary: true,
+    });
+  });
+}
+
+/**
+ * Menambahkan sebuah role ke pengguna (idempotent dengan onDuplicateKeyUpdate).
+ */
+export async function addRoleToUser(userId: string, roleId: number, isPrimary = false): Promise<void> {
+  await db.insert(schema.userRoles).values({
+    userId,
+    roleId,
+    isPrimary,
+  }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+}
+
+
+
+/**
+ * Menyelesaikan pendaftaran data kependudukan Warga baru (KK + Kepala Keluarga + Role Warga).
+ */
+export async function completeWargaRegistration(
+  userId: string,
+  userName: string,
+  data: { nik: string; familyNumber: string; dwellingId: number }
+): Promise<void> {
+  const familyNumberHash = hashPII(data.familyNumber);
+  const nikHash = hashPII(data.nik);
+
+  // Periksa apakah NIK atau No KK sudah ada via blind index hash
+  const existingFamily = await db
+    .select({ id: schema.families.id })
+    .from(schema.families)
+    .where(eq(schema.families.familyNumberHash, familyNumberHash))
+    .limit(1);
+
+  if (existingFamily.length > 0) {
+    throw new Error("KK_EXISTS");
+  }
+
+  const existingMember = await db
+    .select({ id: schema.familyMembers.id })
+    .from(schema.familyMembers)
+    .where(eq(schema.familyMembers.nikHash, nikHash))
+    .limit(1);
+
+  if (existingMember.length > 0) {
+    throw new Error("NIK_EXISTS");
+  }
+
+  await db.transaction(async (tx) => {
+    // 1. Tetapkan role Warga secara eksklusif
+    await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, userId));
+    await tx.insert(schema.userRoles).values({
+      userId,
+      roleId: 6,
+      isPrimary: true,
+    });
+
+    // 2. Insert ke tabel families
+    const [insertResult] = await tx.insert(schema.families).values({
+      dwellingId: data.dwellingId,
+      headUserId: userId,
+      familyNumber: encryptPII(data.familyNumber),
+      familyNumberHash,
+      verificationStatus: "draft",
+      isActive: true,
+    });
+
+    const familyId = insertResult.insertId;
+
+    // 3. Insert ke tabel family_members
+    await tx.insert(schema.familyMembers).values({
+      familyId,
+      userId,
+      name: userName,
+      nik: encryptPII(data.nik),
+      nikHash,
+      gender: "L",
+      relationship: "Kepala_Keluarga",
+      isActive: true,
+    });
+  });
+}
+
+
+

@@ -33,6 +33,9 @@ import { filterCitizens } from "@/db/queries/residents/citizen-filter.queries";
  *       500:
  *         description: Kesalahan server internal
  */
+import { evaluateSmartGroupSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -50,13 +53,17 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const criteria = body.criteria || body;
+    const validated = evaluateSmartGroupSchema.parse(body.criteria ? body : { criteria: body });
 
-    const data = await filterCitizens(criteria);
+    const data = await filterCitizens(validated.criteria);
 
     return NextResponse.json({ data });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Kriteria tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("Error in POST /api/smart-groups/evaluate:", error);
     return NextResponse.json({ error: error.message || "Kesalahan server internal" }, { status: 500 });
   }
 }
+

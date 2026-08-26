@@ -1,6 +1,7 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and, ne, asc, desc } from 'drizzle-orm';
+import { decryptPII } from '@/lib/crypto-pii';
 
 // ==========================================
 // FEE RULES QUERIES
@@ -191,10 +192,14 @@ export async function listPayments(ruleId: number, period?: string | null, searc
 
   const filtered = searchQuery
     ? payments.filter(
-        (p) =>
-          (p.headName ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.familyNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (p.dwellingBlock ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+        (p) => {
+          const decryptedFamilyNumber = decryptPII(p.familyNumber);
+          return (
+            (p.headName ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            decryptedFamilyNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.dwellingBlock ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
       )
     : payments;
 
@@ -203,7 +208,7 @@ export async function listPayments(ruleId: number, period?: string | null, searc
     feeRuleId: p.feeRuleId,
     feeRuleName: feeRule?.name ?? '',
     familyId: p.familyId,
-    familyNumber: p.familyNumber,
+    familyNumber: decryptPII(p.familyNumber),
     headName: p.headName ?? '',
     dwellingBlock: p.dwellingBlock ?? '-',
     dwellingHouse: p.dwellingHouse ?? '-',
@@ -354,7 +359,7 @@ export async function listUnpaidByFamily(ruleId?: number | null) {
     if (!familyMap.has(p.familyId)) {
       familyMap.set(p.familyId, {
         familyId: p.familyId,
-        familyNumber: p.familyNumber,
+        familyNumber: decryptPII(p.familyNumber),
         headName: p.headName ?? '',
         dwellingBlock: p.dwellingBlock ?? '-',
         dwellingHouse: p.dwellingHouse ?? '-',

@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { setInitialRegistrationRole } from "@/db/queries/auth/user.queries";
 import { notifyRoles } from "@/lib/notifications";
 import { sendEmail } from "@/lib/mail";
 import {
   getKoordinatorRegistrationEmail,
 } from "@/lib/emails/templates";
+
 
 
 /**
@@ -88,14 +87,8 @@ export async function POST(request: Request) {
     }
 
     // Update user_roles dengan roleId yang benar secara eksklusif
-    await db.transaction(async (tx) => {
-      await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, session.user.id));
-      await tx.insert(schema.userRoles).values({
-        userId: session.user.id,
-        roleId: roleId,
-        isPrimary: true,
-      });
-    });
+    await setInitialRegistrationRole(session.user.id, roleId);
+
 
     // Kirim notifikasi ke RT & email konfirmasi sesuai tipe akun
     const appUrl =

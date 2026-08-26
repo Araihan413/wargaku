@@ -1,47 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db } from "@/db";
-import { rentalContracts, rentalProperties, accountActivationTokens } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { createActivationTokenAndSendEmail } from "@/db/queries/property/tenant.queries";
+import {
+  getContractDetailsForInvitationResend,
+  createActivationTokenAndSendEmail,
+} from "@/db/queries/property/tenant.queries";
+import { resendInvitationSchema } from '@/lib/validations/rental';
+import { ZodError } from 'zod';
 
-/**
- * @openapi
- * /api/rentals/resend-invitation:
- *   post:
- *     summary: Kirim Ulang Email Undangan (Keluarga)
- *     description: Mengirim ulang email undangan untuk aktivasi akun pengguna kepada penyewa tipe keluarga.
- *     tags:
- *       - Properti & Sewa
- *     security:
- *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - contractId
- *             properties:
- *               contractId:
- *                 type: integer
- *               email:
- *                 type: string
- *                 description: Email tujuan jika ingin di-override
- *     responses:
- *       200:
- *         description: Email undangan berhasil dikirim ulang
- *       400:
- *         description: ID Kontrak tidak valid atau email kosong
- *       401:
- *         description: Belum terautentikasi
- *       404:
- *         description: Kontrak sewa tidak ditemukan
- *       500:
- *         description: Kesalahan server internal
- */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -50,45 +16,17 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { contractId, email: overrideEmail } = body;
+    const validated = resendInvitationSchema.parse(body);
+    const contractId = validated.contractId;
+    const overrideEmail = body.email;
 
-    if (!contractId || isNaN(Number(contractId))) {
-      return NextResponse.json({ error: "ID Kontrak Sewa tidak valid." }, { status: 400 });
-    }
-
-    // Fetch contract details
-    const [contract] = await db
-      .select({
-        id: rentalContracts.id,
-        individualName: rentalContracts.individualName,
-        individualNik: rentalContracts.individualNik,
-        individualPhone: rentalContracts.individualPhone,
-        propertyName: rentalProperties.name,
-      })
-      .from(rentalContracts)
-      .innerJoin(rentalProperties, eq(rentalContracts.rentalPropertyId, rentalProperties.id))
-      .where(eq(rentalContracts.id, Number(contractId)))
-      .limit(1);
+    const { contract, defaultEmail } = await getContractDetailsForInvitationResend(contractId);
 
     if (!contract) {
       return NextResponse.json({ error: "Kontrak sewa tidak ditemukan." }, { status: 404 });
     }
 
-    // Determine target email
-    let targetEmail = overrideEmail;
-    if (!targetEmail) {
-      // Find latest token for this contract to get original email
-      const [latestToken] = await db
-        .select({ email: accountActivationTokens.email })
-        .from(accountActivationTokens)
-        .where(eq(accountActivationTokens.rentalContractId, contract.id))
-        .orderBy(accountActivationTokens.createdAt)
-        .limit(1);
-
-      if (latestToken) {
-        targetEmail = latestToken.email;
-      }
-    }
+    const targetEmail = overrideEmail || defaultEmail;
 
     if (!targetEmail) {
       return NextResponse.json(
@@ -96,6 +34,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
 
     const reqOrigin = request.headers.get("origin") || undefined;
 
@@ -114,6 +53,9 @@ export async function POST(request: Request) {
       activationUrl,
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error("Error in POST /api/rentals/resend-invitation:", error);
     return NextResponse.json(
       { error: error?.message || "Gagal mengirim ulang email undangan." },
@@ -121,3 +63,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

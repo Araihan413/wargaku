@@ -5,6 +5,8 @@ import { hashPassword } from 'better-auth/crypto';
 import { randomUUID } from 'crypto';
 import { sendEmail, sendAccountActivationEmail } from '@/lib/mail';
 import { getTenantFamilyWelcomeEmail } from '@/lib/emails/templates';
+import { decryptPII, hashPII } from '@/lib/crypto-pii';
+
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -66,13 +68,18 @@ export async function listTenantContracts(options: {
   const conditions: any[] = [eq(schema.rentalContracts.rentalPropertyId, options.rentalPropertyId)];
   if (options.isActive !== undefined) conditions.push(eq(schema.rentalContracts.isActive, options.isActive));
   if (options.query) {
+    const q = options.query.trim();
+    const qHash = hashPII(q);
     conditions.push(
       or(
-        like(schema.rentalContracts.individualName, `%${options.query}%`),
-        like(schema.rentalContracts.individualNik, `%${options.query}%`)
+        like(schema.rentalContracts.individualName, `%${q}%`),
+        like(schema.rentalContracts.individualNik, `%${q}%`),
+        like(schema.users.name, `%${q}%`),
+        eq(schema.families.familyNumberHash, qHash)
       )
     );
   }
+
 
   const whereClause = and(...conditions);
 
@@ -117,7 +124,7 @@ export async function listTenantContracts(options: {
       rentalPropertyId: c.rentalPropertyId,
       tenantType: tenantTypeStr,
       name: c.individualName || c.userName || 'Penyewa',
-      nik: c.individualNik || c.familyNumber || '-',
+      nik: c.individualNik || (c.familyNumber ? decryptPII(c.familyNumber) : '-'),
       phone: c.individualPhone || c.userPhone || null,
       isKtpSameVillage: c.isKtpSameVillage ?? false,
       ktpAddress: c.ktpAddress || null,
@@ -169,16 +176,19 @@ export async function listAllTenantContracts(options: {
     conditions.push(eq(schema.rentalContracts.verificationStatus, options.verificationStatus));
   }
   if (options.query) {
-    const v = `%${options.query}%`;
+    const v = options.query.trim();
+    const vHash = hashPII(v);
     conditions.push(
       or(
-        like(schema.rentalContracts.individualName, v),
-        like(schema.rentalContracts.individualNik, v),
-        like(schema.users.name, v),
-        like(schema.rentalProperties.name, v)
+        like(schema.rentalContracts.individualName, `%${v}%`),
+        like(schema.rentalContracts.individualNik, `%${v}%`),
+        like(schema.users.name, `%${v}%`),
+        like(schema.rentalProperties.name, `%${v}%`),
+        eq(schema.families.familyNumberHash, vHash)
       )
     );
   }
+
   if (options.coordinatorUserId) {
     conditions.push(eq(schema.rentalProperties.coordinatorUserId, options.coordinatorUserId));
   }
@@ -228,7 +238,7 @@ export async function listAllTenantContracts(options: {
       rentalPropertyId: c.rentalPropertyId,
       tenantType: tenantTypeStr,
       name: c.individualName || c.userName || 'Penyewa',
-      nik: c.individualNik || c.familyNumber || '-',
+      nik: c.individualNik || (c.familyNumber ? decryptPII(c.familyNumber) : '-'),
       phone: c.individualPhone || c.userPhone || null,
       isKtpSameVillage: c.isKtpSameVillage ?? false,
       ktpAddress: c.ktpAddress || null,
@@ -356,7 +366,6 @@ export async function createFamilyTenantWithUser(
       id: userId,
       name: data.name,
       email: data.email,
-      password: hashedPassword,
       phone: data.phone ?? null,
       status: 'active',
       emailVerified: false,
@@ -709,3 +718,38 @@ export async function autoLinkTenantContractToFamily({
 
   return contract;
 }
+
+/**
+ * Mengambil detail kontrak dan email token terakhir untuk keperluan pengiriman ulang undangan aktivasi.
+ */
+export async function getContractDetailsForInvitationResend(contractId: number) {
+  const [contract] = await db
+    .select({
+      id: schema.rentalContracts.id,
+      individualName: schema.rentalContracts.individualName,
+      individualNik: schema.rentalContracts.individualNik,
+      individualPhone: schema.rentalContracts.individualPhone,
+      propertyName: schema.rentalProperties.name,
+    })
+    .from(schema.rentalContracts)
+    .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
+    .where(eq(schema.rentalContracts.id, contractId))
+    .limit(1);
+
+  if (!contract) {
+    return { contract: null, defaultEmail: null };
+  }
+
+  const [latestToken] = await db
+    .select({ email: schema.accountActivationTokens.email })
+    .from(schema.accountActivationTokens)
+    .where(eq(schema.accountActivationTokens.rentalContractId, contract.id))
+    .orderBy(desc(schema.accountActivationTokens.createdAt))
+    .limit(1);
+
+  return {
+    contract,
+    defaultEmail: latestToken?.email || null,
+  };
+}
+

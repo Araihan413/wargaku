@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { nikRegex, kkNumberRegex, indonesianPhoneRegex } from "./common";
 
 export const loginSchema = z.object({
   email: z.string().min(1, "Email wajib diisi").email("Format email tidak valid"),
@@ -15,7 +16,7 @@ export const registerSchema = z.object({
   phone: z
     .string()
     .min(1, "Nomor WhatsApp / HP wajib diisi")
-    .regex(/^[0-9]{10,15}$/, "Nomor WhatsApp/HP harus berupa 10-15 digit angka"),
+    .regex(indonesianPhoneRegex, "Nomor WhatsApp/HP harus berupa format Indonesia yang valid (10-15 digit)"),
   password: z.string().min(6, "Password minimal 6 karakter"),
   confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
 
@@ -38,14 +39,14 @@ export const registerSchema = z.object({
 
   // Pengecekan data kependudukan jika tipe akun Warga
   if (data.accountType === "warga") {
-    if (!data.nik || !/^\d{16}$/.test(data.nik)) {
+    if (!data.nik || !nikRegex.test(data.nik)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "NIK harus terdiri dari 16 digit angka",
         path: ["nik"],
       });
     }
-    if (!data.familyNumber || !/^\d{16}$/.test(data.familyNumber)) {
+    if (!data.familyNumber || !kkNumberRegex.test(data.familyNumber)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Nomor Kartu Keluarga (KK) harus terdiri dari 16 digit angka",
@@ -61,6 +62,47 @@ export const registerSchema = z.object({
     }
   }
 });
+
+export const completeRegistrationSchema = z.object({
+  dwellingId: z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Alamat hunian wajib dipilih'
+        : 'ID hunian harus berupa angka',
+  }).int().positive('Alamat hunian tidak valid'),
+  familyNumber: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Nomor Kartu Keluarga wajib diisi'
+        : 'Nomor Kartu Keluarga harus berupa teks',
+  }).regex(kkNumberRegex, 'Nomor Kartu Keluarga harus 16 digit angka'),
+  nik: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'NIK wajib diisi'
+        : 'NIK harus berupa teks',
+  }).regex(nikRegex, 'NIK harus 16 digit angka'),
+});
+
+export const coordRegisterSchema = z.object({
+  id: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'ID sementara wajib ada'
+        : 'ID sementara tidak valid',
+  }).min(1, 'ID sementara wajib ada'),
+  email: z.string().email('Format email tidak valid'),
+  nik: z.string().regex(nikRegex, 'NIK harus 16 digit angka'),
+  password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
+});
+
+export const updateUserProfileSchema = z.object({
+  name: z.string().min(2, 'Nama minimal 2 karakter').max(100, 'Nama maksimal 100 karakter').optional(),
+  phone: z.string().regex(indonesianPhoneRegex, 'Format nomor telepon tidak valid (contoh: 08123456789)').optional().or(z.literal('')),
+});
+
+
+
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -81,4 +123,5 @@ export const resetPasswordSchema = z
 
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
 

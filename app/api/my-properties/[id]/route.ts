@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { db } from '@/db';
-import * as schema from '@/db/schema';
-import { sql } from 'drizzle-orm';
-
 import {
   getRentalPropertyById,
   updateRentalProperty,
@@ -12,9 +8,10 @@ import {
   isPropertyOwner,
   cleanupOldCoordinatorRole,
 } from '@/db/queries/property/rental-property.queries';
-import { findOrCreatePendingCoordinatorByPhone, getUserFullProfile } from '@/db/queries/auth/user.queries';
+import { findOrCreatePendingCoordinatorByPhone, getUserFullProfile, addRoleToUser } from '@/db/queries/auth/user.queries';
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+
 
 /**
  * @openapi
@@ -196,12 +193,9 @@ export async function PUT(
 
     // 1. Auto-assign Role 5 to new coordinator
     if (newCoordinatorId) {
-      await db.insert(schema.userRoles).values({
-        userId: newCoordinatorId,
-        roleId: 5,
-        isPrimary: false,
-      }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+      await addRoleToUser(newCoordinatorId, 5, false);
     }
+
 
     await updateRentalProperty(propertyId, {
       ...validated,

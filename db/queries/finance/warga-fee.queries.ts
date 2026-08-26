@@ -2,6 +2,8 @@ import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { format } from 'date-fns';
+import { decryptPII } from '@/lib/crypto-pii';
+
 
 export interface WargaFeeSummary {
   hasFamily: boolean;
@@ -56,7 +58,7 @@ export async function getMyFamilyFees(userId: string): Promise<WargaFeeSummary> 
     .limit(1);
 
   let familyId: number | null = headFamily?.id ?? null;
-  let familyNumber: string | null = headFamily?.familyNumber ?? null;
+  let familyNumber: string | null = headFamily?.familyNumber ? decryptPII(headFamily.familyNumber) : null;
 
   if (!familyId) {
     const [member] = await db
@@ -71,7 +73,7 @@ export async function getMyFamilyFees(userId: string): Promise<WargaFeeSummary> 
 
     if (member) {
       familyId = member.familyId;
-      familyNumber = member.familyNumber;
+      familyNumber = member.familyNumber ? decryptPII(member.familyNumber) : null;
     }
   }
 

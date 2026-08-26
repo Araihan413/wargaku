@@ -1,23 +1,14 @@
 import { z } from 'zod';
+import {
+  kkNumberRegex,
+  nikRegex,
+  indonesianPhoneRegex,
+  toTitleCase,
+  datePreprocessor,
+  optionalDatePreprocessor,
+} from './common';
 
-// Regex untuk validasi nomor KK (16 digit angka)
-const kkNumberRegex = /^[0-9]{16}$/;
-
-// Regex untuk validasi NIK (16 digit angka)
-const nikRegex = /^[0-9]{16}$/;
-
-// Regex untuk validasi nomor telepon Indonesia (misal: 081234567890 atau +6281234567890)
-const indonesianPhoneRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
-
-// Helper to convert string to Title Case (ignores casing differences)
-export const toTitleCase = (val: string): string => {
-  return val
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
+export { kkNumberRegex, nikRegex, indonesianPhoneRegex, toTitleCase };
 
 export const createFamilySchema = z.object({
   dwellingId: z.number({
@@ -39,7 +30,7 @@ export const createFamilySchema = z.object({
       issue.input === undefined
         ? 'ID User Kepala Keluarga wajib diisi'
         : 'ID User Kepala Keluarga harus berupa teks',
-  }),
+  }).optional().nullable(),
   
   headName: z.string({
     error: (issue) =>
@@ -47,29 +38,111 @@ export const createFamilySchema = z.object({
         ? 'Nama Kepala Keluarga wajib diisi'
         : 'Nama Kepala Keluarga harus berupa teks',
   }).min(2, 'Nama Kepala Keluarga minimal 2 karakter')
-    .max(100, 'Nama Kepala Keluarga maksimal 100 karakter'),
+    .max(100, 'Nama Kepala Keluarga maksimal 100 karakter')
+    .optional().nullable(),
     
   unitNumber: z.string().max(10, 'Nomor unit maksimal 10 karakter').optional().nullable(),
   kkFile: z.string().max(255).optional().nullable(),
   
-  checkInDate: z.preprocess((arg) => {
-    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-    return arg;
-  }, z.date({
+  checkInDate: z.preprocess(datePreprocessor, z.date({
     error: (issue) =>
       issue.input === undefined
         ? 'Tanggal masuk hunian wajib diisi'
         : 'Format tanggal masuk tidak valid',
-  })),
+  }).optional()),
   
-  checkOutDate: z.preprocess((arg) => {
-    if (arg === '' || arg === null || arg === undefined) return null;
-    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-    return arg;
-  }, z.date().optional().nullable()),
+  checkOutDate: z.preprocess(optionalDatePreprocessor, z.date().optional().nullable()),
+});
+
+export const createFamilyWithHeadSchema = z.object({
+  dwellingId: z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Hunian wajib dipilih'
+        : 'ID hunian harus berupa angka',
+  }).int().positive('Hunian tidak valid'),
+  familyNumber: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Nomor Kartu Keluarga wajib diisi'
+        : 'Nomor Kartu Keluarga harus berupa teks',
+  }).regex(kkNumberRegex, 'Nomor Kartu Keluarga harus terdiri dari 16 digit angka'),
+  headUserId: z.string().optional().nullable(),
+  kkFile: z.string().max(255).optional().nullable(),
+  headNik: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'NIK Kepala Keluarga wajib diisi'
+        : 'NIK Kepala Keluarga harus berupa teks',
+  }).regex(nikRegex, 'NIK Kepala Keluarga harus 16 digit angka'),
+  headName: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Nama Kepala Keluarga wajib diisi'
+        : 'Nama Kepala Keluarga harus berupa teks',
+  }).min(2, 'Nama Kepala Keluarga minimal 2 karakter').max(100, 'Nama Kepala Keluarga maksimal 100 karakter'),
+  headPhone: z.string().regex(indonesianPhoneRegex, 'Nomor HP tidak valid').optional().nullable().or(z.literal('')),
+  headGender: z.enum(['L', 'P'], {
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Jenis kelamin Kepala Keluarga wajib dipilih (L/P)'
+        : 'Jenis kelamin tidak valid',
+  }),
+  headBirthPlace: z.string().max(50).optional().nullable(),
+  headBirthDate: z.preprocess(optionalDatePreprocessor, z.date().optional().nullable()),
+  headOccupation: z.string().max(50).optional().nullable(),
+  headEducationLevel: z.string().max(50).optional().nullable(),
+  headKtpFile: z.string().max(255).optional().nullable(),
+});
+
+export const setupMyFamilySchema = z.object({
+  dwellingId: z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Hunian wajib dipilih'
+        : 'ID hunian harus berupa angka',
+  }).int().positive('Hunian tidak valid'),
+  familyNumber: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Nomor Kartu Keluarga wajib diisi'
+        : 'Nomor Kartu Keluarga harus berupa teks',
+  }).regex(kkNumberRegex, 'Nomor Kartu Keluarga harus 16 digit angka'),
+  nik: z.string().regex(nikRegex, 'NIK harus 16 digit angka').optional().nullable().or(z.literal('')),
+  kkFile: z.string().max(255).optional().nullable(),
+});
+
+export const claimWargaSchema = z.object({
+  dwellingId: z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Alamat hunian wajib dipilih'
+        : 'ID hunian harus berupa angka',
+  }).int().positive('Alamat hunian tidak valid'),
+  familyNumber: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'Nomor Kartu Keluarga wajib diisi'
+        : 'Nomor Kartu Keluarga harus berupa teks',
+  }).regex(kkNumberRegex, 'Nomor Kartu Keluarga harus 16 digit angka'),
+  nik: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'NIK Kepala Keluarga wajib diisi'
+        : 'NIK Kepala Keluarga harus berupa teks',
+  }).regex(nikRegex, 'NIK Kepala Keluarga harus 16 digit angka'),
+  gender: z.enum(['L', 'P']).optional().default('L'),
+});
+
+
+export const updateChangeRequestDraftSchema = z.object({
+  familyNumber: z.string().regex(kkNumberRegex, 'Nomor Kartu Keluarga harus 16 digit angka').optional().nullable(),
+  kkFile: z.string().max(255).optional().nullable(),
+  members: z.array(z.record(z.string(), z.any())).optional().default([]),
 });
 
 export const updateFamilySchema = createFamilySchema.partial().extend({
+
   checkInDate: z.preprocess((arg) => {
     if (arg === '' || arg === null || arg === undefined) return undefined;
     if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
@@ -226,4 +299,5 @@ export const changeFamilyHeadSchema = z.object({
 });
 
 export type ChangeFamilyHeadInput = z.infer<typeof changeFamilyHeadSchema>;
+
 

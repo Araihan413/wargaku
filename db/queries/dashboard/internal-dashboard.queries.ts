@@ -2,6 +2,8 @@ import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and, desc, sql, gte, inArray } from 'drizzle-orm';
 import { startOfMonth, subMonths, format } from 'date-fns';
+import { decryptPII } from '@/lib/crypto-pii';
+
 
 // ==========================================
 // INTERNAL DASHBOARD QUERIES (OPTIMIZED)
@@ -1130,6 +1132,7 @@ export async function getWargaDashboard(userId: string) {
     family: familyData
       ? {
           ...familyData,
+          familyNumber: decryptPII(familyData.familyNumber),
           headName,
           hasVerified: familyData.verificationStatus === 'verified',
           totalMembers: memberCount,

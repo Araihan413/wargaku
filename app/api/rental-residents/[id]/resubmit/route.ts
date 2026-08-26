@@ -31,6 +31,9 @@ import { getTenantContractById, updateTenantContract } from '@/db/queries/proper
  *       500:
  *         description: Kesalahan server internal
  */
+import { resubmitRentalResidentSchema } from '@/lib/validations/rental';
+import { ZodError } from 'zod';
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -51,6 +54,9 @@ export async function POST(
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
+    const rawBody = await request.json().catch(() => ({}));
+    const validated = resubmitRentalResidentSchema.parse(rawBody);
+
     const existingContract = await getTenantContractById(contractId);
     
     if (!existingContract) {
@@ -62,13 +68,18 @@ export async function POST(
     }
 
     await updateTenantContract(contractId, {
+      ...validated,
       verificationStatus: 'pending',
       verificationNote: null,
     });
 
     return NextResponse.json({ message: 'Verifikasi berhasil diajukan ulang ke RT' });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in POST /api/rental-residents/[id]/resubmit:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
+

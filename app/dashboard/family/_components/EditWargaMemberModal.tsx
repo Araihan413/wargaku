@@ -11,6 +11,7 @@ import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { CustomSelect } from "@/components/CustomSelect";
 import { commonOccupations, commonEducations, relationshipOptions, religionOptions, genderOptions } from "@/lib/constants";
 import { formatDateForInput, calculateAge } from "@/lib/date-format";
+import { createWargaSchema } from "@/lib/validations/kependudukan";
 
 interface EditWargaMemberModalProps {
   isOpen: boolean;
@@ -95,39 +96,37 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isHead && !isLocked) {
-      if (!name.trim() || !nik.trim()) {
-        toast.error("Nama dan NIK wajib diisi");
-        return;
-      }
-      if (nik.length !== 16) {
-        toast.error("NIK harus 16 digit angka");
-        return;
-      }
-    }
-
-    if (!birthPlace.trim()) {
-      toast.error("Tempat Lahir wajib diisi");
-      return;
-    }
-
-    if (!birthDate) {
-      toast.error("Tanggal Lahir wajib diisi");
-      return;
-    }
-
-    if (!educationLevel.trim()) {
-      toast.error("Pendidikan Terakhir wajib diisi / dipilih");
-      return;
-    }
-
-    if (!occupation.trim()) {
-      toast.error("Pekerjaan wajib diisi / dipilih");
-      return;
-    }
-
     if (isKtpRequired && !ktpFile) {
       toast.error("Scan KTP wajib diunggah untuk anggota keluarga penyewa berusia 18 tahun ke atas");
+      return;
+    }
+
+    if (!isKtpSameVillage && !ktpAddress.trim()) {
+      toast.error("Alamat asal KTP luar kelurahan wajib diisi");
+      return;
+    }
+
+    const payloadToValidate = {
+      familyId: member.familyId || 1,
+      name: isHead && isLocked ? member.name : name.trim(),
+      nik: isHead && isLocked ? member.nik : nik.trim(),
+      relationship: isHead ? "Kepala_Keluarga" : relationship,
+      gender: isHead && isLocked ? member.gender : gender,
+      birthPlace: birthPlace.trim(),
+      birthDate,
+      occupation: occupation.trim(),
+      educationLevel: educationLevel.trim(),
+      religion: religion.trim() || "Islam",
+      phone: phone.trim() || null,
+      isKtpSameVillage,
+      ktpAddress: !isKtpSameVillage ? ktpAddress.trim() : null,
+      ktpFile: typeof ktpFile === "string" ? ktpFile : null,
+    };
+
+    const parsed = createWargaSchema.safeParse(payloadToValidate);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Data anggota keluarga tidak valid";
+      toast.error(firstError);
       return;
     }
 
@@ -150,33 +149,27 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
       }
 
       const payload = {
-        name: isHead && isLocked ? member.name : name.trim(),
-        nik: isHead && isLocked ? member.nik : nik.trim(),
-        relationship: isHead ? "Kepala_Keluarga" : relationship,
-        gender: isHead && isLocked ? member.gender : gender,
-        birthPlace: birthPlace.trim(),
-        birthDate,
-        occupation: occupation.trim(),
-        educationLevel: educationLevel.trim(),
-        religion,
-        phone: phone.trim() || null,
-        isKtpSameVillage,
-        ktpAddress: !isKtpSameVillage ? ktpAddress.trim() : null,
+        name: parsed.data.name,
+        nik: parsed.data.nik,
+        relationship: parsed.data.relationship,
+        gender: parsed.data.gender,
+        birthPlace: parsed.data.birthPlace,
+        birthDate: parsed.data.birthDate ? (parsed.data.birthDate instanceof Date ? parsed.data.birthDate.toISOString().split("T")[0] : String(parsed.data.birthDate)) : birthDate,
+        occupation: parsed.data.occupation,
+        educationLevel: parsed.data.educationLevel,
+        religion: parsed.data.religion,
+        phone: parsed.data.phone,
+        isKtpSameVillage: parsed.data.isKtpSameVillage,
+        ktpAddress: parsed.data.ktpAddress,
         ktpFile: finalKtpUrl,
       };
 
       if (onCustomSubmit) {
         const ok = await onCustomSubmit(payload);
         if (ok) {
-          toast.success(`Biodata "${name}" berhasil diperbarui`);
           onSuccess();
+          onClose();
         }
-        return;
-      }
-
-      if (isLocked) {
-        toast.error("Data keluarga sedang dikunci untuk verifikasi RT. Silakan ajukan perubahan data terlebih dahulu.");
-        setIsLoading(false);
         return;
       }
 
@@ -187,15 +180,15 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
       });
 
       if (res.ok) {
-        toast.success(`Biodata "${name}" berhasil diperbarui`);
+        toast.success(`Data anggota "${name}" berhasil diperbarui`);
         onSuccess();
+        onClose();
       } else {
         const err = await res.json();
-        toast.error(err.error || "Gagal mengedit data anggota keluarga");
+        toast.error(err.error || "Gagal memperbarui data anggota");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Terjadi kesalahan koneksi sistem.");
+    } catch {
+      toast.error("Terjadi kesalahan sistem saat memperbarui anggota.");
     } finally {
       setIsLoading(false);
     }

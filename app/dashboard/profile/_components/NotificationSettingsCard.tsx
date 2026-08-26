@@ -78,7 +78,7 @@ export const NotificationSettingsCard: React.FC = () => {
           <div className="flex items-center justify-between p-4 bg-gray-card border border-gray-border rounded-xl">
             <div className="space-y-0.5">
               <span className="text-sm font-semibold text-gray-heading-main block">
-                Notifikasi Push (OneSignal / Browser)
+                Notifikasi Push
               </span>
               <p className="text-xs text-gray-secondary-text">
                 Terima pemberitahuan penting secara real-time di layar HP atau browser komputer Anda.

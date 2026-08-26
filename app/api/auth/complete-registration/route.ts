@@ -1,55 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { completeWargaRegistration } from "@/db/queries/auth/user.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
 import { notifyRoles } from "@/lib/notifications";
 import { sendEmail } from "@/lib/mail";
 import { getWargaRegistrationEmail } from "@/lib/emails/templates";
+import { completeRegistrationSchema } from "@/lib/validations/auth";
+import { ZodError } from "zod";
 
-/**
- * @openapi
- * /api/auth/complete-registration:
- *   post:
- *     summary: Menyelesaikan pendaftaran data kependudukan (Warga)
- *     description: Endpoint untuk pengguna (warga) yang baru pertama kali login agar mereka bisa mengisi NIK, No. KK, dan memilih hunian mereka. Data keluarga akan masuk ke status "draft".
- *     tags:
- *       - Autentikasi
- *     security:
- *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - nik
- *               - familyNumber
- *               - dwellingId
- *             properties:
- *               nik:
- *                 type: string
- *                 description: 16 digit NIK Kepala Keluarga
- *               familyNumber:
- *                 type: string
- *                 description: 16 digit Nomor KK
- *               dwellingId:
- *                 type: integer
- *                 description: ID hunian (rumah)
- *     responses:
- *       200:
- *         description: Pendaftaran data kependudukan berhasil diselesaikan
- *       400:
- *         description: Data kependudukan tidak lengkap, Nomor KK sudah terdaftar, atau NIK sudah terdaftar
- *       401:
- *         description: Belum terautentikasi
- *       500:
- *         description: Kesalahan server internal
- */
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -61,74 +21,34 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { nik, familyNumber, dwellingId } = body;
+    const validated = completeRegistrationSchema.parse(body);
 
-    if (!nik || !familyNumber || !dwellingId) {
-      return NextResponse.json({ error: "Data kependudukan tidak lengkap" }, { status: 400 });
+    try {
+      await completeWargaRegistration(session.user.id, session.user.name, {
+        nik: validated.nik,
+        familyNumber: validated.familyNumber,
+        dwellingId: validated.dwellingId,
+      });
+    } catch (err: any) {
+      if (err.message === "KK_EXISTS") {
+        return NextResponse.json({ error: "Nomor Kartu Keluarga sudah terdaftar" }, { status: 400 });
+      }
+      if (err.message === "NIK_EXISTS") {
+        return NextResponse.json({ error: "NIK sudah terdaftar" }, { status: 400 });
+      }
+      throw err;
     }
 
-    // Periksa apakah NIK atau No KK sudah ada
-    const existingFamily = await db
-      .select({ id: schema.families.id })
-      .from(schema.families)
-      .where(eq(schema.families.familyNumber, familyNumber))
-      .limit(1);
-
-    if (existingFamily.length > 0) {
-      return NextResponse.json({ error: "Nomor Kartu Keluarga sudah terdaftar" }, { status: 400 });
-    }
-
-    const existingMember = await db
-      .select({ id: schema.familyMembers.id })
-      .from(schema.familyMembers)
-      .where(eq(schema.familyMembers.nik, nik))
-      .limit(1);
-
-    if (existingMember.length > 0) {
-      return NextResponse.json({ error: "NIK sudah terdaftar" }, { status: 400 });
-    }
-
-    // Insert data kependudukan dengan status draft & tetapkan role Warga (6)
-    await db.transaction(async (tx) => {
-      // 1. Tetapkan role Warga secara eksplisit
-      await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, session.user.id));
-      await tx.insert(schema.userRoles).values({
-        userId: session.user.id,
-        roleId: 6,
-        isPrimary: true,
-      });
-
-      // 2. Insert ke tabel families
-      const [insertResult] = await tx.insert(schema.families).values({
-        dwellingId: dwellingId,
-        headUserId: session.user.id,
-        familyNumber: familyNumber,
-        verificationStatus: "draft",
-        isActive: true,
-      });
-
-      const familyId = insertResult.insertId;
-
-      // 3. Insert ke tabel family_members
-      await tx.insert(schema.familyMembers).values({
-        familyId: familyId,
-        userId: session.user.id,
-        name: session.user.name,
-        nik: nik,
-        gender: "L", // Default gender, will be updated by user later
-        relationship: "Kepala_Keluarga",
-        isActive: true,
-      });
-    });
 
     const ipAddress = await getClientIp(request);
     createAuditLog({
       userId: session.user.id,
       action: "COMPLETE_REGISTRATION",
       module: "autentikasi",
-      description: `${session.user.name} menyelesaikan pendaftaran data kependudukan (KK No. ${familyNumber}, hunian ID: ${dwellingId}).`,
+      description: `${session.user.name} menyelesaikan pendaftaran data kependudukan (KK No. ${validated.familyNumber}, hunian ID: ${validated.dwellingId}).`,
       ipAddress,
     }).catch(() => null);
+
 
     // 1. Kirim notifikasi internal ke Ketua RT & Sekretaris
     notifyRoles(["ketua-rt", "sekretaris"], {
@@ -154,7 +74,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("Error in complete-registration:", error);
     return NextResponse.json({ error: error.message || "Kesalahan server internal" }, { status: 500 });
   }
 }
+

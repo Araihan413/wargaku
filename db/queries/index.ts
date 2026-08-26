@@ -4,6 +4,7 @@
 
 // 1. Modul Autentikasi & RBAC
 export * from './auth/user.queries';
+export * from './auth/activation.queries';
 
 // 2. Modul Kependudukan & Hunian
 export * from './population/dwelling.queries';
@@ -31,6 +32,8 @@ export * from './system/smart-group.queries';
 export * from './system/system-setting.queries';
 export * from './system/approval.queries';
 export * from './system/permission.queries';
+export * from './system/document.queries';
+
 
 // 7. Modul Dashboard & Portal Publik
 export * from './dashboard/internal-dashboard.queries';

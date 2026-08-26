@@ -3,6 +3,8 @@ import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql, ne } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { cleanupOldCoordinatorRole } from '@/db/queries/property/rental-property.queries';
+import { decryptPII } from '@/lib/crypto-pii';
+
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -182,7 +184,11 @@ export async function getDwellingDetailById(id: number) {
           .select({ count: sql<number>`count(*)` })
           .from(schema.familyMembers)
           .where(and(eq(schema.familyMembers.familyId, fam.id), eq(schema.familyMembers.isActive, true)));
-        return { ...fam, memberCount: Number(countRes?.count ?? 0) };
+        return {
+          ...fam,
+          familyNumber: decryptPII(fam.familyNumber),
+          memberCount: Number(countRes?.count ?? 0),
+        };
       })
     );
 
@@ -665,26 +671,32 @@ export async function getNeighborhoodMap(isOfficer: boolean) {
   return allDwellings.map((dwelling) => {
     const dwellingFamilies = allFamilies
       .filter((f) => f.dwellingId === dwelling.id)
-      .map((family) => ({
-        id: family.id,
-        familyNumber: isOfficer
-          ? family.familyNumber
-          : `${family.familyNumber.slice(0, 4)}${'*'.repeat(Math.max(0, family.familyNumber.length - 8))}${family.familyNumber.slice(-4)}`,
-        headName: family.headName,
-        verificationStatus: family.verificationStatus,
-        members: allMembers
-          .filter((m) => m.familyId === family.id)
-          .map((member) => ({
-            id: member.id,
-            name: member.name,
-            nik: isOfficer ? member.nik : _censorNik(member.nik),
-            gender: member.gender,
-            relationship: member.relationship,
-            occupation: member.occupation,
-            educationLevel: member.educationLevel,
-            phone: isOfficer ? member.phone : _censorPhone(member.phone),
-          })),
-      }));
+      .map((family) => {
+        const plainFamilyNumber = decryptPII(family.familyNumber);
+        return {
+          id: family.id,
+          familyNumber: isOfficer
+            ? plainFamilyNumber
+            : `${plainFamilyNumber.slice(0, 4)}${'*'.repeat(Math.max(0, plainFamilyNumber.length - 8))}${plainFamilyNumber.slice(-4)}`,
+          headName: family.headName,
+          verificationStatus: family.verificationStatus,
+          members: allMembers
+            .filter((m) => m.familyId === family.id)
+            .map((member) => {
+              const plainNik = decryptPII(member.nik);
+              return {
+                id: member.id,
+                name: member.name,
+                nik: isOfficer ? plainNik : _censorNik(plainNik),
+                gender: member.gender,
+                relationship: member.relationship,
+                occupation: member.occupation,
+                educationLevel: member.educationLevel,
+                phone: isOfficer ? member.phone : _censorPhone(member.phone),
+              };
+            }),
+        };
+      });
 
     const dwellingRentals = allRentalProperties
       .filter((rp) => rp.dwellingId === dwelling.id)

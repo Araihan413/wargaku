@@ -5,6 +5,9 @@ import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
 import { processRegistrationApproval } from "@/db/queries/system/approval.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
+import { processRegistrationApprovalSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
+
 
 /**
  * @openapi
@@ -73,33 +76,32 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { action, rejectReason } = body;
-
-    if (!action || (action !== "approve" && action !== "reject")) {
-      return NextResponse.json({ error: "Aksi tidak valid (harus approve atau reject)" }, { status: 400 });
-    }
+    const validated = processRegistrationApprovalSchema.parse(body);
 
     const requestOrigin = request.headers.get("origin") || undefined;
 
-    await processRegistrationApproval(id, action, rejectReason, requestOrigin);
+    await processRegistrationApproval(id, validated.action, validated.rejectReason || undefined, requestOrigin);
 
     const ipAddress = await getClientIp(request);
-    const isApprove = action === "approve";
+    const isApprove = validated.action === "approve";
     await createAuditLog({
       userId: session.user.id,
       action: isApprove ? "APPROVE_REGISTRATION" : "REJECT_REGISTRATION",
       module: "persetujuan",
-      description: `${isApprove ? "Menyetujui" : "Menolak"} pendaftaran warga mandiri ID #${id}${!isApprove && rejectReason ? ` (Alasan: ${rejectReason})` : ''}`,
+      description: `${isApprove ? "Menyetujui" : "Menolak"} pendaftaran warga mandiri ID #${id}${!isApprove && validated.rejectReason ? ` (Alasan: ${validated.rejectReason})` : ''}`,
       ipAddress,
     });
 
-    if (action === "approve") {
+    if (validated.action === "approve") {
       return NextResponse.json({ success: true, message: "Pendaftaran berhasil disetujui" });
     } else {
       return NextResponse.json({ success: true, message: "Pendaftaran warga berhasil ditolak & email penolakan terkirim" });
     }
 
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data tidak valid", issues: error.issues }, { status: 400 });
+    }
     if (error.message === "USER_NOT_FOUND") {
       return NextResponse.json({ error: "User tidak ditemukan" }, { status: 404 });
     }

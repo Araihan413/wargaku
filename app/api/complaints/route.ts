@@ -6,6 +6,9 @@ import { listComplaints, createComplaint, checkIpRateLimit } from '@/db/queries'
 import { notifyRoles } from '@/lib/notifications';
 import { getClientIp } from '@/lib/audit-logger';
 import { verifyTurnstileToken } from '@/lib/turnstile';
+import { createComplaintSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
+
 
 /**
  * @openapi
@@ -143,10 +146,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { reporterName, reporterPhone, category, description, photoPath, dwellingId, turnstileToken } = body;
+    const validated = createComplaintSchema.parse(body);
 
     // Verifikasi Keamanan Cloudflare Turnstile (Anti-Bot & Spam)
-    const turnstileResult = await verifyTurnstileToken(turnstileToken, clientIp);
+    const turnstileResult = await verifyTurnstileToken(validated.turnstileToken || '', clientIp);
     if (!turnstileResult.success) {
       return NextResponse.json(
         { error: turnstileResult.error || 'Verifikasi keamanan bot gagal.' },
@@ -154,23 +157,19 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!reporterName?.trim()) return NextResponse.json({ error: 'Nama pelapor wajib diisi' }, { status: 400 });
-    if (!category) return NextResponse.json({ error: 'Kategori pengaduan wajib dipilih' }, { status: 400 });
-    if (!description?.trim()) return NextResponse.json({ error: 'Rincian pengaduan wajib diisi' }, { status: 400 });
-
     const complaintRes = await createComplaint({
-      reporterName: reporterName.trim(),
-      reporterPhone: reporterPhone?.trim() || null,
-      category,
-      description: description.trim(),
-      photoPath: photoPath || null,
-      dwellingId: dwellingId ? Number(dwellingId) : null,
+      reporterName: validated.reporterName,
+      reporterPhone: validated.reporterPhone || null,
+      category: validated.category,
+      description: validated.description,
+      photoPath: validated.photoPath || null,
+      dwellingId: validated.dwellingId || null,
       ipAddress: clientIp,
     });
 
     notifyRoles(['ketua-rt', 'sekretaris'], {
-      title: `Pengaduan Warga Baru [${category}]`,
-      message: `Laporan baru dari ${reporterName.trim()}: "${description.trim().slice(0, 60)}..."`,
+      title: `Pengaduan Warga Baru [${validated.category}]`,
+      message: `Laporan baru dari ${validated.reporterName}: "${validated.description.slice(0, 60)}..."`,
       category: 'dinas',
       redirectLink: '/dashboard/complaints',
     }).catch((err) => console.error('Gagal kirim notifikasi pengaduan:', err));
@@ -187,6 +186,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data pengaduan tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in POST /api/complaints:', error);
     return NextResponse.json(
       { error: error.message || 'Kesalahan server internal' },

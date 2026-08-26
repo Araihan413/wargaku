@@ -33,6 +33,9 @@ import { getClientIp } from '@/lib/audit-logger';
  *       500:
  *         description: Kesalahan server internal
  */
+import { reactivateRentalResidentSchema } from '@/lib/validations/rental';
+import { ZodError } from 'zod';
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -53,6 +56,9 @@ export async function POST(
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
+    const rawBody = await request.json().catch(() => ({}));
+    reactivateRentalResidentSchema.parse(rawBody);
+
     const contract = await getTenantContractById(contractId);
     if (!contract) {
       return NextResponse.json({ error: 'Kontrak sewa tidak ditemukan' }, { status: 404 });
@@ -71,7 +77,11 @@ export async function POST(
 
     return NextResponse.json({ message: 'Kontrak penyewa berhasil diaktifkan kembali' });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in POST /api/rental-residents/[id]/reactivate:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
+

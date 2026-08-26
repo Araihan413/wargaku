@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { db } from '@/db';
-import * as schema from '@/db/schema';
-import { sql } from 'drizzle-orm';
-
 import { listRentalProperties, createRentalProperty, checkExistingActiveRental } from '@/db/queries/property/rental-property.queries';
 import { getDwellingOwner, claimDwellingOwner } from '@/db/queries/population/dwelling.queries';
-import { findOrCreatePendingCoordinatorByPhone } from '@/db/queries/auth/user.queries';
+import { findOrCreatePendingCoordinatorByPhone, addRoleToUser } from '@/db/queries/auth/user.queries';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
+
 
 /**
  * @openapi
@@ -191,12 +188,9 @@ export async function POST(request: Request) {
 
     if (finalCoordinatorId) {
       // Auto-assign Role 5 (Koordinator Kost) to coordinator
-      await db.insert(schema.userRoles).values({
-        userId: finalCoordinatorId,
-        roleId: 5,
-        isPrimary: false,
-      }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
+      await addRoleToUser(finalCoordinatorId, 5, false);
     }
+
 
     const propertyId = await createRentalProperty({
       ...validated,

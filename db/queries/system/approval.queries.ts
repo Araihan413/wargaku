@@ -8,6 +8,8 @@ import {
   getRegistrationRejectionEmail,
 } from '@/lib/emails/templates';
 import { notifyUser } from '@/lib/notifications';
+import { decryptPII } from '@/lib/crypto-pii';
+
 
 // ==========================================
 // APPROVALS QUERIES (Dibangun Ulang untuk Skema Baru)
@@ -92,8 +94,8 @@ export async function listPendingRegistrations() {
         roleId: role.roleId,
         roleName: role.roleName,
         roleSlug: role.roleSlug,
-        nik: memberMap.get(user.id)?.nik ?? null,
-        familyNumber: family?.familyNumber ?? null,
+        nik: memberMap.get(user.id)?.nik ? decryptPII(memberMap.get(user.id)!.nik) : null,
+        familyNumber: family?.familyNumber ? decryptPII(family.familyNumber) : null,
         dwellingId: family?.dwellingId ?? null,
         blockNumber: family?.blockNumber ?? null,
         houseNumber: family?.houseNumber ?? null,

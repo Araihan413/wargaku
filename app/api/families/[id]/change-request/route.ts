@@ -13,6 +13,9 @@ import {
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
 import { deleteNotificationsByRedirectLink } from '@/lib/notifications';
+import { updateChangeRequestDraftSchema } from '@/lib/validations/kependudukan';
+import { ZodError } from 'zod';
+
 
 /**
  * @openapi
@@ -218,10 +221,12 @@ export async function PUT(
     }
 
     const body = await request.json();
+    const validated = updateChangeRequestDraftSchema.parse(body);
+
     await updateDraftChangeRequest(activeRequest.id, session.user.id, {
-      familyNumber: body.familyNumber,
-      kkFile: body.kkFile,
-      members: body.members || [],
+      familyNumber: validated.familyNumber || undefined,
+      kkFile: validated.kkFile || undefined,
+      members: validated.members as any,
     });
 
     return NextResponse.json({
@@ -229,6 +234,9 @@ export async function PUT(
       message: 'Draf perubahan data KK berhasil disimpan.',
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     if (error.message && error.message.startsWith('NIK_EXISTS:')) {
       const [_, nik, name] = error.message.split(':');
       return NextResponse.json(
@@ -240,6 +248,7 @@ export async function PUT(
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
+
 
 export async function POST(
   request: Request,

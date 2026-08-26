@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { setupMyFamilyCard } from "@/db/queries/population/family.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
+import { setupMyFamilySchema } from "@/lib/validations/kependudukan";
+import { ZodError } from "zod";
 
 export async function POST(req: Request) {
   try {
@@ -16,20 +18,13 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { dwellingId, familyNumber, nik, kkFile } = body;
-
-    if (!dwellingId || !familyNumber) {
-      return NextResponse.json(
-        { error: "Hunian dan Nomor KK wajib diisi." },
-        { status: 400 }
-      );
-    }
+    const validated = setupMyFamilySchema.parse(body);
 
     const familyId = await setupMyFamilyCard(session.user.id, {
-      dwellingId: Number(dwellingId),
-      familyNumber: String(familyNumber).trim(),
-      nik: nik ? String(nik).trim() : null,
-      kkFile: kkFile || null,
+      dwellingId: validated.dwellingId,
+      familyNumber: validated.familyNumber,
+      nik: validated.nik || null,
+      kkFile: validated.kkFile || null,
     });
 
     const ipAddress = await getClientIp(req);
@@ -37,7 +32,7 @@ export async function POST(req: Request) {
       userId: session.user.id,
       action: "SETUP_FAMILY_CARD",
       module: "kependudukan",
-      description: `${session.user.name} mendaftarkan Kartu Keluarga mandiri (No. KK: ${familyNumber}, hunian ID: ${dwellingId}).`,
+      description: `${session.user.name} mendaftarkan Kartu Keluarga mandiri (No. KK: ${validated.familyNumber}, hunian ID: ${validated.dwellingId}).`,
       ipAddress,
     }).catch(() => null);
 
@@ -46,6 +41,9 @@ export async function POST(req: Request) {
       familyId,
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("Error in POST /api/families/my-setup:", error);
     return NextResponse.json(
       { error: error.message || "Gagal mendaftarkan Kartu Keluarga" },
@@ -53,3 +51,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

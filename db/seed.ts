@@ -160,7 +160,6 @@ async function main() {
       id: '1',
       name: 'Super Admin Utama',
       email: adminEmail,
-      password: hashedPassword,
       status: 'active',
     });
 

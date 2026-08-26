@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, and, or, like, gte, lte, inArray, desc, sql } from "drizzle-orm";
+import { eq, and, or, like, lte, gte, inArray, desc, sql } from "drizzle-orm";
+import { decryptPII, hashPII } from "@/lib/crypto-pii";
 
 export interface CitizenFilterOptions {
   searchQuery?: string;
@@ -43,16 +44,18 @@ export async function filterCitizens(options: CitizenFilterOptions = {}) {
 
   const conditions: any[] = [eq(schema.familyMembers.isActive, true)];
 
-  // 1. Search Query (Nama atau NIK)
+  // 1. Search Query (Nama LIKE atau NIK exact match via blind index)
   if (options.searchQuery && options.searchQuery.trim() !== "") {
-    const q = `%${options.searchQuery.trim()}%`;
+    const q = options.searchQuery.trim();
+    const qHash = hashPII(q);
     conditions.push(
       or(
-        like(schema.familyMembers.name, q),
-        like(schema.familyMembers.nik, q)
+        like(schema.familyMembers.name, `%${q}%`),
+        eq(schema.familyMembers.nikHash, qHash)
       )!
     );
   }
+
 
   // 2. Rentang Usia (BirthDate Math)
   const today = new Date();
@@ -187,7 +190,7 @@ export async function filterCitizens(options: CitizenFilterOptions = {}) {
     return {
       id: item.id,
       name: item.name,
-      nik: item.nik,
+      nik: decryptPII(item.nik),
       gender: item.gender,
       birthDate: birthDateStr,
       age,
@@ -196,7 +199,7 @@ export async function filterCitizens(options: CitizenFilterOptions = {}) {
       religion: item.religion || null,
       occupation: item.occupation || null,
       educationLevel: item.educationLevel || null,
-      familyNumber: item.familyNumber || null,
+      familyNumber: item.familyNumber ? decryptPII(item.familyNumber) : null,
       dwellingBlock: item.dwellingBlock || null,
       dwellingHouse: item.dwellingHouse || null,
       dwellingType: item.dwellingType || null,

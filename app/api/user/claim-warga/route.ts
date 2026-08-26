@@ -45,6 +45,9 @@ import { getClientIp } from "@/lib/audit-logger";
  *       500:
  *         description: Kesalahan server internal
  */
+import { claimWargaSchema } from "@/lib/validations/kependudukan";
+import { ZodError } from "zod";
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -56,20 +59,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { dwellingId, familyNumber, nik, gender } = body;
-
-    if (!dwellingId || !familyNumber || !nik) {
-      return NextResponse.json(
-        { error: "Alamat hunian, Nomor KK, dan NIK Kepala Keluarga wajib diisi." },
-        { status: 400 }
-      );
-    }
+    const validated = claimWargaSchema.parse(body);
 
     const result = await claimWargaForExistingUser(session.user.id, {
-      dwellingId: Number(dwellingId),
-      familyNumber: String(familyNumber).trim(),
-      nik: String(nik).trim(),
-      gender: gender === "P" ? "P" : "L",
+      dwellingId: validated.dwellingId,
+      familyNumber: validated.familyNumber,
+      nik: validated.nik,
+      gender: validated.gender,
     });
 
     const ipAddress = await getClientIp(request);
@@ -77,7 +73,7 @@ export async function POST(request: Request) {
       userId: session.user.id,
       action: "CLAIM_WARGA_STATUS",
       module: "pengguna",
-      description: `Pengguna ${session.user.name} (${session.user.email}) melengkapi Kartu Keluarga No. ${familyNumber} sebagai Kepala Keluarga`,
+      description: `Pengguna ${session.user.name} (${session.user.email}) melengkapi Kartu Keluarga No. ${validated.familyNumber} sebagai Kepala Keluarga`,
       ipAddress,
     });
 
@@ -87,6 +83,10 @@ export async function POST(request: Request) {
       familyId: result.familyId,
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data tidak valid", issues: error.issues }, { status: 400 });
+    }
+
     if (error?.message?.includes("FAMILY_ALREADY_EXISTS")) {
       return NextResponse.json({ error: "Akun Anda sudah terdaftar sebagai Kepala Keluarga." }, { status: 400 });
     }

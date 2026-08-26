@@ -103,6 +103,9 @@ export async function GET(request: Request) {
   }
 }
 
+import { createBroadcastSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -123,22 +126,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { title, message, type, sendPush, sendInAppNotif, expiresAt } = body;
-
-    if (!title?.trim() || !message?.trim()) {
-      return NextResponse.json(
-        { error: 'Judul dan pesan broadcast wajib diisi' },
-        { status: 400 }
-      );
-    }
+    const validated = createBroadcastSchema.parse(body);
 
     const broadcastId = await createBroadcast({
-      title: title.trim(),
-      message: message.trim(),
-      type: type || 'info',
-      sendPush: !!sendPush,
-      sendInAppNotif: !!sendInAppNotif,
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      title: validated.title,
+      message: validated.message,
+      type: validated.type,
+      sendPush: validated.sendPush,
+      sendInAppNotif: validated.sendInAppNotif,
+      expiresAt: validated.expiresAt || null,
       createdBy: session.user.id,
     });
 
@@ -147,7 +143,7 @@ export async function POST(request: Request) {
       userId: session.user.id,
       action: 'CREATE_SYSTEM_BROADCAST',
       module: 'sistem',
-      description: `Membuat broadcast sistem baru: "${title}" (Kategori: ${type || 'info'})`,
+      description: `Membuat broadcast sistem baru: "${validated.title}" (Kategori: ${validated.type || 'info'})`,
       ipAddress,
     });
 
@@ -160,6 +156,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data broadcast tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in POST /api/broadcasts:', error);
     return NextResponse.json(
       { error: error.message || 'Kesalahan server internal' },
@@ -167,3 +166,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

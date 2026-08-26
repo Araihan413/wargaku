@@ -116,6 +116,9 @@ export async function GET(
  *       500:
  *         description: Kesalahan server internal
  */
+import { updateAnnouncementSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -136,7 +139,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Tidak memiliki izin untuk mengedit pengumuman' }, { status: 403 });
     }
 
-
     const { id } = await params;
     const annId = parseInt(id, 10);
 
@@ -145,11 +147,15 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const validated = updateAnnouncementSchema.parse(body);
 
-    await updateAnnouncement(annId, body);
+    await updateAnnouncement(annId, validated);
 
     return NextResponse.json({ message: 'Pengumuman berhasil diperbarui' });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     if (error instanceof Error) {
       if (error.message === "NOT_FOUND") {
         return NextResponse.json({ error: 'Pengumuman tidak ditemukan' }, { status: 404 });
@@ -171,6 +177,7 @@ export async function PATCH(
     );
   }
 }
+
 
 /**
  * @openapi

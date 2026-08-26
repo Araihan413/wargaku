@@ -509,6 +509,28 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({
         </div>
       )}
 
+      {!activeChangeReq && family.verificationStatus === "rejected" && (
+        <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/90 p-4 text-red-900 shadow-sm">
+          <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="text-xs leading-relaxed flex-1">
+            <span className="font-bold text-red-800 text-sm">Pengajuan Berkas Kartu Keluarga Ditolak RT</span>
+            {family.verificationNote ? (
+              <div className="mt-1.5 p-3 rounded-xl bg-red-100/80 border border-red-200 text-red-900 font-medium">
+                <span className="font-bold text-red-800 block mb-0.5">Catatan / Alasan Penolakan:</span>
+                &ldquo;{family.verificationNote}&rdquo;
+              </div>
+            ) : (
+              <p className="mt-1 text-red-700">
+                Pengajuan Kartu Keluarga Anda ditolak oleh Pengurus RT. Silakan periksa kembali kelengkapan data atau berkas scan KK Anda.
+              </p>
+            )}
+            <p className="mt-2 text-red-600 font-medium">
+              Silakan perbaiki data atau unggah ulang berkas scan KK yang sesuai, lalu tekan tombol <span className="font-bold text-emerald-700">&quot;Ajukan Ulang ke RT&quot;</span> di bagian bawah halaman.
+            </p>
+          </div>
+        </div>
+      )}
+
       {!activeChangeReq && family.verificationStatus === "draft" && (
         <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-blue-900 shadow-sm">
           <FileText className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />

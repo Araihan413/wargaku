@@ -10,6 +10,7 @@ import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { CustomSelect } from "@/components/CustomSelect";
 import { commonOccupations, commonEducations, relationshipOptions, religionOptions, genderOptions } from "@/lib/constants";
 import { calculateAge } from "@/lib/date-format";
+import { createWargaSchema } from "@/lib/validations/kependudukan";
 
 interface AddWargaMemberModalProps {
   isOpen: boolean;
@@ -45,6 +46,30 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
 
   const [isLoading, setIsLoading] = useState(false);
 
+  const resetForm = React.useCallback(() => {
+    setName("");
+    setNik("");
+    setRelationship("Istri");
+    setGender("P");
+    setBirthPlace("");
+    setBirthDate("");
+    setOccupation("");
+    setEducationLevel("");
+    setReligion("Islam");
+    setPhone("");
+    setIsKtpSameVillage(true);
+    setKtpAddress("");
+    setKtpFile(null);
+  }, []);
+
+  // Reset form whenever modal is opened
+  React.useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      resetForm();
+    }
+  }, [isOpen, resetForm]);
+
   React.useEffect(() => {
     async function loadVillageInfo() {
       try {
@@ -62,6 +87,11 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
     loadVillageInfo();
   }, []);
 
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   const age = calculateAge(birthDate);
@@ -69,38 +99,38 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !nik.trim()) {
-      toast.error("Nama dan NIK wajib diisi");
-      return;
-    }
-
-    if (nik.length !== 16) {
-      toast.error("NIK harus terdiri dari 16 digit angka");
-      return;
-    }
-
-    if (!birthPlace.trim()) {
-      toast.error("Tempat Lahir wajib diisi");
-      return;
-    }
-
-    if (!birthDate) {
-      toast.error("Tanggal Lahir wajib diisi");
-      return;
-    }
-
-    if (!educationLevel.trim()) {
-      toast.error("Pendidikan Terakhir wajib diisi / dipilih");
-      return;
-    }
-
-    if (!occupation.trim()) {
-      toast.error("Pekerjaan wajib diisi / dipilih");
-      return;
-    }
 
     if (isKtpRequired && !ktpFile) {
       toast.error("Scan KTP wajib diunggah untuk anggota keluarga penyewa berusia 18 tahun ke atas");
+      return;
+    }
+
+    if (!isKtpSameVillage && !ktpAddress.trim()) {
+      toast.error("Alamat asal KTP luar kelurahan wajib diisi");
+      return;
+    }
+
+    const payloadToValidate = {
+      familyId,
+      name: name.trim(),
+      nik: nik.trim(),
+      relationship,
+      gender,
+      birthPlace: birthPlace.trim(),
+      birthDate,
+      occupation: occupation.trim(),
+      educationLevel: educationLevel.trim(),
+      religion: religion.trim() || "Islam",
+      phone: phone.trim() || null,
+      isKtpSameVillage,
+      ktpAddress: !isKtpSameVillage ? ktpAddress.trim() : null,
+      ktpFile: typeof ktpFile === "string" ? ktpFile : null,
+    };
+
+    const parsed = createWargaSchema.safeParse(payloadToValidate);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Data anggota keluarga tidak valid";
+      toast.error(firstError);
       return;
     }
 
@@ -112,19 +142,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
         folder: "ktp",
         submitFn: async (finalKtpUrl) => {
           const payload = {
-            familyId,
-            name,
-            nik,
-            relationship,
-            gender,
-            birthPlace: birthPlace.trim(),
-            birthDate,
-            occupation: occupation.trim(),
-            educationLevel: educationLevel.trim(),
-            religion,
-            phone: phone.trim() || null,
-            isKtpSameVillage,
-            ktpAddress: !isKtpSameVillage ? ktpAddress.trim() : null,
+            ...parsed.data,
             ktpFile: finalKtpUrl,
           };
 
@@ -142,16 +160,18 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
             body: JSON.stringify(payload),
           });
         },
-        successMessage: `Anggota keluarga "${name}" berhasil ditambahkan`,
+        successMessage: `Anggota keluarga "${parsed.data.name}" berhasil ditambahkan`,
       });
 
       if (result.success) {
+        resetForm();
         onSuccess();
       }
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="fixed h-full inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
@@ -173,7 +193,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded-xl p-1.5 text-gray-secondary-text hover:bg-gray-sidebar-hover cursor-pointer"
           >
             <X className="h-5 w-5" />
@@ -393,7 +413,7 @@ export const AddWargaMemberModal: React.FC<AddWargaMemberModalProps> = ({
           <div className="flex items-center justify-end gap-3 border-t border-gray-border pt-4 mt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="rounded-xl border border-gray-border px-4 py-2 text-xs font-semibold text-gray-secondary-text hover:bg-gray-sidebar-hover cursor-pointer"
             >
               Batal

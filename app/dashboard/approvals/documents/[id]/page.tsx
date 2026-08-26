@@ -184,6 +184,11 @@ export default function DocumentVerificationWorkspacePage() {
         router.push("/dashboard/approvals/documents");
       } else {
         toast.error(result.error || "Gagal memperbarui status verifikasi");
+        if (res.status === 400 || res.status === 404) {
+          setTimeout(() => {
+            router.push("/dashboard/approvals/documents");
+          }, 1500);
+        }
       }
     } catch (error) {
       console.error(error);

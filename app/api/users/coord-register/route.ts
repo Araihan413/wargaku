@@ -4,7 +4,6 @@ import { hashPassword } from 'better-auth/crypto';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
 
-const nikRegex = /^[0-9]{16}$/;
 
 /**
  * @openapi
@@ -49,32 +48,23 @@ const nikRegex = /^[0-9]{16}$/;
  *       500:
  *         description: Kesalahan server internal
  */
+import { coordRegisterSchema } from '@/lib/validations/auth';
+import { ZodError } from 'zod';
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { id, email, nik, password } = body;
+    const validated = coordRegisterSchema.parse(body);
 
-    if (!id || !email || !nik || !password) {
-      return NextResponse.json({ error: 'Seluruh kolom wajib diisi' }, { status: 400 });
-    }
-
-    if (!nikRegex.test(nik)) {
-      return NextResponse.json({ error: 'NIK harus terdiri dari 16 digit angka' }, { status: 400 });
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Kata sandi minimal terdiri dari 6 karakter' }, { status: 400 });
-    }
-
-    const hashedPassword = await hashPassword(password);
-    await registerCoord(id, email, nik, hashedPassword);
+    const hashedPassword = await hashPassword(validated.password);
+    await registerCoord(validated.id, validated.email, validated.nik, hashedPassword);
 
     const ipAddress = await getClientIp(request);
     createAuditLog({
       userId: null,
       action: 'REGISTER_COORDINATOR',
       module: 'autentikasi',
-      description: `Koordinator baru berhasil mendaftarkan akun: ${email} (NIK: ${nik}).`,
+      description: `Koordinator baru berhasil mendaftarkan akun: ${validated.email} (NIK: ${validated.nik}).`,
       ipAddress,
     }).catch(() => null);
 
@@ -83,6 +73,10 @@ export async function POST(request: Request) {
       message: 'Registrasi koordinator berhasil diselesaikan',
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
+
     if (error instanceof Error) {
       if (error.message === 'NOT_FOUND') {
         return NextResponse.json(

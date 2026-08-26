@@ -37,6 +37,9 @@ import { setUserPrimaryRole, getUserFullProfile, createAuditLog } from "@/db/que
  *       500:
  *         description: Gagal memperbarui peran utama
  */
+import { setPrimaryRoleSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -48,13 +51,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const roleId = Number(body.roleId);
-
-    if (!roleId || isNaN(roleId)) {
-      return NextResponse.json({ error: "ID peran (roleId) tidak valid" }, { status: 400 });
-    }
+    const validated = setPrimaryRoleSchema.parse(body);
+    const roleId = validated.roleId;
 
     await setUserPrimaryRole(session.user.id, roleId);
+
 
     const updatedProfile = await getUserFullProfile(session.user.id);
     const targetRoleName = updatedProfile?.roles?.find((r) => r.roleId === roleId)?.roleName || `Role #${roleId}`;
@@ -76,6 +77,9 @@ export async function POST(req: NextRequest) {
       profile: updatedProfile,
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "ID peran tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("POST /api/user/profile/set-primary-role error:", error);
     if (error?.message === "ROLE_NOT_OWNED") {
       return NextResponse.json(
@@ -89,3 +93,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

@@ -114,6 +114,9 @@ export async function GET(request: Request) {
  *       500:
  *         description: Kesalahan server internal
  */
+import { recordPaymentSchema } from '@/lib/validations/keuangan';
+import { ZodError } from 'zod';
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -126,26 +129,35 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { paymentId, status } = body;
+    const validated = recordPaymentSchema.parse(body);
 
-    if (!paymentId || !status) {
-      return NextResponse.json({ error: 'Data paymentId dan status wajib diisi' }, { status: 400 });
-    }
-
-    const updated = await recordPayment(paymentId, status, session.user.id);
+    const updated = await recordPayment(
+      validated.paymentId,
+      {
+        amountPaid: validated.amountPaid,
+        paymentMethod: validated.paymentMethod,
+        paymentDate: validated.paymentDate,
+      },
+      session.user.id
+    );
 
     const ipAddress = await getClientIp(request);
     createAuditLog({
       userId: session.user.id,
       action: 'RECORD_FEE_PAYMENT',
       module: 'keuangan',
-      description: `Mencatat status pembayaran iuran ID #${paymentId} menjadi "${status}".`,
+      description: `Mencatat pembayaran iuran ID #${validated.paymentId} sebesar Rp ${validated.amountPaid.toLocaleString('id-ID')} via ${validated.paymentMethod}.`,
       ipAddress,
     }).catch(() => null);
 
+
     return NextResponse.json({ message: 'Pembayaran iuran berhasil diperbarui', data: updated });
-  } catch (err) {
+  } catch (err: any) {
+    if (err instanceof ZodError) {
+      return NextResponse.json({ error: err.issues[0]?.message || 'Data tidak valid', issues: err.issues }, { status: 400 });
+    }
     console.error('[POST /api/fee-payments]', err);
     return NextResponse.json({ error: 'Kesalahan server internal' }, { status: 500 });
   }
 }
+

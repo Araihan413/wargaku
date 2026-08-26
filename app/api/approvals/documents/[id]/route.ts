@@ -64,6 +64,9 @@ import { getClientIp } from "@/lib/audit-logger";
  *       500:
  *         description: Kesalahan server internal
  */
+import { processDocumentApprovalSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -91,22 +94,11 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { type, action, rejectReason } = body;
-
-    if (!type || (type !== "family" && type !== "rental_resident")) {
-      return NextResponse.json({ error: "Tipe dokumen tidak valid (harus family atau rental_resident)" }, { status: 400 });
-    }
-
-    if (!action || (action !== "approve" && action !== "reject")) {
-      return NextResponse.json({ error: "Aksi tidak valid (harus approve atau reject)" }, { status: 400 });
-    }
+    const validated = processDocumentApprovalSchema.parse(body);
+    const { type, action, rejectReason } = validated;
 
     const status = action === "approve" ? "verified" : "rejected";
     const note = action === "reject" ? rejectReason || "Dokumen tidak sesuai / tidak valid." : null;
-
-    if (action === "reject" && !rejectReason?.trim()) {
-      return NextResponse.json({ error: "Alasan penolakan wajib diisi" }, { status: 400 });
-    }
 
     if (type === "family") {
       const family = await getFamilyById(documentId);
@@ -114,14 +106,33 @@ export async function PATCH(
         return NextResponse.json({ error: "Kartu Keluarga tidak ditemukan" }, { status: 404 });
       }
 
+
       const activeReq = await getActiveChangeRequest(documentId);
-      if (activeReq && activeReq.status === 'pending') {
+      if (activeReq) {
+        if (activeReq.status !== 'pending') {
+          return NextResponse.json(
+            { error: "Permohonan perubahan data KK ini telah dibatalkan atau statusnya sudah berubah." },
+            { status: 400 }
+          );
+        }
+
         if (action === 'approve') {
           await approveChangeRequest(activeReq.id, session.user.id);
         } else {
           await rejectChangeRequest(activeReq.id, session.user.id, rejectReason || 'Ditolak oleh RT');
         }
       } else {
+        if (family.verificationStatus !== 'pending') {
+          return NextResponse.json(
+            {
+              error: family.verificationStatus === 'draft'
+                ? "Pengajuan verifikasi Kartu Keluarga ini telah dibatalkan dan dikembalikan ke Draf."
+                : `Status Kartu Keluarga saat ini sudah bukan "Menunggu Verifikasi" (Status: ${family.verificationStatus}).`,
+            },
+            { status: 400 }
+          );
+        }
+
         await updateFamily(documentId, {
           verificationStatus: status,
           verificationNote: note,
@@ -165,6 +176,15 @@ export async function PATCH(
         return NextResponse.json({ error: "Penghuni sewa tidak ditemukan" }, { status: 404 });
       }
 
+      if (contract.verificationStatus !== 'pending') {
+        return NextResponse.json(
+          {
+            error: `Status dokumen sewa saat ini sudah bukan "Menunggu Verifikasi" (Status: ${contract.verificationStatus}).`,
+          },
+          { status: 400 }
+        );
+      }
+
       await updateTenantContract(documentId, {
         verificationStatus: status,
         verificationNote: note,
@@ -188,7 +208,11 @@ export async function PATCH(
     }
 
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("Error in PATCH /api/approvals/documents/[id]:", error);
     return NextResponse.json({ error: error.message || "Kesalahan server internal" }, { status: 500 });
   }
 }
+

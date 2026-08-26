@@ -111,6 +111,9 @@ export async function GET(
  *       500:
  *         description: Kesalahan server internal
  */
+import { updateSmartGroupSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -138,16 +141,20 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, criteria } = body;
+    const validated = updateSmartGroupSchema.parse(body);
 
-    await updateSmartGroup(smartGroupId, { name, criteria });
+    await updateSmartGroup(smartGroupId, validated);
 
     return NextResponse.json({ message: "Preset filter berhasil diperbarui" });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("Error in PUT /api/smart-groups/[id]:", error);
     return NextResponse.json({ error: error.message || "Kesalahan server internal" }, { status: 500 });
   }
 }
+
 
 /**
  * @openapi

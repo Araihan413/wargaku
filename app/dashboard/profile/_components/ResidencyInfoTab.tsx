@@ -28,7 +28,7 @@ export const ResidencyInfoTab: React.FC<ResidencyInfoTabProps> = ({ profile }) =
       <div className="flex items-center gap-3 p-4 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 font-medium">
         <Info className="w-4 h-4 text-blue-600 shrink-0" />
         <span>
-          Demi validitas data kependudukan RT, perubahan <strong>NIK</strong> atau <strong>Data Hunian</strong> dilakukan melalui pengurus RT/Sekretaris.
+          Data Hunian Hanya Bisa Di Ubah Oleh Pengurus RT/RW.
         </span>
       </div>
 

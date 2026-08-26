@@ -1,7 +1,11 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, or, like, desc, sql } from 'drizzle-orm';
+import { eq, and, or, like, desc, sql, isNotNull } from 'drizzle-orm';
+
+
+
 import { notifyUser } from '@/lib/notifications';
+import { encryptPII, decryptPII, hashPII } from '@/lib/crypto-pii';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -51,9 +55,17 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
   if (options.dwellingId) conditions.push(eq(schema.families.dwellingId, options.dwellingId));
   if (options.verificationStatus) conditions.push(eq(schema.families.verificationStatus, options.verificationStatus));
   if (options.query) {
-    const v = `%${options.query}%`;
-    conditions.push(or(like(schema.families.familyNumber, v), like(schema.users.name, v)));
+    const trimmed = options.query.trim();
+    const queryHash = hashPII(trimmed);
+    // Pencarian berdasarkan nama Kepala Keluarga (LIKE) ATAU Nomor KK exact match (Blind Index Hash)
+    conditions.push(
+      or(
+        like(schema.users.name, `%${trimmed}%`),
+        eq(schema.families.familyNumberHash, queryHash)
+      )
+    );
   }
+
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -103,7 +115,7 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
     .where(whereClause);
 
   return {
-    data,
+    data: data.map(f => ({ ...f, familyNumber: decryptPII(f.familyNumber) })),
     metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
   };
 }
@@ -201,12 +213,13 @@ export async function getFamilyById(id: number) {
 
   return {
     ...family,
+    familyNumber: decryptPII(family.familyNumber),
     dwellingId,
     blockNumber,
     houseNumber,
     dwelling,
     checkInDate: checkInDateStr,
-    members,
+    members: members.map(m => ({ ...m, nik: decryptPII(m.nik) })),
   };
 }
 
@@ -233,7 +246,8 @@ export async function getMyFamily(userId: string) {
     .where(and(eq(schema.families.headUserId, userId), eq(schema.families.isActive, true)))
     .limit(1);
 
-  return family ?? null;
+  if (!family) return null;
+  return { ...family, familyNumber: decryptPII(family.familyNumber) };
 }
 
 // ==========================================
@@ -244,10 +258,12 @@ export async function getMyFamily(userId: string) {
  * Buat Kartu Keluarga baru.
  */
 export async function createFamily(data: CreateFamilyInput) {
+  // Cek duplikasi via blind index hash
+  const familyNumberHash = hashPII(data.familyNumber);
   const [existing] = await db
     .select({ id: schema.families.id })
     .from(schema.families)
-    .where(eq(schema.families.familyNumber, data.familyNumber))
+    .where(eq(schema.families.familyNumberHash, familyNumberHash))
     .limit(1);
 
   if (existing) throw new Error(`FAMILY_NUMBER_EXISTS:${data.familyNumber}`);
@@ -267,7 +283,8 @@ export async function createFamily(data: CreateFamilyInput) {
   return await db.transaction(async (tx) => {
     const [result] = await tx.insert(schema.families).values({
       dwellingId: data.dwellingId,
-      familyNumber: data.familyNumber,
+      familyNumber: encryptPII(data.familyNumber),
+      familyNumberHash,
       headUserId: data.headUserId ?? null,
       kkFile: data.kkFile ?? null,
       verificationStatus: data.verificationStatus ?? 'draft',
@@ -308,7 +325,8 @@ export async function createFamilyWithHeadMember(input: {
   return await db.transaction(async (tx) => {
     const [insertFamily] = await tx.insert(schema.families).values({
       dwellingId: input.dwellingId,
-      familyNumber: input.familyNumber,
+      familyNumber: encryptPII(input.familyNumber),
+      familyNumberHash: hashPII(input.familyNumber),
       headUserId: input.headUserId ?? null,
       kkFile: input.kkFile ?? null,
       verificationStatus: 'draft',
@@ -319,7 +337,8 @@ export async function createFamilyWithHeadMember(input: {
 
     await tx.insert(schema.familyMembers).values({
       familyId,
-      nik: input.headNik,
+      nik: encryptPII(input.headNik),
+      nikHash: hashPII(input.headNik),
       name: input.headName,
       phone: input.headPhone ?? null,
       gender: input.headGender,
@@ -340,9 +359,14 @@ export async function createFamilyWithHeadMember(input: {
  * Perbarui data KK.
  */
 export async function updateFamily(id: number, data: UpdateFamilyInput) {
+  const updateData: any = { ...data, updatedAt: new Date() };
+  if (data.familyNumber) {
+    updateData.familyNumber = encryptPII(data.familyNumber);
+    updateData.familyNumberHash = hashPII(data.familyNumber);
+  }
   await db
     .update(schema.families)
-    .set({ ...data, updatedAt: new Date() })
+    .set(updateData)
     .where(eq(schema.families.id, id));
   return true;
 }
@@ -480,10 +504,11 @@ export async function setupMyFamilyCard(userId: string, input: {
     if (existingFamily) throw new Error('Akun Anda sudah memiliki Kartu Keluarga yang terdaftar.');
 
     const cleanFamilyNo = input.familyNumber.trim();
+    const cleanFamilyNoHash = hashPII(cleanFamilyNo);
     const [existingFamilyNo] = await tx
       .select({ id: schema.families.id, headUserId: schema.families.headUserId })
       .from(schema.families)
-      .where(and(eq(schema.families.familyNumber, cleanFamilyNo), eq(schema.families.isActive, true)))
+      .where(and(eq(schema.families.familyNumberHash, cleanFamilyNoHash), eq(schema.families.isActive, true)))
       .limit(1);
 
     if (existingFamilyNo && existingFamilyNo.headUserId) {
@@ -496,7 +521,7 @@ export async function setupMyFamilyCard(userId: string, input: {
       const [existingNikMember] = await tx
         .select({ id: schema.familyMembers.id, userId: schema.familyMembers.userId, relationship: schema.familyMembers.relationship, isActive: schema.familyMembers.isActive })
         .from(schema.familyMembers)
-        .where(eq(schema.familyMembers.nik, cleanNik))
+        .where(eq(schema.familyMembers.nikHash, hashPII(cleanNik)))
         .limit(1);
 
       if (existingNikMember) {
@@ -517,7 +542,8 @@ export async function setupMyFamilyCard(userId: string, input: {
 
     const [insertResult] = await tx.insert(schema.families).values({
       dwellingId: input.dwellingId,
-      familyNumber: cleanFamilyNo,
+      familyNumber: encryptPII(cleanFamilyNo),
+      familyNumberHash: cleanFamilyNoHash,
       headUserId: userId,
       kkFile: input.kkFile ?? null,
       verificationStatus: 'draft',
@@ -529,7 +555,8 @@ export async function setupMyFamilyCard(userId: string, input: {
     await tx.insert(schema.familyMembers).values({
       familyId,
       userId,
-      nik: cleanNik,
+      nik: encryptPII(cleanNik),
+      nikHash: hashPII(cleanNik),
       name: user.name,
       gender: 'L',
       relationship: 'Kepala_Keluarga',
@@ -545,4 +572,66 @@ export async function setupMyFamilyCard(userId: string, input: {
 
     return familyId;
   });
+}
+
+/**
+ * Mencari data keluarga berdasarkan Nomor KK yang persis cocok (16 digit).
+ */
+export async function searchFamilyByExactKk(kk: string) {
+  const cleanKk = kk.replace(/\D/g, '');
+  if (cleanKk.length !== 16) return null;
+
+  const kkHash = hashPII(cleanKk);
+
+  const [family] = await db
+    .select({
+      id: schema.families.id,
+      familyNumber: schema.families.familyNumber,
+      familyNumberHash: schema.families.familyNumberHash,
+      headName: schema.users.name,
+      headNik: schema.familyMembers.nik,
+      dwellingId: schema.families.dwellingId,
+      verificationStatus: schema.families.verificationStatus,
+    })
+    .from(schema.families)
+    .leftJoin(schema.users, eq(schema.families.headUserId, schema.users.id))
+    .leftJoin(
+      schema.familyMembers,
+      and(
+        eq(schema.familyMembers.familyId, schema.families.id),
+        eq(schema.familyMembers.relationship, 'Kepala_Keluarga')
+      )
+    )
+    .where(
+      and(
+        eq(schema.families.isActive, true),
+        isNotNull(schema.families.headUserId),
+        or(
+          eq(schema.families.familyNumberHash, kkHash),
+          eq(schema.families.familyNumber, cleanKk)
+        )
+      )
+    )
+    .limit(1);
+
+  if (!family) {
+    return null;
+  }
+
+  const decryptedFamilyNumber = decryptPII(family.familyNumber);
+  const decryptedHeadNik = family.headNik ? decryptPII(family.headNik) : null;
+
+  let maskedNik = null;
+  if (decryptedHeadNik && decryptedHeadNik.length >= 8) {
+    maskedNik = decryptedHeadNik.substring(0, 4) + '********' + decryptedHeadNik.substring(decryptedHeadNik.length - 4);
+  }
+
+  return {
+    id: family.id,
+    familyNumber: decryptedFamilyNumber,
+    headName: family.headName,
+    headNik: maskedNik,
+    dwellingId: family.dwellingId,
+    verificationStatus: family.verificationStatus,
+  };
 }

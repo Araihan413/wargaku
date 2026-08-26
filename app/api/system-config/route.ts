@@ -3,9 +3,12 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
 import { getSystemSettings, updateSystemSettings } from "@/db/queries/system/system-setting.queries";
-import type { UpdateSystemSettingsInput } from "@/db/queries/system/system-setting.queries";
 import { getClientIp } from "@/lib/audit-logger";
+
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
+import { updateSystemConfigSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
+
 
 /**
  * @openapi
@@ -121,32 +124,17 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
     }
 
-    const body = await req.json() as UpdateSystemSettingsInput;
-
-    if (!body.rtName?.trim()) {
-      return NextResponse.json({ error: "Nama RT wajib diisi" }, { status: 400 });
-    }
-    if (!body.rwName?.trim()) {
-      return NextResponse.json({ error: "Nama RW wajib diisi" }, { status: 400 });
-    }
-    if (!body.villageName?.trim()) {
-      return NextResponse.json({ error: "Nama Kelurahan/Desa wajib diisi" }, { status: 400 });
-    }
-    if (!body.subdistrict?.trim()) {
-      return NextResponse.json({ error: "Nama Kecamatan wajib diisi" }, { status: 400 });
-    }
-    if (!body.city?.trim()) {
-      return NextResponse.json({ error: "Nama Kota/Kabupaten wajib diisi" }, { status: 400 });
-    }
+    const body = await req.json();
+    const validated = updateSystemConfigSchema.parse(body);
 
     const ipAddress = await getClientIp(req);
-    const updatedSettings = await updateSystemSettings(body, session.user.id, ipAddress || undefined);
+    const updatedSettings = await updateSystemSettings(validated, session.user.id, ipAddress || undefined);
 
     createAuditLog({
       userId: session.user.id,
       action: "UPDATE_SYSTEM_CONFIG",
       module: "sistem",
-      description: `Memperbarui konfigurasi sistem RT: ${body.rtName}, RW: ${body.rwName}, Kelurahan: ${body.villageName}.`,
+      description: `Memperbarui konfigurasi sistem RT: ${validated.rtName}, RW: ${validated.rwName}, Kelurahan: ${validated.villageName}.`,
       ipAddress,
     }).catch(() => null);
 
@@ -155,6 +143,9 @@ export async function PUT(req: Request) {
       settings: updatedSettings,
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data konfigurasi tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("Error in PUT /api/system-config:", error);
     return NextResponse.json(
       { error: error.message || "Kesalahan server internal" },
@@ -162,3 +153,4 @@ export async function PUT(req: Request) {
     );
   }
 }
+

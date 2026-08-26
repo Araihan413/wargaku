@@ -115,6 +115,9 @@ export async function GET(
  *       500:
  *         description: Kesalahan server internal
  */
+import { updateActivitySchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -148,12 +151,18 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    await updateActivity(actId, body);
+    const validated = updateActivitySchema.parse(body);
+
+    await updateActivity(actId, {
+      ...validated,
+      attachments: validated.attachments || undefined,
+    });
 
     // Cek bidang mana yang berubah (Waktu, Lokasi, atau Judul)
-    const isDateChanged = body.eventDate && new Date(body.eventDate).getTime() !== new Date(existing.eventDate).getTime();
-    const isLocationChanged = body.location !== undefined && body.location?.trim() !== existing.location;
-    const isTitleChanged = body.title !== undefined && body.title?.trim() !== existing.title;
+    const isDateChanged = validated.eventDate && new Date(validated.eventDate).getTime() !== new Date(existing.eventDate).getTime();
+    const isLocationChanged = validated.location !== undefined && validated.location?.trim() !== existing.location;
+    const isTitleChanged = validated.title !== undefined && validated.title?.trim() !== existing.title;
+
 
     if (isDateChanged || isLocationChanged || isTitleChanged) {
       const currentTitle = body.title ? body.title.trim() : existing.title;
@@ -190,6 +199,9 @@ export async function PATCH(
 
     return NextResponse.json({ message: 'Kegiatan RT berhasil diperbarui' });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     if (error instanceof Error) {
       if (error.message === "NOT_FOUND") {
         return NextResponse.json({ error: 'Kegiatan RT tidak ditemukan' }, { status: 404 });

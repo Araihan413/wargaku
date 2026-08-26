@@ -118,6 +118,9 @@ export async function GET(request: Request) {
  *       500:
  *         description: Kesalahan server internal
  */
+import { createActivitySchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -135,26 +138,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tidak memiliki izin untuk membuat kegiatan RT' }, { status: 403 });
     }
 
-
     const body = await request.json();
-    const { title, description, eventDate, location, attachments } = body;
-
-    if (!title || !eventDate) {
-      return NextResponse.json(
-        { error: 'Judul dan tanggal/waktu kegiatan wajib diisi' },
-        { status: 400 }
-      );
-    }
+    const validated = createActivitySchema.parse(body);
 
     const newId = await createActivity(
-      { title, description, eventDate, location, attachments },
+      {
+        title: validated.title,
+        description: validated.description || '',
+        eventDate: validated.eventDate,
+        location: validated.location || '',
+        attachments: validated.attachments || undefined,
+      },
       session.user.id
     );
 
     // Broadcast notifikasi kegiatan ke seluruh warga
     notifyAllWarga({
-      title: `[KEGIATAN RT] ${title}`,
-      message: description || `Agenda kegiatan RT baru: ${title}`,
+      title: `[KEGIATAN RT] ${validated.title}`,
+      message: validated.description || `Agenda kegiatan RT baru: ${validated.title}`,
       category: "dinas",
       redirectLink: "/kegiatan",
     }).catch((notifErr) =>
@@ -166,6 +167,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data kegiatan tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in POST /api/activities:', error);
     return NextResponse.json(
       { error: error.message || 'Kesalahan server internal' },
@@ -173,3 +177,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

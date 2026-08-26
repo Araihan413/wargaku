@@ -13,19 +13,34 @@
 
 ---
 
-## 🏗️ 2. Arsitektur Target: *AES-256-GCM + Blind Index (HMAC-SHA256)*
+## 🏗️ 2. Arsitektur Target: *AES-256-GCM + Blind Index (HMAC-SHA256) + Dynamic In-Memory Masking*
 
-Pendekatan ini menjamin data asli terenkripsi kuat namun tetap mendukung pencarian data (*exact match search*) dan validasi duplikat tanpa mengorbankan performa.
+Pendekatan ini menjamin data asli terenkripsi kuat, database tetap ramping tanpa kolom redundan, serta mendukung pencarian data (*exact match search*) dan validasi duplikat secara efisien:
 
 ```
 [ Input NIK Warga: "3201012304900001" ]
         │
-        ├───▶ [ Encryptor: AES-256-GCM + Random IV ] ───▶ Simpan di `nik` (Ciphertext)
+        ├───▶ [ Encryptor: AES-256-GCM + Random IV ] ───▶ Simpan di `nik` (Ciphertext di DB)
         │
-        ├───▶ [ Hash Generator: HMAC-SHA256 + Salt ]  ───▶ Simpan di `nik_hash` (Untuk Index/Search)
+        └───▶ [ Hash Generator: HMAC-SHA256 + Salt ]  ───▶ Simpan di `nik_hash` (Blind Index di DB)
+
+[ Alur Pembacaan Data / API Query Response ]
         │
-        └───▶ [ Data Masker: 320101******0001 ]       ───▶ Simpan di `nik_masked` (Untuk Tampilan Default)
+        ▼
+[ Fetch dari DB: `nik` (Ciphertext) ]
+        │
+        ├───▶ [ Decryptor: AES-256-GCM ] ───▶ Plain Text: "3201012304900001"
+        │
+        ├───▶ [ Jika Role Warga Biasa / Publik ] ───▶ Dynamic Masking: "320101******0001"
+        │
+        └───▶ [ Jika Role Pengurus RT / Otorisasi Khusus ] ───▶ Plain Text NIK Utuh
 ```
+
+> [!TIP]
+> **Mengapa Masking Dilakukan Dinamis di Backend (*In-Memory*) dan Bukan Disimpan di Database?**
+> 1. **Skema Database Lebih Ramping:** Tidak ada kolom duplikat/redundan (`nik_masked` dan `family_number_masked`).
+> 2. **Fleksibel & Bebas Migrasi Ulang:** Jika di masa depan format sensor ingin diubah (misal dari `******` ke `XXXXXX`), cukup mengubah 1 baris helper di backend tanpa perlu memodifikasi database.
+> 3. **Kontrol Hak Akses (RBAC) Instan:** Backend dapat menentukan apakah mengembalikan format sensor atau data asli sesuai dengan *role* pengguna yang sedang login.
 
 ---
 
@@ -46,9 +61,6 @@ export const familyMembers = mysqlTable('family_members', {
   // Blind Index untuk validasi UNIQUE & pencarian cepat (HMAC-SHA256, 64 karakter)
   nikHash: varchar('nik_hash', { length: 64 }).notNull(),
   
-  // Format sensor untuk tampilan cepat tanpa dekripsi (misal: "320101******0001")
-  nikMasked: varchar('nik_masked', { length: 20 }),
-  
   // ... kolom lainnya
 }, (table) => ({
   nikHashIdx: uniqueIndex('family_members_nik_hash_idx').on(table.nikHash),
@@ -65,9 +77,6 @@ export const families = mysqlTable('families', {
   
   // Blind Index Nomor KK
   familyNumberHash: varchar('family_number_hash', { length: 64 }).notNull(),
-  
-  // Nomor KK Tersensor (misal: "320101******0005")
-  familyNumberMasked: varchar('family_number_masked', { length: 20 }),
   
   // ... kolom lainnya
 }, (table) => ({
@@ -94,7 +103,7 @@ PII_HASH_SALT=wargaku_secret_hmac_salt_2026_rt_lingkungan
 
 ---
 
-## 💻 5. Modul Kriptografi (*Helper Implementation: `lib/crypto-pii.ts`*)
+## 💻 5. Modul Kriptografi & Masking (*Helper Implementation: `lib/crypto-pii.ts`*)
 
 Modul pembantu yang akan dibuat saat rilis produksi:
 
@@ -142,12 +151,20 @@ export function hashPII(plainText: string): string {
 }
 
 /**
- * Sensor tampilan NIK: 6 digit depan + sensor + 4 digit belakang
+ * Sensor tampilan NIK secara dinamis (In-Memory): 6 digit depan + sensor + 4 digit belakang
  * Contoh: 3201012304900001 -> 320101******0001
  */
 export function maskNIK(nik: string): string {
   if (!nik || nik.length < 10) return "****************";
   return `${nik.slice(0, 6)}******${nik.slice(-4)}`;
+}
+
+/**
+ * Sensor tampilan Nomor KK secara dinamis: 6 digit depan + sensor + 4 digit belakang
+ */
+export function maskFamilyNumber(familyNumber: string): string {
+  if (!familyNumber || familyNumber.length < 10) return "****************";
+  return `${familyNumber.slice(0, 6)}******${familyNumber.slice(-4)}`;
 }
 ```
 
@@ -160,16 +177,15 @@ Sebelum sistem dibuka untuk warga RT di server produksi, jalankan skrip migrasi 
 1. Baca seluruh baris di `family_members` dan `families`.
 2. Jika kolom masih berupa *plain text* (16 digit angka):
    * Hitung `nik_hash = hashPII(nik)`.
-   * Hitung `nik_masked = maskNIK(nik)`.
    * Hitung `nik_encrypted = encryptPII(nik)`.
-3. Perbarui baris tabel dengan nilai terenkripsi tersebut.
+3. Perbarui baris tabel dengan nilai `nik_encrypted` dan `nik_hash` tersebut.
 
 ---
 
 ## ✅ 7. Checklist Kesiapan Produksi (Go-Live Checklist)
 
 - [ ] Variabel `PII_ENCRYPTION_KEY` dan `PII_HASH_SALT` telah diset di server produksi.
-- [ ] Skema database `db/schema.ts` telah menyertakan kolom hash dan masked.
+- [ ] Skema database `db/schema.ts` telah menyertakan kolom `nikHash` dan `familyNumberHash`.
 - [ ] Skrip migrasi data eksisting berhasil dieksekusi di database server.
-- [ ] API endpoint hanya mengembalikan `nik_masked` untuk pengguna biasa, dan hanya mendekripsi NIK jika diakses oleh role `ketua_rt` / `sekretaris`.
+- [ ] API endpoint mengembalikan format `maskNIK()` / `maskFamilyNumber()` untuk warga umum, dan hanya memberikan teks utuh jika diakses oleh akun pengurus RT yang berwenang.
 - [ ] Audit log mencatat setiap aksi pengurus yang membuka dekripsi NIK utuh.

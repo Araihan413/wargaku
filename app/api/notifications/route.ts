@@ -118,6 +118,9 @@ export async function GET(request: Request) {
   }
 }
 
+import { markNotificationReadSchema } from '@/lib/validations/system';
+import { ZodError } from 'zod';
+
 export async function PATCH(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -129,16 +132,20 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { id } = body;
+    const validated = markNotificationReadSchema.parse(body);
 
-    await markNotificationsRead(session.user.id, id);
+    await markNotificationsRead(session.user.id, validated.id);
 
     return NextResponse.json({ message: 'Berhasil menandai notifikasi sebagai telah dibaca' });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in PATCH /api/notifications:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
+
 
 export async function DELETE(request: Request) {
   try {

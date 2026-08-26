@@ -91,6 +91,9 @@ export async function GET() {
  *       500:
  *         description: Kesalahan server internal
  */
+import { updatePermissionsSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
+
 export async function PUT(req: Request) {
   try {
     const session = await auth.api.getSession({
@@ -107,30 +110,25 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
     }
 
-
     const body = await req.json();
-    const { roleId, permissionIds } = body;
+    const validated = updatePermissionsSchema.parse(body);
 
-    if (typeof roleId !== "number" || !Array.isArray(permissionIds)) {
-      return NextResponse.json(
-        { error: "Format request tidak valid (roleId & permissionIds wajib diisi)" },
-        { status: 400 }
-      );
-    }
-
-    const result = await updateRolePermissions(roleId, permissionIds, session.user.id);
+    const result = await updateRolePermissions(validated.roleId, validated.permissionIds, session.user.id);
 
     const ipAddress = await getClientIp(req);
     createAuditLog({
       userId: session.user.id,
       action: "UPDATE_PERMISSIONS",
       module: "sistem",
-      description: `Memperbarui hak akses (permissions) untuk Role ID #${roleId} — ${permissionIds.length} permission ditetapkan.`,
+      description: `Memperbarui hak akses (permissions) untuk Role ID #${validated.roleId} — ${validated.permissionIds.length} permission ditetapkan.`,
       ipAddress,
     }).catch(() => null);
 
     return NextResponse.json({ message: "Hak akses role berhasil diperbarui", result });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Format request tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("Error in PUT /api/permissions:", error);
     return NextResponse.json(
       { error: error.message || "Gagal memperbarui hak akses role" },
@@ -138,3 +136,4 @@ export async function PUT(req: Request) {
     );
   }
 }
+

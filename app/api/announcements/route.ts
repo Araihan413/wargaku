@@ -116,6 +116,9 @@ export async function GET(request: Request) {
  *       500:
  *         description: Kesalahan server internal
  */
+import { createAnnouncementSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -133,27 +136,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tidak memiliki izin untuk membuat pengumuman' }, { status: 403 });
     }
 
-
     const body = await request.json();
-    const { title, content, category, attachments } = body;
+    const validated = createAnnouncementSchema.parse(body);
 
-    if (!title || !content || !category) {
-      return NextResponse.json(
-        { error: 'Judul, konten, dan kategori pengumuman wajib diisi' },
-        { status: 400 }
-      );
-    }
-
-    if (!['umum', 'penting', 'mendesak'].includes(category)) {
-      return NextResponse.json({ error: 'Kategori pengumuman tidak valid' }, { status: 400 });
-    }
-
-    const newId = await createAnnouncement({ title, content, category, attachments }, session.user.id);
+    const newId = await createAnnouncement(
+      {
+        title: validated.title,
+        content: validated.content,
+        category: validated.category,
+        attachments: validated.attachments || undefined,
+      },
+      session.user.id
+    );
 
     // Broadcast notifikasi pengumuman ke seluruh warga
     notifyAllWarga({
-      title: `[PENGUMUMAN ${category.toUpperCase()}] ${title}`,
-      message: content.length > 120 ? content.slice(0, 117) + "..." : content,
+      title: `[PENGUMUMAN ${validated.category.toUpperCase()}] ${validated.title}`,
+      message: validated.content.length > 120 ? validated.content.slice(0, 117) + "..." : validated.content,
       category: "dinas",
       redirectLink: "/pengumuman",
     }).catch((notifErr) =>
@@ -165,6 +164,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data pengumuman tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in POST /api/announcements:', error);
     return NextResponse.json(
       { error: error.message || 'Kesalahan server internal' },
@@ -172,3 +174,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

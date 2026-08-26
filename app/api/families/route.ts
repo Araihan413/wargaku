@@ -145,6 +145,9 @@ export async function GET(request: Request) {
  *       500:
  *         description: Kesalahan server internal
  */
+import { createFamilyWithHeadSchema } from '@/lib/validations/kependudukan';
+import { ZodError } from 'zod';
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -162,20 +165,25 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const familyId = await createFamilyWithHeadMember(body);
+    const validatedData = createFamilyWithHeadSchema.parse(body);
+    const familyId = await createFamilyWithHeadMember(validatedData);
 
     const ipAddress = await getClientIp(request);
     createAuditLog({
       userId: session.user.id,
       action: 'CREATE_FAMILY',
       module: 'kependudukan',
-      description: `Membuat Kartu Keluarga baru (No. KK: ${body.familyCardNumber || '-'}, Kepala Keluarga: ${body.headName || '-'}).`,
+      description: `Membuat Kartu Keluarga baru (No. KK: ${validatedData.familyNumber || '-'}, Kepala Keluarga: ${validatedData.headName || '-'}).`,
       ipAddress,
     }).catch(() => null);
 
     return NextResponse.json({ id: familyId, message: 'Kartu Keluarga berhasil dibuat' }, { status: 201 });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in POST /api/families:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
 }
+

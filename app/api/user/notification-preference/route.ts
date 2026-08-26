@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { db } from '@/db';
-import { users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import {
+  getUserNotificationPreference,
+  updateUserNotificationPreference,
+} from '@/db/queries/auth/user.queries';
+import { updateNotificationPreferenceSchema } from '@/lib/validations/system';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -62,15 +65,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
     }
 
-    const [user] = await db
-      .select({
-        pushNotificationsEnabled: users.pushNotificationsEnabled,
-      })
-      .from(users)
-      .where(eq(users.id, session.user.id));
+    const pushNotificationsEnabled = await getUserNotificationPreference(session.user.id);
 
     return NextResponse.json({
-      pushNotificationsEnabled: user?.pushNotificationsEnabled ?? true,
+      pushNotificationsEnabled,
     });
   } catch (error: any) {
     console.error('Error in GET /api/user/notification-preference:', error);
@@ -92,29 +90,19 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { pushNotificationsEnabled } = body;
+    const validated = updateNotificationPreferenceSchema.parse(body);
 
-    if (typeof pushNotificationsEnabled !== 'boolean') {
-      return NextResponse.json(
-        { error: 'Nilai pushNotificationsEnabled harus berupa boolean' },
-        { status: 400 }
-      );
-    }
-
-    await db
-      .update(users)
-      .set({
-        pushNotificationsEnabled,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, session.user.id));
+    await updateUserNotificationPreference(session.user.id, validated.pushNotificationsEnabled);
 
     return NextResponse.json({
       success: true,
       message: 'Preferensi notifikasi berhasil diperbarui',
-      pushNotificationsEnabled,
+      pushNotificationsEnabled: validated.pushNotificationsEnabled,
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in PATCH /api/user/notification-preference:', error);
     return NextResponse.json(
       { error: error.message || 'Kesalahan server internal' },
@@ -122,3 +110,5 @@ export async function PATCH(request: Request) {
     );
   }
 }
+
+

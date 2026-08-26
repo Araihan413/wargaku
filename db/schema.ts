@@ -11,6 +11,7 @@ import {
   datetime,
   json,
   unique,
+  uniqueIndex,
   index,
 } from 'drizzle-orm/mysql-core';
 
@@ -25,7 +26,6 @@ export const users = mysqlTable('users', {
   email: varchar('email', { length: 100 }).notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
   image: varchar('image', { length: 255 }),
-  password: varchar('password', { length: 255 }),
   phone: varchar('phone', { length: 15 }),
   photo: varchar('photo', { length: 255 }),
   status: mysqlEnum('status', ['pending', 'active', 'suspended']).notNull().default('pending'),
@@ -112,7 +112,10 @@ export const families = mysqlTable('families', {
   id: int('id').autoincrement().primaryKey(),
   dwellingId: int('dwelling_id').references(() => dwellings.id, { onDelete: 'set null' }),
   headUserId: varchar('head_user_id', { length: 255 }).references(() => users.id),
-  familyNumber: varchar('family_number', { length: 20 }).notNull().unique(),
+  // Nomor KK: disimpan sebagai ciphertext AES-256-GCM di produksi (format: iv:authTag:ciphertext)
+  familyNumber: text('family_number').notNull(),
+  // Blind Index: HMAC-SHA256 dari Nomor KK asli, digunakan untuk UNIQUE constraint & pencarian exact-match
+  familyNumberHash: varchar('family_number_hash', { length: 64 }).notNull().default(''),
   kkFile: varchar('kk_file', { length: 255 }),
   verificationStatus: mysqlEnum('verification_status', ['draft', 'pending', 'verified', 'rejected']).notNull().default('draft'),
   verificationNote: text('verification_note'),
@@ -123,7 +126,7 @@ export const families = mysqlTable('families', {
   dwellingIdx: index('families_dwelling_idx').on(table.dwellingId),
   headUserIdx: index('families_head_user_idx').on(table.headUserId),
   verificationStatusIdx: index('families_verification_status_idx').on(table.verificationStatus),
-  familyNumberIdx: index('families_family_number_idx').on(table.familyNumber),
+  familyNumberHashIdx: uniqueIndex('families_family_number_hash_idx').on(table.familyNumberHash),
   isActiveIdx: index('families_is_active_idx').on(table.isActive),
 }));
 
@@ -133,7 +136,10 @@ export const familyMembers = mysqlTable('family_members', {
   familyId: int('family_id').notNull().references(() => families.id, { onDelete: 'cascade' }),
   userId: varchar('user_id', { length: 255 }).references(() => users.id, { onDelete: 'set null' }),
   name: varchar('name', { length: 100 }).notNull(),
-  nik: varchar('nik', { length: 16 }).notNull().unique(),
+  // NIK: disimpan sebagai ciphertext AES-256-GCM di produksi (format: iv:authTag:ciphertext)
+  nik: text('nik').notNull(),
+  // Blind Index: HMAC-SHA256 dari NIK asli, digunakan untuk UNIQUE constraint & pencarian exact-match
+  nikHash: varchar('nik_hash', { length: 64 }).notNull().default(''),
   gender: mysqlEnum('gender', ['L', 'P']).notNull(),
   birthPlace: varchar('birth_place', { length: 50 }),
   birthDate: date('birth_date'),
@@ -154,6 +160,7 @@ export const familyMembers = mysqlTable('family_members', {
   userIdIdx: index('family_members_user_idx').on(table.userId),
   relationshipIdx: index('family_members_relationship_idx').on(table.relationship),
   isKtpSameVillageIdx: index('family_members_ktp_village_idx').on(table.isKtpSameVillage),
+  nikHashIdx: uniqueIndex('family_members_nik_hash_idx').on(table.nikHash),
 }));
 
 // 2.3.1 Family Change Requests (Staging Draft Usulan Perubahan Data KK)
@@ -163,7 +170,8 @@ export const familyChangeRequests = mysqlTable('family_change_requests', {
   headUserId: varchar('head_user_id', { length: 255 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   status: mysqlEnum('status', ['draft', 'pending', 'approved', 'rejected', 'cancelled']).notNull().default('draft'),
   rejectionNote: text('rejection_note'),
-  familyNumber: varchar('family_number', { length: 20 }),
+  // Draft Nomor KK baru (bisa berupa ciphertext di produksi)
+  familyNumber: text('family_number'),
   kkFile: varchar('kk_file', { length: 255 }),
   draftData: json('draft_data').notNull(),
   submittedAt: timestamp('submitted_at'),

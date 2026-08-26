@@ -81,6 +81,9 @@ export async function GET() {
  *       500:
  *         description: Gagal memperbarui profil
  */
+import { updateUserProfileSchema } from "@/lib/validations/auth";
+import { ZodError } from "zod";
+
 export async function PATCH(req: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -96,9 +99,14 @@ export async function PATCH(req: NextRequest) {
     const phone = formData.get("phone") as string | null;
     const imageFile = formData.get("image") as File | null;
 
+    const validated = updateUserProfileSchema.parse({
+      name: name ? name.trim() : undefined,
+      phone: phone !== null ? phone.trim() : undefined,
+    });
+
     const payload: { name?: string; phone?: string; image?: string } = {};
-    if (name) payload.name = name.trim();
-    if (phone !== null) payload.phone = phone.trim();
+    if (validated.name) payload.name = validated.name;
+    if (validated.phone !== undefined) payload.phone = validated.phone;
 
     const currentProfile = await getUserFullProfile(session.user.id);
 
@@ -135,6 +143,9 @@ export async function PATCH(req: NextRequest) {
       profile: updatedProfile,
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Data profil tidak valid", issues: error.issues }, { status: 400 });
+    }
     console.error("PATCH /api/user/profile error:", error);
     return NextResponse.json(
       { error: error?.message || "Gagal memperbarui profil" },
@@ -142,3 +153,4 @@ export async function PATCH(req: NextRequest) {
     );
   }
 }
+

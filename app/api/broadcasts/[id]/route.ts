@@ -47,6 +47,9 @@ import { getClientIp } from '@/lib/audit-logger';
  *         description: Tidak memiliki akses
  */
 
+import { updateBroadcastSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -74,7 +77,9 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    await updateBroadcast(broadcastId, body);
+    const validated = updateBroadcastSchema.parse(body);
+
+    await updateBroadcast(broadcastId, validated);
 
     const ipAddress = await getClientIp(request);
     await createAuditLog({
@@ -87,6 +92,9 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, message: 'Broadcast berhasil diperbarui' });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
+    }
     console.error('Error in PATCH /api/broadcasts/[id]:', error);
     return NextResponse.json(
       { error: error.message || 'Kesalahan server internal' },
@@ -94,6 +102,7 @@ export async function PATCH(
     );
   }
 }
+
 
 export async function DELETE(
   request: Request,
