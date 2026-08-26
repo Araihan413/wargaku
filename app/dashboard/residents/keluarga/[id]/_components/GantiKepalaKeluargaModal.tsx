@@ -1,7 +1,7 @@
 import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, Info } from "lucide-react";
+import { X, Loader2, Info, AlertTriangle } from "lucide-react";
 
 import { toast } from "sonner";
 import { changeFamilyHeadSchema, ChangeFamilyHeadInput } from "@/lib/validations/kependudukan";
@@ -58,7 +58,7 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
         throw new Error(errorData.error || "Gagal mengubah Kepala Keluarga");
       }
 
-      toast.success("Kepala Keluarga berhasil diubah. Jabatan kepala lama diubah menjadi Anggota (Lainnya).");
+      toast.success("Kepala Keluarga berhasil diubah.");
       onSuccess();
       handleClose();
     } catch (error: any) {
@@ -104,18 +104,28 @@ export const GantiKepalaKeluargaModal: React.FC<GantiKepalaKeluargaModalProps> =
           onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col flex-1 overflow-hidden p-6 gap-6"
         >
-          <div className="flex-1 overflow-y-auto space-y-6 px-1 py-1 custom-scrollbar">
-            {/* Warning Callout */}
-            <div className="bg-error/10 border border-error/20 p-4 rounded-xl flex items-start gap-3 text-sm text-error">
-              <Info className="h-5 w-5 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold block mb-1">
-                  Pemberitahuan Keamanan:
-                </span>
-                Mengganti Kepala Keluarga akan mereset status verifikasi KK menjadi{" "}
-                <span className="font-bold">Pending</span>. Jabatan Kepala Keluarga lama ({currentHeadName}) akan otomatis diubah menjadi Anggota (Lainnya). Akses login dari Kepala Keluarga lama (jika ada) ke data KK ini akan dicabut sepenuhnya.
+          <div className="flex-1 overflow-y-auto space-y-4 px-1 py-1 custom-scrollbar">
+            {/* Warning & Info Callouts */}
+            <div className="space-y-2.5">
+              {/* Alert Peringatan Singkat */}
+              <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-xl flex items-start gap-2.5 text-xs text-amber-800">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <span className="font-bold block text-amber-900 mb-0.5">Perhatian:</span>
+                  Status KK akan diset <strong className="text-amber-950">Pending</strong>. Kepala lama ({currentHeadName}) otomatis turun menjadi <em>Anggota (Lainnya)</em> dan hak kelola KK dicabut.
+                </div>
+              </div>
+
+              {/* Info Buat Akun Baru */}
+              <div className="bg-blue-500/10 border border-blue-500/20 p-3.5 rounded-xl flex items-start gap-2.5 text-xs text-blue-800">
+                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <span className="font-bold block text-blue-900 mb-0.5">Akun Kepala Keluarga Baru:</span>
+                  Jika kepala keluarga baru belum punya akun login, buatkan melalui tombol <strong>&quot;Tambah Akun&quot;</strong> di menu <strong>Data Kependudukan (Warga &amp; Hunian)</strong>.
+                </div>
               </div>
             </div>
+
 
             {/* New Head Selection */}
             <div className="space-y-1.5">

@@ -91,13 +91,15 @@ export const CreateResidentAccountModal: React.FC<CreateResidentAccountModalProp
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roleId: 6, // Warga role
+          roles: [6], // Warga role array
           name: selectedHead.name, // Use the physical name
           email,
           password,
           nik: selectedHead.nik, // Auto-Link key
+          status: "active",
         }),
       });
+
 
       if (res.ok) {
         toast.success("Akun berhasil dibuat dan ditautkan ke data keluarga!");
@@ -124,7 +126,7 @@ export const CreateResidentAccountModal: React.FC<CreateResidentAccountModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-6 transition-all animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+      <div className="relative min-h-[70vh] w-full max-w-lg rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-6 transition-all animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-border pb-3 mb-4 shrink-0">
           <div className="flex items-center gap-3">

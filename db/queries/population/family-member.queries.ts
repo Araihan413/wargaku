@@ -438,19 +438,99 @@ export async function changeFamilyHead(data: {
       .where(and(eq(schema.familyMembers.familyId, data.familyId), eq(schema.familyMembers.relationship, 'Kepala_Keluarga')))
       .limit(1);
 
-    // Proses kepala lama: turunkan otomatis menjadi 'Lainnya'
+    // 1. Proses kepala lama: turunkan status menjadi 'Lainnya' dan cabut Role 6 (Warga)
     if (oldHeadMember) {
-      await tx.update(schema.familyMembers).set({ relationship: 'Lainnya', updatedAt: new Date() }).where(eq(schema.familyMembers.id, oldHeadMember.id));
+      await tx
+        .update(schema.familyMembers)
+        .set({ relationship: 'Lainnya', updatedAt: new Date() })
+        .where(eq(schema.familyMembers.id, oldHeadMember.id));
+
+      if (oldHeadMember.userId) {
+        // Cabut Role 6 dari kepala keluarga lama
+        await tx
+          .delete(schema.userRoles)
+          .where(
+            and(
+              eq(schema.userRoles.userId, oldHeadMember.userId),
+              eq(schema.userRoles.roleId, 6)
+            )
+          );
+
+        // Jika user lama masih memiliki role lain (misal Koordinator Kos / Pengurus RT), pastikan salah satunya menjadi primary
+        const remainingRoles = await tx
+          .select({ id: schema.userRoles.id, isPrimary: schema.userRoles.isPrimary })
+          .from(schema.userRoles)
+          .where(eq(schema.userRoles.userId, oldHeadMember.userId));
+
+        if (remainingRoles.length > 0 && !remainingRoles.some((r) => r.isPrimary)) {
+          await tx
+            .update(schema.userRoles)
+            .set({ isPrimary: true })
+            .where(eq(schema.userRoles.id, remainingRoles[0].id));
+        }
+      }
     }
 
-    // Set kepala baru
-    await tx.update(schema.familyMembers).set({ relationship: 'Kepala_Keluarga', updatedAt: new Date() }).where(eq(schema.familyMembers.id, data.newHeadMemberId));
+    // 2. Set kepala baru & berikan Role 6 (Warga)
+    await tx
+      .update(schema.familyMembers)
+      .set({ relationship: 'Kepala_Keluarga', updatedAt: new Date() })
+      .where(eq(schema.familyMembers.id, data.newHeadMemberId));
+
+    if (newHeadMember.userId) {
+      const existingUserRoles = await tx
+        .select({ id: schema.userRoles.id, isPrimary: schema.userRoles.isPrimary })
+        .from(schema.userRoles)
+        .where(eq(schema.userRoles.userId, newHeadMember.userId));
+
+      const hasPrimaryRole = existingUserRoles.some((r) => r.isPrimary);
+      await tx
+        .insert(schema.userRoles)
+        .values({
+          userId: newHeadMember.userId,
+          roleId: 6,
+          isPrimary: !hasPrimaryRole,
+        })
+        .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    }
+
+    // 3. Alihkan kepemilikan aset hunian / properti sewa keluarga ke Kepala Keluarga baru
+    if (family.dwellingId) {
+      const [dwelling] = await tx
+        .select({ id: schema.dwellings.id, ownerUserId: schema.dwellings.ownerUserId })
+        .from(schema.dwellings)
+        .where(eq(schema.dwellings.id, family.dwellingId))
+        .limit(1);
+
+      if (dwelling && oldHeadMember?.userId && dwelling.ownerUserId === oldHeadMember.userId) {
+        await tx
+          .update(schema.dwellings)
+          .set({
+            ownerUserId: newHeadMember.userId ?? null,
+          })
+          .where(eq(schema.dwellings.id, dwelling.id));
+
+        // Jika properti sewa pada hunian ini dikoordinatori oleh kepala lama, alihkan juga ke kepala baru
+        await tx
+          .update(schema.rentalProperties)
+          .set({
+            coordinatorUserId: newHeadMember.userId ?? null,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(schema.rentalProperties.dwellingId, dwelling.id),
+              eq(schema.rentalProperties.coordinatorUserId, oldHeadMember.userId)
+            )
+          );
+      }
+    }
     
-    // Perbarui kepemilikan KK: Pastikan ownership jatuh ke user baru, atau dicabut jika tidak punya akun (null)
+    // 4. Perbarui kepemilikan KK: Pastikan ownership jatuh ke user baru
     await tx
       .update(schema.families)
       .set({
-        headUserId: newHeadMember.userId, // Jika newHead tidak punya akun, ini akan menjadi null, sehingga akses kepala lama tercabut tuntas
+        headUserId: newHeadMember.userId ?? null,
         verificationStatus: 'pending',
         updatedAt: new Date(),
       })
@@ -459,3 +539,5 @@ export async function changeFamilyHead(data: {
     return true;
   });
 }
+
+

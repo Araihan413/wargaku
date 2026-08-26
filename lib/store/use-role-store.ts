@@ -12,25 +12,16 @@ export const useRoleStore = create<RoleState>((set) => ({
   setActiveRoleId: (roleId) => {
     set({ activeRoleId: roleId });
     if (typeof window !== 'undefined') {
+      // Sinkronisasi cookie & localStorage ke backend untuk request selanjutnya
       document.cookie = `active_role_id=${roleId}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
       try {
         localStorage.setItem('last_accessed_role_id', String(roleId));
       } catch {
         // Ignore localStorage quota errors
       }
-
-      // Sync ke backend via session/cookie
-      try {
-        fetch('/api/auth/switch-role', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roleId }),
-        }).catch(() => null);
-      } catch {
-        // Ignore errors
-      }
     }
   },
+
   resetRole: () => {
     set({ activeRoleId: null });
     if (typeof window !== 'undefined') {
@@ -75,17 +66,26 @@ export const useRoleStore = create<RoleState>((set) => ({
 
     set({ activeRoleId: candidateRoleId });
 
-    // Sync to cookie and localStorage if we picked a fallback or initialized successfully
-    if (candidateRoleId !== null && typeof window !== 'undefined') {
-      document.cookie = `active_role_id=${candidateRoleId}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-      try {
-        localStorage.setItem('last_accessed_role_id', String(candidateRoleId));
-      } catch {
-        // Ignore localStorage quota errors
+    if (typeof window !== 'undefined') {
+      if (candidateRoleId !== null) {
+        document.cookie = `active_role_id=${candidateRoleId}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+        try {
+          localStorage.setItem('last_accessed_role_id', String(candidateRoleId));
+        } catch {
+          // Ignore localStorage quota errors
+        }
+      } else {
+        document.cookie = 'active_role_id=; path=/; max-age=0; SameSite=Lax';
+        try {
+          localStorage.removeItem('last_accessed_role_id');
+        } catch {
+          // Ignore localStorage quota errors
+        }
       }
     }
   },
 }));
+
 
 
 

@@ -20,6 +20,7 @@ export const createUserByAdminSchema = z.object({
   
   status: z.enum(["pending", "active", "suspended"]),
 
+
   nik: z.string().optional().or(z.literal("")),
   phone: z.string().regex(indonesianPhoneRegex, "Nomor telepon tidak valid").optional().or(z.literal("")),
   
@@ -51,15 +52,9 @@ export const createUserByAdminSchema = z.object({
     });
   }
 
-  // 3. Jika ada role Warga (6), NIK, Alamat Hunian & Gender wajib diisi
+  // 3. Jika ada role Warga (6), validasi NIK
   if (data.roles.includes(6)) {
-    if (!data.nik || data.nik.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["nik"],
-        message: "NIK wajib diisi 16 digit untuk peran Warga",
-      });
-    } else if (!nikRegex.test(data.nik)) {
+    if (data.nik && data.nik.trim() !== "" && !nikRegex.test(data.nik.trim())) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["nik"],
@@ -67,7 +62,8 @@ export const createUserByAdminSchema = z.object({
       });
     }
 
-    if (!data.dwellingId) {
+    // Jika membuat KK baru (familyNumber diisi) tanpa NIK eksisting, dwellingId wajib
+    if (data.familyNumber && data.familyNumber.trim() !== "" && !data.dwellingId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["dwellingId"],
@@ -75,6 +71,7 @@ export const createUserByAdminSchema = z.object({
       });
     }
   }
+
 
   // 4. Jika ada role Koordinator Kos (5), Properti Kos wajib dipilih
   if (data.roles.includes(5)) {

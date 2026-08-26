@@ -18,23 +18,27 @@ export interface FamilyVerificationState {
 
 export function useFamilyVerification(userRoleId?: number | null): FamilyVerificationState {
   const { activeRoleId } = useRoleStore();
-  const currentRoleId = userRoleId === 6 ? 6 : (activeRoleId ?? userRoleId ?? undefined);
+  const currentRoleId = userRoleId !== undefined ? userRoleId : activeRoleId;
+  const isWargaOrCoord = currentRoleId === 6 || currentRoleId === 5;
 
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatusType>("unsubmitted");
   const [hasVerified, setHasVerified] = useState<boolean>(false);
   const [hasFamily, setHasFamily] = useState<boolean>(false);
   const [hasUploadedKK, setHasUploadedKK] = useState<boolean>(false);
   const [verificationNote, setVerificationNote] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(isWargaOrCoord));
   const [refetchIndex, setRefetchIndex] = useState<number>(0);
 
   const refetch = useCallback(async () => {
+    if (!isWargaOrCoord) return;
     setIsLoading(true);
     setRefetchIndex((prev) => prev + 1);
-  }, []);
+  }, [isWargaOrCoord]);
 
   useEffect(() => {
-    if (currentRoleId !== 6 && currentRoleId !== 5) return;
+    if (!isWargaOrCoord) {
+      return;
+    }
 
     let ignore = false;
 
@@ -78,19 +82,31 @@ export function useFamilyVerification(userRoleId?: number | null): FamilyVerific
     return () => {
       ignore = true;
     };
-  }, [currentRoleId, refetchIndex]);
+  }, [isWargaOrCoord, currentRoleId, refetchIndex]);
 
-  const isNonWarga = currentRoleId !== undefined && currentRoleId !== 6 && currentRoleId !== 5;
+  if (!isWargaOrCoord) {
+    return {
+      isVerified: true,
+      hasVerified: true,
+      hasFamily: false,
+      verificationStatus: "verified",
+      hasUploadedKK: true,
+      verificationNote: null,
+      isLoading: false,
+      refetch,
+    };
+  }
 
   return {
-    isVerified: isNonWarga || hasVerified || verificationStatus === "verified",
-    hasVerified: isNonWarga ? true : hasVerified,
+    isVerified: hasVerified || verificationStatus === "verified",
+    hasVerified,
     hasFamily,
-    verificationStatus: isNonWarga ? "verified" : verificationStatus,
-    hasUploadedKK: isNonWarga ? true : hasUploadedKK,
-    verificationNote: isNonWarga ? null : verificationNote,
-    isLoading: isNonWarga ? false : (currentRoleId === undefined ? true : isLoading),
+    verificationStatus,
+    hasUploadedKK,
+    verificationNote,
+    isLoading,
     refetch,
   };
 }
+
 

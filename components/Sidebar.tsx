@@ -223,8 +223,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const { activeRoleId } = useRoleStore();
-  const currentRoleId = activeRoleId ?? 6;
+  const currentRoleId = activeRoleId;
   const { isVerified, hasFamily, verificationStatus, isLoading: isVerificationLoading } = useFamilyVerification(currentRoleId);
+
 
   const [pendingRegCount, setPendingRegCount] = useState<number>(0);
   const [pendingDocCount, setPendingDocCount] = useState<number>(0);
@@ -297,7 +298,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentRoleId === 6 && Boolean(requiresVerification) && !isVerificationLoading && !isUnlockedStatus;
 
   const [userPermissions, setUserPermissions] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && currentRoleId) {
       const cached = sessionStorage.getItem(`cached_permissions_role_${currentRoleId}`);
       if (cached) {
         try {
@@ -307,10 +308,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
     return [];
   });
-  const [isFetchingPermissions, setIsFetchingPermissions] = useState(() => userPermissions.length === 0);
+  const [isFetchingPermissions, setIsFetchingPermissions] = useState(() => Boolean(currentRoleId && userPermissions.length === 0));
 
   useEffect(() => {
+    if (!currentRoleId) return;
     let isMounted = true;
+
     async function fetchPermissions() {
       setIsFetchingPermissions(true);
       try {
@@ -324,6 +327,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             if (typeof window !== "undefined") {
               sessionStorage.setItem(`cached_permissions_role_${currentRoleId}`, JSON.stringify(slugs));
             }
+          }
+        } else {
+          if (isMounted) {
+            setUserPermissions([]);
           }
         }
       } catch (err) {
@@ -342,15 +349,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Filter items matching the current active role and permission matrix
   const filteredItems = useMemo(() => {
-    if (activeRoleId === null) {
-      // Tampilkan hanya menu dasar (Dashboard) saat role belum terinisialisasi atau saat logout
-      return sidebarItems.filter(item => !item.permission && !item.requiresVerification);
+    const effectivePermissions = currentRoleId ? userPermissions : [];
+
+    if (!activeRoleId || effectivePermissions.length === 0) {
+      // Tampilkan hanya menu dasar (Dashboard) saat akun idle / tanpa role
+      return sidebarItems.filter((item) => !item.permission && !item.subItems && !item.requiresVerification);
     }
 
     return sidebarItems
       .map((item) => {
         // Cek filter permission eksplisit jika ada
-        if (item.permission && !userPermissions.includes(item.permission)) {
+        if (item.permission && !effectivePermissions.includes(item.permission)) {
           return null;
         }
 
@@ -368,7 +377,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         // Jika item memiliki subItems, filter subItems yang berizin
         if (item.subItems) {
           const validSubItems = item.subItems.filter((sub) => {
-            if (sub.permission && !userPermissions.includes(sub.permission)) {
+            if (sub.permission && !effectivePermissions.includes(sub.permission)) {
               return false;
             }
             return true;
@@ -386,6 +395,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       })
       .filter((item): item is SidebarItem => item !== null);
   }, [activeRoleId, currentRoleId, userPermissions, hasFamily]);
+
+
 
   const isActive = useCallback(
     (href?: string) => {
@@ -704,6 +715,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {currentRoleId === 4 && "Bendahara"}
                   {currentRoleId === 5 && "Koordinator Kost"}
                   {currentRoleId === 6 && "Warga"}
+                  {!currentRoleId && "Non-Penugasan"}
                 </span>
               </div>
             </Link>

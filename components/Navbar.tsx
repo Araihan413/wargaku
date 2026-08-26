@@ -50,7 +50,7 @@ const getPageTitle = (pathname: string): string => {
 };
 
 // Role name mapping
-const getRoleLabel = (roleId: number): string => {
+const getRoleLabel = (roleId?: number | null): string => {
   switch (roleId) {
     case 1: return "Super Admin";
     case 2: return "Ketua RT";
@@ -58,7 +58,7 @@ const getRoleLabel = (roleId: number): string => {
     case 4: return "Bendahara";
     case 5: return "Koordinator Kost";
     case 6: return "Warga";
-    default: return "Pengguna";
+    default: return "Non-Penugasan";
   }
 };
 
@@ -86,8 +86,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobile, handleLogout }) =>
         if (res.ok) {
           const data = await res.json();
           if (isMounted) {
-            const serverRoleId = typeof data.roleId === "number" ? data.roleId : 6;
-            const serverAllowed = Array.isArray(data.allowedRoles) && data.allowedRoles.length > 0 ? data.allowedRoles : [serverRoleId];
+            const serverRoleId = typeof data.roleId === "number" ? data.roleId : null;
+            const serverAllowed = Array.isArray(data.allowedRoles) ? data.allowedRoles : [];
 
             setAssignedRoles(serverAllowed);
             setPrimaryRoleId(serverRoleId);
