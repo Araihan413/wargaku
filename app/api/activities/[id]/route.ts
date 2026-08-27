@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import {
   getActivityById,
   updateActivity,
   deleteActivity,
 } from '@/db/queries/communication/activity.queries';
 import { deleteNotificationsByRedirectLink, notifyAllWarga } from '@/lib/notifications';
+import { updateActivitySchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -66,10 +66,11 @@ export async function GET(
  * @openapi
  * /api/activities/{id}:
  *   patch:
- *     summary: Memperbarui data kegiatan RT
+ *     summary: Memperbarui kegiatan RT
  *     description: |
- *       Mengubah data kegiatan RT (judul, deskripsi, tanggal, lokasi, lampiran, status disematkan).
- *       Hanya dapat diakses oleh pengguna dengan izin manage-activities.
+ *       Memperbarui data agenda kegiatan RT (judul, deskripsi, tanggal, lokasi, atau lampiran). 
+ *       Secara otomatis mengirimkan notifikasi pembaruan ke seluruh warga jika terdapat perubahan 
+ *       pada tanggal/jam, lokasi, atau judul kegiatan. Membutuhkan izin manage-activities.
  *     tags:
  *       - Kegiatan & Agenda
  *     security:
@@ -97,15 +98,24 @@ export async function GET(
  *                 format: date-time
  *               location:
  *                 type: string
- *               attachments:
- *                 type: string
  *               isPinned:
  *                 type: boolean
+ *               attachments:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     fileUrl:
+ *                       type: string
+ *                     fileType:
+ *                       type: string
  *     responses:
  *       200:
- *         description: Kegiatan berhasil diperbarui
+ *         description: Kegiatan RT berhasil diperbarui
  *       400:
- *         description: Data tidak valid, tidak ada perubahan, atau melampaui batas pin (maksimal 1)
+ *         description: Data tidak valid, tidak ada perubahan, atau kuota pin terlampaui
  *       401:
  *         description: Belum terautentikasi
  *       403:
@@ -115,28 +125,13 @@ export async function GET(
  *       500:
  *         description: Kesalahan server internal
  */
-import { updateActivitySchema } from '@/lib/validations/layanan';
-import { ZodError } from 'zod';
-
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-activities');
-
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk mengedit kegiatan RT' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-activities');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const actId = parseInt(id, 10);
@@ -262,21 +257,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-activities');
-
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk menghapus kegiatan RT' }, { status: 403 });
-    }
-
+    const { session, errorResponse } = await validateApiAuth('manage-activities');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const actId = parseInt(id, 10);

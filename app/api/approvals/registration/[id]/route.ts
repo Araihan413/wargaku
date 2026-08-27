@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { processRegistrationApproval } from "@/db/queries/system/approval.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
 import { processRegistrationApprovalSchema } from "@/lib/validations/system";
 import { ZodError } from "zod";
-
 
 /**
  * @openapi
@@ -60,19 +57,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "verify-registrations");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("verify-registrations");
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const body = await request.json();

@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { validateApiAuth } from '@/lib/rbac';
 import { getPermissionsByRoleId } from '@/db/queries/system/permission.queries';
 import { getUserRoles, getUserPrimaryRoleId } from '@/db/queries/auth/user.queries';
-import { getEffectiveRoleId } from '@/lib/rbac';
 
 /**
  * @openapi
@@ -33,18 +31,12 @@ import { getEffectiveRoleId } from '@/lib/rbac';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId: effectiveRoleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const requestedRoleId = searchParams.get('roleId');
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
     const allowedRoles = await getUserRoles(session.user.id);
     const primaryRoleId = (await getUserPrimaryRoleId(session.user.id)) || allowedRoles[0] || null;
     let targetRoleId = effectiveRoleId;

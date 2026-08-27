@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { deleteSmartGroup, updateSmartGroup, getSmartGroupById } from "@/db/queries/system/smart-group.queries";
+import { updateSmartGroupSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
 
 /**
  * @openapi
@@ -39,19 +39,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "view-residents");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("view-residents");
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const smartGroupId = Number(id);
@@ -60,12 +49,13 @@ export async function GET(
       return NextResponse.json({ error: "ID kelompok tidak valid" }, { status: 400 });
     }
 
-    const group = await getSmartGroupById(smartGroupId);
-    if (!group) {
-      return NextResponse.json({ error: "Kelompok tidak ditemukan" }, { status: 404 });
+    const data = await getSmartGroupById(smartGroupId);
+
+    if (!data) {
+      return NextResponse.json({ error: "Kelompok warga tidak ditemukan" }, { status: 404 });
     }
 
-    return NextResponse.json({ data: group });
+    return NextResponse.json({ data });
   } catch (error: any) {
     console.error("Error in GET /api/smart-groups/[id]:", error);
     return NextResponse.json({ error: error.message || "Kesalahan server internal" }, { status: 500 });
@@ -77,7 +67,7 @@ export async function GET(
  * /api/smart-groups/{id}:
  *   put:
  *     summary: Memperbarui Kelompok Warga Pintar
- *     description: Mengubah kriteria atau nama dari smart group.
+ *     description: Mengubah nama, deskripsi, atau kriteria smart group yang sudah ada.
  *     tags:
  *       - Smart Groups
  *     security:
@@ -97,13 +87,15 @@ export async function GET(
  *             properties:
  *               name:
  *                 type: string
+ *               description:
+ *                 type: string
  *               criteria:
  *                 type: object
  *     responses:
  *       200:
  *         description: Preset filter berhasil diperbarui
  *       400:
- *         description: ID tidak valid
+ *         description: Validasi input gagal atau ID tidak valid
  *       401:
  *         description: Belum terautentikasi
  *       403:
@@ -111,27 +103,13 @@ export async function GET(
  *       500:
  *         description: Kesalahan server internal
  */
-import { updateSmartGroupSchema } from "@/lib/validations/system";
-import { ZodError } from "zod";
-
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "manage-residents");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("manage-residents");
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const smartGroupId = Number(id);
@@ -189,19 +167,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "manage-residents");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("manage-residents");
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const smartGroupId = Number(id);

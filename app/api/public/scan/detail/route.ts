@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateApiAuth } from "@/lib/rbac";
 import { getDetailedScanDwelling } from "@/db/queries/dashboard/public-portal.queries";
 
 /**
@@ -70,10 +69,8 @@ export async function GET(req: Request) {
       );
     }
 
-    // Verifikasi session — endpoint ini hanya untuk user yang login
-    const session = await auth.api.getSession({ headers: await headers() });
-
-    if (!session?.user?.id) {
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) {
       return NextResponse.json(
         { error: "Anda harus login untuk melihat data detail hunian" },
         { status: 401 }

@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth, hasPermission } from "@/lib/rbac";
 import {
   updateUserProfile,
   mutateOfficerRole,
@@ -70,17 +68,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const hasManageUsers = await hasPermission(effectiveRoleId, "manage-users");
-    const hasManageResidents = await hasPermission(effectiveRoleId, "manage-residents");
+    const hasManageUsers = await hasPermission(roleId, "manage-users");
+    const hasManageResidents = await hasPermission(roleId, "manage-residents");
 
     const { id } = await params;
     const body = await request.json();

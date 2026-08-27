@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { validateApiAuth } from '@/lib/rbac';
 import { submitFamily, getFamilyById, cancelSubmitFamily } from '@/db/queries/population/family.queries';
 import { getUserById } from '@/db/queries/auth/user.queries';
 import { notifyRoles, deleteNotificationsByRedirectLink } from '@/lib/notifications';
@@ -77,13 +76,8 @@ export async function POST(
       return NextResponse.json({ error: 'ID Kartu Keluarga tidak valid' }, { status: 400 });
     }
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const currentUser = await getUserById(session.user.id);
     if (!currentUser || currentUser.status !== 'active') {
@@ -150,13 +144,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID Kartu Keluarga tidak valid' }, { status: 400 });
     }
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const currentUser = await getUserById(session.user.id);
     if (!currentUser || currentUser.status !== 'active') {

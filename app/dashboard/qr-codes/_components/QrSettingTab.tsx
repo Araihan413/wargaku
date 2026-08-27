@@ -4,6 +4,8 @@ import React from "react";
 import { Settings, Type, FileText, Eye, Info } from "lucide-react";
 import { QrTemplateType, QrCodePrintCanvas } from "@/components/QrCodePrintCanvas";
 import { CustomSelect } from "@/components/CustomSelect";
+import { getAppBaseUrl } from "@/lib/config";
+
 
 interface QrSettingTabProps {
   template: QrTemplateType;
@@ -112,11 +114,12 @@ export const QrSettingTab: React.FC<QrSettingTabProps> = ({
               <QrCodePrintCanvas
                 title={title}
                 subtitle={subtitle}
-                qrUrl="https://wargaku.app/scan-qr?token=CONTOH-A1-12"
+                qrUrl={`${getAppBaseUrl()}/scan-qr?token=CONTOH-A1-12`}
                 template={template}
                 dwellingLabel="Contoh: Blok A1 No. 12"
               />
             </div>
+
           </div>
         </div>
       </div>

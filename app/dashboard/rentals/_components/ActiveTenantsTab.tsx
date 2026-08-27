@@ -161,8 +161,10 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
                     type="button"
                     onClick={async () => {
                       try {
-                        const res = await fetch(`/api/rental-residents/${r.id}/resend-activation`, {
+                        const res = await fetch("/api/rentals/resend-invitation", {
                           method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ contractId: r.id }),
                         });
                         const data = await res.json();
                         if (res.ok) {
@@ -173,6 +175,7 @@ export const ActiveTenantsTab: React.FC<ActiveTenantsTabProps> = ({
                       } catch {
                         toast.error("Terjadi kesalahan jaringan.");
                       }
+
                     }}
                     className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 text-xs font-bold transition-all cursor-pointer"
                     title="Kirim ulang email undangan aktivasi akun"

@@ -3,6 +3,8 @@ import { X, QrCode as QrIcon, Download } from "lucide-react";
 import { PropertyDetail } from "../types";
 import QRCode from "qrcode";
 import Image from "next/image";
+import { getAppBaseUrl } from "@/lib/config";
+
 
 interface PropertyQrModalProps {
   isOpen: boolean;
@@ -17,17 +19,26 @@ export const PropertyQrModal: React.FC<PropertyQrModalProps> = ({
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
-  const qrUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/scan/${property?.qrToken || property?.dwellingId}`
-    : `https://wargaku.app/scan/${property?.qrToken || property?.dwellingId}`;
+  const qrToken = property?.qrToken || "";
+  const origin = getAppBaseUrl();
+  const qrUrl = qrToken ? `${origin}/scan-qr?token=${encodeURIComponent(qrToken)}` : "";
+
 
   useEffect(() => {
-    if (isOpen && property) {
-      QRCode.toDataURL(qrUrl, { width: 300, margin: 2 })
-        .then((url) => setQrDataUrl(url))
+    let isCancelled = false;
+    if (isOpen && property && qrUrl) {
+      QRCode.toDataURL(qrUrl, { width: 400, margin: 2 })
+        .then((url) => {
+          if (!isCancelled) setQrDataUrl(url);
+        })
         .catch((err) => console.error("Error generating QR code:", err));
     }
+    return () => {
+      isCancelled = true;
+    };
   }, [isOpen, property, qrUrl]);
+
+
 
   if (!isOpen || !property) return null;
 
@@ -72,10 +83,11 @@ export const PropertyQrModal: React.FC<PropertyQrModalProps> = ({
             {qrDataUrl ? (
               <Image src={qrDataUrl} alt={`QR Code ${property.name}`} width={192} height={192} className="w-48 h-48 object-contain" />
             ) : (
-              <div className="w-48 h-48 flex items-center justify-center text-xs text-slate-400">
-                Memuat QR...
+              <div className="w-48 h-48 flex items-center justify-center text-xs text-slate-400 text-center px-4">
+                {!qrToken ? "Token QR belum terbit untuk hunian ini" : "Memuat QR..."}
               </div>
             )}
+
           </div>
 
           <div className="text-center">

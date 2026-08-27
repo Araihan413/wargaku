@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq, and, desc, like, or, ne } from "drizzle-orm";
-import { deleteCloudinaryFileByUrl } from "@/lib/cloudinary";
+import { deleteCloudinaryFileByUrl, parseUrlsFromAttachments } from "@/lib/cloudinary";
 
 export interface ListAnnouncementsOptions {
   search?: string;
@@ -22,21 +22,6 @@ export interface UpdateAnnouncementInput {
   category?: "umum" | "penting" | "mendesak";
   attachments?: string | null;
   isPinned?: boolean;
-}
-
-function parseUrlsFromAttachments(attachments: string | null | undefined): string[] {
-  if (!attachments) return [];
-  try {
-    if (attachments.startsWith("[")) {
-      const parsed: Array<{ url?: string } | string> = JSON.parse(attachments);
-      return parsed
-        .map((item) => (typeof item === "string" ? item : item.url || ""))
-        .filter(Boolean);
-    }
-    return [attachments];
-  } catch {
-    return [attachments];
-  }
 }
 
 export async function listAnnouncements(options: ListAnnouncementsOptions = {}) {

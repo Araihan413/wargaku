@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { validateApiAuth } from '@/lib/rbac';
 import { dismissBroadcast } from '@/db/queries/system/broadcast.queries';
 
 /**
@@ -33,13 +32,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const broadcastId = parseInt(id);

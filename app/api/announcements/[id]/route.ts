@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import {
   getAnnouncementById,
   updateAnnouncement,
   deleteAnnouncement,
 } from '@/db/queries/communication/announcement.queries';
 import { deleteNotificationsByRedirectLink } from '@/lib/notifications';
+import { updateAnnouncementSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -67,9 +67,7 @@ export async function GET(
  * /api/announcements/{id}:
  *   patch:
  *     summary: Memperbarui pengumuman
- *     description: |
- *       Memperbarui data pengumuman (judul, isi, lampiran, kategori, atau status pinned). 
- *       Hanya dapat dilakukan oleh pengguna dengan hak akses manage-announcements.
+ *     description: Memperbarui judul, isi, kategori, status disematkan, atau lampiran pengumuman. Maksimal 3 pengumuman yang dapat disematkan (pinned). Memerlukan hak akses manage-announcements.
  *     tags:
  *       - Pengumuman & Informasi
  *     security:
@@ -95,18 +93,24 @@ export async function GET(
  *               category:
  *                 type: string
  *                 enum: [umum, penting, mendesak]
- *               attachments:
- *                 type: string
  *               isPinned:
  *                 type: boolean
- *               pinUntil:
- *                 type: string
- *                 format: date-time
+ *               attachments:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     fileUrl:
+ *                       type: string
+ *                     fileType:
+ *                       type: string
  *     responses:
  *       200:
  *         description: Pengumuman berhasil diperbarui
  *       400:
- *         description: ID tidak valid, tidak ada perubahan data, atau batas pin terlampaui
+ *         description: Data tidak valid atau batas maksimal pinned (3) terlampaui
  *       401:
  *         description: Belum terautentikasi
  *       403:
@@ -116,28 +120,13 @@ export async function GET(
  *       500:
  *         description: Kesalahan server internal
  */
-import { updateAnnouncementSchema } from '@/lib/validations/layanan';
-import { ZodError } from 'zod';
-
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-announcements');
-
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk mengedit pengumuman' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-announcements');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const annId = parseInt(id, 10);
@@ -217,21 +206,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-announcements');
-
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk menghapus pengumuman' }, { status: 403 });
-    }
-
+    const { session, errorResponse } = await validateApiAuth('manage-announcements');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const annId = parseInt(id, 10);

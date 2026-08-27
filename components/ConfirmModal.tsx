@@ -63,7 +63,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed h-screen inset-0 z-70 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
       {/* Modal Container */}
       <div 
         className="w-full max-w-md rounded-3xl border border-gray-border bg-gray-card shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200"

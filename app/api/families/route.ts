@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import { listFamilies, createFamilyWithHeadMember } from '@/db/queries';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
+import { createFamilyWithHeadSchema } from '@/lib/validations/kependudukan';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -55,25 +55,14 @@ import { getClientIp } from '@/lib/audit-logger';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'view-residents');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { errorResponse } = await validateApiAuth('view-residents');
+    if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
     const offset = searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined;
     const query = searchParams.get('query') || undefined;
-    const verificationStatus = searchParams.get('verificationStatus') as 'draft' | 'pending' | 'verified' | 'rejected' || undefined;
+    const verificationStatus = (searchParams.get('verificationStatus') as 'draft' | 'pending' | 'verified' | 'rejected') || undefined;
     
     let isActive: boolean | undefined = undefined;
     if (searchParams.get('isActive') !== null) {
@@ -145,24 +134,10 @@ export async function GET(request: Request) {
  *       500:
  *         description: Kesalahan server internal
  */
-import { createFamilyWithHeadSchema } from '@/lib/validations/kependudukan';
-import { ZodError } from 'zod';
-
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-residents');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-residents');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validatedData = createFamilyWithHeadSchema.parse(body);

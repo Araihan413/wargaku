@@ -190,10 +190,14 @@ export function RegisterMyFamilyModal({
                   required={true}
                   value={dwellingId}
                   onChange={setDwellingId}
-                  options={dwellings.map((d) => ({
-                    value: String(d.id),
-                    label: d.label,
-                  }))}
+                  options={dwellings
+                    .filter((d: any) => d.type !== "homestay")
+                    .map((d) => ({
+                      value: String(d.id),
+                      label: d.label,
+                    }))}
+
+
                   placeholder="Pilih Alamat Hunian Rumah..."
                 />
               )}

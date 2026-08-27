@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { getRtDashboardStats } from "@/db/queries";
 
 /**
@@ -26,19 +24,8 @@ import { getRtDashboardStats } from "@/db/queries";
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, "view-residents");
-    if (!allowed) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("view-residents");
+    if (errorResponse || !session) return errorResponse;
 
     const stats = await getRtDashboardStats();
     return NextResponse.json(stats);

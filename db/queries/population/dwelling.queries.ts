@@ -3,7 +3,8 @@ import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql, ne } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { cleanupOldCoordinatorRole } from '@/db/queries/property/rental-property.queries';
-import { decryptPII } from '@/lib/crypto-pii';
+import { decryptPII, maskNIK, maskFamilyNumber, maskPhone } from '@/lib/crypto-pii';
+
 
 
 // ==========================================
@@ -626,21 +627,9 @@ export async function validateAndChangeDwellingType(dwellingId: number, currentT
 // NEIGHBORHOOD MAP QUERY
 // ==========================================
 
-const _censorNik = (nik: string | null) => {
-  if (!nik) return '-';
-  if (nik.length <= 6) return nik;
-  return `${nik.slice(0, 3)}${'*'.repeat(nik.length - 6)}${nik.slice(-3)}`;
-};
-
-const _censorPhone = (phone: string | null) => {
-  if (!phone) return '-';
-  if (phone.length <= 5) return phone;
-  return `${phone.slice(0, 4)}${'*'.repeat(phone.length - 7)}${phone.slice(-3)}`;
-};
-
 /**
  * Data peta lingkungan — seluruh hunian, KK, anggota, dan penyewa.
- * Data sensitif disensor jika bukan officer.
+ * Data sensitif disensor menggunakan utility terpusat jika bukan officer.
  */
 export async function getNeighborhoodMap(isOfficer: boolean) {
   const allDwellings = await db.select().from(schema.dwellings).where(eq(schema.dwellings.isActive, true));
@@ -675,9 +664,7 @@ export async function getNeighborhoodMap(isOfficer: boolean) {
         const plainFamilyNumber = decryptPII(family.familyNumber);
         return {
           id: family.id,
-          familyNumber: isOfficer
-            ? plainFamilyNumber
-            : `${plainFamilyNumber.slice(0, 4)}${'*'.repeat(Math.max(0, plainFamilyNumber.length - 8))}${plainFamilyNumber.slice(-4)}`,
+          familyNumber: isOfficer ? plainFamilyNumber : maskFamilyNumber(plainFamilyNumber),
           headName: family.headName,
           verificationStatus: family.verificationStatus,
           members: allMembers
@@ -687,12 +674,12 @@ export async function getNeighborhoodMap(isOfficer: boolean) {
               return {
                 id: member.id,
                 name: member.name,
-                nik: isOfficer ? plainNik : _censorNik(plainNik),
+                nik: isOfficer ? plainNik : maskNIK(plainNik),
                 gender: member.gender,
                 relationship: member.relationship,
                 occupation: member.occupation,
                 educationLevel: member.educationLevel,
-                phone: isOfficer ? member.phone : _censorPhone(member.phone),
+                phone: isOfficer ? member.phone : maskPhone(member.phone),
               };
             }),
         };
@@ -704,21 +691,25 @@ export async function getNeighborhoodMap(isOfficer: boolean) {
         id: property.id,
         name: property.name,
         contactPerson: property.contactPerson,
-        phone: isOfficer ? property.phone : _censorPhone(property.phone),
+        phone: isOfficer ? property.phone : maskPhone(property.phone),
         totalRooms: property.totalRooms,
         occupiedRooms: property.occupiedRooms,
         vacantRooms: Math.max(0, property.totalRooms - property.occupiedRooms),
         tenants: allRentalContracts
           .filter((c) => c.rentalPropertyId === property.id)
-          .map((contract) => ({
-            id: contract.id,
-            tenantType: contract.tenantType,
-            name: contract.individualName,
-            nik: isOfficer ? contract.individualNik : _censorNik(contract.individualNik),
-            phone: isOfficer ? contract.individualPhone : _censorPhone(contract.individualPhone),
-            checkInDate: contract.checkInDate,
-          })),
+          .map((c) => {
+            const nik = decryptPII(c.individualNik || '') || '-';
+            return {
+              id: c.id,
+              tenantType: c.tenantType,
+              name: c.individualName,
+              nik: isOfficer ? nik : maskNIK(nik),
+              phone: isOfficer ? c.individualPhone : maskPhone(c.individualPhone),
+              checkInDate: c.checkInDate,
+            };
+          }),
       }));
+
 
     return {
       id: dwelling.id,

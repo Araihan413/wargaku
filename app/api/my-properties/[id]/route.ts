@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { validateApiAuth } from '@/lib/rbac';
 import {
   getRentalPropertyById,
   updateRentalProperty,
@@ -12,49 +11,13 @@ import { findOrCreatePendingCoordinatorByPhone, getUserFullProfile, addRoleToUse
 import { updateRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
 
-
-/**
- * @openapi
- * /api/my-properties/{id}:
- *   get:
- *     summary: Mendapatkan detail properti pribadi
- *     description: Mengambil data detail properti milik pengguna (termasuk data koordinator) berdasarkan ID properti. Hanya bisa diakses oleh pemilik properti.
- *     tags:
- *       - Properti & Sewa
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Berhasil mendapatkan detail properti
- *       400:
- *         description: ID tidak valid
- *       401:
- *         description: Belum terautentikasi
- *       403:
- *         description: Tidak memiliki hak akses (bukan pemilik)
- *       404:
- *         description: Properti tidak ditemukan
- *       500:
- *         description: Kesalahan server internal
- */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const propertyId = Number(id);
@@ -151,13 +114,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const propertyId = Number(id);
@@ -253,13 +211,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const propertyId = Number(id);

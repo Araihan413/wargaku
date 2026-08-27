@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { getDocumentAccess } from "@/db/queries/system/document.queries";
 import { generateSignedUrl, extractPublicIdFromUrl } from "@/lib/cloudinary";
 
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi. Silakan login terlebih dahulu." }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
@@ -21,8 +17,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Parameter 'type' dan 'id' wajib diisi dengan nilai yang valid." }, { status: 400 });
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const accessResult = await getDocumentAccess(type, id, session.user.id, effectiveRoleId);
+    const accessResult = await getDocumentAccess(type, id, session.user.id, roleId);
 
     if (!accessResult.success || !accessResult.fileUrl) {
       return NextResponse.json({ error: accessResult.errorMessage }, { status: accessResult.status });

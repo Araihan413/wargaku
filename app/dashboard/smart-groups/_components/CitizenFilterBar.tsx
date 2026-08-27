@@ -182,7 +182,7 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Search Name/NIK */}
         <div className="lg:col-span-2">
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
+          <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
             Cari Nama Warga atau NIK
           </label>
           <SearchInput
@@ -195,7 +195,7 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
         {/* Rentang Usia */}
         <div className="lg:col-span-2">
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
+          <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
             Rentang Usia (Tahun)
           </label>
           <div className="flex items-center gap-2">
@@ -233,10 +233,8 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
         {/* Jenis Kelamin (1 col) */}
         <div>
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Jenis Kelamin
-          </label>
           <CustomSelect
+            label="Jenis Kelamin"
             options={GENDER_OPTIONS}
             value={filter.gender || "all"}
             onChange={(val) =>
@@ -248,10 +246,8 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
         {/* Agama (1 col) */}
         <div>
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Agama
-          </label>
           <CustomSelect
+            label="Agama"
             options={RELIGION_OPTIONS}
             value={filter.religion || "all"}
             onChange={(val) => onChange({ ...filter, religion: val === "all" ? "" : val })}
@@ -261,10 +257,8 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
         {/* Blok Rumah (2 cols) */}
         <div className="sm:col-span-2 lg:col-span-2">
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Blok Rumah
-          </label>
           <CustomSelect
+            label="Blok Rumah"
             options={blockOptions}
             value={filter.blockNumber || "all"}
             onChange={(val) => onChange({ ...filter, blockNumber: val === "all" ? "" : val })}
@@ -274,10 +268,8 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
         {/* Status Iuran (2 cols) */}
         <div className="sm:col-span-1 lg:col-span-2">
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Status Iuran RT
-          </label>
           <CustomSelect
+            label="Status Iuran RT"
             options={FEE_STATUS_OPTIONS}
             value={filter.feeStatus || "all"}
             onChange={(val) =>
@@ -289,10 +281,8 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
         {/* Tipe Tempat Tinggal (2 cols) */}
         <div className="sm:col-span-1 lg:col-span-2">
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Tipe Tempat Tinggal
-          </label>
           <CustomSelect
+            label="Tipe Tempat Tinggal"
             options={DWELLING_TYPE_OPTIONS}
             value={filter.dwellingType || "all"}
             onChange={(val) => onChange({ ...filter, dwellingType: val === "all" ? "" : val })}
@@ -302,10 +292,8 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
         {/* Pekerjaan (2 cols) */}
         <div className="sm:col-span-1 lg:col-span-2">
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Pekerjaan
-          </label>
           <AutocompleteInput
+            label="Pekerjaan"
             value={filter.occupation || ""}
             onChange={(val) => onChange({ ...filter, occupation: val })}
             suggestions={commonOccupations}
@@ -315,10 +303,8 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
         {/* Pendidikan (2 cols) */}
         <div className="sm:col-span-1 lg:col-span-2">
-          <label className="block text-xs font-bold text-gray-heading-main mb-1.5">
-            Pendidikan Terakhir
-          </label>
           <AutocompleteInput
+            label="Pendidikan Terakhir"
             value={filter.educationLevel || ""}
             onChange={(val) => onChange({ ...filter, educationLevel: val })}
             suggestions={commonEducations}
@@ -329,7 +315,7 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
       {/* Hubungan Keluarga Multi-Select Checkboxes */}
       <div>
-        <label className="block text-xs font-bold text-gray-heading-main mb-2">
+        <label className="block text-sm font-semibold text-black/80 tracking-wider mb-2">
           Hubungan Dalam Keluarga (Centang untuk Memfilter)
         </label>
         <div className="flex flex-wrap items-center gap-2">

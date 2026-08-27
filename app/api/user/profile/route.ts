@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateApiAuth } from "@/lib/rbac";
 import { getUserFullProfile, updateUserProfileData } from "@/db/queries/auth/user.queries";
 import { uploadAndExecuteWithRollback } from "@/lib/file-processor/server";
+import { updateUserProfileSchema } from "@/lib/validations/auth";
+import { ZodError } from "zod";
 
 /**
  * @openapi
@@ -26,13 +27,8 @@ import { uploadAndExecuteWithRollback } from "@/lib/file-processor/server";
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Tidak tersertifikasi" }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const profile = await getUserFullProfile(session.user.id);
     if (!profile) {
@@ -81,18 +77,10 @@ export async function GET() {
  *       500:
  *         description: Gagal memperbarui profil
  */
-import { updateUserProfileSchema } from "@/lib/validations/auth";
-import { ZodError } from "zod";
-
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Tidak tersertifikasi" }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const formData = await req.formData();
     const name = formData.get("name") as string | null;

@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { listFamilies } from "@/db/queries/population/family.queries";
 import { listFamilyChangeRequests } from "@/db/queries/population/family-change-request.queries";
 import { listAllTenantContracts } from "@/db/queries/property/tenant.queries";
@@ -57,19 +55,8 @@ import { listAllTenantContracts } from "@/db/queries/property/tenant.queries";
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "verify-documents");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("verify-documents");
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "family"; // 'family' atau 'rental_resident'

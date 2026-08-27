@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import {
   getRentalPropertyById,
   updateRentalProperty,
@@ -44,19 +42,23 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const propertyId = Number(id);
 
     if (isNaN(propertyId)) {
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
+    }
+
+    const isAllowed =
+      (await hasPermission(roleId, 'view-dwelling-details')) ||
+      (await hasPermission(roleId, 'manage-dwellings')) ||
+      (await hasPermission(roleId, 'manage-boarding'));
+
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
     const property = await getRentalPropertyById(propertyId);
@@ -127,19 +129,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-boarding');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const propertyId = Number(id);
@@ -222,19 +213,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-boarding');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const propertyId = Number(id);

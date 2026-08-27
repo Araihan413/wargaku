@@ -101,6 +101,22 @@ export const updateUserProfileSchema = z.object({
   phone: z.string().regex(indonesianPhoneRegex, 'Format nomor telepon tidak valid (contoh: 08123456789)').optional().or(z.literal('')),
 });
 
+export const activateTenantAccountSchema = z.object({
+  token: z.string({
+    error: (issue) =>
+      issue.input === undefined ? 'Token aktivasi wajib diisi' : 'Token aktivasi tidak valid',
+  }).min(1, 'Token aktivasi wajib diisi'),
+  familyNumber: z.string({
+    error: (issue) =>
+      issue.input === undefined ? 'Nomor KK wajib diisi' : 'Nomor KK harus berupa teks',
+  }).regex(kkNumberRegex, 'Nomor KK harus terdiri dari 16 digit angka'),
+  kkFile: z.string().optional().nullable(),
+  password: z.string({
+    error: (issue) =>
+      issue.input === undefined ? 'Password wajib diisi' : 'Password tidak valid',
+  }).min(8, 'Password minimal 8 karakter'),
+});
+
 
 
 

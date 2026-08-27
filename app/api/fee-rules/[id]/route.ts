@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import { updateFeeRule, deleteFeeRule } from '@/db/queries/finance/fee.queries';
 import { z } from 'zod';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
@@ -65,14 +63,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, 'manage-iuran');
-    if (!allowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk mengedit aturan iuran' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-iuran');
+    if (errorResponse || !session) return errorResponse;
 
     const resolvedParams = await params;
     const ruleId = parseInt(resolvedParams.id, 10);
@@ -143,14 +135,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, 'manage-iuran');
-    if (!allowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk menghapus aturan iuran' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-iuran');
+    if (errorResponse || !session) return errorResponse;
 
     const resolvedParams = await params;
     const ruleId = parseInt(resolvedParams.id, 10);

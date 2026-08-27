@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth, hasPermission } from "@/lib/rbac";
 import { getTreasurerDashboardStats } from "@/db/queries";
 
 /**
@@ -26,15 +24,9 @@ import { getTreasurerDashboardStats } from "@/db/queries";
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const { session, roleId: currentRoleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const currentRoleId = await getEffectiveRoleId(session);
     const isAllowed =
       currentRoleId === 1 ||
       currentRoleId === 2 ||

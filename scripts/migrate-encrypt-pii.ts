@@ -62,7 +62,13 @@ async function prepareTableSchemas() {
     "Drop index nik pada family_members"
   );
 
-  // 3. Tambah kolom hash jika belum ada
+  // 3. Drop index lama pada rental_contracts
+  await executeSafeSql(
+    "ALTER TABLE `rental_contracts` DROP INDEX `rental_contracts_individual_nik_idx`",
+    "Drop index rental_contracts_individual_nik_idx"
+  );
+
+  // 4. Tambah kolom hash jika belum ada
   await executeSafeSql(
     "ALTER TABLE `families` ADD COLUMN `family_number_hash` VARCHAR(64) NOT NULL DEFAULT ''",
     "Tambah kolom family_number_hash pada tabel families"
@@ -71,8 +77,12 @@ async function prepareTableSchemas() {
     "ALTER TABLE `family_members` ADD COLUMN `nik_hash` VARCHAR(64) NOT NULL DEFAULT ''",
     "Tambah kolom nik_hash pada tabel family_members"
   );
+  await executeSafeSql(
+    "ALTER TABLE `rental_contracts` ADD COLUMN `individual_nik_hash` VARCHAR(64) NOT NULL DEFAULT ''",
+    "Tambah kolom individual_nik_hash pada tabel rental_contracts"
+  );
 
-  // 4. Ubah tipe kolom ke TEXT
+  // 5. Ubah tipe kolom ke TEXT
   await executeSafeSql(
     "ALTER TABLE `families` MODIFY COLUMN `family_number` TEXT NOT NULL",
     "Ubah tipe kolom family_number ke TEXT"
@@ -82,13 +92,17 @@ async function prepareTableSchemas() {
     "Ubah tipe kolom nik ke TEXT"
   );
   await executeSafeSql(
+    "ALTER TABLE `rental_contracts` MODIFY COLUMN `individual_nik` TEXT NULL",
+    "Ubah tipe kolom individual_nik pada rental_contracts ke TEXT"
+  );
+  await executeSafeSql(
     "ALTER TABLE `family_change_requests` MODIFY COLUMN `family_number` TEXT NULL",
     "Ubah tipe kolom family_number pada family_change_requests ke TEXT"
   );
 }
 
 async function migrateFamilyNumbers() {
-  console.log("\n[2/4] Mengenkripsi Nomor KK (families.family_number)...");
+  console.log("\n[2/5] Mengenkripsi Nomor KK (families.family_number)...");
 
   const allFamilies = await db
     .select({ id: schema.families.id, familyNumber: schema.families.familyNumber })
@@ -120,7 +134,7 @@ async function migrateFamilyNumbers() {
 }
 
 async function migrateFamilyMemberNiks() {
-  console.log("\n[3/4] Mengenkripsi NIK Anggota KK (family_members.nik)...");
+  console.log("\n[3/5] Mengenkripsi NIK Anggota KK (family_members.nik)...");
 
   const allMembers = await db
     .select({ id: schema.familyMembers.id, nik: schema.familyMembers.nik })
@@ -151,8 +165,43 @@ async function migrateFamilyMemberNiks() {
   console.log(`  ✅ Selesai: ${encryptedCount} NIK berhasil dienkripsi, ${skippedCount} sudah dalam format terenkripsi.`);
 }
 
+async function migrateRentalContractNiks() {
+  console.log("\n[4/5] Mengenkripsi NIK Penghuni Sewa (rental_contracts.individual_nik)...");
+
+  const allContracts = await db
+    .select({ id: schema.rentalContracts.id, individualNik: schema.rentalContracts.individualNik })
+    .from(schema.rentalContracts);
+
+  let encryptedCount = 0;
+  let skippedCount = 0;
+
+  for (const contract of allContracts) {
+    if (!contract.individualNik) {
+      continue;
+    }
+
+    const isAlreadyEncrypted = contract.individualNik.split(":").length === 3;
+    if (isAlreadyEncrypted) {
+      skippedCount++;
+      continue;
+    }
+
+    const plainNik = contract.individualNik;
+    await db.update(schema.rentalContracts)
+      .set({
+        individualNik: encryptPII(plainNik),
+        individualNikHash: hashPII(plainNik),
+      })
+      .where(eq(schema.rentalContracts.id, contract.id));
+
+    encryptedCount++;
+  }
+
+  console.log(`  ✅ Selesai: ${encryptedCount} NIK penyewa berhasil dienkripsi, ${skippedCount} sudah dalam format terenkripsi.`);
+}
+
 async function finalizeIndexes() {
-  console.log("\n[4/4] Memperbarui Unique Index...");
+  console.log("\n[5/5] Memperbarui Unique Index & Index Blind Hash...");
 
   // Buat unique index pada family_number_hash
   await executeSafeSql(
@@ -165,6 +214,30 @@ async function finalizeIndexes() {
     "ALTER TABLE `family_members` ADD UNIQUE INDEX `family_members_nik_hash_idx` (`nik_hash`)",
     "Buat unique index family_members_nik_hash_idx"
   );
+
+  // Buat index pada rental_contracts.individual_nik_hash
+  await executeSafeSql(
+    "ALTER TABLE `rental_contracts` ADD INDEX `rental_contracts_individual_nik_hash_idx` (`individual_nik_hash`)",
+    "Buat index rental_contracts_individual_nik_hash_idx"
+  );
+}
+
+async function fixCredentialAccounts() {
+  console.log("\n[Extra] Menyelaraskan accountId dan issuer akun credential...");
+  const accounts = await db.select().from(schema.accounts).where(eq(schema.accounts.providerId, "credential"));
+  let fixedCount = 0;
+  for (const acc of accounts) {
+    if (acc.accountId !== acc.userId || !acc.issuer) {
+      await db.update(schema.accounts)
+        .set({
+          accountId: acc.userId,
+          issuer: "local:credential",
+        })
+        .where(eq(schema.accounts.id, acc.id));
+      fixedCount++;
+    }
+  }
+  console.log(`  ✅ Selesai: ${fixedCount} akun berhasil diselaraskan dengan Better-Auth.`);
 }
 
 async function main() {
@@ -180,7 +253,10 @@ async function main() {
   await prepareTableSchemas();
   await migrateFamilyNumbers();
   await migrateFamilyMemberNiks();
+  await migrateRentalContractNiks();
   await finalizeIndexes();
+  await fixCredentialAccounts();
+
 
   console.log("\n========================================================");
   console.log("  ✨ MIGRASI PII BERHASIL DIEKSEKUSI SECARA LENGKAP!");
@@ -188,7 +264,9 @@ async function main() {
   process.exit(0);
 }
 
+
 main().catch((err) => {
   console.error("\n❌ ERROR fatal saat migrasi:", err);
   process.exit(1);
 });
+

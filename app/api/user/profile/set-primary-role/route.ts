@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateApiAuth } from "@/lib/rbac";
 import { setUserPrimaryRole, getUserFullProfile, createAuditLog } from "@/db/queries";
+import { setPrimaryRoleSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
 
 /**
  * @openapi
@@ -37,18 +38,10 @@ import { setUserPrimaryRole, getUserFullProfile, createAuditLog } from "@/db/que
  *       500:
  *         description: Gagal memperbarui peran utama
  */
-import { setPrimaryRoleSchema } from "@/lib/validations/system";
-import { ZodError } from "zod";
-
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Tidak terautentikasi" }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const body = await req.json();
     const validated = setPrimaryRoleSchema.parse(body);

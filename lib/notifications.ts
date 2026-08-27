@@ -55,19 +55,7 @@ export async function notifyUsers(userIds: string[], payload: NotificationPayloa
  * 3. Kirim notifikasi ke Pengurus berdasarkan Role Slug (misal: 'ketua-rt', 'sekretaris', 'bendahara').
  */
 export async function notifyRole(roleSlug: string, payload: NotificationPayload) {
-  try {
-    const targetUsers = await db
-      .select({ id: users.id })
-      .from(users)
-      .innerJoin(userRoles, eq(users.id, userRoles.userId))
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(and(eq(roles.slug, roleSlug), eq(users.status, "active")));
-
-    const userIds = targetUsers.map((u) => u.id);
-    return notifyUsers(userIds, { ...payload, category: payload.category || "dinas" });
-  } catch (err) {
-    console.error("[notifyRole] Gagal membuat notifikasi role:", err);
-  }
+  return notifyRoles([roleSlug], payload);
 }
 
 /**

@@ -108,9 +108,41 @@ export function maskFamilyNumber(familyNumber: string): string {
 }
 
 /**
+ * Sensor nomor telepon secara dinamis.
+ * Format: 4 digit awal + ***** + 3 digit akhir (atau '-' jika kosong)
+ */
+export function maskPhone(phone?: string | null): string {
+  if (!phone || phone.trim() === "") return "-";
+  const clean = phone.trim();
+  if (clean.length <= 6) return clean;
+  return `${clean.slice(0, 4)}*****${clean.slice(-3)}`;
+}
+
+
+/**
  * Helper: Cek apakah enkripsi PII aktif (env key tersedia).
  * Berguna untuk skrip migrasi dan diagnostic.
  */
 export function isPIIEncryptionActive(): boolean {
   return KEY_HEX.length >= 64;
 }
+
+export function matchEncryptedPII(
+  encryptedValue: string | null | undefined,
+  keyword: string
+): boolean {
+  if (!encryptedValue || !keyword?.trim()) return false;
+  return decryptPII(encryptedValue).toLowerCase().includes(keyword.trim().toLowerCase());
+}
+
+/**
+ * Helper: Hasilkan pasangan ciphertext dan blind index hash sekaligus.
+ */
+export function getPIIFields(val?: string | null): { encrypted: string | null; hash: string } {
+  if (!val) return { encrypted: null, hash: "" };
+  return {
+    encrypted: encryptPII(val),
+    hash: hashPII(val),
+  };
+}
+

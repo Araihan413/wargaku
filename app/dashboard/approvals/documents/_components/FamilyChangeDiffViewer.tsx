@@ -155,49 +155,60 @@ export const FamilyChangeDiffViewer: React.FC<FamilyChangeDiffViewerProps> = ({
             {createdMembers.map((m, idx) => (
               <div
                 key={m.tempId || idx}
-                className="rounded-2xl border border-emerald-300 bg-emerald-50/40 p-4 relative"
+                className="rounded-2xl border border-emerald-300 bg-emerald-50/50 p-4 sm:p-5 relative space-y-3.5"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-2 border-b border-emerald-200/60">
-                  <div className="flex items-center gap-2.5">
-                    <UserPlus className="h-4 w-4 text-emerald-600 shrink-0" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-emerald-200/70">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <UserPlus className="h-4.5 w-4.5" />
+                    </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-gray-heading-main">{m.name}</span>
-                      <span className="text-[10px] text-gray-secondary-text ">NIK: {m.nik}</span>
+                      <span className="text-sm font-bold text-gray-heading-main">{m.name}</span>
+                      <span className="text-xs text-gray-secondary-text font-mono">NIK: {m.nik}</span>
                     </div>
                   </div>
-                  <span className="inline-flex self-start sm:self-auto rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                  <span className="inline-flex self-start sm:self-auto rounded-full bg-emerald-100 border border-emerald-200/80 px-3 py-1 text-xs font-bold text-emerald-800">
                     {getRelationshipLabel(m.relationship)}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[10px]">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3.5 gap-y-2.5 p-3 rounded-xl bg-white/80 border border-emerald-200/60 shadow-2xs">
                   <div>
-                    <span className="text-gray-secondary-text block">Jenis Kelamin</span>
-                    <span className="font-semibold text-gray-heading-main">{m.gender === "L" ? "Laki-laki" : "Perempuan"}</span>
+                    <span className="text-[10px] font-medium text-gray-secondary-text block leading-tight">Jenis Kelamin</span>
+                    <span className="font-semibold text-gray-heading-main text-[11px] block mt-0.5">{m.gender === "L" ? "Laki-laki" : "Perempuan"}</span>
                   </div>
                   <div>
-                    <span className="text-gray-secondary-text block">Tempat / Tgl Lahir</span>
-                    <span className="font-semibold text-gray-heading-main">
-                      {m.birthPlace || "-"}, {formatDate(m.birthDate)}
+                    <span className="text-[10px] font-medium text-gray-secondary-text block leading-tight">Agama</span>
+                    <span className="font-semibold text-gray-heading-main text-[11px] block mt-0.5">{m.religion || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-medium text-gray-secondary-text block leading-tight">Pekerjaan</span>
+                    <span className="font-semibold text-gray-heading-main text-[11px] block mt-0.5">{m.occupation || "-"}</span>
+                  </div>
+                  <div className="col-span-1">
+                    <span className="text-[10px] font-medium text-gray-secondary-text block leading-tight">Pendidikan Terakhir</span>
+                    <span className="font-semibold text-gray-heading-main text-[11px] block mt-0.5">{m.educationLevel || "-"}</span>
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <span className="text-[10px] font-medium text-gray-secondary-text block leading-tight">Tempat, Tgl Lahir</span>
+                    <span className="font-semibold text-gray-heading-main text-[11px] block mt-0.5">
+                      {m.birthPlace ? `${m.birthPlace}, ` : ""}{formatDate(m.birthDate)}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-gray-secondary-text block">Pekerjaan</span>
-                    <span className="font-semibold text-gray-heading-main">{m.occupation || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-secondary-text block">Pendidikan / Agama</span>
-                    <span className="font-semibold text-gray-heading-main">
-                      {m.educationLevel || "-"} / {m.religion || "-"}
-                    </span>
-                  </div>
+                  {m.phone && (
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="text-[10px] font-medium text-gray-secondary-text block leading-tight">No. Telepon</span>
+                      <span className="font-semibold text-gray-heading-main text-[11px] block mt-0.5">{m.phone}</span>
+                    </div>
+                  )}
                 </div>
+
 
                 {m.ktpFile && onSelectDoc && m.id && (
                   <button
                     type="button"
                     onClick={() => onSelectDoc({ type: "ktp-member", recordId: m.id!, title: `KTP - ${m.name}` })}
-                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 cursor-pointer transition-colors"
                   >
                     <Eye className="h-3.5 w-3.5" />
                     <span>Lihat Berkas KTP Anggota Baru</span>
@@ -208,6 +219,7 @@ export const FamilyChangeDiffViewer: React.FC<FamilyChangeDiffViewerProps> = ({
           </div>
         </div>
       )}
+
 
       {/* 2. ANGGOTA DIUBAH / DIEDIT (UPDATED) */}
       {updatedMembers.length > 0 && (

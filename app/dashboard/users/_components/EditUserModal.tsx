@@ -136,7 +136,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
             <FormField
               id="phone"
-              label="Telepon (Opsional)"
+              label="Telepon"
               type="text"
               placeholder="Contoh: 081234567890"
               registerProps={register("phone")}
@@ -146,21 +146,18 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
             {/* Pilihan Peran (Read-Only) */}
             <div>
-              <label className="block text-xs font-bold text-gray-heading-main uppercase tracking-wider mb-2">
-                Peran Akses / Role
-              </label>
               <Controller
                 control={control}
                 name="roleId"
                 render={({ field }) => (
                   <CustomSelect
+                    label="Peran Akses / Role"
                     value={field.value.toString()}
                     onChange={() => {}}
                     options={roles.map((r) => ({
                       value: r.id.toString(),
                       label: r.name,
                     }))}
-                    placeholder="Pilih Peran Akses"
                     disabled={true}
                   />
                 )}

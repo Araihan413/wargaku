@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { createDwelling, createDwellingsBulk, listDwellingsAdmin, listActiveDwellingsPublic, createAuditLog } from '@/db/queries';
 import { getClientIp } from '@/lib/audit-logger';
 import { z } from 'zod';
@@ -110,18 +108,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const isAdmin = searchParams.get('admin') === 'true';
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
     if (isAdmin) {
-      if (!session) {
-        return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-      }
-      const effectiveRoleId = await getEffectiveRoleId(session);
-      const isGlobalAdmin = await hasPermission(effectiveRoleId, 'view-residents');
-      const isCoordinatorAdmin = await hasPermission(effectiveRoleId, 'manage-boarding');
-      
+      const { session, roleId, errorResponse } = await validateApiAuth();
+      if (errorResponse || !session) return errorResponse;
+
+      const isGlobalAdmin = await hasPermission(roleId, 'view-residents');
+      const isCoordinatorAdmin = await hasPermission(roleId, 'manage-boarding');
+
       if (!isGlobalAdmin && !isCoordinatorAdmin) {
         return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
       }
@@ -225,19 +218,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-dwellings');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validatedData = createDwellingSchema.parse(body);

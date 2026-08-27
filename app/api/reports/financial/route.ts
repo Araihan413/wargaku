@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { getFinancialReportData } from "@/db/queries/reports";
 
 /**
@@ -37,20 +35,8 @@ import { getFinancialReportData } from "@/db/queries/reports";
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "view-finance");
-
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("view-finance");
+    if (errorResponse || !session) return errorResponse;
 
 
     const { searchParams } = new URL(request.url);

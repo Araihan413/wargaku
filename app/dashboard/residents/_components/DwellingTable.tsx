@@ -1,6 +1,10 @@
 import React from "react";
-import { ChevronLeft, ChevronRight, Pencil, Ban, CheckCircle, XCircle, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Ban, CheckCircle, XCircle, Eye, QrCode } from "lucide-react";
+import QRCode from "qrcode";
+import { toast } from "sonner";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { getAppBaseUrl } from "@/lib/config";
+
 
 export interface DwellingItem {
   id: number;
@@ -44,6 +48,36 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
   onEdit,
   onDisable,
 }) => {
+  const handleDownloadQr = async (d: DwellingItem) => {
+    if (!d.qrToken) {
+      toast.error("Token QR tidak ditemukan.");
+      return;
+    }
+    try {
+      const origin = getAppBaseUrl();
+      const qrUrl = `${origin}/scan-qr?token=${encodeURIComponent(d.qrToken)}`;
+
+      const dataUrl = await QRCode.toDataURL(qrUrl, {
+        width: 800,
+        margin: 2,
+        color: {
+          dark: "#0f172a",
+          light: "#ffffff",
+        },
+      });
+
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `QR_Hunian_Blok_${d.blockNumber}_No_${d.houseNumber}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success(`QR Code Blok ${d.blockNumber} No. ${d.houseNumber} berhasil diunduh.`);
+    } catch {
+      toast.error("Gagal mengunduh QR Code.");
+    }
+  };
+
   return (
     <div className="border border-gray-border rounded-2xl bg-gray-card shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -52,12 +86,13 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
             <tr>
               <th className="py-4 px-5">Alamat Fisik</th>
               <th className="py-4 px-5">Tipe Hunian</th>
-              <th className="py-4 px-5">QR Token</th>
+              <th className="py-4 px-5">QR Code</th>
               <th className="py-4 px-5">Catatan</th>
               <th className="py-4 px-5">Status</th>
               <th className="py-4 px-5 text-right">Aksi</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
             {isLoading ? (
               <TableSkeleton rowCount={5} colCount={6} />
@@ -91,9 +126,22 @@ export const DwellingTable: React.FC<DwellingTableProps> = ({
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-5 font-mono text-xs text-gray-secondary-text">
-                      {d.qrToken}
+                    <td className="py-4 px-5">
+                      {d.qrToken ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadQr(d)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-primary/25 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-semibold transition-all cursor-pointer group shadow-2xs"
+                          title={`Unduh QR Code - Blok ${d.blockNumber} No. ${d.houseNumber}`}
+                        >
+                          <QrCode className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                          <span>Unduh QR</span>
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-placeholder">-</span>
+                      )}
                     </td>
+
                     <td className="py-4 px-5 text-xs text-gray-secondary-text max-w-xs truncate">
                       {d.notes || "-"}
                     </td>

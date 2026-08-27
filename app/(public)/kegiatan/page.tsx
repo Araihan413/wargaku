@@ -53,34 +53,7 @@ export default function ActivitiesPublicPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Load system settings with cache
-  useEffect(() => {
-    (async () => {
-      const cacheKey = "public_portal_settings";
-      try {
-        const res = await fetch("/api/public/portal");
-        if (res.ok) {
-          const json = await res.json();
-          if (json.settings) {
-            setCachedData(cacheKey, json.settings);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load settings:", err);
-      }
-    })();
-  }, []);
-
   const [reloadTrigger, setReloadTrigger] = useState(0);
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   // Fetch Activities (Page 1 or Filter / Search Reset) with Client Caching
   useEffect(() => {

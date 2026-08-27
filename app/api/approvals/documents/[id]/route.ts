@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { updateFamily, getFamilyById } from "@/db/queries/population/family.queries";
 import {
   getActiveChangeRequest,
@@ -12,6 +10,9 @@ import { getTenantContractById, updateTenantContract } from "@/db/queries/proper
 import { createNotification } from "@/db/queries/system/notification.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
+import { decryptPII } from "@/lib/crypto-pii";
+import { processDocumentApprovalSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
 
 /**
  * @openapi
@@ -64,27 +65,13 @@ import { getClientIp } from "@/lib/audit-logger";
  *       500:
  *         description: Kesalahan server internal
  */
-import { processDocumentApprovalSchema } from "@/lib/validations/system";
-import { ZodError } from "zod";
-
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "verify-documents");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("verify-documents");
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const documentId = Number(id);
@@ -191,13 +178,15 @@ export async function PATCH(
       });
 
       const ipAddress = await getClientIp(request);
+      const tenantNik = contract.individualNik ? decryptPII(contract.individualNik) : '-';
       await createAuditLog({
         userId: session.user.id,
         action: action === "approve" ? "VERIFY_TENANT_KTP" : "REJECT_TENANT_KTP",
         module: "persetujuan",
-        description: `${action === "approve" ? "Menyetujui verifikasi berkas KTP" : "Menolak berkas KTP"} penghuni sewa: ${contract.individualName} (NIK: ${contract.individualNik})${note ? ` (Catatan: ${note})` : ''}`,
+        description: `${action === "approve" ? "Menyetujui verifikasi berkas KTP" : "Menolak berkas KTP"} penghuni sewa: ${contract.individualName} (NIK: ${tenantNik})${note ? ` (Catatan: ${note})` : ''}`,
         ipAddress,
       });
+
 
       return NextResponse.json({
         success: true,

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateApiAuth } from "@/lib/rbac";
 import { claimWargaForExistingUser } from "@/db/queries/auth/user.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
+import { claimWargaSchema } from "@/lib/validations/kependudukan";
+import { ZodError } from "zod";
 
 /**
  * @openapi
@@ -45,18 +46,10 @@ import { getClientIp } from "@/lib/audit-logger";
  *       500:
  *         description: Kesalahan server internal
  */
-import { claimWargaSchema } from "@/lib/validations/kependudukan";
-import { ZodError } from "zod";
-
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validated = claimWargaSchema.parse(body);

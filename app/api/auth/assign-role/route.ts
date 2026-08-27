@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateApiAuth } from "@/lib/rbac";
 import { setInitialRegistrationRole } from "@/db/queries/auth/user.queries";
 import { notifyRoles } from "@/lib/notifications";
 import { sendEmail } from "@/lib/mail";
 import {
   getKoordinatorRegistrationEmail,
 } from "@/lib/emails/templates";
-
-
 
 /**
  * @openapi
@@ -58,13 +55,8 @@ import {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     // Hanya izinkan user yang berstatus pending (baru saja mendaftar)
     const userStatus = (session.user as any).status;

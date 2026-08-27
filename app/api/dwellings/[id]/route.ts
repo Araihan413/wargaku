@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import { getDwellingById, updateDwelling, deleteDwelling, validateAndChangeDwellingType } from '@/db/queries/population/dwelling.queries';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
@@ -88,19 +86,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-dwellings');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const dwellingId = Number(id);
@@ -220,19 +207,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-dwellings');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const dwellingId = Number(id);

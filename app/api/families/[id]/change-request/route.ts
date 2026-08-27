@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { getFamilyById } from '@/db/queries/population/family.queries';
 import { getUserById } from '@/db/queries/auth/user.queries';
 import {
@@ -140,21 +138,15 @@ export async function GET(
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const family = await getFamilyById(familyId);
     if (!family) {
       return NextResponse.json({ error: 'Kartu Keluarga tidak ditemukan' }, { status: 404 });
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isOfficer = await hasPermission(effectiveRoleId, 'manage-residents') || await hasPermission(effectiveRoleId, 'verify-documents');
+    const isOfficer = await hasPermission(roleId, 'manage-residents') || await hasPermission(roleId, 'verify-documents');
     const isHeadOfFamily = family.headUserId === session.user.id;
 
     if (!isOfficer && !isHeadOfFamily) {
@@ -185,13 +177,8 @@ export async function PUT(
       return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
     }
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const currentUser = await getUserById(session.user.id);
     if (!currentUser || currentUser.status !== 'active') {
@@ -262,13 +249,8 @@ export async function POST(
       return NextResponse.json({ error: 'ID Kartu Keluarga tidak valid' }, { status: 400 });
     }
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const currentUser = await getUserById(session.user.id);
     if (!currentUser || currentUser.status !== 'active') {
@@ -324,13 +306,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID Kartu Keluarga tidak valid' }, { status: 400 });
     }
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const currentUser = await getUserById(session.user.id);
     if (!currentUser || currentUser.status !== 'active') {

@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { getRentalPropertyById } from '@/db/queries/property/rental-property.queries';
 import {
   listTenantContracts,
@@ -58,13 +56,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const propertyId = Number(id);
@@ -169,13 +162,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const propertyId = Number(id);
@@ -189,8 +177,7 @@ export async function POST(
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isGlobalAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
+    const isGlobalAllowed = await hasPermission(roleId, 'manage-boarding');
     const isCoordinator = property.coordinatorUserId === session.user.id;
     const isOwner = property.dwelling?.ownerUserId === session.user.id;
 

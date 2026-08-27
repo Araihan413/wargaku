@@ -388,6 +388,7 @@ export default function PublicLaporPage() {
                         src={item.previewUrl}
                         alt={`Foto Bukti ${index + 1}`}
                         fill
+                        sizes="(max-width: 640px) 80px, 96px"
                         className="object-cover"
                       />
                       <button
@@ -623,6 +624,7 @@ export default function PublicLaporPage() {
                                 src={url}
                                 alt={`Lampiran ${idx + 1}`}
                                 fill
+                                sizes="(max-width: 640px) 80px, 96px"
                                 className="object-cover group-hover:scale-105 transition-transform"
                               />
                             </button>
@@ -746,6 +748,7 @@ export default function PublicLaporPage() {
               src={zoomImageUrl}
               alt="Foto Bukti Resolusi Penuh"
               fill
+              sizes="(max-width: 896px) 100vw, 896px"
               className="object-contain"
             />
             <button

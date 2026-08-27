@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import { listAnnouncements, createAnnouncement } from '@/db/queries';
 import { notifyAllWarga } from '@/lib/notifications';
+import { createAnnouncementSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -42,18 +42,13 @@ import { notifyAllWarga } from '@/lib/notifications';
  */
 export async function GET(request: Request) {
   try {
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const category = searchParams.get('category') || '';
     const isPinnedParam = searchParams.get('isPinned');
-
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
 
     const items = await listAnnouncements({
       search,
@@ -116,25 +111,10 @@ export async function GET(request: Request) {
  *       500:
  *         description: Kesalahan server internal
  */
-import { createAnnouncementSchema } from '@/lib/validations/layanan';
-import { ZodError } from 'zod';
-
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-announcements');
-
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk membuat pengumuman' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-announcements');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validated = createAnnouncementSchema.parse(body);

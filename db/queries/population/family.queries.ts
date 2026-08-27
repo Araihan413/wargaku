@@ -5,7 +5,7 @@ import { eq, and, or, like, desc, sql, isNotNull } from 'drizzle-orm';
 
 
 import { notifyUser } from '@/lib/notifications';
-import { encryptPII, decryptPII, hashPII } from '@/lib/crypto-pii';
+import { encryptPII, decryptPII, hashPII, matchEncryptedPII } from '@/lib/crypto-pii';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -18,10 +18,11 @@ export interface CreateFamilyInput {
   kkFile?: string | null;
   verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected';
   verificationNote?: string | null;
+  isActive?: boolean;
 }
 
 export interface UpdateFamilyInput {
-  dwellingId?: number;
+  dwellingId?: number | null;
   familyNumber?: string;
   headUserId?: string | null;
   kkFile?: string | null;
@@ -33,10 +34,10 @@ export interface UpdateFamilyInput {
 export interface ListFamiliesOptions {
   limit?: number;
   offset?: number;
-  query?: string;
   dwellingId?: number;
   verificationStatus?: 'draft' | 'pending' | 'verified' | 'rejected';
   isActive?: boolean;
+  query?: string;
 }
 
 // ==========================================
@@ -44,7 +45,7 @@ export interface ListFamiliesOptions {
 // ==========================================
 
 /**
- * Daftar Kartu Keluarga terpaginasi dengan pencarian & filter.
+ * Daftar semua Kartu Keluarga terpaginasi dengan filter.
  */
 export async function listFamilies(options: ListFamiliesOptions = {}) {
   const limit = options.limit ?? 10;
@@ -54,18 +55,24 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
   if (options.isActive !== undefined) conditions.push(eq(schema.families.isActive, options.isActive));
   if (options.dwellingId) conditions.push(eq(schema.families.dwellingId, options.dwellingId));
   if (options.verificationStatus) conditions.push(eq(schema.families.verificationStatus, options.verificationStatus));
-  if (options.query) {
-    const trimmed = options.query.trim();
-    const queryHash = hashPII(trimmed);
-    // Pencarian berdasarkan nama Kepala Keluarga (LIKE) ATAU Nomor KK exact match (Blind Index Hash)
-    conditions.push(
-      or(
-        like(schema.users.name, `%${trimmed}%`),
-        eq(schema.families.familyNumberHash, queryHash)
-      )
-    );
-  }
 
+  let isPartialNumeric = false;
+  let trimmed = '';
+
+  if (options.query) {
+    trimmed = options.query.trim();
+    const queryHash = hashPII(trimmed);
+    const isNumeric = /^[0-9]+$/.test(trimmed);
+    const isExact16 = isNumeric && trimmed.length === 16;
+
+    if (isExact16) {
+      conditions.push(eq(schema.families.familyNumberHash, queryHash));
+    } else if (!isNumeric) {
+      conditions.push(like(schema.users.name, `%${trimmed}%`));
+    } else {
+      isPartialNumeric = true;
+    }
+  }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -80,7 +87,7 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
     .groupBy(schema.familyMembers.familyId)
     .as('member_count');
 
-  const data = await db
+  const rawData = await db
     .select({
       id: schema.families.id,
       familyNumber: schema.families.familyNumber,
@@ -104,21 +111,31 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
     .leftJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
     .leftJoin(memberCountSubquery, eq(schema.families.id, memberCountSubquery.familyId))
     .where(whereClause)
-    .limit(limit)
-    .offset(offset)
+    .limit(isPartialNumeric ? 1000 : limit)
+    .offset(isPartialNumeric ? 0 : offset)
     .orderBy(desc(schema.families.createdAt));
 
-  const [totalResult] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.families)
-    .leftJoin(schema.users, eq(schema.families.headUserId, schema.users.id))
-    .where(whereClause);
+  const matchedRows = isPartialNumeric
+    ? rawData.filter((f) => matchEncryptedPII(f.familyNumber, trimmed))
+    : rawData;
+
+  const totalCount = isPartialNumeric
+    ? matchedRows.length
+    : await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.families)
+        .leftJoin(schema.users, eq(schema.families.headUserId, schema.users.id))
+        .where(whereClause)
+        .then((res) => Number(res[0]?.count ?? 0));
+
+  const pageItems = isPartialNumeric ? matchedRows.slice(offset, offset + limit) : matchedRows;
 
   return {
-    data: data.map(f => ({ ...f, familyNumber: decryptPII(f.familyNumber) })),
-    metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
+    data: pageItems.map((f) => ({ ...f, familyNumber: decryptPII(f.familyNumber) })),
+    metadata: { total: totalCount, limit, offset },
   };
 }
+
 
 /**
  * Detail satu Kartu Keluarga berdasarkan ID.
@@ -204,6 +221,14 @@ export async function getFamilyById(id: number) {
 
   const checkInDateStr = family.createdAt ? (family.createdAt instanceof Date ? family.createdAt.toISOString() : String(family.createdAt)) : null;
 
+  const [rentalContract] = await db
+    .select({ id: schema.rentalContracts.id })
+    .from(schema.rentalContracts)
+    .where(and(eq(schema.rentalContracts.familyId, id), eq(schema.rentalContracts.isActive, true)))
+    .limit(1);
+
+  const isRentalFamily = dwellingType === "kos" || dwellingType === "homestay" || Boolean(rentalContract);
+
   const dwelling = (dwellingId && blockNumber && houseNumber) ? {
     id: dwellingId,
     blockNumber,
@@ -218,10 +243,13 @@ export async function getFamilyById(id: number) {
     blockNumber,
     houseNumber,
     dwelling,
+    dwellingAddress: dwelling,
+    isRentalFamily,
     checkInDate: checkInDateStr,
     members: members.map(m => ({ ...m, nik: decryptPII(m.nik) })),
   };
 }
+
 
 /**
  * Cari KK milik user tertentu (berdasarkan headUserId).
@@ -444,15 +472,6 @@ export async function verifyFamilyStatus(familyId: number, action: 'approve' | '
   });
 }
 
-export async function cancelFamilyChange(familyId: number, userId: string) {
-  const [family] = await db.select().from(schema.families).where(eq(schema.families.id, familyId)).limit(1);
-  if (!family) throw new Error('NOT_FOUND');
-  if (family.headUserId !== userId) throw new Error('FORBIDDEN');
-
-  await db.update(schema.families).set({ verificationStatus: 'verified', verificationNote: null, updatedAt: new Date() }).where(eq(schema.families.id, familyId));
-  return true;
-}
-
 export async function cancelSubmitFamily(familyId: number, userId: string) {
   const family = await getFamilyById(familyId);
   if (!family) throw new Error('NOT_FOUND');
@@ -460,15 +479,6 @@ export async function cancelSubmitFamily(familyId: number, userId: string) {
   if (family.verificationStatus !== 'pending') throw new Error('INVALID_STATUS');
 
   await db.update(schema.families).set({ verificationStatus: 'draft', updatedAt: new Date() }).where(eq(schema.families.id, familyId));
-  return true;
-}
-
-export async function requestFamilyChange(familyId: number, userId: string) {
-  const family = await getFamilyById(familyId);
-  if (!family) throw new Error('NOT_FOUND');
-  if (family.headUserId !== userId) throw new Error('FORBIDDEN');
-  if (family.verificationStatus !== 'verified') throw new Error('INVALID_STATUS');
-
   return true;
 }
 

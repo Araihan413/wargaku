@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { getSystemSettings, updateSystemSettings } from "@/db/queries/system/system-setting.queries";
 import { getClientIp } from "@/lib/audit-logger";
-
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { updateSystemConfigSchema } from "@/lib/validations/system";
 import { ZodError } from "zod";
-
 
 /**
  * @openapi
@@ -32,19 +28,8 @@ import { ZodError } from "zod";
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, "manage-system-config");
-    if (!allowed) {
-      return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("manage-system-config");
+    if (errorResponse || !session) return errorResponse;
 
     const settings = await getSystemSettings();
     return NextResponse.json({ settings });
@@ -62,7 +47,7 @@ export async function GET() {
  * /api/system-config:
  *   put:
  *     summary: Memperbarui konfigurasi sistem
- *     description: Mengubah pengaturan/identitas sistem (Nama RT, RW, dll). Akses khusus Super Admin/Admin.
+ *     description: Mengubah data pengaturan lingkungan RT (nama RT/RW, nama kelurahan/kecamatan/kabupaten, kode pos, dll).
  *     tags:
  *       - Sistem & Admin
  *     security:
@@ -77,8 +62,10 @@ export async function GET() {
  *               - rtName
  *               - rwName
  *               - villageName
- *               - subdistrict
- *               - city
+ *               - subdistrictName
+ *               - cityName
+ *               - provinceName
+ *               - postalCode
  *             properties:
  *               rtName:
  *                 type: string
@@ -86,11 +73,11 @@ export async function GET() {
  *                 type: string
  *               villageName:
  *                 type: string
- *               subdistrict:
+ *               subdistrictName:
  *                 type: string
- *               city:
+ *               cityName:
  *                 type: string
- *               province:
+ *               provinceName:
  *                 type: string
  *               postalCode:
  *                 type: string
@@ -110,19 +97,8 @@ export async function GET() {
  */
 export async function PUT(req: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, "manage-system-config");
-    if (!allowed) {
-      return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("manage-system-config");
+    if (errorResponse || !session) return errorResponse;
 
     const body = await req.json();
     const validated = updateSystemConfigSchema.parse(body);

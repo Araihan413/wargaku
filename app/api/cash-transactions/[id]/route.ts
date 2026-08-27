@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import {
   getCashTransactionById,
   updateCashTransaction,
   deleteCashTransaction,
   updateIncomeSchema,
 } from '@/db/queries/finance/cash.queries';
-import { z } from 'zod';
+import { ZodError } from 'zod';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -43,13 +41,8 @@ interface RouteParams {
  */
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const resolvedParams = await params;
     const id = Number(resolvedParams.id);
@@ -117,13 +110,8 @@ export async function GET(request: Request, { params }: RouteParams) {
  */
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const resolvedParams = await params;
     const id = Number(resolvedParams.id);
@@ -133,9 +121,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Transaksi tidak ditemukan' }, { status: 404 });
     }
 
-    const currentRoleId = await getEffectiveRoleId(session);
     const permKey = existing.type === 'expense' ? 'manage-expense' : 'manage-income';
-    const isAllowed = await hasPermission(currentRoleId, permKey);
+    const isAllowed = await hasPermission(roleId, permKey);
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
@@ -152,7 +139,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ message: 'Transaksi berhasil diperbarui' });
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || 'Input tidak valid' }, { status: 400 });
     }
     console.error('Error in PUT /api/cash-transactions/[id]:', error);
@@ -191,13 +178,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const resolvedParams = await params;
     const id = Number(resolvedParams.id);
@@ -207,9 +189,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Transaksi tidak ditemukan' }, { status: 404 });
     }
 
-    const currentRoleId = await getEffectiveRoleId(session);
     const permKey = existing.type === 'expense' ? 'manage-expense' : 'manage-income';
-    const isAllowed = await hasPermission(currentRoleId, permKey);
+    const isAllowed = await hasPermission(roleId, permKey);
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });

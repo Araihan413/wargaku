@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { getRentalPropertyById } from '@/db/queries/property/rental-property.queries';
 import {
   listTenantContracts,
@@ -56,13 +54,8 @@ import { getClientIp } from '@/lib/audit-logger';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const propertyIdParam = searchParams.get('rentalPropertyId') || searchParams.get('propertyId');
@@ -77,9 +70,8 @@ export async function GET(request: Request) {
     const propertyId = propertyIdParam ? Number(propertyIdParam) : 0;
 
     // CEL-04: Validasi kepemilikan / RBAC sebelum kembalikan data penyewa
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isGlobalOfficer = await hasPermission(effectiveRoleId, 'manage-boarding');
-    const hasViewPerm = await hasPermission(effectiveRoleId, 'view-residents');
+    const isGlobalOfficer = await hasPermission(roleId, 'manage-boarding');
+    const hasViewPerm = await hasPermission(roleId, 'view-residents');
 
     if (!isGlobalOfficer && !hasViewPerm && propertyId > 0) {
       // Warga/koordinator hanya boleh lihat properti miliknya sendiri
@@ -166,13 +158,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validatedData: any = createRentalResidentSchema.parse(body);
@@ -183,8 +170,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isGlobalAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
+    const isGlobalAllowed = await hasPermission(roleId, 'manage-boarding');
     const isCoordinator = property.coordinatorUserId === session.user.id;
     const isOwner = property.dwelling?.ownerUserId === session.user.id;
 
@@ -289,13 +275,8 @@ export async function POST(request: Request) {
  */
 export async function DELETE(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const contractIdParam = searchParams.get('id');
@@ -312,8 +293,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Kontrak sewa tidak ditemukan' }, { status: 404 });
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isGlobalOfficer = await hasPermission(effectiveRoleId, 'manage-boarding');
+    const isGlobalOfficer = await hasPermission(roleId, 'manage-boarding');
 
     if (!isGlobalOfficer) {
       const property = await getRentalPropertyById(contract.rentalPropertyId);

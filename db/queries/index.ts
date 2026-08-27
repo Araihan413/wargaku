@@ -10,6 +10,7 @@ export * from './auth/activation.queries';
 export * from './population/dwelling.queries';
 export * from './population/family.queries';
 export * from './population/family-member.queries';
+export * from './population/family-change-request.queries';
 
 // 3. Modul Properti & Sewa
 export * from './property/rental-property.queries';

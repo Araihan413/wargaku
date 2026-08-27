@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import { listRentalProperties, createRentalProperty, checkExistingActiveRental } from '@/db/queries/property/rental-property.queries';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
@@ -21,10 +19,12 @@ import { ZodError } from 'zod';
  *         name: limit
  *         schema:
  *           type: integer
+ *         description: Batas jumlah data
  *       - in: query
  *         name: offset
  *         schema:
  *           type: integer
+ *         description: Offset paginasi
  *       - in: query
  *         name: query
  *         schema:
@@ -34,6 +34,7 @@ import { ZodError } from 'zod';
  *         name: isActive
  *         schema:
  *           type: boolean
+ *         description: Filter status aktif
  *     responses:
  *       200:
  *         description: Berhasil mengambil daftar properti sewa
@@ -46,19 +47,8 @@ import { ZodError } from 'zod';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth('manage-boarding');
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
@@ -70,7 +60,7 @@ export async function GET(request: Request) {
       isActive = searchParams.get('isActive') === 'true';
     }
 
-    const isKoordinatorKost = effectiveRoleId === 5;
+    const isKoordinatorKost = roleId === 5;
     const coordinatorUserId = isKoordinatorKost ? session.user.id : undefined;
 
     const result = await listRentalProperties({
@@ -107,26 +97,37 @@ export async function GET(request: Request) {
  *             required:
  *               - dwellingId
  *               - name
+ *               - phone
+ *               - totalRooms
  *             properties:
  *               dwellingId:
  *                 type: integer
+ *                 description: ID hunian yang dijadikan kos/kontrakan
  *               name:
  *                 type: string
+ *                 description: Nama properti kos
  *               coordinatorUserId:
  *                 type: string
+ *                 nullable: true
+ *                 description: ID user penanggung jawab/koordinator kos
  *               contactPerson:
  *                 type: string
+ *                 description: Nama kontak pengelola
  *               phone:
  *                 type: string
+ *                 description: Nomor telepon pengelola
  *               totalRooms:
  *                 type: integer
+ *                 description: Total kapasitas kamar
  *               notes:
  *                 type: string
+ *                 nullable: true
+ *                 description: Catatan tambahan mengenai properti
  *     responses:
  *       201:
- *         description: Properti sewa berhasil didaftarkan
+ *         description: Properti sewa berhasil dibuat
  *       400:
- *         description: Validasi gagal atau properti sudah aktif di hunian ini
+ *         description: Validasi input gagal atau hunian sudah terdaftar sebagai properti sewa aktif
  *       401:
  *         description: Belum terautentikasi
  *       403:
@@ -136,19 +137,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-boarding');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validatedData = createRentalPropertySchema.parse(body);

@@ -9,6 +9,8 @@ import QRCode from "qrcode";
 
 import { CoordinatorSearchSelect, UserOption } from "../../_components/CoordinatorSearchSelect";
 import { PropertyDetails } from "../types";
+import { getAppBaseUrl } from "@/lib/config";
+
 
 interface BusinessTabProps {
   property: PropertyDetails;
@@ -96,8 +98,9 @@ export function BusinessTab({
 
   useEffect(() => {
     if (property?.dwelling?.qrToken) {
-      const origin = typeof window !== "undefined" ? window.location.origin : "https://wargaku.app";
+      const origin = getAppBaseUrl();
       const qrUrl = `${origin}/scan-qr?token=${encodeURIComponent(property.dwelling.qrToken)}`;
+
       
       QRCode.toDataURL(qrUrl, { width: 300, margin: 1 })
         .then(setQrCodeUrl)

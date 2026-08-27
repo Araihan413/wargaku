@@ -8,13 +8,9 @@ interface PublicActivitiesSectionProps {
   activities: PublicActivityItem[];
 }
 
-export const PublicActivitiesSection: React.FC<PublicActivitiesSectionProps> = ({
+export function PublicActivitiesSection({
   activities = [],
-}) => {
-  const [nowTimestamp] = React.useState<number>(() =>
-    typeof window !== "undefined" ? Date.now() : 0
-  );
-
+}: PublicActivitiesSectionProps) {
   const hasData = activities && activities.length > 0;
 
   return (
@@ -51,9 +47,8 @@ export const PublicActivitiesSection: React.FC<PublicActivitiesSectionProps> = (
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {activities.slice(0, 2).map((item) => {
-              const upcoming = item.eventDate && nowTimestamp
-                ? new Date(item.eventDate).getTime() >= nowTimestamp
-                : true;
+              const upcoming = item.isUpcoming !== false;
+
               return (
                 <div
                   key={item.id}
@@ -108,10 +103,12 @@ export const PublicActivitiesSection: React.FC<PublicActivitiesSectionProps> = (
                         </div>
                       )}
 
-                      <div className="flex items-center gap-1.5 text-slate-500 truncate">
-                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                        <span className="truncate">{item.location || "Sekretariat RT"}</span>
-                      </div>
+                      {item.location && (
+                        <div className="flex items-center gap-1.5 text-slate-500 text-[10px] truncate">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="truncate">{item.location}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -122,4 +119,4 @@ export const PublicActivitiesSection: React.FC<PublicActivitiesSectionProps> = (
       </div>
     </section>
   );
-};
+}

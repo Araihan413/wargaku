@@ -156,12 +156,13 @@ export const WargaKKHeader: React.FC<WargaKKHeaderProps> = ({
     try {
       const res = await uploadFileToCloudinary(file, "kk");
       await saveKKFileToDB(res.url);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Notifikasi toast sudah ditangani oleh validator uploadFileToCloudinary
     } finally {
       setIsUploadingKK(false);
     }
   };
+
 
   // Request change handler
   const handleRequestChange = async () => {

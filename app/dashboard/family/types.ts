@@ -63,6 +63,14 @@ export interface WargaFamilyDetail {
     houseNumber: string;
     type: string;
   } | null;
+  dwelling?: {
+    id: number;
+    blockNumber: string;
+    houseNumber: string;
+    type: string;
+  } | null;
+  isRentalFamily?: boolean;
   members: WargaFamilyMember[];
   changeRequest?: WargaChangeRequest | null;
 }
+

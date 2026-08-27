@@ -214,7 +214,11 @@ export default function FamilyDetailPage({ params }: PageProps) {
           fetchFamilyDetails();
         }}
         familyId={familyId}
-        isRentalFamily={familyDetail?.dwelling?.type === "kos" || familyDetail?.dwelling?.type === "homestay"}
+        isRentalFamily={Boolean(
+          familyDetail?.isRentalFamily ||
+          familyDetail?.dwelling?.type === "kos" ||
+          familyDetail?.dwelling?.type === "homestay"
+        )}
       />
 
       {selectedMemberForEdit && (
@@ -232,9 +236,14 @@ export default function FamilyDetailPage({ params }: PageProps) {
           }}
           member={selectedMemberForEdit}
           familyVerificationStatus={familyDetail.verificationStatus}
-          isRentalFamily={familyDetail?.dwelling?.type === "kos" || familyDetail?.dwelling?.type === "homestay"}
+          isRentalFamily={Boolean(
+            familyDetail?.isRentalFamily ||
+            familyDetail?.dwelling?.type === "kos" ||
+            familyDetail?.dwelling?.type === "homestay"
+          )}
         />
       )}
+
 
       <NonaktifkanAnggotaModal
         isOpen={isDisableModalOpen}

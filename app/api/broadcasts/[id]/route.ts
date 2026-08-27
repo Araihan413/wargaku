@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import { updateBroadcast, deleteBroadcast } from '@/db/queries/system/broadcast.queries';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
+import { updateBroadcastSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -47,27 +47,13 @@ import { getClientIp } from '@/lib/audit-logger';
  *         description: Tidak memiliki akses
  */
 
-import { updateBroadcastSchema } from '@/lib/validations/layanan';
-import { ZodError } from 'zod';
-
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-system-config');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-system-config');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const broadcastId = parseInt(id);
@@ -103,25 +89,13 @@ export async function PATCH(
   }
 }
 
-
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-system-config');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-system-config');
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const broadcastId = parseInt(id);

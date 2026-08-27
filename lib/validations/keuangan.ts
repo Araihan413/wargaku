@@ -32,6 +32,18 @@ export const updateFeeRuleSchema = createFeeRuleSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
 
+export const createIncomeSchema = z.object({
+  amount: z.number().positive('Nominal harus lebih dari 0'),
+  category: z.string().min(1, 'Kategori wajib diisi'),
+  description: z.string().min(1, 'Keterangan wajib diisi'),
+  transactionDate: z.string().or(z.date()),
+  receiptFile: z.string().optional().nullable(),
+});
+
+export const updateIncomeSchema = createIncomeSchema.partial();
+export const createExpenseSchema = createIncomeSchema;
+export const updateExpenseSchema = updateIncomeSchema;
+
 export const createCashTransactionSchema = z.object({
   type: z.enum(['income', 'expense'], {
     error: (issue) =>

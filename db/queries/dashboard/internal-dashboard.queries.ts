@@ -892,13 +892,14 @@ export async function getCoordinatorDashboardStats(userId: string, userRoleId?: 
   const pendingQueue = pendingContracts.map((c) => ({
     id: c.id,
     name: c.individualName || c.userName || 'Penyewa',
-    nik: c.individualNik || '-',
+    nik: c.individualNik ? decryptPII(c.individualNik) : '-',
     tenantType: c.tenantType === 'family' ? ('keluarga' as const) : ('perorangan' as const),
     checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
     verificationStatus: 'pending' as const,
     ktpFile: c.individualKtpFile || null,
     propertyName: c.propertyName,
   }));
+
 
   return {
     summary: {

@@ -2,6 +2,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq, and, or, like, lte, gte, inArray, desc, sql } from "drizzle-orm";
 import { decryptPII, hashPII } from "@/lib/crypto-pii";
+import { calculateAge, formatToHtmlDate } from "@/lib/date-format";
 
 export interface CitizenFilterOptions {
   searchQuery?: string;
@@ -175,17 +176,8 @@ export async function filterCitizens(options: CitizenFilterOptions = {}) {
 
   // Compute precise age and format date string
   const enriched: FilteredCitizen[] = items.map((item) => {
-    let age: number | null = null;
-    let birthDateStr: string | null = null;
-    if (item.birthDate) {
-      const bDate = item.birthDate instanceof Date ? item.birthDate : new Date(item.birthDate);
-      birthDateStr = bDate.toISOString().split("T")[0];
-      const diffYears = today.getFullYear() - bDate.getFullYear();
-      const hasHadBirthday =
-        today.getMonth() > bDate.getMonth() ||
-        (today.getMonth() === bDate.getMonth() && today.getDate() >= bDate.getDate());
-      age = hasHadBirthday ? diffYears : diffYears - 1;
-    }
+    const age = item.birthDate ? calculateAge(item.birthDate) : null;
+    const birthDateStr = item.birthDate ? formatToHtmlDate(item.birthDate) || null : null;
 
     return {
       id: item.id,

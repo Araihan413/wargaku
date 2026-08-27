@@ -51,24 +51,6 @@ export default function AnnouncementsPublicPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Load system settings with cache
-  useEffect(() => {
-    (async () => {
-      const cacheKey = "public_portal_settings";
-      try {
-        const res = await fetch("/api/public/portal");
-        if (res.ok) {
-          const json = await res.json();
-          if (json.settings) {
-            setCachedData(cacheKey, json.settings);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load settings:", err);
-      }
-    })();
-  }, []);
-
   // Fetch Announcements (Page 1 or Filter / Search Reset) with Client Caching
   useEffect(() => {
     let isCancelled = false;

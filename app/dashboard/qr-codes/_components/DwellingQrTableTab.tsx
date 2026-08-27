@@ -18,6 +18,8 @@ import { toPng } from "html-to-image";
 import { DwellingOption } from "@/db/queries/population/dwelling.queries";
 import { QrTemplateType, QrCodePrintCanvas } from "@/components/QrCodePrintCanvas";
 import { CustomSelect } from "@/components/CustomSelect";
+import { getAppBaseUrl } from "@/lib/config";
+
 
 interface DwellingQrTableTabProps {
   dwellings: DwellingOption[];
@@ -89,10 +91,9 @@ export const DwellingQrTableTab: React.FC<DwellingQrTableTabProps> = ({
 
   // Helper compute QR URL for dwelling
   const getDwellingQrUrl = (qrToken: string): string => {
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "https://wargaku.app";
-    return `${origin}/scan-qr?token=${encodeURIComponent(qrToken)}`;
+    return `${getAppBaseUrl()}/scan-qr?token=${encodeURIComponent(qrToken)}`;
   };
+
 
   const selectedDwellings = useMemo(() => {
     return dwellings.filter((d) => selectedIds.includes(d.id));

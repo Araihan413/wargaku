@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateApiAuth } from "@/lib/rbac";
 import { getQrCodePageData } from "@/db/queries/population/dwelling.queries";
 
 /**
@@ -23,13 +22,8 @@ import { getQrCodePageData } from "@/db/queries/population/dwelling.queries";
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const data = await getQrCodePageData();
     return NextResponse.json(data);

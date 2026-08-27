@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ShieldCheck, Loader2, KeyRound, Building2, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Loader2, KeyRound, Building2, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { KtpUploadInput } from "@/components/KtpUploadInput";
 import { uploadFileToCloudinary } from "@/lib/upload-helper";
@@ -27,8 +27,11 @@ function ActivateAccountContent() {
   const [kkFile, setKkFile] = useState<File | string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
 
   useEffect(() => {
     async function validateToken() {
@@ -112,11 +115,14 @@ function ActivateAccountContent() {
         toast.error(data.error || "Gagal mengaktifkan akun.");
       }
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Terjadi kesalahan jaringan.");
+      if (err.message && !err.message.includes("Gagal mengunggah berkas") && !err.message.includes("melebihi batas") && !err.message.includes("Format berkas")) {
+        toast.error(err.message || "Terjadi kesalahan jaringan.");
+      }
     } finally {
       setIsSubmitting(false);
     }
+
+
   };
 
   if (isLoadingToken) {
@@ -244,31 +250,50 @@ function ActivateAccountContent() {
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 Password Baru <span className="text-red-500 ml-0.5">*</span>
               </label>
-              <input
-                type="password"
-                placeholder="Minimal 8 karakter"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                required
-                minLength={8}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Minimal 8 karakter"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-gray-card border border-gray-border rounded-xl pl-3.5 pr-10 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
                 Konfirmasi Password <span className="text-red-500 ml-0.5">*</span>
               </label>
-              <input
-                type="password"
-                placeholder="Ulangi password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-gray-card border border-gray-border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                required
-                minLength={8}
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Ulangi password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-gray-card border border-gray-border rounded-xl pl-3.5 pr-10 py-2.5 text-sm placeholder:text-gray-placeholder text-gray-heading-main focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           </div>
+
 
           {/* Submit Button */}
           <div className="pt-4">

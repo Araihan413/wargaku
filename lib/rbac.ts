@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -86,4 +87,33 @@ export async function requirePermission(permissionSlug: string) {
   }
 
   return session;
+}
+
+export async function validateApiAuth(permissionSlug?: string) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    return {
+      session: null,
+      roleId: null,
+      errorResponse: NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 }),
+    };
+  }
+
+  const roleId = await getEffectiveRoleId(session);
+
+  if (permissionSlug) {
+    const isAllowed = await hasPermission(roleId, permissionSlug);
+    if (!isAllowed) {
+      return {
+        session,
+        roleId,
+        errorResponse: NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 }),
+      };
+    }
+  }
+
+  return { session, roleId, errorResponse: null };
 }

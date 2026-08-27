@@ -3,7 +3,7 @@ import * as schema from '@/db/schema';
 import { eq, and, or, inArray, desc, like, sql } from 'drizzle-orm';
 
 import { getFamilyById } from './family.queries';
-import { decryptPII, hashPII } from '@/lib/crypto-pii';
+import { decryptPII, hashPII, getPIIFields } from '@/lib/crypto-pii';
 
 
 import { getFamilyMemberByNik } from './family-member.queries';
@@ -463,7 +463,11 @@ export async function approveChangeRequest(requestId: number, reviewerUserId: st
     const familyUpdates: Partial<typeof schema.families.$inferInsert> = {
       updatedAt: new Date(),
     };
-    if (req.familyNumber) familyUpdates.familyNumber = req.familyNumber;
+    if (req.familyNumber) {
+      const pii = getPIIFields(req.familyNumber);
+      familyUpdates.familyNumber = pii.encrypted!;
+      familyUpdates.familyNumberHash = pii.hash;
+    }
     if (req.kkFile) familyUpdates.kkFile = req.kkFile;
 
     await tx
@@ -473,45 +477,7 @@ export async function approveChangeRequest(requestId: number, reviewerUserId: st
 
     // 2. Terapkan perubahan pada tiap anggota keluarga
     for (const member of req.draftData.members) {
-      if (member._action === 'create') {
-        await tx.insert(schema.familyMembers).values({
-          familyId: req.familyId,
-          userId: member.userId ?? null,
-          name: member.name,
-          nik: member.nik,
-          gender: member.gender,
-          relationship: member.relationship,
-          birthPlace: member.birthPlace ?? null,
-          birthDate: member.birthDate ? new Date(member.birthDate) : null,
-          phone: member.phone ?? null,
-          occupation: member.occupation ?? null,
-          educationLevel: member.educationLevel ?? null,
-          religion: member.religion ?? null,
-          ktpFile: member.ktpFile ?? null,
-          inactiveNote: member.inactiveNote ?? null,
-          isActive: member.isActive,
-        });
-      } else if (member._action === 'update' && member.id) {
-        await tx
-          .update(schema.familyMembers)
-          .set({
-            name: member.name,
-            nik: member.nik,
-            gender: member.gender,
-            relationship: member.relationship,
-            birthPlace: member.birthPlace ?? null,
-            birthDate: member.birthDate ? new Date(member.birthDate) : null,
-            phone: member.phone ?? null,
-            occupation: member.occupation ?? null,
-            educationLevel: member.educationLevel ?? null,
-            religion: member.religion ?? null,
-            ktpFile: member.ktpFile ?? null,
-            inactiveNote: member.inactiveNote ?? null,
-            isActive: member.isActive,
-            updatedAt: new Date(),
-          })
-          .where(eq(schema.familyMembers.id, member.id));
-      } else if (member._action === 'delete' && member.id) {
+      if (member._action === 'delete' && member.id) {
         await tx
           .update(schema.familyMembers)
           .set({
@@ -520,8 +486,44 @@ export async function approveChangeRequest(requestId: number, reviewerUserId: st
             updatedAt: new Date(),
           })
           .where(eq(schema.familyMembers.id, member.id));
+        continue;
+      }
+
+      const nikPii = getPIIFields(member.nik);
+      const memberPayload = {
+        name: member.name,
+        nik: nikPii.encrypted!,
+        nikHash: nikPii.hash,
+        gender: member.gender,
+        relationship: member.relationship,
+        birthPlace: member.birthPlace ?? null,
+        birthDate: member.birthDate ? new Date(member.birthDate) : null,
+        phone: member.phone ?? null,
+        occupation: member.occupation ?? null,
+        educationLevel: member.educationLevel ?? null,
+        religion: member.religion ?? null,
+        ktpFile: member.ktpFile ?? null,
+        inactiveNote: member.inactiveNote ?? null,
+        isActive: member.isActive,
+      };
+
+      if (member._action === 'create') {
+        await tx.insert(schema.familyMembers).values({
+          ...memberPayload,
+          familyId: req.familyId,
+          userId: member.userId ?? null,
+        });
+      } else if (member._action === 'update' && member.id) {
+        await tx
+          .update(schema.familyMembers)
+          .set({
+            ...memberPayload,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.familyMembers.id, member.id));
       }
     }
+
 
     // 3. Update status change request menjadi 'approved'
     await tx

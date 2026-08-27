@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import QRCode from "qrcode";
 import { toPng } from "html-to-image";
 import { QrTemplateType, QrCodePrintCanvas } from "@/components/QrCodePrintCanvas";
+import { getAppBaseUrl } from "@/lib/config";
 
 interface CustomUrlQrTabProps {
   template: QrTemplateType;
@@ -18,15 +19,17 @@ export const CustomUrlQrTab: React.FC<CustomUrlQrTabProps> = ({
   title,
   subtitle,
 }) => {
+  const defaultUrl = getAppBaseUrl();
+
   const [customUrl, setCustomUrl] = useState<string>(() => {
-    if (typeof window === "undefined") return "https://wargaku.app";
+    if (typeof window === "undefined") return defaultUrl;
     try {
       const saved = localStorage.getItem("wargaku_qr_custom_url");
       if (saved) return saved;
     } catch {
       // ignore
     }
-    return "https://wargaku.app";
+    return defaultUrl;
   });
 
   const handleUrlChange = (val: string) => {
@@ -38,7 +41,8 @@ export const CustomUrlQrTab: React.FC<CustomUrlQrTabProps> = ({
     }
   };
 
-  const cleanUrl = customUrl.trim() || "https://wargaku.app";
+  const cleanUrl = customUrl.trim() || defaultUrl;
+
 
   const handleDownloadPng = async () => {
     try {

@@ -4,7 +4,6 @@ import { eq, and, or, like, desc, asc, ne, sql, inArray, notInArray } from 'driz
 import { hashPassword } from 'better-auth/crypto';
 import { randomUUID } from 'crypto';
 import { notifyRoles } from '@/lib/notifications';
-import { z } from 'zod';
 import { encryptPII, hashPII, decryptPII } from '@/lib/crypto-pii';
 
 
@@ -1131,12 +1130,7 @@ export async function findOrCreatePendingCoordinatorByPhone(name: string, phone:
   return newUserId;
 }
 
-export const createCoordinatorSchema = z.object({
-  name: z.string().min(1, 'Nama wajib diisi'),
-  email: z.string().email('Email tidak valid'),
-  phone: z.string().optional().nullable(),
-  dwellingId: z.number().int(),
-});
+export { createCoordinatorSchema } from '@/lib/validations/rental';
 
 export async function listCoordinators() {
   const coordUsers = await db

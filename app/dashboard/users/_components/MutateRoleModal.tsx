@@ -124,7 +124,7 @@ export const MutateRoleModal: React.FC<MutateRoleModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-heading-main uppercase tracking-wider mb-2">
+            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
               Pilih Jabatan Pengurus RT
             </label>
             <div className="space-y-2 border border-gray-border rounded-xl p-3 bg-gray-sidebar-hover/30">

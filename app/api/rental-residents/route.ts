@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import {
   listAllTenantContracts,
   listTenantContracts,
@@ -62,13 +60,8 @@ import { ZodError } from 'zod';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const propertyIdParam = searchParams.get('rentalPropertyId') || searchParams.get('propertyId');
@@ -83,9 +76,8 @@ export async function GET(request: Request) {
       isActive = searchParams.get('isActive') === 'true';
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isGlobalAdmin = await hasPermission(effectiveRoleId, 'view-residents');
-    const isCoordinatorAdmin = await hasPermission(effectiveRoleId, 'manage-boarding');
+    const isGlobalAdmin = await hasPermission(roleId, 'view-residents');
+    const isCoordinatorAdmin = await hasPermission(roleId, 'manage-boarding');
     
     if (!isGlobalAdmin && !isCoordinatorAdmin) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
@@ -185,13 +177,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validatedData: any = createRentalResidentSchema.parse(body);
@@ -202,8 +189,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Properti sewa tidak ditemukan' }, { status: 404 });
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isGlobalAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
+    const isGlobalAllowed = await hasPermission(roleId, 'manage-boarding');
     const isCoordinator = property.coordinatorUserId === session.user.id;
     const isOwner = property.dwelling?.ownerUserId === session.user.id;
 

@@ -202,3 +202,21 @@ export function generateSignedUrl(
     secure: true,
   });
 }
+
+/**
+ * Helper to safely extract an array of URLs from an attachments JSON string or plain URL.
+ */
+export function parseUrlsFromAttachments(attachments: string | null | undefined): string[] {
+  if (!attachments) return [];
+  try {
+    if (attachments.startsWith("[")) {
+      const parsed: Array<{ url?: string } | string> = JSON.parse(attachments);
+      return parsed
+        .map((item) => (typeof item === "string" ? item : item.url || ""))
+        .filter(Boolean);
+    }
+    return [attachments];
+  } catch {
+    return attachments ? [attachments] : [];
+  }
+}

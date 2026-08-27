@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getEffectiveRoleId } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { getDocumentAccess } from "@/db/queries/system/document.queries";
 import { generateSignedUrl, extractPublicIdFromUrl } from "@/lib/cloudinary";
 
@@ -59,8 +58,8 @@ function renderAccessDeniedHtml(message: string, isUnauthorized = true): string 
  */
 export async function GET(request: Request) {
   try {
+    const { session, roleId: effectiveRoleId } = await validateApiAuth();
     const reqHeaders = await headers();
-    const session = await auth.api.getSession({ headers: reqHeaders });
     const acceptHeader = reqHeaders.get("accept") || "";
     const isHtmlRequest = acceptHeader.includes("text/html");
 
@@ -85,7 +84,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Parameter 'type' dan 'id' wajib diisi dengan nilai yang valid." }, { status: 400 });
     }
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
     const accessResult = await getDocumentAccess(type, id, session.user.id, effectiveRoleId);
 
     if (!accessResult.success || !accessResult.fileUrl) {

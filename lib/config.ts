@@ -1,10 +1,18 @@
 import { randomBytes } from "crypto";
 
 /**
- * Mendapatkan Base URL aplikasi secara fleksibel.
- * Berfungsi otomatis untuk localhost saat development dan domain resmi saat produksi.
+ * Mendapatkan Base URL aplikasi secara fleksibel dan terpusat dari satu sumber.
+ * Prioritas:
+ * 1. window.location.origin (jika dieksekusi di browser/client-side)
+ * 2. NEXT_PUBLIC_APP_URL dari environment variable (.env)
+ * 3. BETTER_AUTH_URL dari environment variable (.env)
+ * 4. Host dari HTTP request headers (jika dipanggil di API route)
+ * 5. Fallback standar lokal: http://localhost:3000
  */
 export function getAppBaseUrl(req?: Request): string {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   }
@@ -18,6 +26,7 @@ export function getAppBaseUrl(req?: Request): string {
   }
   return "http://localhost:3000";
 }
+
 
 /**
  * Menghasilkan password temporary acak dengan pola:

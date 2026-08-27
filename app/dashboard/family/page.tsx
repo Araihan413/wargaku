@@ -478,7 +478,13 @@ function WargaFamilyContent() {
             fetchFamilyDetails(familyId);
           }}
           familyId={familyId}
-          isRentalFamily={familyDetail?.dwellingAddress?.type === "kos" || familyDetail?.dwellingAddress?.type === "homestay"}
+          isRentalFamily={Boolean(
+            familyDetail?.isRentalFamily ||
+            familyDetail?.dwelling?.type === "kos" ||
+            familyDetail?.dwelling?.type === "homestay" ||
+            familyDetail?.dwellingAddress?.type === "kos" ||
+            familyDetail?.dwellingAddress?.type === "homestay"
+          )}
           onCustomSubmit={isChangeDraftActive ? handleAddMemberToDraft : undefined}
         />
       )}
@@ -499,9 +505,16 @@ function WargaFamilyContent() {
           }}
           member={selectedMemberForEdit}
           isLocked={isLocked}
-          isRentalFamily={familyDetail?.dwellingAddress?.type === "kos" || familyDetail?.dwellingAddress?.type === "homestay"}
+          isRentalFamily={Boolean(
+            familyDetail?.isRentalFamily ||
+            familyDetail?.dwelling?.type === "kos" ||
+            familyDetail?.dwelling?.type === "homestay" ||
+            familyDetail?.dwellingAddress?.type === "kos" ||
+            familyDetail?.dwellingAddress?.type === "homestay"
+          )}
           onCustomSubmit={isChangeDraftActive ? handleEditMemberInDraft : undefined}
         />
+
       )}
 
       {/* Delete Member Modal */}

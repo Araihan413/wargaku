@@ -140,11 +140,11 @@ export const EditWargaMemberModal: React.FC<EditWargaMemberModalProps> = ({
           const uploadRes = await uploadFileToCloudinary(ktpFile, "ktp");
           finalKtpUrl = uploadRes.url;
         } catch {
-          toast.error("Gagal mengunggah berkas KTP.");
           setIsLoading(false);
           return;
         }
       } else {
+
         finalKtpUrl = ktpFile;
       }
 

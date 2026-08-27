@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { listCoordinators, createCoordinator, createCoordinatorSchema } from '@/db/queries';
-import { z } from 'zod';
+import { ZodError } from 'zod';
 import { notifyUser } from '@/lib/notifications';
 
 /**
@@ -28,19 +26,13 @@ import { notifyUser } from '@/lib/notifications';
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
     const isAllowed =
-      (await hasPermission(effectiveRoleId, 'view-residents')) ||
-      (await hasPermission(effectiveRoleId, 'view-dwelling-details')) ||
-      (await hasPermission(effectiveRoleId, 'manage-dwellings'));
+      (await hasPermission(roleId, 'view-residents')) ||
+      (await hasPermission(roleId, 'view-dwelling-details')) ||
+      (await hasPermission(roleId, 'manage-dwellings'));
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
@@ -59,8 +51,8 @@ export async function GET() {
  * @openapi
  * /api/coordinators:
  *   post:
- *     summary: Menambah atau menetapkan koordinator
- *     description: Mendaftarkan atau menugaskan pengguna menjadi koordinator suatu properti. Jika email baru, akan otomatis membuat akun.
+ *     summary: Menambahkan atau memperbarui koordinator
+ *     description: Menugaskan pengguna yang sudah ada atau membuat akun pengguna baru sebagai koordinator kos. Memerlukan izin manage-dwellings.
  *     tags:
  *       - Modul Tambahan
  *     security:
@@ -73,7 +65,6 @@ export async function GET() {
  *             type: object
  *             required:
  *               - name
- *               - email
  *             properties:
  *               name:
  *                 type: string
@@ -99,19 +90,8 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-dwellings');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-dwellings');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validated = createCoordinatorSchema.parse(body);
@@ -143,7 +123,7 @@ export async function POST(request: Request) {
     }, { status: 201 });
 
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || 'Input tidak valid' }, { status: 400 });
     }
     if (error instanceof Error && error.message === 'USER_NOT_FOUND') {

@@ -5,50 +5,23 @@ import { headers } from "next/headers";
  */
 export async function getClientIp(req?: Request): Promise<string | null> {
   try {
-    let rawIp: string | null = null;
-    if (req) {
-      const cfIp = req.headers.get("cf-connecting-ip");
-      if (cfIp) {
-        rawIp = cfIp.trim();
-      } else {
-        const forwardedFor = req.headers.get("x-forwarded-for");
-        if (forwardedFor) {
-          rawIp = forwardedFor.split(",")[0].trim();
-        } else {
-          const realIp = req.headers.get("x-real-ip");
-          if (realIp) rawIp = realIp.trim();
-        }
-      }
-    }
+    const headerList = !req ? await headers().catch(() => null) : null;
+    const getHdr = (key: string) => req?.headers.get(key) || headerList?.get(key) || null;
 
-    if (!rawIp) {
-      const headerList = await headers();
-      const cfIp = headerList.get("cf-connecting-ip");
-      if (cfIp) {
-        rawIp = cfIp.trim();
-      } else {
-        const forwardedFor = headerList.get("x-forwarded-for");
-        if (forwardedFor) {
-          rawIp = forwardedFor.split(",")[0].trim();
-        } else {
-          const realIp = headerList.get("x-real-ip");
-          if (realIp) rawIp = realIp.trim();
-        }
-      }
-    }
+    const rawIp =
+      getHdr("cf-connecting-ip")?.trim() ||
+      getHdr("x-forwarded-for")?.split(",")[0]?.trim() ||
+      getHdr("x-real-ip")?.trim() ||
+      null;
 
     if (rawIp) {
-      if (
-        rawIp === "::1" ||
-        rawIp.includes("0000:0000:0000:0000") ||
-        rawIp === "::ffff:127.0.0.1"
-      ) {
+      if (rawIp === "::1" || rawIp.includes("0000:0000:0000:0000") || rawIp === "::ffff:127.0.0.1") {
         return "127.0.0.1";
       }
       return rawIp;
     }
   } catch {
-    // Fallback jika headers context tidak tersedia
+    // Fallback jika context headers tidak tersedia
   }
   return "127.0.0.1";
 }

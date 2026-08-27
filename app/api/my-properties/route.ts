@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { validateApiAuth } from '@/lib/rbac';
 import { listRentalProperties, createRentalProperty, checkExistingActiveRental } from '@/db/queries/property/rental-property.queries';
 import { getDwellingOwner, claimDwellingOwner } from '@/db/queries/population/dwelling.queries';
 import { findOrCreatePendingCoordinatorByPhone, addRoleToUser } from '@/db/queries/auth/user.queries';
 import { createRentalPropertySchema } from '@/lib/validations/rental';
 import { ZodError } from 'zod';
-
 
 /**
  * @openapi
@@ -46,13 +44,8 @@ import { ZodError } from 'zod';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
@@ -145,13 +138,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validated = createRentalPropertySchema.parse(body);

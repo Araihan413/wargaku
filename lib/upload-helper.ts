@@ -1,6 +1,8 @@
 "use client";
 
 import { toast } from "sonner";
+import { validateFile } from "@/lib/file-processor/engine";
+import { FILE_PRESETS } from "@/lib/file-processor/presets";
 
 export interface UploadResponse {
   url: string;
@@ -25,11 +27,21 @@ export async function uploadFileToCloudinary(
   file: File,
   folder: UploadFolderCategory = "documents"
 ): Promise<UploadResponse> {
+  // Ponytail: Reuse existing engine validation & presets
+  const preset = FILE_PRESETS[folder.toUpperCase()] || FILE_PRESETS.DOCUMENT;
+  const validation = validateFile(file, preset);
+  if (!validation.valid) {
+    const msg = validation.error || "Berkas tidak valid.";
+    toast.error(msg);
+    throw new Error(msg);
+  }
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("folder", folder);
 
   const toastId = toast.loading(`Mengunggah berkas ${file.name} ke Cloudinary...`);
+
 
   try {
     const res = await fetch("/api/upload", {
@@ -47,12 +59,13 @@ export async function uploadFileToCloudinary(
     toast.success("Berkas berhasil diunggah!", { id: toastId });
     return json as UploadResponse;
   } catch (err: any) {
-    if (err.message && !err.message.includes("Gagal mengunggah berkas")) {
+    if (err.message && !err.message.includes("Gagal mengunggah berkas") && !err.message.includes("melebihi batas") && !err.message.includes("Format berkas")) {
       toast.error(err.message, { id: toastId });
     }
     throw err;
   }
 }
+
 
 /**
  * Client helper to delete an uploaded file from Cloudinary (used for rollback on failure)

@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
+import { validateApiAuth, hasPermission } from "@/lib/rbac";
 import { listUsers, listRoles, createUserWithAccount, createAuditLog } from "@/db/queries";
 import { getClientIp } from "@/lib/audit-logger";
 import { createUserSchema } from "@/lib/validations/user";
@@ -60,22 +58,16 @@ import { ZodError } from "zod";
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
     const { searchParams } = new URL(request.url);
     const isPublicSearch = searchParams.get("publicSearch") === "true";
 
     const allowed = 
-      await hasPermission(effectiveRoleId, "manage-users") ||
-      await hasPermission(effectiveRoleId, "manage-residents") ||
-      await hasPermission(effectiveRoleId, "view-residents");
+      await hasPermission(roleId, "manage-users") ||
+      await hasPermission(roleId, "manage-residents") ||
+      await hasPermission(roleId, "view-residents");
 
     if (!allowed && !isPublicSearch) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -138,15 +130,17 @@ export async function GET(request: Request) {
  *                   type: integer
  *               familyNumber:
  *                 type: string
- *               headNik:
+ *               familyRole:
  *                 type: string
- *               addressDetail:
- *                 type: string
+ *               isHeadOfFamily:
+ *                 type: boolean
  *               dwellingId:
+ *                 type: integer
+ *               blockId:
  *                 type: integer
  *     responses:
  *       201:
- *         description: Akun berhasil dibuat
+ *         description: Pengguna berhasil dibuat
  *       400:
  *         description: Validasi input gagal, email sudah digunakan, atau pelanggaran logika bisnis lainnya
  *       401:
@@ -158,24 +152,18 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validatedData = createUserSchema.parse(body);
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
     const rolesList = Array.isArray(validatedData.roles) ? validatedData.roles : [(validatedData as any).roleId ?? 6];
     const isWargaOnly = rolesList.length === 1 && rolesList[0] === 6;
 
     const allowed = 
-      await hasPermission(effectiveRoleId, "manage-users") ||
-      (await hasPermission(effectiveRoleId, "manage-residents") && isWargaOnly);
+      await hasPermission(roleId, "manage-users") ||
+      (await hasPermission(roleId, "manage-residents") && isWargaOnly);
       
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

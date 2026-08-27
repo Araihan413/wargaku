@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { listPendingRegistrations } from "@/db/queries/system/approval.queries";
 
 /**
@@ -26,19 +24,8 @@ import { listPendingRegistrations } from "@/db/queries/system/approval.queries";
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "verify-registrations");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("verify-registrations");
+    if (errorResponse || !session) return errorResponse;
 
     const pendingUsers = await listPendingRegistrations();
 

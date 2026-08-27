@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2, Building2, Sliders, Check } from "lucide-react";
 import { toast } from "sonner";
 import { PropertyHeaderSelector } from "./_components/PropertyHeaderSelector";
@@ -16,12 +17,19 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 export default function RentalsPage() {
   return (
     <PermissionGuard requiredPermission="manage-boarding">
-      <RentalsContent />
+      <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Memuat data properti...</div>}>
+        <RentalsContent />
+      </Suspense>
     </PermissionGuard>
   );
 }
 
+
 function RentalsContent() {
+  const searchParams = useSearchParams();
+  const targetPropertyId = Number(searchParams.get("propertyId")) || null;
+
+
   const [properties, setProperties] = useState<PropertyDetail[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<PropertyDetail | null>(null);
   const [residents, setResidents] = useState<ActiveTenantInfo[]>([]);
@@ -86,6 +94,10 @@ function RentalsContent() {
         }));
         setProperties(mapped);
         setSelectedProperty((prev) => {
+          if (targetPropertyId && !isNaN(targetPropertyId)) {
+            const match = mapped.find((m) => m.id === targetPropertyId);
+            if (match) return match;
+          }
           if (prev) {
             const updated = mapped.find((m) => m.id === prev.id);
             return updated || mapped[0];
@@ -93,6 +105,7 @@ function RentalsContent() {
           return mapped[0];
         });
       } else {
+
         setProperties([]);
         setSelectedProperty(null);
       }
@@ -102,7 +115,8 @@ function RentalsContent() {
     } finally {
       setIsLoadingProperties(false);
     }
-  }, []);
+  }, [targetPropertyId]);
+
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -346,9 +360,30 @@ function RentalsContent() {
 
       {/* 3. Daftar Penyewa Aktif */}
       {isLoadingResidents ? (
-        <div className="flex h-64 flex-col items-center justify-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="text-xs text-gray-secondary-text">Memuat Daftar Penyewa...</span>
+        <div className="space-y-6">
+          <div className="h-14 bg-gray-card rounded-2xl border border-gray-border animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-gray-border bg-gray-card p-5 space-y-4 animate-pulse h-48"
+              >
+                <div className="flex items-start justify-between border-b border-gray-border/50 pb-3">
+                  <div className="space-y-2">
+                    <div className="h-4 w-32 bg-gray-sidebar-hover rounded-md" />
+                    <div className="h-3 w-24 bg-gray-sidebar-hover/60 rounded-md" />
+                  </div>
+                  <div className="h-5 w-20 bg-gray-sidebar-hover rounded-full" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="h-3.5 bg-gray-sidebar-hover/60 rounded-md" />
+                  <div className="h-3.5 bg-gray-sidebar-hover/60 rounded-md" />
+                  <div className="h-3.5 bg-gray-sidebar-hover/60 rounded-md" />
+                  <div className="h-3.5 bg-gray-sidebar-hover/60 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <ActiveTenantsTab

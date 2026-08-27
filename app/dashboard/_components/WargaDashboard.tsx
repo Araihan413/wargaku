@@ -11,6 +11,8 @@ import { WargaActivitiesWidget, ActivityItem } from "./warga/WargaActivitiesWidg
 import { WargaEmergencyContacts, OfficerContact } from "./warga/WargaEmergencyContacts";
 import { WargaStatsWidget } from "./warga/WargaStatsWidget";
 import { WargaFeeWidget } from "./warga/WargaFeeWidget";
+import { getAppBaseUrl } from "@/lib/config";
+
 
 interface WargaDashboardData {
   user: {
@@ -151,8 +153,9 @@ export function WargaDashboard() {
 
   const downloadQRCode = async (token: string, block: string, houseNum: string) => {
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "https://wargaku.app";
+      const origin = getAppBaseUrl();
       const qrUrl = `${origin}/scan-qr?token=${encodeURIComponent(token)}`;
+
       const url = await QRCode.toDataURL(qrUrl, { width: 400, margin: 2 });
       const link = document.createElement("a");
       link.href = url;

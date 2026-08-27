@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { getEffectiveRoleId, hasPermission } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { listSmartGroups, createSmartGroup } from "@/db/queries/system/smart-group.queries";
+import { createSmartGroupSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
 
 /**
  * @openapi
@@ -26,19 +26,8 @@ import { listSmartGroups, createSmartGroup } from "@/db/queries/system/smart-gro
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "view-residents");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("view-residents");
+    if (errorResponse || !session) return errorResponse;
 
     const data = await listSmartGroups();
     return NextResponse.json({ data });
@@ -87,24 +76,10 @@ export async function GET() {
  *       500:
  *         description: Kesalahan server internal
  */
-import { createSmartGroupSchema } from "@/lib/validations/system";
-import { ZodError } from "zod";
-
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, "manage-residents");
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Tidak memiliki izin akses" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("manage-residents");
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validated = createSmartGroupSchema.parse(body);

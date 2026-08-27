@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { listFamilyMembers, createFamilyMember } from '@/db/queries/population/family-member.queries';
 import { getFamilyById } from '@/db/queries/population/family.queries';
 import { getUserById } from '@/db/queries/auth/user.queries';
@@ -9,6 +7,7 @@ import { createWargaSchema } from '@/lib/validations/kependudukan';
 import { ZodError } from 'zod';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
+import { calculateAge } from '@/lib/date-format';
 
 /**
  * @openapi
@@ -25,28 +24,33 @@ import { getClientIp } from '@/lib/audit-logger';
  *         name: limit
  *         schema:
  *           type: integer
+ *         description: Jumlah data per halaman
  *       - in: query
  *         name: offset
  *         schema:
  *           type: integer
+ *         description: Offset data
  *       - in: query
  *         name: query
  *         schema:
  *           type: string
- *         description: Pencarian berdasarkan NIK atau Nama
+ *         description: Kata kunci pencarian (NIK atau Nama Anggota Keluarga)
  *       - in: query
  *         name: gender
  *         schema:
  *           type: string
  *           enum: [L, P]
+ *         description: Filter jenis kelamin
  *       - in: query
  *         name: relationship
  *         schema:
  *           type: string
+ *         description: Filter hubungan keluarga
  *       - in: query
  *         name: isActive
  *         schema:
  *           type: boolean
+ *         description: Filter status aktif
  *     responses:
  *       200:
  *         description: Berhasil mendapatkan daftar anggota keluarga
@@ -59,25 +63,14 @@ import { getClientIp } from '@/lib/audit-logger';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'view-residents');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { errorResponse } = await validateApiAuth('view-residents');
+    if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
     const offset = searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined;
     const query = searchParams.get('query') || searchParams.get('search') || undefined;
-    const gender = searchParams.get('gender') as 'L' | 'P' || undefined;
+    const gender = (searchParams.get('gender') as 'L' | 'P') || undefined;
     const relationship = searchParams.get('relationship') || undefined;
     
     let isActive: boolean | undefined = undefined;
@@ -164,16 +157,10 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isOfficer = await hasPermission(effectiveRoleId, 'manage-residents');
+    const isOfficer = await hasPermission(roleId, 'manage-residents');
 
     const body = await request.json();
     const validatedData = createWargaSchema.parse(body);
@@ -211,12 +198,7 @@ export async function POST(request: Request) {
 
     // Validasi aturan KTP untuk Keluarga Penyewa (usia >= 18 tahun wajib KTP)
     const isRentalFamily = family.dwellingType === 'kos' || family.dwellingType === 'homestay';
-    let memberAge = 0;
-    if (validatedData.birthDate) {
-      const birth = new Date(validatedData.birthDate);
-      const diffMs = Date.now() - birth.getTime();
-      memberAge = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25));
-    }
+    const memberAge = calculateAge(validatedData.birthDate);
 
     if (isRentalFamily && memberAge >= 18 && !validatedData.ktpFile) {
       return NextResponse.json(

@@ -81,11 +81,13 @@ export async function listRentalProperties(options: {
       blockNumber: schema.dwellings.blockNumber,
       houseNumber: schema.dwellings.houseNumber,
       dwellingType: schema.dwellings.type,
+      qrToken: schema.dwellings.qrToken,
       coordinatorName: schema.users.name,
       coordinatorPhone: schema.users.phone,
       coordinatorStatus: schema.users.status,
       activeContracts: sql<number>`COALESCE(${activeContractCountSubq.count}, 0)`.mapWith(Number),
     })
+
     .from(schema.rentalProperties)
     .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
     .leftJoin(schema.users, eq(schema.rentalProperties.coordinatorUserId, schema.users.id))

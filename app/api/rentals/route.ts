@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import {
   listRentalProperties,
   createRentalProperty,
@@ -14,10 +12,10 @@ import { ZodError } from 'zod';
  * @openapi
  * /api/rentals:
  *   get:
- *     summary: Mendapatkan daftar semua properti sewa Kos
- *     description: "Mengambil daftar properti kos (dwellingType: kos). Membutuhkan izin manage-boarding. Koordinator Kos (Role 5) hanya akan melihat properti yang ia kelola."
+ *     summary: Mendapatkan daftar Properti Kos/Kontrakan
+ *     description: Mengambil daftar properti sewa (kos/kontrakan). Hanya untuk admin/pengurus.
  *     tags:
- *       - Properti & Sewa
+ *       - Hunian Sewa
  *     security:
  *       - cookieAuth: []
  *     parameters:
@@ -25,21 +23,25 @@ import { ZodError } from 'zod';
  *         name: limit
  *         schema:
  *           type: integer
+ *         description: Batas jumlah data
  *       - in: query
  *         name: offset
  *         schema:
  *           type: integer
+ *         description: Offset paginasi
  *       - in: query
  *         name: query
  *         schema:
  *           type: string
+ *         description: Pencarian nama/pemilik properti
  *       - in: query
  *         name: isActive
  *         schema:
  *           type: boolean
+ *         description: Filter status aktif
  *     responses:
  *       200:
- *         description: Berhasil mengambil daftar properti kos
+ *         description: Berhasil mendapatkan daftar properti sewa
  *       401:
  *         description: Belum terautentikasi
  *       403:
@@ -49,19 +51,8 @@ import { ZodError } from 'zod';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth('manage-boarding');
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
@@ -73,7 +64,7 @@ export async function GET(request: Request) {
       isActive = searchParams.get('isActive') === 'true';
     }
 
-    const isKoordinatorKost = effectiveRoleId === 5;
+    const isKoordinatorKost = roleId === 5;
     const coordinatorUserId = isKoordinatorKost ? session.user.id : undefined;
 
     const result = await listRentalProperties({
@@ -140,19 +131,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-boarding');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-boarding');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validatedData = createRentalPropertySchema.parse(body);

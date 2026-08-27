@@ -213,7 +213,8 @@ export const rentalContracts = mysqlTable('rental_contracts', {
   familyId: int('family_id').references(() => families.id, { onDelete: 'set null' }),
   userId: varchar('user_id', { length: 255 }).references(() => users.id, { onDelete: 'set null' }),
   individualName: varchar('individual_name', { length: 100 }),
-  individualNik: varchar('individual_nik', { length: 16 }),
+  individualNik: text('individual_nik'),
+  individualNikHash: varchar('individual_nik_hash', { length: 64 }).notNull().default(''),
   individualPhone: varchar('individual_phone', { length: 15 }),
   individualKtpFile: varchar('individual_ktp_file', { length: 255 }),
   isKtpSameVillage: boolean('is_ktp_same_village').notNull().default(false),
@@ -234,9 +235,10 @@ export const rentalContracts = mysqlTable('rental_contracts', {
   verificationStatusIdx: index('rental_contracts_verification_status_idx').on(table.verificationStatus),
   isActiveIdx: index('rental_contracts_is_active_idx').on(table.isActive),
   checkInDateIdx: index('rental_contracts_check_in_idx').on(table.checkInDate),
-  individualNikIdx: index('rental_contracts_individual_nik_idx').on(table.individualNik),
+  individualNikHashIdx: index('rental_contracts_individual_nik_hash_idx').on(table.individualNikHash),
   isKtpSameVillageIdx: index('rental_contracts_ktp_village_idx').on(table.isKtpSameVillage),
 }));
+
 
 // ==========================================
 // 3. MODUL KEUANGAN & IURAN

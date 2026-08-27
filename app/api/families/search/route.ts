@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { validateApiAuth } from '@/lib/rbac';
 import { searchFamilyByExactKk } from '@/db/queries/population/family.queries';
 
 /**
@@ -32,10 +31,8 @@ import { searchFamilyByExactKk } from '@/db/queries/population/family.queries';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const kk = searchParams.get('kk')?.replace(/\D/g, '') ?? '';

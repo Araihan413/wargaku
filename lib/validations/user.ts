@@ -1,7 +1,5 @@
 import { z } from "zod";
-
-const nikRegex = /^[0-9]{16}$/;
-const indonesianPhoneRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
+import { nikRegex, indonesianPhoneRegex } from "./common";
 
 export const createUserByAdminSchema = z.object({
   name: z.string({

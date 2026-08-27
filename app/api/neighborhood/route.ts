@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { getNeighborhoodMap } from '@/db/queries/population/dwelling.queries';
 
 /**
@@ -24,17 +22,10 @@ import { getNeighborhoodMap } from '@/db/queries/population/dwelling.queries';
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isOfficer = await hasPermission(effectiveRoleId, 'view-residents');
-
+    const isOfficer = await hasPermission(roleId, 'view-residents');
     const results = await getNeighborhoodMap(isOfficer);
 
     return NextResponse.json(results);

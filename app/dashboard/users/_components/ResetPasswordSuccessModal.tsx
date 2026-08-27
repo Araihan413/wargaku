@@ -78,7 +78,7 @@ export const ResetPasswordSuccessModal: React.FC<ResetPasswordSuccessModalProps>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-heading-main uppercase tracking-wider mb-2">
+            <label className="block text-sm font-semibold text-black/80 tracking-wider mb-1.5">
               Password Temporary Baru
             </label>
             <div className="relative flex items-center justify-between border-2 border-dashed border-primary/30 rounded-xl p-3.5 bg-primary/5">

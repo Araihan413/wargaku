@@ -108,10 +108,13 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
 
   if (!isOpen || !family) return null;
 
-  const dwellingSelectOptions: SelectOption[] = dwellings.map((d: any) => ({
-    value: d.id.toString(),
-    label: d.label || `${d.streetName} No. ${d.houseNumber}`,
-  }));
+  const dwellingSelectOptions: SelectOption[] = dwellings
+    .filter((d: any) => d.type !== "homestay")
+    .map((d: any) => ({
+      value: d.id.toString(),
+      label: d.label || `Blok ${d.blockNumber} No. ${d.houseNumber} (${d.type === "kos" ? "Rumah Kost" : "Rumah Permanen"})`,
+    }));
+
 
   const verificationOptions: SelectOption[] = [
     { value: "draft", label: "Draft" },

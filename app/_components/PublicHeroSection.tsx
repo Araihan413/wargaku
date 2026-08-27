@@ -22,7 +22,7 @@ export const PublicHeroSection: React.FC<PublicHeroSectionProps> = ({ settings }
           fill
           className="object-cover h-80 object-center"
           priority
-          unoptimized
+          sizes="(max-width: 1920px) 100vw, 1920px"
         />
         <div className="absolute z-10 px-10">
           <div className="lg:col-span-7 space-y-6 text-left sm:w-3/5 w-full">

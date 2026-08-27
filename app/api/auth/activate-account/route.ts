@@ -5,6 +5,8 @@ import {
 } from "@/db/queries/auth/activation.queries";
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
+import { activateTenantAccountSchema } from "@/lib/validations/auth";
+import { ZodError } from "zod";
 
 /**
  * @openapi
@@ -105,25 +107,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { token, familyNumber, kkFile, password } = body;
-
-    if (!token) {
-      return NextResponse.json({ error: "Token aktivasi tidak ditemukan." }, { status: 400 });
-    }
-    if (!password || password.length < 8) {
-      return NextResponse.json({ error: "Password minimal 8 karakter." }, { status: 400 });
-    }
-    if (!familyNumber || familyNumber.replace(/\D/g, "").length !== 16) {
-      return NextResponse.json({ error: "Nomor KK harus terdiri dari 16 digit angka." }, { status: 400 });
-    }
+    const validated = activateTenantAccountSchema.parse(body);
 
     let activatedResult;
     try {
       activatedResult = await activateTenantAccount({
-        token,
-        familyNumber,
-        kkFile: kkFile || null,
-        password,
+        token: validated.token,
+        familyNumber: validated.familyNumber,
+        kkFile: validated.kkFile || null,
+        password: validated.password,
       });
     } catch (err: any) {
       if (err.message === "INVALID_OR_EXPIRED_TOKEN") {
@@ -155,6 +147,13 @@ export async function POST(request: Request) {
       message: "Akun dan data keluarga berhasil diaktifkan! Silakan login untuk melanjutkan.",
     });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message || "Validasi data aktivasi gagal." },
+        { status: 400 }
+      );
+    }
+
     // Tangani error duplikasi dari MySQL UNIQUE constraint
     if (error?.code === "ER_DUP_ENTRY") {
       const msg = error?.message ?? "";

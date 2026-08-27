@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateApiAuth } from "@/lib/rbac";
 import { uploadSingleFile } from "@/lib/file-processor/server";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -50,9 +49,7 @@ const ALLOWED_MIME_TYPES = [
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const { session } = await validateApiAuth();
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -140,13 +137,8 @@ export async function POST(request: Request) {
  */
 export async function DELETE(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { url, publicId } = await request.json();
     let success = false;

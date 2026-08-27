@@ -122,11 +122,11 @@ export const EditAnggotaModal: React.FC<EditAnggotaModalProps> = ({
           const uploadRes = await uploadFileToCloudinary(ktpFile, "ktp");
           finalKtpUrl = uploadRes.url;
         } catch {
-          toast.error("Gagal mengunggah berkas KTP.");
           setIsUploadingKtp(false);
           return;
         }
       } else if (typeof ktpFile === "string" || ktpFile === null) {
+
         finalKtpUrl = ktpFile;
       }
 

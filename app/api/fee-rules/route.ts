@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { listFeeRules, createFeeRule } from '@/db/queries/finance/fee.queries';
 import { notifyAllWarga, notifyRoles } from '@/lib/notifications';
 import { z } from 'zod';
@@ -36,11 +34,10 @@ const createFeeRuleSchema = z.object({
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = (await hasPermission(effectiveRoleId, 'manage-iuran')) || (await hasPermission(effectiveRoleId, 'view-arrears'));
+    const allowed = (await hasPermission(roleId, 'manage-iuran')) || (await hasPermission(roleId, 'view-arrears'));
     if (!allowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
@@ -97,14 +94,8 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, 'manage-iuran');
-    if (!allowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk membuat aturan iuran' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-iuran');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const parsed = createFeeRuleSchema.safeParse(body);

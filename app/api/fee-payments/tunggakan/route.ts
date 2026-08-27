@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { listUnpaidByFamily } from '@/db/queries/finance/fee.queries';
 
 /**
@@ -33,11 +31,10 @@ import { listUnpaidByFamily } from '@/db/queries/finance/fee.queries';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = (await hasPermission(effectiveRoleId, 'view-arrears')) || (await hasPermission(effectiveRoleId, 'manage-iuran'));
+    const allowed = (await hasPermission(roleId, 'view-arrears')) || (await hasPermission(roleId, 'manage-iuran'));
     if (!allowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }

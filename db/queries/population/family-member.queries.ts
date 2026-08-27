@@ -3,7 +3,7 @@ import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql, ne } from 'drizzle-orm';
 
 
-import { encryptPII, decryptPII, hashPII } from '@/lib/crypto-pii';
+import { encryptPII, decryptPII, hashPII, matchEncryptedPII } from '@/lib/crypto-pii';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -42,17 +42,19 @@ export interface UpdateFamilyMemberInput {
   ktpAddress?: string | null;
   ktpFile?: string | null;
   isActive?: boolean;
+  inactiveNote?: string | null;
 }
 
 export interface ListFamilyMembersOptions {
-  limit?: number;
-  offset?: number;
+  familyId?: number;
+  isActive?: boolean;
   gender?: 'L' | 'P';
   relationship?: string;
-  isActive?: boolean;
-  familyId?: number;
   query?: string;
+  limit?: number;
+  offset?: number;
 }
+
 
 // ==========================================
 // READ QUERIES
@@ -118,22 +120,34 @@ export async function listFamilyMembers(options: ListFamilyMembersOptions = {}) 
   if (options.isActive !== undefined) conditions.push(eq(schema.familyMembers.isActive, options.isActive));
   if (options.gender !== undefined) conditions.push(eq(schema.familyMembers.gender, options.gender));
   if (options.familyId !== undefined) conditions.push(eq(schema.familyMembers.familyId, options.familyId));
-  if (options.query) {
-    const trimmed = options.query.trim();
-    const queryHash = hashPII(trimmed);
-    // Pencarian berdasarkan nama warga (LIKE) ATAU NIK exact match (Blind Index Hash)
-    conditions.push(
-      or(
-        like(schema.familyMembers.name, `%${trimmed}%`),
-        eq(schema.familyMembers.nikHash, queryHash)
-      )
-    );
-  }
+  if (options.relationship !== undefined) conditions.push(eq(schema.familyMembers.relationship, options.relationship as any));
 
+  let isPartialNumeric = false;
+  let trimmed = '';
+
+  if (options.query) {
+    trimmed = options.query.trim();
+    const queryHash = hashPII(trimmed);
+    const isNumeric = /^[0-9]+$/.test(trimmed);
+    const isExact16 = isNumeric && trimmed.length === 16;
+
+    if (isExact16) {
+      conditions.push(
+        or(
+          eq(schema.familyMembers.nikHash, queryHash),
+          eq(schema.families.familyNumberHash, queryHash)
+        )
+      );
+    } else if (!isNumeric) {
+      conditions.push(like(schema.familyMembers.name, `%${trimmed}%`));
+    } else {
+      isPartialNumeric = true;
+    }
+  }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const data = await db
+  const rawData = await db
     .select({
       id: schema.familyMembers.id,
       familyId: schema.familyMembers.familyId,
@@ -160,18 +174,30 @@ export async function listFamilyMembers(options: ListFamilyMembersOptions = {}) 
     .leftJoin(schema.families, eq(schema.familyMembers.familyId, schema.families.id))
     .leftJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
     .where(whereClause)
-    .limit(limit)
-    .offset(offset)
+    .limit(isPartialNumeric ? 1000 : limit)
+    .offset(isPartialNumeric ? 0 : offset)
     .orderBy(desc(schema.familyMembers.createdAt));
 
-  const [totalResult] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.familyMembers)
-    .where(whereClause);
+  const matchedRows = isPartialNumeric
+    ? rawData.filter(
+        (m) => matchEncryptedPII(m.nik, trimmed) || matchEncryptedPII(m.familyNumber, trimmed)
+      )
+    : rawData;
+
+  const totalCount = isPartialNumeric
+    ? matchedRows.length
+    : await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.familyMembers)
+        .leftJoin(schema.families, eq(schema.familyMembers.familyId, schema.families.id))
+        .where(whereClause)
+        .then((res) => Number(res[0]?.count ?? 0));
+
+  const pageItems = isPartialNumeric ? matchedRows.slice(offset, offset + limit) : matchedRows;
 
   return {
-    data: data.map(m => ({ ...m, nik: decryptPII(m.nik) })),
-    metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
+    data: pageItems.map((m) => ({ ...m, nik: decryptPII(m.nik) })),
+    metadata: { total: totalCount, limit, offset },
   };
 }
 

@@ -68,7 +68,9 @@ export interface FamilyDetail {
   };
   
   members: FamilyMemberItem[];
+  isRentalFamily?: boolean;
 }
+
 
 export interface PaginationMetadata {
   total: number;

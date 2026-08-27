@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateApiAuth } from "@/lib/rbac";
 import { checkDwellingOwnership } from "@/db/queries/dashboard/public-portal.queries";
 
 /**
@@ -34,6 +33,7 @@ import { checkDwellingOwnership } from "@/db/queries/dashboard/public-portal.que
  *             schema:
  *               type: object
  *               properties:
+ *               properties:
  *                 ownershipStatus:
  *                   type: string
  *                   enum: [pemilik-permanen, pemilik-kos, kepala-keluarga-permanen, kepala-keluarga-kos, koordinator-kos, officer, tamu-login, non-owner]
@@ -65,8 +65,7 @@ export async function GET(req: Request) {
       );
     }
 
-    // Ambil session user jika ada
-    const session = await auth.api.getSession({ headers: await headers() });
+    const { session } = await validateApiAuth();
 
     if (!session?.user?.id) {
       // Tidak ada session → kembalikan non-owner (aman, tidak throw error)

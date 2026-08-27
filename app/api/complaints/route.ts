@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { listComplaints, createComplaint, checkIpRateLimit } from '@/db/queries';
 import { notifyRoles } from '@/lib/notifications';
 import { getClientIp } from '@/lib/audit-logger';
 import { verifyTurnstileToken } from '@/lib/turnstile';
 import { createComplaintSchema } from '@/lib/validations/layanan';
 import { ZodError } from 'zod';
-
 
 /**
  * @openapi
@@ -50,20 +47,14 @@ import { ZodError } from 'zod';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
     const isAllowed =
-      effectiveRoleId === 1 ||
-      effectiveRoleId === 2 ||
-      effectiveRoleId === 3 ||
-      (await hasPermission(effectiveRoleId, 'manage-complaints'));
+      roleId === 1 ||
+      roleId === 2 ||
+      roleId === 3 ||
+      (await hasPermission(roleId, 'manage-complaints'));
 
     if (!isAllowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });

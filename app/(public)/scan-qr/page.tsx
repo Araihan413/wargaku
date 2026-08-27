@@ -145,12 +145,17 @@ function PublicScanQrContent() {
         ];
 
         if (redirectStatuses.includes(ownershipStatus) && redirectTarget) {
+          // Sinkronkan role aktif dashboard sesuai dengan halaman tujuan redirect
+          if (ownerData.targetRoleId) {
+            useRoleStore.getState().setActiveRoleId(ownerData.targetRoleId);
+          }
+
           const statusMessages: Record<string, string> = {
             "pemilik-permanen": "Selamat datang! Mengarahkan ke dashboard Anda...",
             "pemilik-kos": "Properti Anda ditemukan! Mengarahkan ke kelola properti...",
             "kepala-keluarga-permanen": "Rumah Anda ditemukan! Mengarahkan ke data keluarga...",
             "kepala-keluarga-kos": "Lokasi kos Anda ditemukan! Mengarahkan ke data keluarga...",
-            "koordinator-kos": "Properti kos Anda ditemukan! Mengarahkan ke kelola kamar...",
+            "koordinator-kos": "Properti kos Anda ditemukan! Mengarahkan ke kelola penyewa kos...",
           };
           toast.success(statusMessages[ownershipStatus] || "Mengarahkan...", { duration: 2000 });
           setTimeout(() => {
@@ -158,6 +163,7 @@ function PublicScanQrContent() {
           }, 800);
           return;
         }
+
 
         // Mode officer: tampilkan kartu publik dengan banner khusus
         if (ownershipStatus === "officer") {

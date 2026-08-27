@@ -5,8 +5,7 @@ import { hashPassword } from 'better-auth/crypto';
 import { randomUUID } from 'crypto';
 import { sendEmail, sendAccountActivationEmail } from '@/lib/mail';
 import { getTenantFamilyWelcomeEmail } from '@/lib/emails/templates';
-import { decryptPII, hashPII } from '@/lib/crypto-pii';
-
+import { encryptPII, decryptPII, hashPII, matchEncryptedPII } from '@/lib/crypto-pii';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -67,19 +66,34 @@ export async function listTenantContracts(options: {
 
   const conditions: any[] = [eq(schema.rentalContracts.rentalPropertyId, options.rentalPropertyId)];
   if (options.isActive !== undefined) conditions.push(eq(schema.rentalContracts.isActive, options.isActive));
-  if (options.query) {
-    const q = options.query.trim();
-    const qHash = hashPII(q);
-    conditions.push(
-      or(
-        like(schema.rentalContracts.individualName, `%${q}%`),
-        like(schema.rentalContracts.individualNik, `%${q}%`),
-        like(schema.users.name, `%${q}%`),
-        eq(schema.families.familyNumberHash, qHash)
-      )
-    );
-  }
 
+  let isPartialNumeric = false;
+  let q = '';
+
+  if (options.query) {
+    q = options.query.trim();
+    const qHash = hashPII(q);
+    const isNumeric = /^[0-9]+$/.test(q);
+    const isExact16 = isNumeric && q.length === 16;
+
+    if (isExact16) {
+      conditions.push(
+        or(
+          eq(schema.rentalContracts.individualNikHash, qHash),
+          eq(schema.families.familyNumberHash, qHash)
+        )
+      );
+    } else if (!isNumeric) {
+      conditions.push(
+        or(
+          like(schema.rentalContracts.individualName, `%${q}%`),
+          like(schema.users.name, `%${q}%`)
+        )
+      );
+    } else {
+      isPartialNumeric = true;
+    }
+  }
 
   const whereClause = and(...conditions);
 
@@ -113,18 +127,30 @@ export async function listTenantContracts(options: {
     .leftJoin(schema.families, eq(schema.rentalContracts.familyId, schema.families.id))
     .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
     .where(whereClause)
-    .limit(limit)
-    .offset(offset)
+    .limit(isPartialNumeric ? 1000 : limit)
+    .offset(isPartialNumeric ? 0 : offset)
     .orderBy(desc(schema.rentalContracts.createdAt));
 
-  const mappedData = rawData.map((c) => {
+  let filteredRawData = rawData;
+  if (isPartialNumeric) {
+    filteredRawData = rawData.filter(
+      (c) => matchEncryptedPII(c.individualNik, q) || matchEncryptedPII(c.familyNumber, q)
+    );
+  }
+
+  const paginatedData = isPartialNumeric ? filteredRawData.slice(offset, offset + limit) : filteredRawData;
+
+  const mappedData = paginatedData.map((c) => {
     const tenantTypeStr = c.tenantType === 'family' ? 'keluarga' as const : 'perorangan' as const;
     return {
       id: c.id,
       rentalPropertyId: c.rentalPropertyId,
+      familyId: c.familyId,
+      userId: c.userId,
+      hasActivated: Boolean(c.userId || c.familyId),
       tenantType: tenantTypeStr,
       name: c.individualName || c.userName || 'Penyewa',
-      nik: c.individualNik || (c.familyNumber ? decryptPII(c.familyNumber) : '-'),
+      nik: c.individualNik ? decryptPII(c.individualNik) : (c.familyNumber ? decryptPII(c.familyNumber) : '-'),
       phone: c.individualPhone || c.userPhone || null,
       isKtpSameVillage: c.isKtpSameVillage ?? false,
       ktpAddress: c.ktpAddress || null,
@@ -139,14 +165,18 @@ export async function listTenantContracts(options: {
     };
   });
 
-  const [totalResult] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.rentalContracts)
-    .where(whereClause);
+
+  const totalCount = isPartialNumeric
+    ? filteredRawData.length
+    : await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.rentalContracts)
+        .where(whereClause)
+        .then((res) => Number(res[0]?.count ?? 0));
 
   return {
     data: mappedData,
-    metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
+    metadata: { total: totalCount, limit, offset },
   };
 }
 
@@ -175,18 +205,34 @@ export async function listAllTenantContracts(options: {
   if (options.verificationStatus) {
     conditions.push(eq(schema.rentalContracts.verificationStatus, options.verificationStatus));
   }
+
+  let isPartialNumeric = false;
+  let v = '';
+
   if (options.query) {
-    const v = options.query.trim();
+    v = options.query.trim();
     const vHash = hashPII(v);
-    conditions.push(
-      or(
-        like(schema.rentalContracts.individualName, `%${v}%`),
-        like(schema.rentalContracts.individualNik, `%${v}%`),
-        like(schema.users.name, `%${v}%`),
-        like(schema.rentalProperties.name, `%${v}%`),
-        eq(schema.families.familyNumberHash, vHash)
-      )
-    );
+    const isNumeric = /^[0-9]+$/.test(v);
+    const isExact16 = isNumeric && v.length === 16;
+
+    if (isExact16) {
+      conditions.push(
+        or(
+          eq(schema.rentalContracts.individualNikHash, vHash),
+          eq(schema.families.familyNumberHash, vHash)
+        )
+      );
+    } else if (!isNumeric) {
+      conditions.push(
+        or(
+          like(schema.rentalContracts.individualName, `%${v}%`),
+          like(schema.users.name, `%${v}%`),
+          like(schema.rentalProperties.name, `%${v}%`)
+        )
+      );
+    } else {
+      isPartialNumeric = true;
+    }
   }
 
   if (options.coordinatorUserId) {
@@ -199,8 +245,11 @@ export async function listAllTenantContracts(options: {
     .select({
       id: schema.rentalContracts.id,
       rentalPropertyId: schema.rentalContracts.rentalPropertyId,
+      familyId: schema.rentalContracts.familyId,
+      userId: schema.rentalContracts.userId,
       tenantType: schema.rentalContracts.tenantType,
       individualName: schema.rentalContracts.individualName,
+
       individualNik: schema.rentalContracts.individualNik,
       individualPhone: schema.rentalContracts.individualPhone,
       individualKtpFile: schema.rentalContracts.individualKtpFile,
@@ -226,45 +275,56 @@ export async function listAllTenantContracts(options: {
     .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
     .leftJoin(schema.families, eq(schema.rentalContracts.familyId, schema.families.id))
     .where(whereClause)
-    .limit(limit)
-    .offset(offset)
+    .limit(isPartialNumeric ? 1000 : limit)
+    .offset(isPartialNumeric ? 0 : offset)
     .orderBy(desc(schema.rentalContracts.createdAt));
 
-  const data = rawData.map((c) => {
-    const tenantTypeStr = c.tenantType === 'family' ? ('keluarga' as const) : ('perorangan' as const);
+  const matchedRows = isPartialNumeric
+    ? rawData.filter(
+        (c) => matchEncryptedPII(c.individualNik, v) || matchEncryptedPII(c.familyNumber, v)
+      )
+    : rawData;
 
-    return {
-      id: c.id,
-      rentalPropertyId: c.rentalPropertyId,
-      tenantType: tenantTypeStr,
-      name: c.individualName || c.userName || 'Penyewa',
-      nik: c.individualNik || (c.familyNumber ? decryptPII(c.familyNumber) : '-'),
-      phone: c.individualPhone || c.userPhone || null,
-      isKtpSameVillage: c.isKtpSameVillage ?? false,
-      ktpAddress: c.ktpAddress || null,
-      ktpFile: c.individualKtpFile || c.familyKkFile || null,
-      checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
-      checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
-      verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
-      verificationNote: c.verificationNote || null,
-      isActive: c.isActive,
-      propertyName: c.propertyName,
-      blockNumber: c.blockNumber,
-      houseNumber: c.houseNumber,
-    };
-  });
+  const totalCount = isPartialNumeric
+    ? matchedRows.length
+    : await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.rentalContracts)
+        .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
+        .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
+        .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
+        .where(whereClause)
+        .then((res) => Number(res[0]?.count ?? 0));
 
-  const [totalResult] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.rentalContracts)
-    .innerJoin(schema.rentalProperties, eq(schema.rentalContracts.rentalPropertyId, schema.rentalProperties.id))
-    .innerJoin(schema.dwellings, eq(schema.rentalProperties.dwellingId, schema.dwellings.id))
-    .leftJoin(schema.users, eq(schema.rentalContracts.userId, schema.users.id))
-    .where(whereClause);
+  const pageItems = isPartialNumeric ? matchedRows.slice(offset, offset + limit) : matchedRows;
+
+  const data = pageItems.map((c) => ({
+    id: c.id,
+    rentalPropertyId: c.rentalPropertyId,
+    familyId: c.familyId,
+    userId: c.userId,
+    hasActivated: Boolean(c.userId || c.familyId),
+    tenantType: c.tenantType === 'family' ? ('keluarga' as const) : ('perorangan' as const),
+    name: c.individualName || c.userName || 'Penyewa',
+    nik: decryptPII(c.individualNik || c.familyNumber || '') || '-',
+    phone: c.individualPhone || c.userPhone || null,
+    isKtpSameVillage: c.isKtpSameVillage ?? false,
+    ktpAddress: c.ktpAddress || null,
+    ktpFile: c.individualKtpFile || c.familyKkFile || null,
+    checkInDate: c.checkInDate ? (typeof c.checkInDate === 'string' ? c.checkInDate : (c.checkInDate as Date).toISOString()) : new Date().toISOString(),
+    checkOutDate: c.checkOutDate ? (typeof c.checkOutDate === 'string' ? c.checkOutDate : (c.checkOutDate as Date).toISOString()) : null,
+    verificationStatus: (c.verificationStatus as 'pending' | 'verified' | 'rejected') || 'pending',
+    verificationNote: c.verificationNote || null,
+    isActive: c.isActive,
+    propertyName: c.propertyName,
+    blockNumber: c.blockNumber,
+    houseNumber: c.houseNumber,
+  }));
+
 
   return {
     data,
-    metadata: { total: Number(totalResult?.count ?? 0), limit, offset },
+    metadata: { total: totalCount, limit, offset },
   };
 }
 
@@ -287,12 +347,13 @@ export async function getTenantContractById(id: number) {
 export async function createTenantContract(data: CreateTenantInput) {
   const checkInDate = data.checkInDate instanceof Date ? data.checkInDate : new Date(String(data.checkInDate));
 
-  // Cek NIK duplikasi untuk individual
+  // Cek NIK duplikasi untuk individual via blind index hash
   if (data.tenantType === 'individual' && data.individualNik) {
+    const nikHash = hashPII(data.individualNik);
     const [existing] = await db
       .select({ id: schema.rentalContracts.id })
       .from(schema.rentalContracts)
-      .where(and(eq(schema.rentalContracts.individualNik, data.individualNik), eq(schema.rentalContracts.isActive, true)))
+      .where(and(eq(schema.rentalContracts.individualNikHash, nikHash), eq(schema.rentalContracts.isActive, true)))
       .limit(1);
     if (existing) throw new Error(`NIK ${data.individualNik} sudah memiliki kontrak sewa aktif.`);
   }
@@ -306,7 +367,8 @@ export async function createTenantContract(data: CreateTenantInput) {
       familyId: data.familyId ?? null,
       userId: data.userId ?? null,
       individualName: data.individualName ?? null,
-      individualNik: data.individualNik ?? null,
+      individualNik: data.individualNik ? encryptPII(data.individualNik) : null,
+      individualNikHash: data.individualNik ? hashPII(data.individualNik) : '',
       individualPhone: data.individualPhone ?? null,
       individualKtpFile: data.individualKtpFile ?? null,
       isKtpSameVillage: data.isKtpSameVillage ?? false,
@@ -318,6 +380,7 @@ export async function createTenantContract(data: CreateTenantInput) {
 
     // Otomatis kurangi kamar kosong / tambah kamar terisi jika autoDeductVacantRoom true (default: true)
     if (data.autoDeductVacantRoom !== false) {
+
       await tx
         .update(schema.rentalProperties)
         .set({
@@ -385,7 +448,8 @@ export async function createFamilyTenantWithUser(
     // 2. Buat KK untuk penyewa keluarga
     const [insertFamily] = await tx.insert(schema.families).values({
       dwellingId: data.dwellingId,
-      familyNumber: data.nik,
+      familyNumber: encryptPII(data.nik),
+      familyNumberHash: hashPII(data.nik),
       headUserId: userId,
       verificationStatus: 'draft',
       isActive: true,
@@ -397,7 +461,8 @@ export async function createFamilyTenantWithUser(
       familyId,
       userId,
       name: data.name,
-      nik: data.nik,
+      nik: encryptPII(data.nik),
+      nikHash: hashPII(data.nik),
       gender: 'L',
       relationship: 'Kepala_Keluarga',
       phone: data.phone ?? null,
@@ -448,7 +513,10 @@ export async function createFamilyTenantWithUser(
 export async function updateTenantContract(id: number, data: UpdateTenantInput) {
   const payload: Record<string, any> = { updatedAt: new Date() };
   if (data.individualName !== undefined) payload.individualName = data.individualName;
-  if (data.individualNik !== undefined) payload.individualNik = data.individualNik;
+  if (data.individualNik !== undefined) {
+    payload.individualNik = data.individualNik ? encryptPII(data.individualNik) : null;
+    payload.individualNikHash = data.individualNik ? hashPII(data.individualNik) : '';
+  }
   if (data.individualPhone !== undefined) payload.individualPhone = data.individualPhone;
   if (data.individualKtpFile !== undefined) payload.individualKtpFile = data.individualKtpFile;
   if (data.isKtpSameVillage !== undefined) payload.isKtpSameVillage = data.isKtpSameVillage;
@@ -675,7 +743,7 @@ export async function autoLinkTenantContractToFamily({
   ];
 
   if (nik) {
-    conditions.push(eq(schema.rentalContracts.individualNik, nik));
+    conditions.push(eq(schema.rentalContracts.individualNikHash, hashPII(nik)));
   }
 
   const [contract] = await db
@@ -748,8 +816,12 @@ export async function getContractDetailsForInvitationResend(contractId: number) 
     .limit(1);
 
   return {
-    contract,
+    contract: {
+      ...contract,
+      individualNik: contract.individualNik ? decryptPII(contract.individualNik) : null,
+    },
     defaultEmail: latestToken?.email || null,
   };
 }
+
 

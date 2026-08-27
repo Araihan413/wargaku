@@ -1,7 +1,10 @@
 import { z } from 'zod';
-
-const nikRegex = /^[0-9]{16}$/;
-const indonesianPhoneRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
+import {
+  nikRegex,
+  indonesianPhoneRegex,
+  datePreprocessor,
+  optionalDatePreprocessor,
+} from './common';
 
 export const createRentalPropertySchema = z.object({
   dwellingId: z.number({
@@ -99,10 +102,7 @@ export const createRentalResidentBaseSchema = z.object({
     z.string().email('Format email tidak valid').optional().nullable()
   ),
   
-  checkInDate: z.preprocess((arg) => {
-    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-    return arg;
-  }, z.date({
+  checkInDate: z.preprocess(datePreprocessor, z.date({
     error: (issue) =>
       issue.input === undefined
         ? 'Tanggal check-in wajib diisi'
@@ -143,36 +143,22 @@ export const updateRentalResidentSchema = z.object({
   isKtpSameVillage: z.boolean().optional(),
   ktpAddress: z.preprocess((val) => (val === '' ? null : val), z.string().max(255).optional().nullable()),
   ktpFile: z.string().optional().nullable(),
-  checkInDate: z.preprocess((arg) => {
-    if (arg === '' || arg === null || arg === undefined) return null;
-    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-    return arg;
-  }, z.date().optional().nullable()),
+  checkInDate: z.preprocess(optionalDatePreprocessor, z.date().optional().nullable()),
   verificationStatus: z.enum(['pending', 'verified', 'rejected']).optional(),
   verificationNote: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
   inactiveReason: z.enum(['pindah', 'meninggal']).optional().nullable(),
-  checkOutDate: z.preprocess((arg) => {
-    if (arg === '' || arg === null || arg === undefined) return null;
-    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-    return arg;
-  }, z.date().optional().nullable()),
+  checkOutDate: z.preprocess(optionalDatePreprocessor, z.date().optional().nullable()),
   notes: z.string().optional().nullable(),
 });
 
 export const checkoutRentalResidentSchema = z.object({
-  checkOutDate: z.preprocess((arg) => {
-    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-    return arg;
-  }, z.date().optional()),
+  checkOutDate: z.preprocess(datePreprocessor, z.date().optional()),
   checkOutNote: z.string().max(500).optional().nullable(),
 });
 
 export const reactivateRentalResidentSchema = z.object({
-  checkInDate: z.preprocess((arg) => {
-    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-    return arg;
-  }, z.date().optional()),
+  checkInDate: z.preprocess(datePreprocessor, z.date().optional()),
 });
 
 export const resubmitRentalResidentSchema = z.object({
@@ -191,5 +177,12 @@ export const resendInvitationSchema = z.object({
         ? 'ID Kontrak wajib diisi'
         : 'ID Kontrak harus berupa angka',
   }).int().positive(),
+});
+
+export const createCoordinatorSchema = z.object({
+  name: z.string().min(1, 'Nama wajib diisi'),
+  email: z.string().email('Email tidak valid'),
+  phone: z.string().optional().nullable(),
+  dwellingId: z.number().int(),
 });
 

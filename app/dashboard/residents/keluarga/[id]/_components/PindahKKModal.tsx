@@ -147,10 +147,14 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
 
   if (!isOpen) return null;
 
-  const dwellingSelectOptions: SelectOption[] = dwellings.map((d: any) => ({
-    value: d.id.toString(),
-    label: `${d.streetName} No. ${d.houseNumber} ${d.blockNumber ? `Blok ${d.blockNumber}` : ""}`,
-  }));
+  const dwellingSelectOptions: SelectOption[] = dwellings
+    .filter((d: any) => d.type !== "homestay")
+    .map((d: any) => ({
+      value: d.id.toString(),
+      label: d.label || `Blok ${d.blockNumber} No. ${d.houseNumber} (${d.type === "kos" ? "Rumah Kost" : "Rumah Permanen"})`,
+    }));
+
+
 
   const familySuggestions = families.map(
     (f: any) => `KK ${f.familyNumber} - K.Keluarga: ${f.headName}`
@@ -291,11 +295,18 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                   label="Nomor Kartu Keluarga (KK) Baru"
                   type="text"
                   required={true}
+                  maxLength={16}
                   placeholder="16 digit nomor KK baru"
-                  registerProps={register("familyNumber")}
+                  registerProps={register("familyNumber", {
+                    onChange: (e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 16);
+                      setValue("familyNumber", digitsOnly, { shouldValidate: true });
+                    },
+                  })}
                   icon={CreditCard}
                   error={errors.familyNumber?.message}
                 />
+
 
                 <div className="space-y-1.5">
                   <Controller

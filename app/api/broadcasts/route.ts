@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import {
   getActiveBroadcastsForUser,
   listAllBroadcastsAdmin,
@@ -9,6 +7,8 @@ import {
 } from '@/db/queries/system/broadcast.queries';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
+import { createBroadcastSchema } from '@/lib/validations/layanan';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -71,20 +71,14 @@ import { getClientIp } from '@/lib/audit-logger';
 
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const isAdmin = searchParams.get('admin') === 'true';
 
     if (isAdmin) {
-      const effectiveRoleId = await getEffectiveRoleId(session);
-      const isAllowed = await hasPermission(effectiveRoleId, 'manage-system-config');
+      const isAllowed = await hasPermission(roleId, 'manage-system-config');
       if (!isAllowed) {
         return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 });
       }
@@ -103,27 +97,10 @@ export async function GET(request: Request) {
   }
 }
 
-import { createBroadcastSchema } from '@/lib/validations/layanan';
-import { ZodError } from 'zod';
-
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-system-config');
-    if (!isAllowed) {
-      return NextResponse.json(
-        { error: 'Hanya pengelola sistem yang diizinkan membuat broadcast sistem' },
-        { status: 403 }
-      );
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-system-config');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validated = createBroadcastSchema.parse(body);

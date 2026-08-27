@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { hasPermission, getEffectiveRoleId } from '@/lib/rbac';
+import { validateApiAuth, hasPermission } from '@/lib/rbac';
 import { listPayments, recordPayment } from '@/db/queries/finance/fee.queries';
 import { createAuditLog } from '@/db/queries/system/audit-log.queries';
 import { getClientIp } from '@/lib/audit-logger';
+import { recordPaymentSchema } from '@/lib/validations/keuangan';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -49,11 +49,10 @@ import { getClientIp } from '@/lib/audit-logger';
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
+    const { session, roleId, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = (await hasPermission(effectiveRoleId, 'manage-iuran')) || (await hasPermission(effectiveRoleId, 'view-arrears'));
+    const allowed = (await hasPermission(roleId, 'manage-iuran')) || (await hasPermission(roleId, 'view-arrears'));
     if (!allowed) {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
@@ -114,19 +113,11 @@ export async function GET(request: Request) {
  *       500:
  *         description: Kesalahan server internal
  */
-import { recordPaymentSchema } from '@/lib/validations/keuangan';
-import { ZodError } from 'zod';
 
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, 'manage-iuran');
-    if (!allowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin untuk mencatat pembayaran' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-iuran');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validated = recordPaymentSchema.parse(body);

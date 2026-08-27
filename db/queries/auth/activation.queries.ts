@@ -3,6 +3,7 @@ import * as schema from "@/db/schema";
 import { eq, and, gt, sql } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import { randomUUID } from "crypto";
+import { encryptPII, decryptPII, hashPII } from "@/lib/crypto-pii";
 
 export interface ActivationTokenDetails {
   id: number;
@@ -134,7 +135,7 @@ export async function activateTenantAccount(input: ActivateTenantAccountInput): 
   }
 
   const userName = contract.individualName || "Kepala Keluarga";
-  const userNik = tokenData.nik || contract.individualNik || "";
+  const userNik = tokenData.nik || (contract.individualNik ? decryptPII(contract.individualNik) : "");
   const userPhone = contract.individualPhone || null;
   const hashedPassword = await hashPassword(password);
   const userId = randomUUID();
@@ -160,16 +161,19 @@ export async function activateTenantAccount(input: ActivateTenantAccountInput): 
     // Step 3: Credential account
     await tx.insert(schema.accounts).values({
       id: randomUUID(),
-      accountId: tokenData.email,
+      accountId: userId,
       providerId: "credential",
       userId,
       password: hashedPassword,
+      issuer: "local:credential",
     });
+
 
     // Step 4: INSERT keluarga (KK) baru — status draft
     const [insertFamily] = await tx.insert(schema.families).values({
       dwellingId: contract.dwellingId,
-      familyNumber: cleanFamilyNumber,
+      familyNumber: encryptPII(cleanFamilyNumber),
+      familyNumberHash: hashPII(cleanFamilyNumber),
       headUserId: userId,
       kkFile: kkFile || null,
       verificationStatus: "draft",
@@ -183,7 +187,8 @@ export async function activateTenantAccount(input: ActivateTenantAccountInput): 
       familyId,
       userId,
       name: userName,
-      nik: userNik,
+      nik: encryptPII(userNik),
+      nikHash: hashPII(userNik),
       phone: userPhone,
       gender: "L",
       relationship: "Kepala_Keluarga",

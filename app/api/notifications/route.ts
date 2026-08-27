@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { validateApiAuth } from '@/lib/rbac';
 import { listNotifications, markNotificationsRead, deleteNotifications } from '@/db/queries/system/notification.queries';
+import { markNotificationReadSchema } from '@/lib/validations/system';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -86,13 +87,8 @@ import { listNotifications, markNotificationsRead, deleteNotifications } from '@
 
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const category = (searchParams.get('category') as 'personal' | 'dinas' | 'all') || 'personal';
@@ -118,18 +114,10 @@ export async function GET(request: Request) {
   }
 }
 
-import { markNotificationReadSchema } from '@/lib/validations/system';
-import { ZodError } from 'zod';
-
 export async function PATCH(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json().catch(() => ({}));
     const validated = markNotificationReadSchema.parse(body);
@@ -146,16 +134,10 @@ export async function PATCH(request: Request) {
   }
 }
 
-
 export async function DELETE(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const idStr = searchParams.get('id');

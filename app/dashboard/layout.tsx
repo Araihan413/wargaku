@@ -70,6 +70,7 @@ export default function DashboardLayout({
         onSuccess: () => {
           toast.success("Berhasil keluar dari akun");
           // Gunakan hard redirect untuk membersihkan status memori client-side sepenuhnya
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = "/login";
         },
         onError: (ctx) => {

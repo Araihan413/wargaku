@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { hasPermission, getEffectiveRoleId } from "@/lib/rbac";
+import { validateApiAuth } from "@/lib/rbac";
 import { getRolePermissionMatrix, updateRolePermissions } from '@/db/queries/system/permission.queries';
 import { createAuditLog } from "@/db/queries/system/audit-log.queries";
 import { getClientIp } from "@/lib/audit-logger";
+import { updatePermissionsSchema } from "@/lib/validations/system";
+import { ZodError } from "zod";
 
 /**
  * @openapi
@@ -28,19 +28,8 @@ import { getClientIp } from "@/lib/audit-logger";
  */
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, "manage-roles");
-    if (!allowed) {
-      return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("manage-roles");
+    if (errorResponse || !session) return errorResponse;
 
     const matrixData = await getRolePermissionMatrix();
     return NextResponse.json(matrixData);
@@ -58,7 +47,7 @@ export async function GET() {
  * /api/permissions:
  *   put:
  *     summary: Memperbarui hak akses (permissions) suatu Role
- *     description: Mengubah daftar permission (fitur/akses) yang dimiliki oleh sebuah role. Akses khusus Super Admin.
+ *     description: Mengubah kumpulan izin (permissions) yang dimiliki oleh role tertentu. Hanya dapat dilakukan oleh Super Admin dengan izin manage-roles.
  *     tags:
  *       - Sistem & Admin
  *     security:
@@ -91,24 +80,10 @@ export async function GET() {
  *       500:
  *         description: Kesalahan server internal
  */
-import { updatePermissionsSchema } from "@/lib/validations/system";
-import { ZodError } from "zod";
-
 export async function PUT(req: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Belum terautentikasi" }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const allowed = await hasPermission(effectiveRoleId, "manage-roles");
-    if (!allowed) {
-      return NextResponse.json({ error: "Akses khusus Super Admin" }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth("manage-roles");
+    if (errorResponse || !session) return errorResponse;
 
     const body = await req.json();
     const validated = updatePermissionsSchema.parse(body);

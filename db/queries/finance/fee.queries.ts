@@ -39,23 +39,27 @@ export async function createFeeRule(data: { name: string; amount: number; isMand
     .from(schema.families)
     .where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, 'verified')));
 
-  for (const family of activeFamilies) {
-    const [existing] = await db
-      .select({ id: schema.feePayments.id })
+  if (activeFamilies.length > 0) {
+    const existingPayments = await db
+      .select({ familyId: schema.feePayments.familyId })
       .from(schema.feePayments)
-      .where(and(eq(schema.feePayments.feeRuleId, newId), eq(schema.feePayments.familyId, family.id), eq(schema.feePayments.period, period)))
-      .limit(1);
+      .where(and(eq(schema.feePayments.feeRuleId, newId), eq(schema.feePayments.period, period)));
+    const existingSet = new Set(existingPayments.map((p) => p.familyId));
 
-    if (!existing) {
-      await db.insert(schema.feePayments).values({
+    const newRows = activeFamilies
+      .filter((f) => !existingSet.has(f.id))
+      .map((f) => ({
         feeRuleId: newId,
-        familyId: family.id,
+        familyId: f.id,
         period,
         amountBilled: String(data.amount),
         amountPaid: '0.00',
-        status: 'unpaid',
+        status: 'unpaid' as const,
         isMandatory: data.isMandatory,
-      });
+      }));
+
+    if (newRows.length > 0) {
+      await db.insert(schema.feePayments).values(newRows);
     }
   }
 
@@ -63,12 +67,17 @@ export async function createFeeRule(data: { name: string; amount: number; isMand
 }
 
 export async function updateFeeRule(id: number, data: { name: string; amount: number; isMandatory: boolean }) {
-  const existing = await getFeeRuleById(id);
-  if (!existing) throw new Error('NOT_FOUND');
   await db
     .update(schema.feeRules)
-    .set({ name: data.name, amount: String(data.amount), isMandatory: data.isMandatory, updatedAt: new Date() })
+    .set({
+      name: data.name,
+      amount: String(data.amount),
+      isMandatory: data.isMandatory,
+      updatedAt: new Date(),
+    })
     .where(eq(schema.feeRules.id, id));
+
+  return { id };
 }
 
 export async function deleteFeeRule(id: number) {
@@ -83,15 +92,15 @@ export async function deleteFeeRule(id: number) {
     .limit(1);
 
   if (hasPaidTransaction) {
-    // Soft Delete: Nonaktifkan aturan iuran agar tidak terbit lagi, namun simpan riwayat pembayaran warga
+    // Soft Delete: Nonaktifkan aturan iuran agar tidak terbit lagi, bersihkan tagihan yang masih unpaid
     await db.delete(schema.feePayments).where(and(eq(schema.feePayments.feeRuleId, id), eq(schema.feePayments.status, 'unpaid')));
     await db.update(schema.feeRules).set({ isActive: false, updatedAt: new Date() }).where(eq(schema.feeRules.id, id));
-    return { softDeleted: true };
+    return { id, softDeleted: true };
   } else {
     // Hard Delete: Jika belum ada warga yang membayar sama sekali, hapus total
     await db.delete(schema.feePayments).where(eq(schema.feePayments.feeRuleId, id));
     await db.delete(schema.feeRules).where(eq(schema.feeRules.id, id));
-    return { softDeleted: false };
+    return { id, softDeleted: false };
   }
 }
 
@@ -107,39 +116,36 @@ export async function generateTagihanForRule(ruleId: number) {
     .from(schema.families)
     .where(and(eq(schema.families.isActive, true), eq(schema.families.verificationStatus, 'verified')));
 
-  let generated = 0;
-  let skipped = 0;
+  const existingPayments = await db
+    .select({ familyId: schema.feePayments.familyId })
+    .from(schema.feePayments)
+    .where(and(eq(schema.feePayments.feeRuleId, ruleId), eq(schema.feePayments.period, period)));
+  const existingSet = new Set(existingPayments.map((p) => p.familyId));
+
+  const toCreate = activeFamilies.filter((f) => !existingSet.has(f.id));
+  const skipped = activeFamilies.length - toCreate.length;
   const newlyBilledHeadUserIds: string[] = [];
 
-  for (const family of activeFamilies) {
-    const [existing] = await db
-      .select({ id: schema.feePayments.id })
-      .from(schema.feePayments)
-      .where(and(eq(schema.feePayments.feeRuleId, ruleId), eq(schema.feePayments.familyId, family.id), eq(schema.feePayments.period, period)))
-      .limit(1);
-
-    if (!existing) {
-      await db.insert(schema.feePayments).values({
+  if (toCreate.length > 0) {
+    const rows = toCreate.map((f) => {
+      if (f.headUserId) newlyBilledHeadUserIds.push(f.headUserId);
+      return {
         feeRuleId: ruleId,
-        familyId: family.id,
+        familyId: f.id,
         period,
         amountBilled: String(rule.amount),
         amountPaid: '0.00',
-        status: 'unpaid',
+        status: 'unpaid' as const,
         isMandatory: rule.isMandatory,
-      });
-      generated++;
-      if (family.headUserId) {
-        newlyBilledHeadUserIds.push(family.headUserId);
-      }
-    } else {
-      skipped++;
-    }
+      };
+    });
+
+    await db.insert(schema.feePayments).values(rows);
   }
 
   return {
     period,
-    generated,
+    generated: toCreate.length,
     skipped,
     newlyBilledHeadUserIds,
     ruleName: rule.name,
@@ -278,28 +284,30 @@ export async function recordPayment(
 
   const paymentDateObj = new Date(paymentDate);
 
-  await db
-    .update(schema.feePayments)
-    .set({
-      amountPaid: String(newAmountPaid),
-      paymentDate: paymentDateObj,
-      paymentMethod,
-      status: newStatus,
-      recordedBy: userId,
-      updatedAt: new Date(),
-    })
-    .where(eq(schema.feePayments.id, paymentId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.feePayments)
+      .set({
+        amountPaid: String(newAmountPaid),
+        paymentDate: paymentDateObj,
+        paymentMethod,
+        status: newStatus,
+        recordedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.feePayments.id, paymentId));
 
-  // Sync ke kas
-  await db.insert(schema.cashTransactions).values({
-    type: 'income',
-    amount: String(amountPaid),
-    transactionDate: paymentDateObj,
-    category: 'Iuran Warga',
-    description: `Iuran ${existing.ruleName} - ${existing.headName ?? ''} - Periode ${existing.period}`,
-    status: 'approved',
-    createdBy: userId,
-    approvedBy: userId,
+    // Sync ke kas
+    await tx.insert(schema.cashTransactions).values({
+      type: 'income',
+      amount: String(amountPaid),
+      transactionDate: paymentDateObj,
+      category: 'Iuran Warga',
+      description: `Iuran ${existing.ruleName} - ${existing.headName ?? ''} - Periode ${existing.period}`,
+      status: 'approved',
+      createdBy: userId,
+      approvedBy: userId,
+    });
   });
 
   return {

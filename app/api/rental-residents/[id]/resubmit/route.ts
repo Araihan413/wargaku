@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { validateApiAuth } from '@/lib/rbac';
 import { getTenantContractById, updateTenantContract } from '@/db/queries/property/tenant.queries';
+import { resubmitRentalResidentSchema } from '@/lib/validations/rental';
+import { ZodError } from 'zod';
 
 /**
  * @openapi
@@ -31,21 +32,13 @@ import { getTenantContractById, updateTenantContract } from '@/db/queries/proper
  *       500:
  *         description: Kesalahan server internal
  */
-import { resubmitRentalResidentSchema } from '@/lib/validations/rental';
-import { ZodError } from 'zod';
-
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
+    const { session, errorResponse } = await validateApiAuth();
+    if (errorResponse || !session) return errorResponse;
 
     const { id } = await params;
     const contractId = Number(id);

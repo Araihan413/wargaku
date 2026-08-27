@@ -53,8 +53,8 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({
     try {
       const res = await uploadFileToCloudinary(file, "kk");
       await saveKKFileToDB(res.url);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Notifikasi toast sudah ditangani oleh validator uploadFileToCloudinary
     } finally {
       setIsUploadingKK(false);
     }
@@ -77,8 +77,7 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({
         const err = await res.json();
         toast.error(err.error || "Gagal menyimpan berkas Scan KTP");
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast.error("Terjadi kesalahan sistem.");
     } finally {
       setIsUploadingKtp(false);
@@ -91,12 +90,13 @@ export const FamilyDocumentsCard: React.FC<FamilyDocumentsCardProps> = ({
     try {
       const res = await uploadFileToCloudinary(file, "ktp");
       await saveKtpFileToDB(selectedMemberForKtp.id, res.url);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Notifikasi toast sudah ditangani oleh validator uploadFileToCloudinary
     } finally {
       setIsUploadingKtp(false);
     }
   };
+
 
   const getRelationshipLabel = (rel: string) => {
     const labels: Record<string, string> = {

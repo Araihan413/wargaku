@@ -28,6 +28,7 @@ export interface PublicActivityItem {
   location?: string | null;
   attachments?: string | null;
   isPinned: boolean;
+  isUpcoming?: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -255,6 +256,7 @@ export async function getPaginatedPublicAnnouncements(options: {
 }
 
 export async function getPublicActivities(limit = 10): Promise<PublicActivityItem[]> {
+  const now = new Date();
   return db
     .select({
       id: schema.activities.id,
@@ -266,9 +268,10 @@ export async function getPublicActivities(limit = 10): Promise<PublicActivityIte
       isPinned: schema.activities.isPinned,
       createdAt: schema.activities.createdAt,
       updatedAt: schema.activities.updatedAt,
+      isUpcoming: sql<boolean>`${schema.activities.eventDate} >= ${now}`.as('is_upcoming'),
     })
     .from(schema.activities)
-    .orderBy(schema.activities.isPinned, schema.activities.eventDate)
+    .orderBy(desc(schema.activities.isPinned), desc(schema.activities.eventDate))
     .limit(limit);
 }
 
@@ -1039,33 +1042,55 @@ export async function checkDwellingOwnership(
       redirectTarget: null,
       propertyId: null,
       dwellingId: null,
+      targetRoleId: null,
     };
   }
 
-  // --- CEK 1: Pemilik Aset ---
-  if (dwelling.ownerUserId === userId) {
-    if (dwelling.type === 'permanen') {
+  // --- KELOMPOK 1: KOS / HOMESTAY ---
+  if (dwelling.type !== 'permanen') {
+    const [prop] = await db
+      .select({ id: schema.rentalProperties.id, coordinatorUserId: schema.rentalProperties.coordinatorUserId })
+      .from(schema.rentalProperties)
+      .where(and(
+        eq(schema.rentalProperties.dwellingId, dwelling.id),
+        eq(schema.rentalProperties.isActive, true)
+      ))
+      .limit(1);
+
+    const isOwner = dwelling.ownerUserId === userId;
+    const isCoordinator = Boolean(prop && prop.coordinatorUserId === userId);
+
+    // Jika koordinator (baik sebagai pemilik maupun bukan): prioritaskan role Koordinator Kost
+    if (isCoordinator) {
       return {
-        ownershipStatus: 'pemilik-permanen' as const,
-        redirectTarget: '/dashboard',
+        ownershipStatus: 'koordinator-kos' as const,
+        redirectTarget: prop ? `/dashboard/rentals?propertyId=${prop.id}` : '/dashboard/rentals',
         dwellingId: dwelling.id,
-        propertyId: null,
+        propertyId: prop?.id ?? null,
+        targetRoleId: 5, // Koordinator Kost
       };
-    } else {
-      // Cari propertyId untuk kos/homestay
-      const [prop] = await db
-        .select({ id: schema.rentalProperties.id })
-        .from(schema.rentalProperties)
-        .where(and(
-          eq(schema.rentalProperties.dwellingId, dwelling.id),
-          eq(schema.rentalProperties.isActive, true)
-        ))
-        .limit(1);
+    }
+
+    // Jika hanya pemilik tapi bukan koordinator: arahkan ke kelola properti warga
+    if (isOwner) {
       return {
         ownershipStatus: 'pemilik-kos' as const,
         redirectTarget: prop ? `/dashboard/my-properties/${prop.id}` : '/dashboard/my-properties',
         dwellingId: dwelling.id,
         propertyId: prop?.id ?? null,
+        targetRoleId: 6, // Warga
+      };
+    }
+
+  } else {
+    // --- KELOMPOK 2: RUMAH PERMANEN (Pemilik Aset) ---
+    if (dwelling.ownerUserId === userId) {
+      return {
+        ownershipStatus: 'pemilik-permanen' as const,
+        redirectTarget: '/dashboard',
+        dwellingId: dwelling.id,
+        propertyId: null,
+        targetRoleId: 6, // Warga
       };
     }
   }
@@ -1086,6 +1111,7 @@ export async function checkDwellingOwnership(
       redirectTarget: '/dashboard/family',
       dwellingId: dwelling.id,
       propertyId: null,
+      targetRoleId: 6, // Warga
     };
   }
 
@@ -1108,35 +1134,18 @@ export async function checkDwellingOwnership(
       redirectTarget: '/dashboard/family',
       dwellingId: dwelling.id,
       propertyId: null,
+      targetRoleId: 6, // Warga
     };
   }
 
-  // --- CEK 4: Koordinator Kos ---
-  const [koordinator] = await db
-    .select({ id: schema.rentalProperties.id })
-    .from(schema.rentalProperties)
-    .where(and(
-      eq(schema.rentalProperties.coordinatorUserId, userId),
-      eq(schema.rentalProperties.dwellingId, dwelling.id),
-      eq(schema.rentalProperties.isActive, true)
-    ))
-    .limit(1);
-  if (koordinator) {
-    return {
-      ownershipStatus: 'koordinator-kos' as const,
-      redirectTarget: `/dashboard/rentals/${koordinator.id}`,
-      dwellingId: dwelling.id,
-      propertyId: koordinator.id,
-    };
-  }
-
-  // --- TIDAK ADA KAITAN: Cek apakah sedang pakai mode officer ---
+  // --- TIDAK ADA KAITAN PRIBADI: Cek apakah sedang pakai mode officer (Ketua RT, Sekre, Bendahara, Admin) ---
   if (activeRoleId !== null && activeRoleId !== undefined && activeRoleId >= 1 && activeRoleId <= 4) {
     return {
       ownershipStatus: 'officer' as const,
       redirectTarget: null,
       dwellingId: dwelling.id,
       propertyId: null,
+      targetRoleId: activeRoleId,
     };
   }
 
@@ -1146,5 +1155,7 @@ export async function checkDwellingOwnership(
     redirectTarget: null,
     dwellingId: dwelling.id,
     propertyId: null,
+    targetRoleId: null,
   };
 }
+

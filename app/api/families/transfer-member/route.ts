@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { getEffectiveRoleId, hasPermission } from '@/lib/rbac';
+import { validateApiAuth } from '@/lib/rbac';
 import { getFamilyById, createFamily, deleteFamily } from '@/db/queries/population/family.queries';
 import { getFamilyMemberById, transferFamilyMember, getFamilyMembersByFamilyId } from '@/db/queries/population/family-member.queries';
 import { transferFamilyMemberSchema } from '@/lib/validations/kependudukan';
@@ -12,19 +10,8 @@ import { getClientIp } from '@/lib/audit-logger';
 
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: 'Belum terautentikasi' }, { status: 401 });
-    }
-
-    const effectiveRoleId = await getEffectiveRoleId(session);
-    const isAllowed = await hasPermission(effectiveRoleId, 'manage-residents');
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
-    }
+    const { session, errorResponse } = await validateApiAuth('manage-residents');
+    if (errorResponse || !session) return errorResponse;
 
     const body = await request.json();
     const validated = transferFamilyMemberSchema.parse(body);

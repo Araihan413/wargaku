@@ -61,59 +61,38 @@ export function formatToDatetimeLocal(dateInput?: string | Date | null): string 
 export function formatDateForInput(dateInput?: string | Date | number | unknown | null): string {
   if (!dateInput) return "";
   try {
-    if (typeof dateInput === "number") {
-      const d = new Date(dateInput);
-      if (!isNaN(d.getTime())) {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      }
+    const toYmd = (d: Date) =>
+      !isNaN(d.getTime())
+        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+        : "";
+
+    if (typeof dateInput === "number" || dateInput instanceof Date) {
+      return toYmd(new Date(dateInput));
     }
-    if (dateInput instanceof Date) {
-      if (!isNaN(dateInput.getTime())) {
-        const year = dateInput.getFullYear();
-        const month = String(dateInput.getMonth() + 1).padStart(2, "0");
-        const day = String(dateInput.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      }
-      return "";
-    }
+
     if (typeof dateInput === "string") {
       const trimmed = dateInput.trim();
       if (!trimmed) return "";
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
 
-      // 1. If it's already YYYY-MM-DD
-      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-        return trimmed;
-      }
-
-      // 2. If it's YYYY-MM-DD followed by T or space (e.g. 2002-06-26T00:00:00.000Z or 2002-06-26 07:00:00)
       const ymdMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (ymdMatch) {
-        return `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
-      }
+      if (ymdMatch) return `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
 
-      // 3. If DD-MM-YYYY or DD/MM/YYYY
       const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
-      if (dmyMatch) {
-        return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, "0")}-${dmyMatch[1].padStart(2, "0")}`;
-      }
+      if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, "0")}-${dmyMatch[1].padStart(2, "0")}`;
 
-      // 4. Any other date string (e.g. "Wed Jun 26 2002 07:00:00 GMT+0700")
-      const parsed = new Date(trimmed);
-      if (!isNaN(parsed.getTime())) {
-        const year = parsed.getFullYear();
-        const month = String(parsed.getMonth() + 1).padStart(2, "0");
-        const day = String(parsed.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      }
+      return toYmd(new Date(trimmed));
     }
   } catch {
     return "";
   }
   return "";
 }
+
+/**
+ * Alias for formatDateForInput for backwards compatibility.
+ */
+export const formatToHtmlDate = formatDateForInput;
 
 /**
  * Calculates age in full years from a birth date accurately.

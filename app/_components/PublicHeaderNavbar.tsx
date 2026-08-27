@@ -43,7 +43,6 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
               height={40}
               priority
               className="w-10 h-10 object-contain group-hover:scale-105 transition-transform shrink-0"
-              unoptimized
             />
           ) : (
             <Image
@@ -53,7 +52,6 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
               height={40}
               priority
               className="w-10 h-10 object-contain group-hover:scale-105 transition-transform shrink-0"
-              unoptimized
             />
           )}
           <div className="flex flex-col gap-0.5 items-center">
@@ -64,7 +62,6 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
               height={32}
               priority
               className="w-30 h-8 object-contain"
-              unoptimized
             />
           </div>
         </Link>
