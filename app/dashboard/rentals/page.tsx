@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { PropertyHeaderSelector } from "./_components/PropertyHeaderSelector";
 import { ActiveTenantsTab } from "./_components/ActiveTenantsTab";
 import { PropertyQrModal } from "./_components/PropertyQrModal";
+import { RentalsSkeleton } from "./_components/RentalsSkeleton";
 import { PropertyDetail, ActiveTenantInfo } from "./types";
 import { CheckInModal } from "../my-properties/[id]/_components/CheckInModal";
 import { CheckOutModal } from "../my-properties/[id]/_components/CheckOutModal";
@@ -17,7 +18,7 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 export default function RentalsPage() {
   return (
     <PermissionGuard requiredPermission="manage-boarding">
-      <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Memuat data properti...</div>}>
+      <Suspense fallback={<RentalsSkeleton />}>
         <RentalsContent />
       </Suspense>
     </PermissionGuard>
@@ -239,12 +240,7 @@ function RentalsContent() {
   };
 
   if (isLoadingProperties) {
-    return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm text-gray-secondary-text">Memuat Data Properti Sewa...</span>
-      </div>
-    );
+    return <RentalsSkeleton />;
   }
 
   if (error || properties.length === 0) {

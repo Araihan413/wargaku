@@ -10,6 +10,7 @@ import {
   PenBox
 } from "lucide-react";
 import { ComplaintItem } from "../types";
+import { TableSkeleton } from "@/components/TableSkeleton";
 
 interface ComplaintTableProps {
   complaints: ComplaintItem[];
@@ -63,20 +64,7 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="rounded-2xl border border-gray-border bg-gray-card p-8 space-y-4 animate-pulse">
-        <div className="h-6 w-48 bg-gray-border/60 rounded-xl" />
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 bg-gray-border/40 rounded-xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (complaints.length === 0) {
+  if (!isLoading && complaints.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-border bg-gray-card p-12 text-center">
         <div className="rounded-2xl bg-gray-sidebar-hover p-4 text-gray-placeholder mb-3">
@@ -108,7 +96,10 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-border/60 text-gray-heading-main">
-            {complaints.map((item) => {
+            {isLoading ? (
+              <TableSkeleton rowCount={5} colCount={7} cellPadding="px-4 py-3.5" />
+            ) : (
+              complaints.map((item) => {
               const formattedDate = new Date(item.createdAt).toLocaleDateString("id-ID", {
                 day: "numeric",
                 month: "short",
@@ -222,7 +213,7 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({
                   </td>
                 </tr>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

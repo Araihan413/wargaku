@@ -9,6 +9,7 @@ import { ProfileHeader } from "./_components/ProfileHeader";
 import { PersonalInfoTab } from "./_components/PersonalInfoTab";
 import { SecurityTab } from "./_components/SecurityTab";
 import { ResidencyInfoTab } from "./_components/ResidencyInfoTab";
+import { ProfileSkeleton } from "./_components/ProfileSkeleton";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfileData | null>(null);
@@ -129,13 +130,7 @@ export default function ProfilePage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 pb-12">
-        <div className="h-32 w-full bg-gray-card border border-gray-border rounded-2xl animate-pulse" />
-        <div className="h-12 w-full max-w-md bg-gray-card rounded-2xl animate-pulse" />
-        <div className="h-96 w-full bg-gray-card border border-gray-border rounded-2xl animate-pulse" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (error || !profile) {

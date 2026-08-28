@@ -14,6 +14,7 @@ import { AuditLogKpiCards } from "./_components/AuditLogKpiCards";
 import { AuditLogFilterBar } from "./_components/AuditLogFilterBar";
 import { AuditLogTable } from "./_components/AuditLogTable";
 import { AuditLogDetailModal } from "./_components/AuditLogDetailModal";
+import { AuditLogsSkeleton } from "./_components/AuditLogsSkeleton";
 
 import { PermissionGuard } from "@/components/PermissionGuard";
 
@@ -143,23 +144,7 @@ function AuditLogsContent() {
   };
 
   if (isLoading && !stats) {
-    return (
-      <div className="space-y-8 animate-pulse pb-12">
-        <div className="space-y-2">
-          <div className="h-8 w-72 bg-gray-border/60 rounded-xl" />
-          <div className="h-4 w-96 bg-gray-border/40 rounded-lg" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-28 bg-gray-card border border-gray-border rounded-2xl p-4"
-            />
-          ))}
-        </div>
-        <div className="h-96 bg-gray-card border border-gray-border rounded-2xl" />
-      </div>
-    );
+    return <AuditLogsSkeleton />;
   }
 
   if (error || !stats) {

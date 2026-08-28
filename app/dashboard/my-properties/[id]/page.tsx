@@ -21,6 +21,7 @@ import { ResidentsTab } from "./_components/ResidentsTab";
 import { BusinessTab } from "./_components/BusinessTab";
 import { HistoryTab } from "./_components/HistoryTab";
 import { DetailResidentModal } from "./_components/DetailResidentModal";
+import { PropertyDetailSkeleton } from "./_components/PropertyDetailSkeleton";
 import { PropertyDetails, RentalResidentItem } from "./types";
 
 export default function PropertyDetailsPage() {
@@ -160,12 +161,7 @@ export default function PropertyDetailsPage() {
   }, [sessionUserId, fetchProperty, fetchResidents]);
 
   if (isVerificationLoading || isLoading) {
-    return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm text-gray-placeholder">Memuat Detail Properti...</span>
-      </div>
-    );
+    return <PropertyDetailSkeleton />;
   }
 
   if (!isVerified) {

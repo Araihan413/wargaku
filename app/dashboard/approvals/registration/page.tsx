@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { RefreshButton } from "@/components/RefreshButton";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { RegistrationApprovalsSkeleton } from "./_components/RegistrationApprovalsSkeleton";
 import { TableSkeleton } from "@/components/TableSkeleton";
 
 
@@ -155,6 +156,10 @@ function RegistrationApprovalsContent() {
     }
   };
 
+  if (isLoading && pendingList.length === 0) {
+    return <RegistrationApprovalsSkeleton />;
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -173,17 +178,17 @@ function RegistrationApprovalsContent() {
 
       {/* Main Content Card */}
       <div className="bg-gray-card border border-gray-border rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 text-primary rounded-xl">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 text-primary rounded-xl shrink-0">
               <Users className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-gray-heading-main">Antrean Registrasi Warga</h3>
-              <p className="text-[10px] text-gray-secondary-text">Daftar calon warga yang mendaftar secara mandiri</p>
+              <p className="text-xs text-gray-secondary-text">Daftar calon warga yang mendaftar secara mandiri</p>
             </div>
           </div>
-          <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-lg border border-primary/20">
+          <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-lg border border-primary/20 self-end sm:self-auto shrink-0">
             {pendingList.length} Pengajuan Pending
           </span>
         </div>

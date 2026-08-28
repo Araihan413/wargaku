@@ -6,6 +6,7 @@ import { TreasurerDashboardStats } from "./treasurer/types";
 import { TreasurerKpiCards } from "./treasurer/TreasurerKpiCards";
 import { CashflowOverviewCard } from "./treasurer/CashflowOverviewCard";
 import { RecentTransactionsWidget } from "./treasurer/RecentTransactionsWidget";
+import { TreasurerDashboardSkeleton } from "./treasurer/TreasurerDashboardSkeleton";
 
 export function BendaharaDashboard() {
   const [stats, setStats] = useState<TreasurerDashboardStats | null>(null);
@@ -63,21 +64,7 @@ export function BendaharaDashboard() {
   }, []);
 
   if (isLoading && !stats) {
-    return (
-      <div className="space-y-8 animate-pulse pb-12">
-        <div className="space-y-2">
-          <div className="h-8 w-72 bg-gray-border/60 rounded-xl" />
-          <div className="h-4 w-96 bg-gray-border/40 rounded-lg" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-gray-card border border-gray-border rounded-2xl p-4" />
-          ))}
-        </div>
-        <div className="h-64 bg-gray-card border border-gray-border rounded-2xl" />
-        <div className="h-80 bg-gray-card border border-gray-border rounded-2xl" />
-      </div>
-    );
+    return <TreasurerDashboardSkeleton />;
   }
 
   if (error || !stats) {

@@ -8,6 +8,7 @@ import { QrPageData } from "./types";
 import { QrSettingTab } from "./_components/QrSettingTab";
 import { DwellingQrTableTab } from "./_components/DwellingQrTableTab";
 import { CustomUrlQrTab } from "./_components/CustomUrlQrTab";
+import { QrCodesSkeleton } from "./_components/QrCodesSkeleton";
 
 export default function QrCodesPage() {
   const [data, setData] = useState<QrPageData | null>(null);
@@ -132,16 +133,7 @@ export default function QrCodesPage() {
 
   // ─── Loading Skeleton ─────────────────────────────────────────────
   if (isLoading && !data) {
-    return (
-      <div className="space-y-6 animate-pulse pb-12">
-        <div className="space-y-2">
-          <div className="h-8 w-80 bg-gray-border/60 rounded-xl" />
-          <div className="h-4 w-96 bg-gray-border/40 rounded-lg" />
-        </div>
-        <div className="h-12 w-full max-w-lg bg-gray-card rounded-2xl" />
-        <div className="h-96 bg-gray-card border border-gray-border rounded-2xl" />
-      </div>
-    );
+    return <QrCodesSkeleton />;
   }
 
   // ─── Error State ──────────────────────────────────────────────────

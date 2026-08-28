@@ -10,12 +10,12 @@ Ketika Bendahara login ke sistem, menu navigasi sidebar meliputi:
 
 *   **Dashboard:** Ringkasan metrik saldo kas RT, capaian iuran warga, perbandingan arus kas bulan ini, dan riwayat transaksi terkini (`/dashboard`).
 *   **Kas RT (Cashflow):** (Menu Dropdown Accordion)
-    *   **Catat Pemasukan Kas:** Pencatatan dan pengelolaan kas masuk RT di luar iuran warga (donasi, sumbangan, sewa fasilitas) (`/dashboard/kas/income`).
-    *   **Catat Pengeluaran Kas:** Pencatatan dan pengelolaan kas keluar operasional RT disertai unggah bukti nota kuitansi fisik (`/dashboard/kas/expense`).
-    *   **Laporan Keuangan Kas RT:** Rekapitulasi pembukuan kas bulanan, diagram kategori, dan ekspor cetak PDF laporan keuangan resmi ber-kop RT (`/dashboard/kas/reports`).
+    *   **Catat Pemasukan Kas:** Pencatatan dan pengelolaan kas masuk RT di luar iuran warga (donasi, sumbangan, sewa fasilitas) (`/dashboard/cash/income`).
+    *   **Catat Pengeluaran Kas:** Pencatatan dan pengelolaan kas keluar operasional RT disertai unggah bukti nota kuitansi fisik (`/dashboard/cash/expense`).
+    *   **Laporan Keuangan Kas RT:** Rekapitulasi pembukuan kas bulanan, diagram kategori, dan ekspor cetak PDF laporan keuangan resmi ber-kop RT (`/dashboard/cash/reports`).
 *   **Iuran Warga:** (Menu Dropdown Accordion)
-    *   **Kelola & Setor Iuran:** Pengaturan aturan tarif iuran dan pencatatan setoran iuran warga per periode (`/dashboard/iuran/manage`).
-    *   **Laporan Tunggakan Iuran:** Rekapitulasi status pembayaran dan pemantauan daftar tunggakan iuran seluruh KK (`/dashboard/iuran/tunggakan`).
+    *   **Kelola & Setor Iuran:** Pengaturan aturan tarif iuran dan pencatatan setoran iuran warga per periode (`/dashboard/dues/manage`).
+    *   **Laporan Tunggakan Iuran:** Rekapitulasi status pembayaran dan pemantauan daftar tunggakan iuran seluruh KK (`/dashboard/dues/arrears`).
 *   **Fitur Personal (Mode Warga):** Melalui fitur *Switch Role* di Navbar, Bendahara dapat beralih ke *Mode Warga Personal* untuk mengelola data keluarga pribadi (`/dashboard/family`), melihat peta tetangga (`/dashboard/neighborhood`), histori iuran mandiri (`/dashboard/my-fees`), dan aset properti milik sendiri (`/dashboard/my-properties`).
 
 ---

@@ -17,12 +17,12 @@ Ketika Ketua RT login ke sistem, menu navigasi sidebar meliputi:
     *   **Persetujuan Registrasi:** Verifikasi permohonan pendaftaran akun warga baru (`/dashboard/approvals/registration`).
     *   **Verifikasi Kependudukan:** Verifikasi berkas scan KK dan KTP warga serta penyewa kos (`/dashboard/approvals/documents`).
 *   **Kas RT (Cashflow):** (Menu Dropdown Accordion)
-    *   **Catat Pemasukan Kas:** Pencatatan dan pengelolaan kas masuk RT di luar iuran warga (`/dashboard/kas/income`).
-    *   **Catat Pengeluaran Kas:** Pencatatan dan pengelolaan kas keluar RT disertai unggah bukti nota kuitansi (`/dashboard/kas/expense`).
-    *   **Laporan Keuangan Kas RT:** Rekapitulasi kas bulanan, grafik per kategori, dan ekspor cetak PDF laporan keuangan resmi ber-kop surat RT (`/dashboard/kas/reports`).
+    *   **Catat Pemasukan Kas:** Pencatatan dan pengelolaan kas masuk RT di luar iuran warga (`/dashboard/cash/income`).
+    *   **Catat Pengeluaran Kas:** Pencatatan dan pengelolaan kas keluar RT disertai unggah bukti nota kuitansi (`/dashboard/cash/expense`).
+    *   **Laporan Keuangan Kas RT:** Rekapitulasi kas bulanan, grafik per kategori, dan ekspor cetak PDF laporan keuangan resmi ber-kop surat RT (`/dashboard/cash/reports`).
 *   **Iuran Warga:** (Menu Dropdown Accordion)
-    *   **Kelola & Setor Iuran:** Pengaturan aturan tarif iuran dan pencatatan setoran iuran warga per periode (`/dashboard/iuran/manage`).
-    *   **Laporan Tunggakan Iuran:** Rekapitulasi status pelunasan dan data tunggakan iuran seluruh KK (`/dashboard/iuran/tunggakan`).
+    *   **Kelola & Setor Iuran:** Pengaturan aturan tarif iuran dan pencatatan setoran iuran warga per periode (`/dashboard/dues/manage`).
+    *   **Laporan Tunggakan Iuran:** Rekapitulasi status pelunasan dan data tunggakan iuran seluruh KK (`/dashboard/dues/arrears`).
 *   **Portal Informasi & Layanan:** (Menu Dropdown Accordion)
     *   **Kelola Pengumuman:** Pembuatan, penyuntingan, dan penerbitan pengumuman warga (`/dashboard/announcements`).
     *   **Kelola Kegiatan RT:** Penjadwalan agenda kegiatan dan event lingkungan RT (`/dashboard/activities`).

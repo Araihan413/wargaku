@@ -28,6 +28,7 @@ import { EditCoordinatorModal } from "./_components/EditCoordinatorModal";
 import { CoordinatorDetailModal } from "./_components/CoordinatorDetailModal";
 import { DeactivateCoordinatorModal } from "./_components/DeactivateCoordinatorModal";
 import { CreateResidentAccountModal } from "./_components/CreateResidentAccountModal";
+import { ResidentsSkeleton } from "./_components/ResidentsSkeleton";
 import { AddUserModal } from "../users/_components/AddUserModal";
 import { authClient } from "@/lib/auth-client";
 import { useRoleStore } from "@/lib/store/use-role-store";
@@ -382,6 +383,10 @@ function ResidentsContent() {
   }, [filteredCoordinators, coordinatorsCurrentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+  if (isLoading && families.length === 0) {
+    return <ResidentsSkeleton />;
+  }
 
   return (
     <div className="space-y-6 pb-12">

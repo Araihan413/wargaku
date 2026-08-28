@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { RefreshButton } from "@/components/RefreshButton";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
+import { MyFeesSkeleton } from "./_components/MyFeesSkeleton";
 
 interface ActiveRule {
   id: number;
@@ -175,6 +176,10 @@ function WargaMyFeesContent() {
     { value: "2025", label: "Tahun 2025" },
   ];
 
+  if (isLoading && !data) {
+    return <MyFeesSkeleton />;
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header Page */}
@@ -204,20 +209,7 @@ function WargaMyFeesContent() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-6 animate-pulse">
-          {/* Summary Cards Skeleton */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 rounded-2xl bg-gray-card border border-gray-border p-5 shadow-xs" />
-            ))}
-          </div>
-          {/* Section 1 Skeleton */}
-          <div className="h-64 rounded-3xl bg-gray-card border border-gray-border shadow-xs" />
-          {/* Section 2 Skeleton */}
-          <div className="h-72 rounded-3xl bg-gray-card border border-gray-border shadow-xs" />
-        </div>
-      ) : !data || !data.hasFamily ? (
+      {!data || !data.hasFamily ? (
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center max-w-md mx-auto space-y-3">
           <AlertCircle className="h-10 w-10 text-amber-600 mx-auto" />
           <h3 className="text-sm font-bold text-amber-900">Kartu Keluarga Belum Terhubung</h3>

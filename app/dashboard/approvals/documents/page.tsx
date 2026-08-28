@@ -19,6 +19,7 @@ import { useDebounce } from "@/lib/hooks/use-debounce";
 import { RefreshButton } from "@/components/RefreshButton";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { DocumentApprovalsSkeleton } from "./_components/DocumentApprovalsSkeleton";
 import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
 const STATUS_OPTIONS: SelectOption[] = [
@@ -204,6 +205,10 @@ function DocumentApprovalsContent() {
     fetchDocuments();
     fetchPendingCounts();
   };
+
+  if (isLoading && familiesList.length === 0 && rentalList.length === 0) {
+    return <DocumentApprovalsSkeleton />;
+  }
 
   return (
     <div className="space-y-6">

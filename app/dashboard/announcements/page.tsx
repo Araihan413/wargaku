@@ -9,6 +9,7 @@ import { AddAnnouncementModal } from "./_components/AddAnnouncementModal";
 import { EditAnnouncementModal } from "./_components/EditAnnouncementModal";
 import { AnnouncementDetailModal } from "./_components/AnnouncementDetailModal";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { AnnouncementsSkeleton } from "./_components/AnnouncementsSkeleton";
 
 export default function AnnouncementsPage() {
   return (
@@ -76,6 +77,10 @@ function AnnouncementsContent() {
       isCancelled = true;
     };
   }, []);
+
+  if (isLoading && items.length === 0) {
+    return <AnnouncementsSkeleton />;
+  }
 
   return (
     <div className="space-y-6 pb-12">

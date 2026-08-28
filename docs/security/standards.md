@@ -1,13 +1,13 @@
 # Standar Keamanan & Panduan Audit Sistem (Security Standards)
 *Sistem Informasi Wargaku*
 
-Dokumen ini memuat standar keamanan teknis, prinsip perlindungan data pribadi (UU PDP No. 27/2022), matriks mitigasi ancaman, dan prosedur audit keamanan bagi pengembang.
+Dokumen ini memuat standar keamanan teknis, prinsip perlindungan data pribadi, matriks mitigasi ancaman, dan prosedur audit keamanan bagi pengembang.
 
 ---
 
-## 1. Perlindungan Data Pribadi (UU PDP & PII Data Masking)
+## 1. Perlindungan Data Pribadi
 
-Sistem wajib melindungi data kependudukan sensitif (*Personally Identifiable Information*) dari kebocoran antarwarga maupun pihak luar:
+Sistem wajib melindungi data kependudukan sensitif dari kebocoran antarwarga maupun pihak luar:
 
 1. **Penyensoran NIK (*National ID Masking*):**
    * Format Sensor: `320**********123` (Hanya 3 digit awal dan 3 digit akhir yang tampak bagi publik / sesama warga).

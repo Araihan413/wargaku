@@ -8,6 +8,7 @@ import { PendingRegistrationQueue } from "./secretary/PendingRegistrationQueue";
 import { UpcomingActivitiesWidget } from "./secretary/UpcomingActivitiesWidget";
 import { LatestAnnouncementsWidget } from "./secretary/LatestAnnouncementsWidget";
 import { RecentComplaintsWidget } from "./secretary/RecentComplaintsWidget";
+import { SecretaryDashboardSkeleton } from "./secretary/SecretaryDashboardSkeleton";
 
 export function SekretarisDashboard() {
   const [stats, setStats] = useState<SecretaryDashboardStats | null>(null);
@@ -63,26 +64,7 @@ export function SekretarisDashboard() {
   }, []);
 
   if (isLoading && !stats) {
-    return (
-      <div className="space-y-8 animate-pulse pb-12">
-        <div className="space-y-2">
-          <div className="h-8 w-64 bg-gray-border/60 rounded-xl" />
-          <div className="h-4 w-96 bg-gray-border/40 rounded-lg" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-28 bg-gray-card border border-gray-border rounded-2xl p-4" />
-          ))}
-        </div>
-        <div className="h-64 bg-gray-card border border-gray-border rounded-2xl" />
-        <div className="h-64 bg-gray-card border border-gray-border rounded-2xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-64 bg-gray-card border border-gray-border rounded-2xl" />
-          <div className="h-64 bg-gray-card border border-gray-border rounded-2xl" />
-        </div>
-        <div className="h-48 bg-gray-card border border-gray-border rounded-2xl" />
-      </div>
-    );
+    return <SecretaryDashboardSkeleton />;
   }
 
   if (error || !stats) {

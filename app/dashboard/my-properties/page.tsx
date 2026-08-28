@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { Plus, Home, Users, ShieldAlert, Loader2, ArrowRight, X, Building2, MessageCircle } from "lucide-react";
+import { Plus, Home, Users, ShieldAlert, ArrowRight, X, Building2, MessageCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { useFamilyVerification } from "@/lib/hooks/use-family-verification";
 import { DwellingSearchSelect } from "./_components/DwellingSearchSelect";
 import { CoordinatorSearchSelect } from "./_components/CoordinatorSearchSelect";
+import { MyPropertiesSkeleton } from "./_components/MyPropertiesSkeleton";
 
 import { PermissionGuard } from "@/components/PermissionGuard";
 
@@ -245,12 +246,7 @@ function MyPropertiesContent() {
   };
 
   if (isVerificationLoading || isLoading) {
-    return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm text-gray-placeholder">Memuat Properti Anda...</span>
-      </div>
-    );
+    return <MyPropertiesSkeleton />;
   }
 
   if (!isVerified) {

@@ -12,6 +12,7 @@ import { MutateRoleModal } from "./_components/MutateRoleModal";
 import { EditUserModal } from "./_components/EditUserModal";
 import { UserDetailModal } from "./_components/UserDetailModal";
 import { ResetPasswordSuccessModal } from "./_components/ResetPasswordSuccessModal";
+import { UserManagementSkeleton } from "./_components/UserManagementSkeleton";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { PermissionGuard } from "@/components/PermissionGuard";
@@ -190,6 +191,10 @@ function UserManagementContent() {
   };
 
   const totalPages = Math.ceil(metadata.total / itemsPerPage) || 1;
+
+  if (isLoading && users.length === 0 && roles.length === 0) {
+    return <UserManagementSkeleton />;
+  }
 
   return (
     <div className="space-y-6">

@@ -24,12 +24,12 @@ Ketika Super Admin login, menu sidebar navigasi mencakup:
     *   **Persetujuan Registrasi:** Verifikasi permohonan pendaftaran akun pengguna baru (`/dashboard/approvals/registration`).
     *   **Verifikasi Kependudukan:** Verifikasi berkas scan KK dan KTP warga (`/dashboard/approvals/documents`).
 *   **Kas RT (Cashflow):** (Menu Dropdown Accordion)
-    *   **Catat Pemasukan Kas:** Pencatatan dan monitoring kas masuk RT (`/dashboard/kas/income`).
-    *   **Catat Pengeluaran Kas:** Pencatatan dan monitoring kas keluar RT (`/dashboard/kas/expense`).
-    *   **Laporan Keuangan Kas RT:** Rekapitulasi arus kas, grafik kategori, dan cetak PDF laporan keuangan (`/dashboard/kas/reports`).
+    *   **Catat Pemasukan Kas:** Pencatatan dan monitoring kas masuk RT (`/dashboard/cash/income`).
+    *   **Catat Pengeluaran Kas:** Pencatatan dan monitoring kas keluar RT (`/dashboard/cash/expense`).
+    *   **Laporan Keuangan Kas RT:** Rekapitulasi arus kas, grafik kategori, dan cetak PDF laporan keuangan (`/dashboard/cash/reports`).
 *   **Iuran Warga:** (Menu Dropdown Accordion)
-    *   **Kelola & Setor Iuran:** Pengaturan aturan tarif dan input setoran iuran warga (`/dashboard/iuran/manage`).
-    *   **Laporan Tunggakan Iuran:** Rekapitulasi status pembayaran dan tunggakan iuran KK (`/dashboard/iuran/tunggakan`).
+    *   **Kelola & Setor Iuran:** Pengaturan aturan tarif dan input setoran iuran warga (`/dashboard/dues/manage`).
+    *   **Laporan Tunggakan Iuran:** Rekapitulasi status pembayaran dan tunggakan iuran KK (`/dashboard/dues/arrears`).
 *   **Portal Informasi & Layanan:** (Menu Dropdown Accordion)
     *   **Kelola Pengumuman:** Pembuatan dan penerbitan pengumuman warga (`/dashboard/announcements`).
     *   **Kelola Kegiatan RT:** Agenda jadwal kegiatan dan event lingkungan RT (`/dashboard/activities`).

@@ -116,9 +116,9 @@ const sidebarItems: SidebarItem[] = [
     title: "Kas RT (Cashflow)",
     icon: Wallet,
     subItems: [
-      { title: "Catat Pemasukan Kas", href: "/dashboard/kas/income", permission: "manage-income" },
-      { title: "Catat Pengeluaran Kas", href: "/dashboard/kas/expense", permission: "manage-expense" },
-      { title: "Laporan Keuangan Kas RT", href: "/dashboard/kas/reports", permission: "view-finance" },
+      { title: "Catat Pemasukan Kas", href: "/dashboard/cash/income", permission: "manage-income" },
+      { title: "Catat Pengeluaran Kas", href: "/dashboard/cash/expense", permission: "manage-expense" },
+      { title: "Laporan Keuangan Kas RT", href: "/dashboard/cash/reports", permission: "view-finance" },
     ],
   },
 
@@ -127,8 +127,8 @@ const sidebarItems: SidebarItem[] = [
     title: "Iuran Warga",
     icon: CircleDollarSign,
     subItems: [
-      { title: "Kelola & Setor Iuran", href: "/dashboard/iuran/manage", permission: "manage-iuran" },
-      { title: "Laporan Tunggakan Iuran", href: "/dashboard/iuran/tunggakan", permission: "view-arrears" },
+      { title: "Kelola & Setor Iuran", href: "/dashboard/dues/manage", permission: "manage-iuran" },
+      { title: "Laporan Tunggakan Iuran", href: "/dashboard/dues/arrears", permission: "view-arrears" },
     ],
   },
 

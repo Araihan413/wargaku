@@ -9,6 +9,7 @@ import { AddActivityModal } from "./_components/AddActivityModal";
 import { EditActivityModal } from "./_components/EditActivityModal";
 import { ActivityDetailModal } from "./_components/ActivityDetailModal";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { ActivitiesSkeleton } from "./_components/ActivitiesSkeleton";
 
 export default function ActivitiesPage() {
   return (
@@ -79,6 +80,10 @@ function ActivitiesContent() {
       isCancelled = true;
     };
   }, [activeFilter]);
+
+  if (isLoading && items.length === 0) {
+    return <ActivitiesSkeleton />;
+  }
 
   return (
     <div className="space-y-6 pb-12">

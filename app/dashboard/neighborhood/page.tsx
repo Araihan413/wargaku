@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useFamilyVerification } from "@/lib/hooks/use-family-verification";
-import { Loader2, MapPin, MapPinOff, Home, Phone, Users, Info, Shield, HelpCircle } from "lucide-react";
+import { MapPin, MapPinOff, Home, Phone, Users, Info, Shield, HelpCircle } from "lucide-react";
 import { SearchInput } from "@/components/SearchInput";
 import { toast } from "sonner";
+import { NeighborhoodSkeleton } from "./_components/NeighborhoodSkeleton";
 
 // Load MapComponent dynamically without SSR to avoid 'window is not defined' Leaflet error
 const MapComponent = dynamic(
@@ -13,9 +14,9 @@ const MapComponent = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-100 w-full flex-col items-center justify-center gap-2 rounded-2xl bg-gray-card border border-gray-border">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-xs text-gray-placeholder">Memuat Peta Interaktif...</span>
+      <div className="flex h-100 w-full animate-pulse flex-col items-center justify-center gap-3 rounded-2xl bg-gray-card border border-gray-border shadow-xs">
+        <div className="h-10 w-10 rounded-xl bg-gray-border/70" />
+        <span className="text-xs text-gray-placeholder">Menyiapkan Peta Interaktif...</span>
       </div>
     ),
   }
@@ -107,12 +108,7 @@ export default function NeighborhoodPage() {
   }, [isVerified]);
 
   if (isAuthLoading || (isVerified && isLoadingData)) {
-    return (
-      <div className="flex h-[80vh] flex-col items-center justify-center gap-2">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm font-medium text-gray-placeholder">Memuat Data Peta & Tetangga...</span>
-      </div>
-    );
+    return <NeighborhoodSkeleton />;
   }
 
   // Double check feature gate

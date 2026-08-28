@@ -20,7 +20,7 @@ export default function Dashboard() {
   const [assignedRoles, setAssignedRoles] = useState<number[]>([]);
   const [primaryRoleId, setPrimaryRoleId] = useState<number | null>(null);
   const userBaseRoleId = primaryRoleId ?? session?.user?.roleId ?? (assignedRoles.length > 0 ? assignedRoles[0] : null);
-  const [isRolesLoaded, setIsRolesLoaded] = useState(false);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -51,13 +51,14 @@ export default function Dashboard() {
             );
             
             useRoleStore.getState().initialize(baseRole, fetchedAllowedRoles);
-            
-            setIsRolesLoaded(true);
           }
         }
       } catch (err) {
         console.error("Failed to fetch assigned roles in Dashboard:", err);
-        if (isMounted) setIsRolesLoaded(true);
+      } finally {
+        if (isMounted) {
+          setIsLoadingRoles(false);
+        }
       }
     }
     fetchAssignedRoles();
@@ -91,30 +92,28 @@ export default function Dashboard() {
     }
   }, [session?.user, activeRoleId, router]);
 
-  if (isPending || !isRolesLoaded) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
+  if (isPending && !session) {
+    return null;
   }
 
   if (!session) return null;
 
-  const validActiveRole =
-    activeRoleId !== null && allowedRoles.includes(activeRoleId)
-      ? activeRoleId
-      : null;
+  // Tentukan role aktif saat ini dengan fallback ke session.user.roleId agar langsung render
+  const resolvedActiveRole = activeRoleId ?? session.user.roleId ?? null;
+  const isValidInAllowed = resolvedActiveRole !== null && (allowedRoles.length === 0 || allowedRoles.includes(resolvedActiveRole));
 
   const currentRoleId =
-    validActiveRole ??
+    (isValidInAllowed ? resolvedActiveRole : null) ??
     (allowedRoles.length > 0
       ? userBaseRoleId && allowedRoles.includes(userBaseRoleId)
         ? userBaseRoleId
         : allowedRoles[0]
-      : null);
+      : (session.user.roleId ?? null));
 
   if (!currentRoleId) {
+    if (isLoadingRoles) {
+      return null;
+    }
     return <IdleAccountNotice userName={session.user.name} />;
   }
 

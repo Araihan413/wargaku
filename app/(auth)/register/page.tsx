@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 import { FormField } from "@/components/FormField"; 
-import { DwellingDropdown } from "@/components/register/DwellingDropdown";
+import { DwellingDropdown } from "./_components/DwellingDropdown";
 interface DwellingOption {
   id: number;
   label: string;

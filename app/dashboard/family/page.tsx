@@ -392,23 +392,7 @@ function WargaFamilyContent() {
   };
 
   if (isLoading && !familyDetail) {
-    return (
-      <div className="space-y-6 pb-12">
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-heading-main">
-              Kelola Anggota Keluarga
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-secondary-text mt-0.5">
-              Lengkapi berkas Kartu Keluarga, scan KTP, dan atur biodata anggota keluarga Anda.
-            </p>
-          </div>
-        </div>
-
-        <WargaFamilySkeleton />
-      </div>
-    );
+    return <WargaFamilySkeleton />;
   }
 
   if (error || !familyDetail) {

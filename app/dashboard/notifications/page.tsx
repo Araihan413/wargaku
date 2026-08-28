@@ -28,6 +28,7 @@ interface NotificationItem {
 
 import { formatRelativeTime } from "@/lib/date-format";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { NotificationsSkeleton } from "./_components/NotificationsSkeleton";
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -247,6 +248,14 @@ export default function NotificationsPage() {
 
   const hasUnread = notifications.some((n) => !n.isRead);
 
+  if (loading && notifications.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <NotificationsSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* 1. Header Workspace */}
@@ -332,9 +341,16 @@ export default function NotificationsPage() {
       {/* 3. Notifications List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-gray-card rounded-2xl border border-gray-border/60 shadow-sm space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="text-xs text-gray-placeholder">Memuat notifikasi...</span>
+          <div className="space-y-3 animate-pulse">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-20 bg-gray-card border border-gray-border rounded-2xl p-4 flex items-center gap-3.5 shadow-xs">
+                <div className="h-10 w-10 rounded-xl bg-gray-border/80 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-48 bg-gray-border/80 rounded" />
+                  <div className="h-3 w-64 max-w-full bg-gray-border/50 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 bg-gray-card rounded-2xl border border-gray-border/60 shadow-sm text-center">

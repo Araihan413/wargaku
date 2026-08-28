@@ -12,6 +12,7 @@ import { CitizenFilterOptions, FilteredCitizen } from "@/db/queries/residents/ci
 import { SavedSmartGroup } from "@/db/queries/system/smart-group.queries";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { SmartGroupsSkeleton } from "./_components/SmartGroupsSkeleton";
 import { TableSkeleton } from "@/components/TableSkeleton";
 
 const initialFilterState: CitizenFilterOptions = {
@@ -283,6 +284,10 @@ export default function SmartGroupsPage() {
     document.body.removeChild(link);
     toast.success("Daftar warga berhasil diekspor ke CSV/Excel!");
   };
+
+  if (isEvaluating && citizens.length === 0) {
+    return <SmartGroupsSkeleton />;
+  }
 
   return (
     <div className="space-y-6 pb-12">

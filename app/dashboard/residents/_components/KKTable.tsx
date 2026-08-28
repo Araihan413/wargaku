@@ -130,7 +130,7 @@ export const KKTable: React.FC<KKTableProps> = ({
                       <div className="flex justify-end items-center gap-1.5">
                         {/* Lihat Detail */}
                         <Link
-                          href={`/dashboard/residents/keluarga/${f.id}`}
+                          href={`/dashboard/residents/families/${f.id}`}
                           title="Lihat Detail & Anggota Keluarga"
                           className="p-1.5 text-gray-secondary-text hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer transition-colors"
                         >

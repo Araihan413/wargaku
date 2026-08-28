@@ -9,11 +9,11 @@ import { ComplaintTable } from "./_components/ComplaintTable";
 import { ComplaintDetailModal } from "./_components/ComplaintDetailModal";
 import { DeleteComplaintModal } from "./_components/DeleteComplaintModal";
 import { ComplaintItem, ComplaintKpiSummary } from "./types";
-import { RefreshCw } from "lucide-react"; 
 import { toast } from "sonner";
 import { RefreshButton } from "@/components/RefreshButton";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { ComplaintsSkeleton } from "./_components/ComplaintsSkeleton";
 
 export default function ComplaintsDashboardPage() {
   return (
@@ -134,12 +134,8 @@ function ComplaintsDashboardContent() {
     setIsDeleteModalOpen(true);
   };
 
-  if (isSessionLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
+  if ((isSessionLoading || isLoading) && complaints.length === 0) {
+    return <ComplaintsSkeleton />;
   }
 
   return (

@@ -15,14 +15,22 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/components/ConfirmModal";
-import { useRoleStore } from "@/lib/store/use-role-store";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { BroadcastAdminItem, CreateBroadcastPayload } from "./types";
 import { CreateBroadcastModal } from "./_components/CreateBroadcastModal";
+import { SystemBroadcastSkeleton } from "./_components/SystemBroadcastSkeleton";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function SystemBroadcastPage() {
-  const { activeRoleId } = useRoleStore();
+  return (
+    <PermissionGuard requiredRoles={[1]}>
+      <SystemBroadcastContent />
+    </PermissionGuard>
+  );
+}
+
+function SystemBroadcastContent() {
   const [broadcasts, setBroadcasts] = useState<BroadcastAdminItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,8 +44,6 @@ export default function SystemBroadcastPage() {
   // Confirm delete state
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const isSuperAdmin = activeRoleId === 1;
 
   const fetchBroadcasts = useCallback(async () => {
     setIsLoading(true);
@@ -58,11 +64,35 @@ export default function SystemBroadcastPage() {
   }, []);
 
   useEffect(() => {
-    if (isSuperAdmin) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchBroadcasts();
+    let isCancelled = false;
+
+    async function loadData() {
+      try {
+        const res = await fetch("/api/broadcasts?admin=true");
+        if (res.ok) {
+          const data = await res.json();
+          if (!isCancelled) {
+            setBroadcasts(data);
+          }
+        } else {
+          toast.error("Gagal mengambil data broadcast");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Terjadi kesalahan koneksi");
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
     }
-  }, [isSuperAdmin, fetchBroadcasts]);
+
+    loadData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   const handleCreateBroadcast = async (payload: CreateBroadcastPayload) => {
     setIsSubmitting(true);
@@ -175,16 +205,8 @@ export default function SystemBroadcastPage() {
     }
   };
 
-  if (!isSuperAdmin) {
-    return (
-      <div className="flex h-96 flex-col items-center justify-center p-6 text-center bg-gray-card rounded-2xl border border-gray-border">
-        <AlertTriangle className="h-12 w-12 text-rose-500 mb-3" />
-        <h3 className="text-base font-bold text-gray-heading-main">Akses Terbatas</h3>
-        <p className="text-xs text-gray-secondary-text mt-1 max-w-sm">
-          Halaman ini khusus untuk Super Admin untuk mengelola broadcast pengumuman sistem.
-        </p>
-      </div>
-    );
+  if (isLoading && broadcasts.length === 0) {
+    return <SystemBroadcastSkeleton />;
   }
 
   return (

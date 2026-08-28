@@ -7,6 +7,7 @@ import { CoordinatorKpiCards } from "./coordinator/CoordinatorKpiCards";
 import { PropertyOccupancySection } from "./coordinator/PropertyOccupancySection";
 import { PendingVerificationQueue } from "./coordinator/PendingVerificationQueue";
 import { CoordinatorQuickActions } from "./coordinator/CoordinatorQuickActions";
+import { CoordinatorDashboardSkeleton } from "./coordinator/CoordinatorDashboardSkeleton";
 
 export function KoordinatorKosDashboard() {
   const [stats, setStats] = useState<CoordinatorDashboardStats | null>(null);
@@ -33,17 +34,7 @@ export function KoordinatorKosDashboard() {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 animate-pulse pb-12">
-        <div className="h-8 w-64 bg-gray-border/60 rounded-xl" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-gray-card border border-gray-border rounded-2xl p-5" />
-          ))}
-        </div>
-        <div className="h-64 bg-gray-card border border-gray-border rounded-2xl" />
-      </div>
-    );
+    return <CoordinatorDashboardSkeleton />;
   }
 
   if (error || !stats) {

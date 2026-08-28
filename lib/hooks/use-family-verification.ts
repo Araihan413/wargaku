@@ -18,25 +18,27 @@ export interface FamilyVerificationState {
 
 export function useFamilyVerification(userRoleId?: number | null): FamilyVerificationState {
   const { activeRoleId } = useRoleStore();
-  const currentRoleId = userRoleId !== undefined ? userRoleId : activeRoleId;
+  const currentRoleId = userRoleId !== undefined && userRoleId !== null ? userRoleId : activeRoleId;
   const isWargaOrCoord = currentRoleId === 6 || currentRoleId === 5;
+  const isRoleResolved = typeof currentRoleId === "number" && currentRoleId > 0;
 
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatusType>("unsubmitted");
   const [hasVerified, setHasVerified] = useState<boolean>(false);
   const [hasFamily, setHasFamily] = useState<boolean>(false);
   const [hasUploadedKK, setHasUploadedKK] = useState<boolean>(false);
   const [verificationNote, setVerificationNote] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(Boolean(isWargaOrCoord));
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
   const [refetchIndex, setRefetchIndex] = useState<number>(0);
 
   const refetch = useCallback(async () => {
     if (!isWargaOrCoord) return;
-    setIsLoading(true);
+    setIsFetching(true);
     setRefetchIndex((prev) => prev + 1);
   }, [isWargaOrCoord]);
 
   useEffect(() => {
-    if (!isWargaOrCoord) {
+    if (!isRoleResolved || !isWargaOrCoord) {
       return;
     }
 
@@ -72,7 +74,8 @@ export function useFamilyVerification(userRoleId?: number | null): FamilyVerific
         setVerificationStatus("unsubmitted");
       } finally {
         if (!ignore) {
-          setIsLoading(false);
+          setIsFetching(false);
+          setHasLoadedOnce(true);
         }
       }
     }
@@ -82,8 +85,23 @@ export function useFamilyVerification(userRoleId?: number | null): FamilyVerific
     return () => {
       ignore = true;
     };
-  }, [isWargaOrCoord, currentRoleId, refetchIndex]);
+  }, [isRoleResolved, isWargaOrCoord, currentRoleId, refetchIndex]);
 
+  // Jika role belum diketahui / resolved, tahan dalam status isLoading
+  if (!isRoleResolved) {
+    return {
+      isVerified: false,
+      hasVerified: false,
+      hasFamily: false,
+      verificationStatus: "unsubmitted",
+      hasUploadedKK: false,
+      verificationNote: null,
+      isLoading: true,
+      refetch,
+    };
+  }
+
+  // Jika bukan role warga atau koordinator, langsung verified dan tidak loading
   if (!isWargaOrCoord) {
     return {
       isVerified: true,
@@ -97,6 +115,8 @@ export function useFamilyVerification(userRoleId?: number | null): FamilyVerific
     };
   }
 
+  const isLoading = !hasLoadedOnce || isFetching;
+
   return {
     isVerified: hasVerified || verificationStatus === "verified",
     hasVerified,
@@ -108,5 +128,3 @@ export function useFamilyVerification(userRoleId?: number | null): FamilyVerific
     refetch,
   };
 }
-
-
