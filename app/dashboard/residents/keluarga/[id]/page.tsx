@@ -13,6 +13,7 @@ import { PindahKKModal } from "./_components/PindahKKModal";
 import { GantiKepalaKeluargaModal } from "./_components/GantiKepalaKeluargaModal";
 import { FamilyDocumentsCard } from "./_components/FamilyDocumentsCard";
 import { DetailAnggotaModal } from "./_components/DetailAnggotaModal";
+import { FamilyDetailSkeleton } from "./_components/FamilyDetailSkeleton";
 import { FamilyDetail, FamilyMemberItem } from "../../types";
 import { authClient } from "@/lib/auth-client";
 import { useRoleStore } from "@/lib/store/use-role-store";
@@ -109,10 +110,28 @@ export default function FamilyDetailPage({ params }: PageProps) {
 
   if (isLoading && !familyDetail) {
     return (
-      <div className="space-y-6 animate-pulse pb-12">
-        <div className="h-48 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
-        <div className="h-72 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
-        <div className="h-36 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+      <div className="space-y-6 pb-12">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/residents"
+              className="p-2 border border-gray-border rounded-xl hover:bg-gray-sidebar-hover text-gray-secondary-text cursor-pointer transition-colors"
+              title="Kembali ke Daftar KK"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-heading-main">
+                Rincian Kartu Keluarga
+              </h1>
+              <p className="text-sm text-gray-secondary-text mt-1">
+                Rincian lengkap Kartu Keluarga, alamat, and anggota keluarga warga tetap.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <FamilyDetailSkeleton />
       </div>
     );
   }

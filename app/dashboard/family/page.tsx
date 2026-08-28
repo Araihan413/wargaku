@@ -9,6 +9,7 @@ import { WargaMemberTable } from "./_components/WargaMemberTable";
 import { AddWargaMemberModal } from "./_components/AddWargaMemberModal";
 import { EditWargaMemberModal } from "./_components/EditWargaMemberModal";
 import { DeleteWargaMemberModal } from "./_components/DeleteWargaMemberModal";
+import { WargaFamilySkeleton } from "./_components/WargaFamilySkeleton";
 import { WargaFamilyDetail, WargaFamilyMember } from "./types";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { PermissionGuard } from "@/components/PermissionGuard";
@@ -392,10 +393,20 @@ function WargaFamilyContent() {
 
   if (isLoading && !familyDetail) {
     return (
-      <div className="space-y-6 animate-pulse pb-12">
-        <div className="h-56 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
-        <div className="h-72 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
-        <div className="h-44 w-full rounded-3xl bg-gray-card border border-gray-border p-6 shadow-xs" />
+      <div className="space-y-6 pb-12">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-heading-main">
+              Kelola Anggota Keluarga
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-secondary-text mt-0.5">
+              Lengkapi berkas Kartu Keluarga, scan KTP, dan atur biodata anggota keluarga Anda.
+            </p>
+          </div>
+        </div>
+
+        <WargaFamilySkeleton />
       </div>
     );
   }

@@ -33,7 +33,6 @@ import { checkDwellingOwnership } from "@/db/queries/dashboard/public-portal.que
  *             schema:
  *               type: object
  *               properties:
- *               properties:
  *                 ownershipStatus:
  *                   type: string
  *                   enum: [pemilik-permanen, pemilik-kos, kepala-keluarga-permanen, kepala-keluarga-kos, koordinator-kos, officer, tamu-login, non-owner]

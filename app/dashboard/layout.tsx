@@ -6,7 +6,6 @@ import { Sidebar } from "@/components/Sidebar";
 import { Navbar } from "@/components/Navbar";
 import { OneSignalProvider } from "@/components/OneSignalProvider";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { SystemBroadcastBanner } from "@/components/SystemBroadcastBanner";
@@ -33,7 +32,6 @@ export default function DashboardLayout({
 }) {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
 
   const sidebarState = useSyncExternalStore(
@@ -69,9 +67,8 @@ export default function DashboardLayout({
       fetchOptions: {
         onSuccess: () => {
           toast.success("Berhasil keluar dari akun");
-          // Gunakan hard redirect untuk membersihkan status memori client-side sepenuhnya
-          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-          window.location.href = "/login";
+          // Gunakan replace agar riwayat rute dashboard digantikan oleh /login
+          window.location.replace("/login");
         },
         onError: (ctx) => {
           toast.error(ctx.error.message || "Gagal keluar");
@@ -83,11 +80,30 @@ export default function DashboardLayout({
 
   const user = session?.user;
 
+  // Tangani pemulihan halaman dari Back-Forward Cache (Bfcache) saat pengguna menekan tombol Back berkali-kali
+  React.useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setIsLoggingOut(false);
+        authClient.getSession().then(({ data }) => {
+          if (!data?.user) {
+            window.location.replace("/login");
+          }
+        }).catch(() => {
+          window.location.replace("/login");
+        });
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   React.useEffect(() => {
     // Lewati pengalihan jika sedang dalam proses logout manual untuk menghindari konflik transisi rute
     if (!isPending && !isLoggingOut) {
       if (!user) {
-        router.push("/login");
+        window.location.replace("/login");
       } else {
         const userStatus = (user as any).status;
         if (userStatus === "pending" || userStatus === "suspended") {
@@ -100,23 +116,19 @@ export default function DashboardLayout({
             } else {
               toast.error("Akun Anda ditangguhkan.");
             }
-            router.push("/login");
+            window.location.replace("/login");
           });
         }
       }
     }
-  }, [user, isPending, isLoggingOut, router]);
+  }, [user, isPending, isLoggingOut]);
 
-  if (isPending || isLoggingOut) {
+  if (isPending || isLoggingOut || !session) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-page-bg">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
-  }
-
-  if (!session) {
-    return null;
   }
 
   const currentStatus = (session.user as any).status;
