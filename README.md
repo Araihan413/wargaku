@@ -89,18 +89,20 @@ wargaku/
 │   │   ├── announcements/    # Manajemen pengumuman
 │   │   ├── approvals/        # Antrean verifikasi registrasi & berkas dokumen
 │   │   ├── audit-logs/       # Log aktivitas audit sistem (Super Admin)
+│   │   ├── cash/             # Buku kas masuk, kas keluar & Cetak Laporan Keuangan PDF
 │   │   ├── complaints/       # Manajemen tindak lanjut pengaduan
-│   │   ├── family/           # Profil biodata Kartu Keluarga & anggota
-│   │   ├── iuran/            # Tagihan iuran & setoran bulanan
-│   │   ├── kas/              # Buku kas masuk, kas keluar & Cetak Laporan PDF
+│   │   ├── complaints-report/# Laporan rekapitulasi pengaduan publik
+│   │   ├── dues/             # Tagihan iuran, setoran bulanan & rekap tunggakan
+│   │   ├── family/           # Profil biodata Kartu Keluarga & anggota (Role Warga)
 │   │   ├── my-fees/          # Histori iuran personal warga
-│   │   ├── my-properties/    # Manajemen properti sewa pribadi
+│   │   ├── my-properties/    # Manajemen properti sewa pribadi (Pemilik Kos)
 │   │   ├── neighborhood/     # Peta spasial lingkungan & direktori tetangga
-│   │   ├── notifications/    # Notifikasi in-app
+│   │   ├── notifications/    # Notifikasi in-app (Personal & Dinas)
 │   │   ├── permissions/      # Matriks otorisasi RBAC (Super Admin)
+│   │   ├── profile/          # Profil akun pengguna
 │   │   ├── qr-codes/         # Generator & cetak QR Code hunian
 │   │   ├── rentals/          # Panel Koordinator Kos & manajemen penghuni
-│   │   ├── residents/        # Master data kependudukan & mutasi
+│   │   ├── residents/        # Master data kependudukan, hunian & detail keluarga (families/[id])
 │   │   ├── smart-groups/     # Kelompok warga cerdas & ekspor data
 │   │   ├── system-broadcast/ # Siaran notifikasi darurat/pemeliharaan sistem
 │   │   ├── system-config/    # Konfigurasi identitas RT & kontak darurat

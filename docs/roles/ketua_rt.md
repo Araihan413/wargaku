@@ -86,7 +86,7 @@ Ketika Ketua RT login ke sistem, menu navigasi sidebar meliputi:
     *   **Persetujuan Registrasi:** Meninjau dan menyetujui/menolak permohonan pendaftaran mandiri akun warga (`pending` -> `active` / `rejected`).
     *   **Verifikasi Berkas KK/KTP:** Memeriksa berkas scan KK dan KTP warga/penyewa untuk memastikan keabsahan data kependudukan (`pending` -> `verified` / `rejected`).
 
-*   **KT-05: Pengelolaan Kas RT & Iuran Warga (`/dashboard/kas` & `/dashboard/iuran`)**
+*   **KT-05: Pengelolaan Kas RT & Iuran Warga (`/dashboard/cash` & `/dashboard/dues`)**
     *   **Pencatatan Kas Masuk & Keluar:** Input transaksi pemasukan kas lain-lain dan pengeluaran kas operasional RT disertai bukti kuitansi fisik.
     *   **Laporan Keuangan Resmi:** Laporan buku kas bulanan dengan visualisasi diagram kategori dan fitur cetak dokumen PDF resmi bertanda tangan digital pengurus.
     *   **Iuran Warga:** Pembuatan aturan iuran (wajib/sukarela), input pembayaran iuran per periode, serta pemantauan rekapitulasi tunggakan iuran warga.

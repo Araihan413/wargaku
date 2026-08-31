@@ -36,33 +36,33 @@ Ketika Bendahara login ke sistem, menu navigasi sidebar meliputi:
     *   **C. Recent Transactions Widget:**
         *   Tabel transaksi keuangan terkini dengan badge tipe pemasukan/pengeluaran, kategori, tanggal, nominal, dan tautan pratinjau bukti nota kuitansi digital.
 
-*   **BE-02: Pencatatan Kas Masuk (Income Management - `/dashboard/kas/income`)**
+*   **BE-02: Pencatatan Kas Masuk (Income Management - `/dashboard/cash/income`)**
     *   Mencatat penerimaan kas RT non-iuran (donasi sukarela, dana sumbangan perayaan 17 Agustus, sewa aula/lapangan RT).
     *   Setiap input kas masuk otomatis menambah saldo kas utama secara real-time.
     *   Dilengkapi fitur filter pencarian, pengurutan, pengeditan, dan penghapusan transaksi.
 
-*   **BE-03: Pencatatan Kas Keluar (Expense Management - `/dashboard/kas/expense`)**
+*   **BE-03: Pencatatan Kas Keluar (Expense Management - `/dashboard/cash/expense`)**
     *   Mencatat pengeluaran kas operasional RT (biaya kebersihan, penerangan jalan, perbaikan fasilitas umum, konsumsi rapat warga).
     *   **Opsional mengunggah bukti nota / scan kuitansi fisik** sebagai bukti pertanggungjawaban digital.
     *   Tersedia pratinjau dokumen nota melalui modal penampil berkas aman (*SecureDocumentLink*).
     *   Setiap pengeluaran kas yang tersimpan otomatis memotong saldo kas utama secara real-time.
 
-*   **BE-04: Laporan Keuangan Resmi & Cetak PDF (`/dashboard/kas/reports`)**
+*   **BE-04: Laporan Keuangan Resmi & Cetak PDF (`/dashboard/cash/reports`)**
     *   Pemilihan periode laporan bulanan dan tahunan secara fleksibel.
     *   Visualisasi diagram tren arus kas dan diagram alokasi pengeluaran per kategori.
     *   **Cetak Dokumen PDF Resmi:** Menghasilkan dokumen laporan pertanggungjawaban keuangan resmi ber-kop surat RT lengkap dengan kolom tanda tangan digital Bendahara dan Ketua RT.
 
-*   **BE-05: Pengelolaan Iuran Warga & Tunggakan (`/dashboard/iuran`)**
+*   **BE-05: Pengelolaan Iuran Warga & Tunggakan (`/dashboard/dues`)**
     *   **Konfigurasi Aturan Iuran (`fee_rules`):** Menetapkan nama iuran, nominal tarif per KK (misal: Rp 50.000/bulan), dan jenis kewajiban (*Wajib* atau *Sukarela*).
     *   **Generate Tagihan Iuran:** 
         *   *Saat Pembuatan Aturan:* Saat aturan iuran baru pertama kali dibuat, sistem langsung meng-generate baris tagihan perdana (`unpaid`) untuk seluruh KK aktif.
         *   *Tombol Generate:* Untuk periode berjalan atau menyinkronkan KK yang baru terdaftar, Bendahara dapat menekan tombol **`[Generate]`** pada kartu aturan iuran untuk men-generate/memperbarui baris tagihan periode tersebut bagi seluruh Kepala Keluarga aktif.
-    *   **Pencatatan Pembayaran Warga (`/dashboard/iuran/manage`):**
+    *   **Pencatatan Pembayaran Warga (`/dashboard/dues/manage`):**
         *   *Pelunasan Penuh:* Sistem mengubah status tagihan menjadi **`Lunas` (paid)**.
         *   *Cicilan / Sebagian:* Bendahara dapat menginput nominal pembayaran bertahap, status berubah menjadi **`Kurang` (partially_paid)** dan sistem mencatat sisa kekurangan tagihan.
         *   *Sinkronisasi Kas:* Sistem otomatis mencatat uang yang disetorkan warga ke dalam buku kas utama sebesar nominal yang dibayarkan.
         *   *Tanda Terima Digital:* Pembayaran yang diverifikasi Bendahara otomatis terbit di akun warga sebagai riwayat transaksi resmi.
-    *   **Laporan Tunggakan Iuran (`/dashboard/iuran/tunggakan`):** Rekapitulasi daftar KK yang menunggak pembayaran iuran pada periode berjalan maupun akumulasi periode sebelumnya untuk memudahkan monitoring dan penagihan.
+    *   **Laporan Tunggakan Iuran (`/dashboard/dues/arrears`):** Rekapitulasi daftar KK yang menunggak pembayaran iuran pada periode berjalan maupun akumulasi periode sebelumnya untuk memudahkan monitoring dan penagihan.
 
 *   **BE-06: Fitur Dual Role (Mode Warga Personal)**
     *   Bendahara RT dapat berganti peran secara instan ke *Mode Warga Personal* untuk mengelola data anggota keluarganya sendiri, memantau iuran pribadi, dan melihat aset sewa pribadi tanpa perlu keluar dari akun.
