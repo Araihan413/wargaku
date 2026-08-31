@@ -7,8 +7,24 @@ interface RoleState {
   resetRole: () => void;
 }
 
+const getInitialActiveRoleId = (): number | null => {
+  if (typeof window !== 'undefined') {
+    const match = document.cookie.match(/(?:^|; )active_role_id=([^;]*)/);
+    if (match) {
+      const cookieRoleId = parseInt(match[1], 10);
+      if (!isNaN(cookieRoleId)) return cookieRoleId;
+    }
+    const localRole = localStorage.getItem('last_accessed_role_id');
+    if (localRole) {
+      const parsedLocal = parseInt(localRole, 10);
+      if (!isNaN(parsedLocal)) return parsedLocal;
+    }
+  }
+  return null;
+};
+
 export const useRoleStore = create<RoleState>((set) => ({
-  activeRoleId: null,
+  activeRoleId: getInitialActiveRoleId(),
   setActiveRoleId: (roleId) => {
     set({ activeRoleId: roleId });
     if (typeof window !== 'undefined') {

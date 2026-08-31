@@ -308,23 +308,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
     return [];
   });
-  const [isFetchingPermissions, setIsFetchingPermissions] = useState(() => Boolean(currentRoleId && userPermissions.length === 0));
+
+  const [hasResolvedPermissions, setHasResolvedPermissions] = useState(
+    () => userPermissions.length > 0
+  );
+  const [isFetchingPermissions, setIsFetchingPermissions] = useState(
+    () => userPermissions.length === 0
+  );
 
   useEffect(() => {
-    if (!currentRoleId) return;
     let isMounted = true;
 
     async function fetchPermissions() {
       setIsFetchingPermissions(true);
       try {
-        const res = await fetch(`/api/permissions/my-permissions?roleId=${currentRoleId}`);
+        const roleQuery = currentRoleId ? `?roleId=${currentRoleId}` : "";
+        const res = await fetch(`/api/permissions/my-permissions${roleQuery}`);
         if (res.ok) {
           const json = await res.json();
           if (isMounted) {
             const rawPerms = Array.isArray(json.permissions) ? json.permissions : [];
             const slugs = rawPerms.map((p: any) => (typeof p === "string" ? p : p.slug)).filter(Boolean);
             setUserPermissions(slugs);
-            if (typeof window !== "undefined") {
+            if (typeof window !== "undefined" && currentRoleId) {
               sessionStorage.setItem(`cached_permissions_role_${currentRoleId}`, JSON.stringify(slugs));
             }
           }
@@ -338,9 +344,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } finally {
         if (isMounted) {
           setIsFetchingPermissions(false);
+          setHasResolvedPermissions(true);
         }
       }
     }
+
     fetchPermissions();
     return () => {
       isMounted = false;
@@ -498,7 +506,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Scrollable Navigation Area */}
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
-          {isFetchingPermissions ? (
+          {!hasResolvedPermissions || isFetchingPermissions ? (
             /* Skeleton Loaders */
             Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className={`flex items-center gap-3 p-3 rounded-xl ${isCollapsed ? "justify-center" : "justify-start"} animate-pulse`}>
