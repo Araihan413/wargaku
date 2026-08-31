@@ -19,6 +19,7 @@ import { PublicFinanceTransactionItem } from "@/db/queries/dashboard/public-port
 import { getCachedData, setCachedData } from "@/lib/public-cache";
 import { CustomSelect } from "@/components/CustomSelect";
 import { SearchInput } from "@/components/SearchInput";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 
 const TYPE_FILTERS = [
   { key: "semua", label: "Semua Transaksi" },
@@ -34,6 +35,7 @@ export default function PublicFinancePage() {
     totalPengeluaran: 0,
   });
 
+  const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
   const [selectedType, setSelectedType] = useState("semua");
   const [selectedMonth, setSelectedMonth] = useState("semua");
   const [searchTerm, setSearchTerm] = useState("");
@@ -95,6 +97,7 @@ export default function PublicFinancePage() {
         setPage(1);
         setErrorMessage(null);
         setIsLoading(false);
+        setHasInitialLoaded(true);
         return;
       }
 
@@ -143,7 +146,10 @@ export default function PublicFinancePage() {
           setErrorMessage("Terjadi kesalahan koneksi jaringan. Silakan coba lagi.");
         }
       } finally {
-        if (!isCancelled) setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+          setHasInitialLoaded(true);
+        }
       }
     }
 
@@ -215,7 +221,11 @@ export default function PublicFinancePage() {
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 -mt-8 relative z-20 space-y-8 pb-12">
         {/* 1. Summary Cards Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div
+          className={`grid grid-cols-1 md:grid-cols-3 gap-5 transition-opacity duration-300 ${
+            isLoading && hasInitialLoaded ? "opacity-75" : "opacity-100"
+          }`}
+        >
           {/* Card Total Saldo */}
           <div className="bg-linear-to-br from-blue-900 to-blue-700 text-white rounded-2xl p-6 shadow-md border border-blue-600/30 flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between">
@@ -227,9 +237,15 @@ export default function PublicFinancePage() {
               </div>
             </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                {formatCurrency(summary.totalSaldo)}
-              </h2>
+              <div className="min-h-9 flex items-center">
+                {!hasInitialLoaded && isLoading ? (
+                  <div className="h-8 sm:h-9 w-44 bg-white/20 rounded-xl animate-pulse" />
+                ) : (
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                    <AnimatedNumber value={summary.totalSaldo} formatFn={formatCurrency} />
+                  </h2>
+                )}
+              </div>
               <p className="text-[11px] text-blue-200 mt-1 font-medium">
                 Sisa akumulasi kas aktif RT
               </p>
@@ -247,9 +263,15 @@ export default function PublicFinancePage() {
               </div>
             </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
-                + {formatCurrency(summary.totalPemasukan)}
-              </h2>
+              <div className="min-h-9 flex items-center">
+                {!hasInitialLoaded && isLoading ? (
+                  <div className="h-8 sm:h-9 w-44 bg-slate-200 rounded-xl animate-pulse" />
+                ) : (
+                  <h2 className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
+                    + <AnimatedNumber value={summary.totalPemasukan} formatFn={formatCurrency} />
+                  </h2>
+                )}
+              </div>
               <p className="text-[11px] text-slate-400 mt-1 font-medium">
                 Iuran warga, hibah & sumbangan
               </p>
@@ -267,9 +289,15 @@ export default function PublicFinancePage() {
               </div>
             </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">
-                - {formatCurrency(summary.totalPengeluaran)}
-              </h2>
+              <div className="min-h-9 flex items-center">
+                {!hasInitialLoaded && isLoading ? (
+                  <div className="h-8 sm:h-9 w-44 bg-slate-200 rounded-xl animate-pulse" />
+                ) : (
+                  <h2 className="text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">
+                    - <AnimatedNumber value={summary.totalPengeluaran} formatFn={formatCurrency} />
+                  </h2>
+                )}
+              </div>
               <p className="text-[11px] text-slate-400 mt-1 font-medium">
                 Operasional, perbaikan & kegiatan
               </p>

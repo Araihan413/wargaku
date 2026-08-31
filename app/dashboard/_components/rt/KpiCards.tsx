@@ -1,6 +1,7 @@
 import React from "react";
 import { Users, Home, UserCheck, Building } from "lucide-react";
 import { DashboardStats } from "../../types";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 
 interface KpiCardsProps {
   summary: DashboardStats["summary"];
@@ -15,7 +16,7 @@ export function KpiCards({ summary }: KpiCardsProps) {
           <p className="text-sm font-semibold tracking-wider text-gray-secondary-text">Total Rumah</p>
           <div className="flex justify-between items-center mt-2">
             <h3 className="mt-2 text-3xl font-extrabold text-gray-heading-main group-hover:text-primary transition-colors">
-              {summary.totalRumah ?? 0}
+              <AnimatedNumber value={summary.totalRumah ?? 0} />
             </h3>
             <div className="rounded-xl bg-blue-100 p-3 text-blue-600 transition-all group-hover:scale-110">
               <Home className="h-6 w-6" />
@@ -33,7 +34,7 @@ export function KpiCards({ summary }: KpiCardsProps) {
           <p className="text-sm font-semibold tracking-wider text-gray-secondary-text">Total Penduduk</p>
           <div className="flex justify-between items-center mt-2">
             <h3 className="mt-2 text-3xl font-extrabold text-gray-heading-main group-hover:text-primary transition-colors">
-              {summary.totalWargaAktif}
+              <AnimatedNumber value={summary.totalWargaAktif ?? 0} />
             </h3>
             <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600 transition-all group-hover:scale-110">
               <Users className="h-6 w-6" />
@@ -51,7 +52,7 @@ export function KpiCards({ summary }: KpiCardsProps) {
           <p className="text-sm font-semibold tracking-wider text-gray-secondary-text">Kepala Keluarga</p>
           <div className="flex justify-between items-center mt-2">
             <h3 className="mt-2 text-3xl font-extrabold text-gray-heading-main group-hover:text-primary transition-colors">
-              {summary.totalKK}
+              <AnimatedNumber value={summary.totalKK ?? 0} />
             </h3>
             <div className="rounded-xl bg-purple-100 p-3 text-purple-600 transition-all group-hover:scale-110">
               <UserCheck className="h-6 w-6" />
@@ -69,7 +70,7 @@ export function KpiCards({ summary }: KpiCardsProps) {
           <p className="text-sm font-semibold tracking-wider text-gray-secondary-text">Anak Kos</p>
           <div className="flex justify-between items-center mt-2">
             <h3 className="mt-2 text-3xl font-extrabold text-gray-heading-main group-hover:text-primary transition-colors">
-              {summary.totalPendatang}
+              <AnimatedNumber value={summary.totalPendatang ?? 0} />
             </h3>
             <div className="rounded-xl bg-amber-100 p-3 text-amber-600 transition-all group-hover:scale-110">
               <Building className="h-6 w-6" />

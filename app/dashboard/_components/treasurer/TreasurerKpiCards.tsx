@@ -1,6 +1,7 @@
 import React from "react";
 import { Wallet, TrendingUp, TrendingDown, CreditCard } from "lucide-react";
 import { TreasurerDashboardStats } from "./types";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 
 interface TreasurerKpiCardsProps {
   stats: TreasurerDashboardStats;
@@ -32,7 +33,7 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
   const cards = [
     {
       title: "Total Saldo Kas RT",
-      value: formatCurrency(safeStats.totalBalance),
+      valueNode: <AnimatedNumber value={safeStats.totalBalance} formatFn={formatCurrency} />,
       subtitle: "Akumulasi Pemasukan - Pengeluaran",
       icon: Wallet,
       badge: "Kas Utama",
@@ -43,7 +44,7 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
     },
     {
       title: "Pemasukan Bulan Ini",
-      value: formatCurrency(safeStats.thisMonthIncome),
+      valueNode: <AnimatedNumber value={safeStats.thisMonthIncome} formatFn={formatCurrency} />,
       subtitle: "Setor Iuran & Pemasukan Kas Non-Iuran",
       icon: TrendingUp,
       badge: "Bulan Ini",
@@ -54,7 +55,7 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
     },
     {
       title: "Pengeluaran Bulan Ini",
-      value: formatCurrency(safeStats.thisMonthExpense),
+      valueNode: <AnimatedNumber value={safeStats.thisMonthExpense} formatFn={formatCurrency} />,
       subtitle: "Total Pengeluaran Kas RT",
       icon: TrendingDown,
       badge: "Bulan Ini",
@@ -65,10 +66,10 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
     },
     {
       title: "Capaian Iuran Bulan Ini",
-      value: `${safeStats.duesStats.duesPaidPercentage}% KK Lunas`,
+      valueNode: <AnimatedNumber value={safeStats.duesStats.duesPaidPercentage} suffix="% KK Lunas" />,
       subtitle: `${safeStats.duesStats.paidFamiliesCount} dari ${safeStats.duesStats.totalActiveFamilies} KK Terbayar`,
       icon: CreditCard,
-      badge: `Periode ${safeStats.duesStats.currentPeriod}`,
+      badge: `Periode ${safeStats.duesStats.currentPeriod || "-"}`,
       bgColor: "bg-sky-50 border-sky-100",
       iconBg: "bg-primary text-white",
       badgeColor: "bg-sky-100 text-sky-800 border-sky-200",
@@ -101,7 +102,7 @@ export const TreasurerKpiCards: React.FC<TreasurerKpiCardsProps> = ({ stats }) =
                 {card.title}
               </span>
               <h2 className={`text-xl sm:text-2xl font-black mt-1 ${card.textColor}`}>
-                {card.value}
+                {card.valueNode}
               </h2>
             </div>
 

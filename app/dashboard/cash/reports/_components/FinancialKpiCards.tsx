@@ -1,6 +1,7 @@
 import React from "react";
 import { Wallet, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { FinancialReportSummary } from "../types";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 
 interface FinancialKpiCardsProps {
   summary: FinancialReportSummary;
@@ -19,7 +20,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Saldo Awal */}
-      <div className="p-5 rounded-2xl border border-blue-100 bg-blue-50/60 shadow-xs space-y-2 flex flex-col justify-between">
+      <div className="p-5 rounded-2xl border border-blue-100 bg-blue-50/60 shadow-xs space-y-2 flex flex-col justify-between transition-all">
         <div className="flex items-center justify-between">
           <span className="text-md font-bold text-blue-900 tracking-wider">
             Saldo Awal
@@ -30,7 +31,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
         </div>
         <div>
           <h3 className="text-xl sm:text-2xl font-black text-blue-900 tracking-tight">
-            {formatRupiah(summary.openingBalance)}
+            <AnimatedNumber value={summary.openingBalance} formatFn={formatRupiah} />
           </h3>
           <p className="text-[11px] text-blue-800/80 font-medium mt-1">
             Sebelum periode {periodLabel}
@@ -39,7 +40,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
       </div>
 
       {/* Total Pemasukan */}
-      <div className="p-5 rounded-2xl border border-emerald-100 bg-emerald-50/60 shadow-xs space-y-2 flex flex-col justify-between">
+      <div className="p-5 rounded-2xl border border-emerald-100 bg-emerald-50/60 shadow-xs space-y-2 flex flex-col justify-between transition-all">
         <div className="flex items-center justify-between">
           <span className="text-md font-bold text-emerald-900 tracking-wider">
             Total Pemasukan
@@ -50,7 +51,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
         </div>
         <div>
           <h3 className="text-xl sm:text-2xl font-black text-emerald-700 tracking-tight">
-            +{formatRupiah(summary.totalIncome)}
+            +<AnimatedNumber value={summary.totalIncome} formatFn={formatRupiah} />
           </h3>
           <p className="text-[11px] text-emerald-800/80 font-medium mt-1">
             Kas: {formatRupiah(summary.totalCashIncome)} | Iuran: {formatRupiah(summary.totalFeeIncome)}
@@ -59,7 +60,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
       </div>
 
       {/* Total Pengeluaran */}
-      <div className="p-5 rounded-2xl border border-rose-100 bg-rose-50/60 shadow-xs space-y-2 flex flex-col justify-between">
+      <div className="p-5 rounded-2xl border border-rose-100 bg-rose-50/60 shadow-xs space-y-2 flex flex-col justify-between transition-all">
         <div className="flex items-center justify-between">
           <span className="text-md font-bold text-rose-900 tracking-wider">
             Total Pengeluaran
@@ -70,7 +71,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
         </div>
         <div>
           <h3 className="text-xl sm:text-2xl font-black text-rose-700 tracking-tight">
-            -{formatRupiah(summary.totalExpense)}
+            -<AnimatedNumber value={summary.totalExpense} formatFn={formatRupiah} />
           </h3>
           <p className="text-[11px] text-rose-800/80 font-medium mt-1">
             Transaksi pengeluaran
@@ -79,7 +80,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
       </div>
 
       {/* Saldo Akhir */}
-      <div className="p-5 rounded-2xl border border-primary/20 bg-primary/5 shadow-xs space-y-2 flex flex-col justify-between">
+      <div className="p-5 rounded-2xl border border-primary/20 bg-primary/5 shadow-xs space-y-2 flex flex-col justify-between transition-all">
         <div className="flex items-center justify-between">
           <span className="text-md font-bold text-primary tracking-wider">
             Saldo Akhir
@@ -90,7 +91,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
         </div>
         <div>
           <h3 className="text-xl sm:text-2xl font-black text-primary tracking-tight">
-            {formatRupiah(summary.endingBalance)}
+            <AnimatedNumber value={summary.endingBalance} formatFn={formatRupiah} />
           </h3>
           <div className="flex items-center gap-1.5 mt-1">
             <span
@@ -101,7 +102,7 @@ export const FinancialKpiCards: React.FC<FinancialKpiCardsProps> = ({ summary, p
               }`}
             >
               {summary.netChange >= 0 ? "+" : ""}
-              {formatRupiah(summary.netChange)} (Net)
+              <AnimatedNumber value={summary.netChange} formatFn={formatRupiah} /> (Net)
             </span>
           </div>
         </div>

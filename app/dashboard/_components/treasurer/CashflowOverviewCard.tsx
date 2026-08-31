@@ -72,12 +72,12 @@ export const CashflowOverviewCard: React.FC<CashflowOverviewCardProps> = ({ stat
 
         {/* Net Cashflow Summary Box */}
         <div className="p-4 rounded-xl border border-gray-border bg-gray-page-bg/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-secondary-text">
-              Selisih Bersih (Net Cashflow Bulan Ini)
-            </span>
-            <p className={`text-lg font-black mt-0.5 ${netMonthCashflow >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-              {netMonthCashflow >= 0 ? "+" : ""}{formatCurrency(netMonthCashflow)}
-            </p>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-secondary-text">
+            Selisih Bersih (Net Cashflow Bulan Ini)
+          </span>
+          <p className={`text-lg font-black mt-0.5 ${netMonthCashflow >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            {netMonthCashflow >= 0 ? "+" : ""}{formatCurrency(netMonthCashflow)}
+          </p>
         </div>
       </div>
 
