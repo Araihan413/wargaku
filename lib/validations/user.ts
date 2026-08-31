@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { nikRegex, indonesianPhoneRegex } from "./common";
+import { nikRegex, kkNumberRegex, indonesianPhoneRegex } from "./common";
 
 export const createUserByAdminSchema = z.object({
   name: z.string({
@@ -50,9 +50,15 @@ export const createUserByAdminSchema = z.object({
     });
   }
 
-  // 3. Jika ada role Warga (6), validasi NIK
+  // 3. Jika ada role Warga (6), wajib NIK (16 digit), Nomor KK (16 digit), dan Alamat Hunian
   if (data.roles.includes(6)) {
-    if (data.nik && data.nik.trim() !== "" && !nikRegex.test(data.nik.trim())) {
+    if (!data.nik || data.nik.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["nik"],
+        message: "NIK wajib diisi untuk peran Warga",
+      });
+    } else if (!nikRegex.test(data.nik.trim())) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["nik"],
@@ -60,8 +66,21 @@ export const createUserByAdminSchema = z.object({
       });
     }
 
-    // Jika membuat KK baru (familyNumber diisi) tanpa NIK eksisting, dwellingId wajib
-    if (data.familyNumber && data.familyNumber.trim() !== "" && !data.dwellingId) {
+    if (!data.familyNumber || data.familyNumber.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["familyNumber"],
+        message: "Nomor Kartu Keluarga (KK) wajib diisi untuk peran Warga",
+      });
+    } else if (!kkNumberRegex.test(data.familyNumber.trim())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["familyNumber"],
+        message: "Nomor KK harus terdiri dari 16 digit angka",
+      });
+    }
+
+    if (!data.dwellingId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["dwellingId"],

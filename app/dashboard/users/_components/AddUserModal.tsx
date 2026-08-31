@@ -427,7 +427,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                   placeholder="16 digit NIK (misal: 3171012304950001)"
                   note={
                     isWargaSelected
-                      ? "Wajib 16 digit NIK KTP untuk verifikasi kependudukan"
+                      ? "Wajib 16 digit NIK KTP"
                       : "16 digit NIK KTP (opsional)"
                   }
                   registerProps={register("nik", {
@@ -466,9 +466,10 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                     id="familyNumber"
                     label="Nomor Kartu Keluarga (KK)"
                     type="text"
-                    required={false}
+                    required={isWargaSelected}
                     maxLength={16}
-                    placeholder="16 digit nomor KK (opsional)"
+                    placeholder="16 digit nomor KK"
+                    note="Wajib 16 digit Nomor Kartu Keluarga (KK)"
                     registerProps={register("familyNumber", {
                       onChange: (e) => {
                         e.target.value = e.target.value.replace(/\D/g, "").slice(0, 16);

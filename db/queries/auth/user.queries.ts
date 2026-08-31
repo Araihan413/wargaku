@@ -618,23 +618,25 @@ export async function createUserWithAccount(input: CreateUserInput) {
 
     // 5. Jika role Warga (6), BELUM tertaut ke KK, dan dwellingId diisi -> Buat data KK baru (Fast Track Admin)
     if (roleIds.includes(6) && !isAutoLinked && input.dwellingId) {
-      const familyNo = input.familyNumber && input.familyNumber.trim() !== ''
-        ? input.familyNumber.trim()
-        : `${Date.now()}`.slice(0, 16);
-      
-      const cleanNik = input.nik ? input.nik.trim() : `${Date.now()}`.slice(0, 16);
+      if (!input.familyNumber || input.familyNumber.trim() === '') {
+        throw new Error('FAMILY_NUMBER_REQUIRED:Nomor Kartu Keluarga (KK) wajib diisi untuk warga baru.');
+      }
+      if (!input.nik || input.nik.trim() === '') {
+        throw new Error('NIK_REQUIRED:NIK wajib diisi untuk warga baru.');
+      }
+
+      const familyNo = input.familyNumber.trim();
+      const cleanNik = input.nik.trim();
 
       // Cek duplikasi Nomor KK via blind index
-      if (input.familyNumber && input.familyNumber.trim() !== '') {
-        const [existingFam] = await tx
-          .select({ id: schema.families.id, headUserId: schema.families.headUserId })
-          .from(schema.families)
-          .where(and(eq(schema.families.familyNumberHash, hashPII(familyNo)), eq(schema.families.isActive, true)))
-          .limit(1);
+      const [existingFam] = await tx
+        .select({ id: schema.families.id, headUserId: schema.families.headUserId })
+        .from(schema.families)
+        .where(and(eq(schema.families.familyNumberHash, hashPII(familyNo)), eq(schema.families.isActive, true)))
+        .limit(1);
 
-        if (existingFam && existingFam.headUserId) {
-          throw new Error('FAMILY_NUMBER_EXISTS:Nomor KK ini sudah terdaftar dengan Kepala Keluarga lain.');
-        }
+      if (existingFam && existingFam.headUserId) {
+        throw new Error('FAMILY_NUMBER_EXISTS:Nomor KK ini sudah terdaftar dengan Kepala Keluarga lain.');
       }
 
       // Jika dibuat langsung oleh admin (active) -> verified, jika registrasi mandiri (pending) -> draft

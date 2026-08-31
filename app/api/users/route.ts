@@ -235,8 +235,11 @@ export async function POST(request: Request) {
     if (error?.message?.startsWith("FAMILY_NUMBER_EXISTS")) {
       return NextResponse.json({ error: "Nomor KK ini sudah terdaftar dengan Kepala Keluarga lain." }, { status: 400 });
     }
-    if (error?.message?.startsWith("INVALID_DWELLING")) {
-      return NextResponse.json({ error: "Alamat hunian tidak valid atau bertipe Homestay." }, { status: 400 });
+    if (error?.message?.startsWith("FAMILY_NUMBER_REQUIRED")) {
+      return NextResponse.json({ error: "Nomor Kartu Keluarga (KK) wajib diisi untuk warga baru." }, { status: 400 });
+    }
+    if (error?.message?.startsWith("NIK_REQUIRED")) {
+      return NextResponse.json({ error: "NIK wajib diisi untuk warga baru." }, { status: 400 });
     }
     if (error?.message === "SUPERADMIN_LIMIT_REACHED") {
       return NextResponse.json({ error: "Batas maksimal 2 Super Admin telah tercapai." }, { status: 400 });
