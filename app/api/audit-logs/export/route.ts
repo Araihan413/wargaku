@@ -57,7 +57,7 @@ export async function GET(req: Request) {
 
     const result = await getAuditLogs({
       page: 1,
-      limit: 1000,
+      limit: 10000,
       module: moduleName,
       search,
       dateRange,
@@ -89,6 +89,7 @@ export async function GET(req: Request) {
         escapeCsv(formattedDate),
         escapeCsv(log.actorName || "Sistem"),
         escapeCsv(log.actorEmail || "-"),
+        escapeCsv(log.actorPhone || "-"),
         escapeCsv(log.actorRoleName || "-"),
         escapeCsv(log.module),
         escapeCsv(log.action),
@@ -97,7 +98,8 @@ export async function GET(req: Request) {
       ].join(",");
     });
 
-    const csvContent = [csvHeader, ...csvRows].join("\n");
+    // Tambahkan UTF-8 Byte Order Mark (\uFEFF) untuk kompatibilitas Microsoft Excel Windows
+    const csvContent = "\uFEFF" + [csvHeader, ...csvRows].join("\n");
 
     return new NextResponse(csvContent, {
       status: 200,

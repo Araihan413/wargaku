@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq, and, count, desc, like, or, gte } from "drizzle-orm";
+import { deleteCloudinaryFileByUrl } from "@/lib/cloudinary";
 
 export interface ListComplaintsOptions {
   status?: string | null;
@@ -320,4 +321,10 @@ export async function deleteComplaint(id: number) {
   }
 
   await db.delete(schema.complaints).where(eq(schema.complaints.id, id));
+
+  if (existing.photoPath) {
+    deleteCloudinaryFileByUrl(existing.photoPath).catch((err) =>
+      console.error("[Cloudinary Cleanup] Gagal menghapus foto pengaduan:", err)
+    );
+  }
 }

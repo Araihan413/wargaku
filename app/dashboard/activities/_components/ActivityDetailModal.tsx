@@ -3,7 +3,8 @@
 import React from "react";
 import { X, Calendar, MapPin, User, Clock, Pin } from "lucide-react";
 import { ActivityItem } from "../types";
-import { isEdited, formatUpdatedDate } from "@/lib/date-format";
+import { isEdited, formatUpdatedDate, formatLocalDate } from "@/lib/date-format";
+import { PublicAttachmentList } from "@/components/PublicAttachmentList";
 
 interface ActivityDetailModalProps {
   isOpen: boolean;
@@ -22,16 +23,17 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
   const now = new Date();
   const isPast = eventDateObj < now;
 
-  const dateStr = eventDateObj.toLocaleDateString("id-ID", {
+  const dateStr = formatLocalDate(activity.eventDate, {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  const timeStr = eventDateObj.toLocaleTimeString("id-ID", {
+  const timeStr = formatLocalDate(activity.eventDate, {
     hour: "2-digit",
     minute: "2-digit",
-  });
+    hour12: false,
+  }).replace(":", ".") + " WIB";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
@@ -121,6 +123,12 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
               {activity.description}
             </div>
           )}
+
+          <PublicAttachmentList
+            attachmentsStr={activity.attachments}
+            createdAt={activity.createdAt ? String(activity.createdAt) : undefined}
+            updatedAt={activity.updatedAt ? String(activity.updatedAt) : undefined}
+          />
         </div>
 
         {/* Modal Footer */}

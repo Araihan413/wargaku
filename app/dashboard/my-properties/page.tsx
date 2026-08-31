@@ -605,7 +605,7 @@ function MyPropertiesContent() {
       {inviteModalData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-xs" onClick={() => setInviteModalData(null)} />
-          <div className="relative w-full max-w-md bg-gray-card border border-gray-border rounded-2xl shadow-xl flex flex-col p-6 z-10 mx-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-gray-card border border-gray-border rounded-2xl shadow-xl flex flex-col p-6 z-10 mx-4 animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setInviteModalData(null)}
               className="absolute right-4 top-4 p-1.5 hover:bg-gray-sidebar-hover rounded-lg text-gray-secondary-text transition-colors cursor-pointer"

@@ -65,7 +65,7 @@ export const DeleteWargaMemberModal: React.FC<DeleteWargaMemberModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md rounded-3xl border border-gray-border bg-gray-card shadow-2xl p-6 space-y-4">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-gray-border bg-gray-card shadow-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-100 text-red-600">
             <AlertTriangle className="h-5 w-5" />

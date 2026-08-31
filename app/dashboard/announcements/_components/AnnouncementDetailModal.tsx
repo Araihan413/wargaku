@@ -3,7 +3,8 @@
 import React from "react";
 import { X, Megaphone, Calendar, User, Pin } from "lucide-react";
 import { AnnouncementItem } from "../types";
-import { isEdited, formatUpdatedDate } from "@/lib/date-format";
+import { isEdited, formatUpdatedDate, formatLocalDate } from "@/lib/date-format";
+import { PublicAttachmentList } from "@/components/PublicAttachmentList";
 
 interface AnnouncementDetailModalProps {
   isOpen: boolean;
@@ -29,17 +30,11 @@ export const AnnouncementDetailModal: React.FC<AnnouncementDetailModalProps> = (
     }
   };
 
-  const publishDate = announcement.publishedAt
-    ? new Date(announcement.publishedAt).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : new Date(announcement.createdAt).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
+  const publishDate = formatLocalDate(announcement.publishedAt || announcement.createdAt, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
@@ -106,6 +101,12 @@ export const AnnouncementDetailModal: React.FC<AnnouncementDetailModalProps> = (
           <div className="text-sm text-black/80 whitespace-pre-line leading-relaxed bg-gray-sidebar-hover/30 p-4 rounded-xl border border-gray-border/60">
             {announcement.content}
           </div>
+
+          <PublicAttachmentList
+            attachmentsStr={announcement.attachments}
+            createdAt={announcement.createdAt ? String(announcement.createdAt) : undefined}
+            updatedAt={announcement.updatedAt ? String(announcement.updatedAt) : undefined}
+          />
         </div>
 
         {/* Modal Footer */}

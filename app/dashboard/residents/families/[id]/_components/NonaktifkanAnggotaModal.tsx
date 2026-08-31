@@ -55,7 +55,7 @@ export const NonaktifkanAnggotaModal: React.FC<NonaktifkanAnggotaModalProps> = (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-6 transition-all animate-in zoom-in-95 duration-200 flex flex-col">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-6 transition-all animate-in zoom-in-95 duration-200 flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4 text-error shrink-0">
           <div className="p-2 bg-error/10 rounded-lg">

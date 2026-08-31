@@ -51,8 +51,10 @@ export async function uploadToCloudinary(
       uploadOptions.filename_override = fileName;
     }
 
-    // Jika folder berupa kk/ktp atau format pdf di-request, pastikan disimpan sebagai PDF
-    if (folderName === "kk" || folderName === "ktp" || format === "pdf") {
+    const isPdfFile = format === "pdf" || fileName?.toLowerCase().endsWith(".pdf") || folderName === "kk" || folderName === "ktp";
+
+    // Jika file berupa PDF, simpan format pdf murni tanpa transformasi raster gambar (agar multi-halaman utuh)
+    if (isPdfFile) {
       uploadOptions.format = "pdf";
     } else {
       // Optimasi gambar otomatis Cloudinary saat upload (q_auto, f_auto, resize max 1920px tanpa ubah rasio)

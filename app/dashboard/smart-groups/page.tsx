@@ -462,7 +462,7 @@ export default function SmartGroupsPage() {
       {/* Save Preset Modal Prompt */}
       {isSaveModalOpen && (
         <div className="fixed inset-0 z-999 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
             <h3 className="text-base font-extrabold text-gray-heading-main">
               Simpan Sebagai Preset Filter Baru
             </h3>

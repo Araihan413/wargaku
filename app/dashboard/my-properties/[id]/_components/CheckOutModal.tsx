@@ -72,7 +72,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-gray-card border border-gray-border rounded-3xl p-6 shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-gray-card border border-gray-border rounded-3xl p-6 shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-200">
         <button
           onClick={handleClose}
           className="absolute right-4 top-4 p-1.5 rounded-xl hover:bg-gray-sidebar-hover text-gray-secondary-text hover:text-gray-heading-main transition-all cursor-pointer"

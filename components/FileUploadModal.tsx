@@ -204,15 +204,20 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-gray-border transition-all">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl border border-gray-border transition-all animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-border pb-4">
-          <h3 className="text-sm font-bold text-gray-heading-main">{title}</h3>
+          <div>
+            <h3 className="text-sm font-extrabold text-gray-heading-main">{title}</h3>
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-block mt-1">
+              PDF • JPG • PNG (Maks. 5 MB)
+            </span>
+          </div>
           <button
             type="button"
             onClick={handleClose}
             disabled={isLoading || isOpeningDrivePicker}
-            className="rounded-lg p-1.5 text-gray-secondary-text hover:bg-gray-sidebar-hover hover:text-gray-heading-main cursor-pointer"
+            className="rounded-xl p-2 text-gray-secondary-text hover:bg-gray-sidebar-hover hover:text-gray-heading-main transition-colors cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -231,9 +236,9 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
                 type="button"
                 onClick={handleLocalClick}
                 disabled={isLoading || isOpeningDrivePicker}
-                className="group relative flex items-start gap-3.5 rounded-xl border border-gray-border p-4 text-left transition-all hover:border-primary hover:bg-primary-100/20 cursor-pointer disabled:opacity-60"
+                className="group relative flex items-start gap-3.5 rounded-2xl border border-gray-border p-4 text-left transition-all hover:border-primary hover:bg-primary-100/20 cursor-pointer disabled:opacity-60 shadow-2xs"
               >
-                <div className="rounded-lg bg-primary/10 p-2.5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                <div className="rounded-xl bg-primary/10 p-2.5 text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
                   <HardDrive className="h-5 w-5" />
                 </div>
                 <div>
@@ -241,7 +246,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
                     Pilih dari File Komputer / HP
                   </h4>
                   <p className="mt-0.5 text-[11px] text-gray-secondary-text leading-normal">
-                    Unggah berkas gambar (JPG, PNG) atau dokumen PDF langsung dari perangkat Anda.
+                    Unggah berkas gambar (JPG, PNG) atau dokumen PDF langsung dari penyimpanan perangkat Anda.
                   </p>
                 </div>
               </button>
@@ -260,9 +265,9 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
                 type="button"
                 onClick={handleOpenGoogleDrivePicker}
                 disabled={isLoading || isOpeningDrivePicker}
-                className="group relative flex items-start gap-3.5 rounded-xl border border-blue-200 bg-blue-50/40 p-4 text-left transition-all hover:border-blue-500 hover:bg-blue-50 cursor-pointer disabled:opacity-60"
+                className="group relative flex items-start gap-3.5 rounded-2xl border border-blue-200 bg-blue-50/40 p-4 text-left transition-all hover:border-blue-500 hover:bg-blue-50 cursor-pointer disabled:opacity-60 shadow-2xs"
               >
-                <div className="rounded-lg bg-blue-100 p-2.5 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                <div className="rounded-xl bg-blue-100 p-2.5 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
                   {isOpeningDrivePicker ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (

@@ -71,11 +71,19 @@ export const EditAnnouncementModal: React.FC<EditAnnouncementModalProps> = ({
     }
 
     setIsSubmitting(true);
+    let uploadToastId: string | number | undefined;
+
     try {
       // 1. Upload any pending new files
       const uploadedAttachments: Array<{ name: string; url: string; type: "image" | "pdf" }> = [];
+      const pendingUploads = attachments.filter((item) => Boolean(item.file));
 
-      for (const item of attachments) {
+      if (pendingUploads.length > 0) {
+        uploadToastId = toast.loading(`Mengunggah berkas lampiran (${pendingUploads.length} berkas)...`);
+      }
+
+      for (let i = 0; i < attachments.length; i++) {
+        const item = attachments[i];
         if (item.file) {
           const formData = new FormData();
           formData.append("file", item.file);
@@ -126,10 +134,16 @@ export const EditAnnouncementModal: React.FC<EditAnnouncementModalProps> = ({
         throw new Error(data.error || "Gagal memperbarui pengumuman");
       }
 
+      if (uploadToastId) {
+        toast.dismiss(uploadToastId);
+      }
       toast.success("Pengumuman berhasil diperbarui");
       onSuccess();
       onClose();
     } catch (err: any) {
+      if (uploadToastId) {
+        toast.dismiss(uploadToastId);
+      }
       toast.error(err.message || "Terjadi kesalahan koneksi");
     } finally {
       setIsSubmitting(false);

@@ -19,7 +19,7 @@ import { PublicErrorState } from "@/app/_components/PublicErrorState";
 import { PublicActivityItem } from "@/db/queries/dashboard/public-portal.queries";
 import { getCachedData, setCachedData } from "@/lib/public-cache";
 import { PublicAttachmentList } from "@/components/PublicAttachmentList";
-import { isEdited, formatUpdatedDate } from "@/lib/date-format";
+import { isEdited, formatUpdatedDate, formatDate, formatTime } from "@/lib/date-format";
 
 const FILTERS = [
   { key: "semua", label: "Semua Agenda" },
@@ -160,32 +160,6 @@ export default function ActivitiesPublicPage() {
     }
   }, [isLoadingMore, hasMore, page, selectedFilter, debouncedSearch]);
 
-  const formatDate = (dateStr: string | Date | null) => {
-    if (!dateStr) return "Tanggal Belum Ditentukan";
-    try {
-      return new Date(dateStr).toLocaleDateString("id-ID", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return String(dateStr);
-    }
-  };
-
-  const formatTime = (dateStr: string | Date | null) => {
-    if (!dateStr) return "";
-    try {
-      return new Date(dateStr).toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }) + " WIB";
-    } catch {
-      return "";
-    }
-  };
-
   const isUpcoming = (dateStr: string | Date | null) => {
     if (!dateStr) return true;
     if (!nowTimestamp) return true;
@@ -322,7 +296,7 @@ export default function ActivitiesPublicPage() {
                       <div className="space-y-1.5 text-xs text-slate-600 font-medium">
                         <div className="flex items-center gap-2 text-blue-900 font-bold">
                           <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
-                          <span>{formatDate(item.eventDate)}</span>
+                          <span>{formatDate(item.eventDate, true)}</span>
                         </div>
 
                         {item.eventDate && (
@@ -340,11 +314,12 @@ export default function ActivitiesPublicPage() {
                         )}
                       </div>
 
-                      {/* Public Attachments List & Single Diperbarui Badge */}
+                      {/* Public Attachments List & Single Diperbarui Badge (Compact Preview) */}
                       <PublicAttachmentList
                         attachmentsStr={item.attachments}
                         createdAt={item.createdAt ? String(item.createdAt) : undefined}
                         updatedAt={item.updatedAt ? String(item.updatedAt) : undefined}
+                        compact={true}
                       />
 
                       <button
@@ -411,7 +386,7 @@ export default function ActivitiesPublicPage() {
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2 text-xs">
               <div className="flex items-center gap-2 text-slate-800 font-bold">
                 <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Hari/Tanggal: {formatDate(selectedActivity.eventDate)}</span>
+                <span>Hari/Tanggal: {formatDate(selectedActivity.eventDate, true)}</span>
               </div>
 
               {selectedActivity.eventDate && (

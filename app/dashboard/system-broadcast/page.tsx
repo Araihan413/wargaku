@@ -21,6 +21,7 @@ import { CreateBroadcastModal } from "./_components/CreateBroadcastModal";
 import { SystemBroadcastSkeleton } from "./_components/SystemBroadcastSkeleton";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { formatLocalDate, formatTime } from "@/lib/date-format";
 
 export default function SystemBroadcastPage() {
   return (
@@ -36,6 +37,7 @@ function SystemBroadcastContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
   const [filterType, setFilterType] = useState<string>("all");
+  const [nowTimestamp] = useState<number>(() => (typeof window !== "undefined" ? Date.now() : 0));
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -303,66 +305,80 @@ function SystemBroadcastContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-border/60">
-                {filteredBroadcasts.map((b) => (
-                  <tr key={b.id} className="hover:bg-gray-sidebar-hover/40 transition">
-                    <td className="p-4 align-top space-y-1.5">
-                      <div>{getTypeBadge(b.type)}</div>
-                      <h4 className="font-bold text-gray-heading-main text-xs">{b.title}</h4>
-                      <p className="text-[10px] text-gray-placeholder">
-                        Oleh: {b.authorName || "Super Admin"} • {new Date(b.createdAt).toLocaleDateString("id-ID")}
-                      </p>
-                    </td>
-                    <td className="p-4 align-top max-w-md">
-                      <p className="text-xs text-gray-body-text-btn line-clamp-3 leading-relaxed">
-                        {b.message}
-                      </p>
-                      {b.expiresAt && (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 mt-2 font-semibold">
-                          <Calendar className="w-3 h-3" /> Expired: {new Date(b.expiresAt).toLocaleString("id-ID")}
+                {filteredBroadcasts.map((b) => {
+                  const isExpired = b.expiresAt && nowTimestamp ? new Date(b.expiresAt).getTime() < nowTimestamp : false;
+
+                  return (
+                    <tr key={b.id} className="hover:bg-gray-sidebar-hover/40 transition">
+                      <td className="p-4 align-top space-y-1.5">
+                        <div>{getTypeBadge(b.type)}</div>
+                        <h4 className="font-bold text-gray-heading-main text-xs">{b.title}</h4>
+                        <p className="text-[10px] text-gray-placeholder">
+                          Oleh: {b.authorName || "Super Admin"} • {formatLocalDate(b.createdAt, { day: "numeric", month: "short", year: "numeric" })}
+                        </p>
+                      </td>
+                      <td className="p-4 align-top max-w-md">
+                        <p className="text-xs text-gray-body-text-btn line-clamp-3 leading-relaxed">
+                          {b.message}
+                        </p>
+                        {b.expiresAt && (
+                          <span className={`inline-flex items-center gap-1 text-[10px] mt-2 font-semibold ${isExpired ? "text-amber-600" : "text-slate-500"}`}>
+                            <Calendar className="w-3 h-3" /> Expired: {formatLocalDate(b.expiresAt, { day: "numeric", month: "short", year: "numeric" })}, {formatTime(b.expiresAt)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 align-top text-center space-y-1">
+                        <span className="block text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                          Banner Dashboard
                         </span>
-                      )}
-                    </td>
-                    <td className="p-4 align-top text-center space-y-1">
-                      <span className="block text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                        Banner Dashboard
-                      </span>
-                      {b.sendPush && (
-                        <span className="block text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
-                          Push OneSignal
-                        </span>
-                      )}
-                      {b.sendInAppNotif && (
-                        <span className="block text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-                          Lonceng Warga
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 align-top text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(b)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold cursor-pointer transition ${
-                          b.isActive
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                            : "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
-                        }`}
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                        <span>{b.isActive ? "Aktif" : "Ditarik"}</span>
-                      </button>
-                    </td>
-                    <td className="p-4 align-top text-right space-x-1">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteId(b.id)}
-                        className="p-2 text-gray-placeholder hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                        title="Hapus Broadcast"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        {b.sendPush && (
+                          <span className="block text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
+                            Push OneSignal
+                          </span>
+                        )}
+                        {b.sendInAppNotif && (
+                          <span className="block text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                            Lonceng Warga
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 align-top text-center">
+                        {isExpired ? (
+                          <div className="inline-flex flex-col items-center gap-1">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>Kedaluwarsa</span>
+                            </span>
+                            <span className="text-[9px] text-gray-placeholder">Waktu Habis</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(b)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold cursor-pointer transition ${
+                              b.isActive
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                : "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
+                            }`}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                            <span>{b.isActive ? "Aktif" : "Ditarik"}</span>
+                          </button>
+                        )}
+                      </td>
+                      <td className="p-4 align-top text-right space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => setDeleteId(b.id)}
+                          className="p-2 text-gray-placeholder hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                          title="Hapus Broadcast"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

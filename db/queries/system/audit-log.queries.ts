@@ -40,7 +40,7 @@ export interface GetAuditLogsParams {
 
 export async function getAuditLogs(params: GetAuditLogsParams) {
   const page = Math.max(1, params.page || 1);
-  const limit = Math.max(1, Math.min(100, params.limit || 15));
+  const limit = Math.max(1, Math.min(10000, params.limit || 15));
   const offset = (page - 1) * limit;
 
   const conditions: any[] = [];
@@ -94,6 +94,7 @@ export async function getAuditLogs(params: GetAuditLogsParams) {
       createdAt: schema.activityLogs.createdAt,
       actorName: schema.users.name,
       actorEmail: schema.users.email,
+      actorPhone: schema.users.phone,
     })
     .from(schema.activityLogs)
     .leftJoin(schema.users, eq(schema.activityLogs.userId, schema.users.id))
@@ -131,6 +132,7 @@ export async function getAuditLogs(params: GetAuditLogsParams) {
     createdAt: log.createdAt.toISOString(),
     actorName: log.actorName,
     actorEmail: log.actorEmail,
+    actorPhone: log.actorPhone,
     actorRoleName: log.userId ? (userRolesMap.get(log.userId) ?? 'Pengguna') : null,
   }));
 

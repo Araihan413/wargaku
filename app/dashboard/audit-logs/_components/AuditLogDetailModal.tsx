@@ -40,7 +40,7 @@ export const AuditLogDetailModal: React.FC<AuditLogDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-gray-card border border-gray-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 overflow-hidden">
+      <div className="bg-gray-card border max-h-[90vh] overflow-y-auto border-gray-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-border">
           <div className="flex items-center gap-2.5">
@@ -80,7 +80,7 @@ export const AuditLogDetailModal: React.FC<AuditLogDetailModalProps> = ({
                 {log.actorName || "Sistem"}
               </p>
               <p className="text-[11px] text-gray-secondary-text font-mono truncate">
-                NIK: {log.actorNik || "-"}
+                No. HP: {log.actorPhone || "-"}
               </p>
             </div>
 

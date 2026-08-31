@@ -1,6 +1,7 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { eq, and, or, like, desc, sql, gte, lte } from 'drizzle-orm';
+import { deleteCloudinaryFileByUrl } from '@/lib/cloudinary';
 export {
   createIncomeSchema,
   updateIncomeSchema,
@@ -135,6 +136,11 @@ export async function updateCashTransaction(
     receiptFile?: string | null;
   }
 ) {
+  const [existing] = await db
+    .select({ receiptFile: schema.cashTransactions.receiptFile })
+    .from(schema.cashTransactions)
+    .where(eq(schema.cashTransactions.id, id));
+
   const updatePayload: any = { updatedAt: new Date() };
   if (data.amount !== undefined) updatePayload.amount = String(data.amount);
   if (data.transactionDate !== undefined) updatePayload.transactionDate = data.transactionDate;
@@ -143,10 +149,29 @@ export async function updateCashTransaction(
   if (data.receiptFile !== undefined) updatePayload.receiptFile = data.receiptFile;
 
   await db.update(schema.cashTransactions).set(updatePayload).where(eq(schema.cashTransactions.id, id));
+
+  if (existing?.receiptFile && data.receiptFile !== undefined && existing.receiptFile !== data.receiptFile) {
+    deleteCloudinaryFileByUrl(existing.receiptFile).catch((err) =>
+      console.error("[Cloudinary Cleanup] Gagal menghapus nota kas lama:", err)
+    );
+  }
+
   return true;
 }
 
 export async function deleteCashTransaction(id: number) {
+  const [existing] = await db
+    .select({ receiptFile: schema.cashTransactions.receiptFile })
+    .from(schema.cashTransactions)
+    .where(eq(schema.cashTransactions.id, id));
+
   await db.delete(schema.cashTransactions).where(eq(schema.cashTransactions.id, id));
+
+  if (existing?.receiptFile) {
+    deleteCloudinaryFileByUrl(existing.receiptFile).catch((err) =>
+      console.error("[Cloudinary Cleanup] Gagal menghapus nota kas:", err)
+    );
+  }
+
   return true;
 }

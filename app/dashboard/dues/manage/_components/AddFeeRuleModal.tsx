@@ -66,7 +66,7 @@ export const AddFeeRuleModal: React.FC<AddFeeRuleModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-6">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-border bg-gray-card shadow-2xl p-6">
         <div className="flex items-center justify-between border-b border-gray-border pb-3 mb-4">
           <h3 className="text-lg font-bold text-gray-heading-main">
             {isEdit ? "Edit Aturan Iuran" : "Buat Aturan Iuran Baru"}

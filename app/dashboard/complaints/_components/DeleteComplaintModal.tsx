@@ -47,7 +47,7 @@ export const DeleteComplaintModal: React.FC<DeleteComplaintModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-gray-card border border-gray-border rounded-2xl shadow-2xl p-6 space-y-5">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-gray-card border border-gray-border rounded-2xl shadow-2xl p-6 space-y-5">
         <div className="flex items-center justify-between border-b border-gray-border pb-3">
           <div className="flex items-center gap-2.5 text-error">
             <AlertTriangle className="h-5 w-5" />

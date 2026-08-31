@@ -18,7 +18,7 @@ import { PublicErrorState } from "@/app/_components/PublicErrorState";
 import { PublicAnnouncementItem } from "@/db/queries/dashboard/public-portal.queries";
 import { getCachedData, setCachedData } from "@/lib/public-cache";
 import { PublicAttachmentList } from "@/components/PublicAttachmentList";
-import { isEdited, formatUpdatedDate } from "@/lib/date-format";
+import { isEdited, formatUpdatedDate, formatDate } from "@/lib/date-format";
 
 const CATEGORIES = [
   { key: "semua", label: "Semua Pengumuman" },
@@ -167,18 +167,6 @@ export default function AnnouncementsPublicPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
   return (
     <>
       {/* Hero Header Section */}
@@ -292,12 +280,13 @@ export default function AnnouncementsPublicPage() {
                         </span>
                       </div>
 
-                      {/* Public Attachments List & Single Diperbarui Badge */}
-                        <PublicAttachmentList
-                          attachmentsStr={item.attachments}
-                          createdAt={item.createdAt ? String(item.createdAt) : undefined}
-                          updatedAt={item.updatedAt ? String(item.updatedAt) : undefined}
-                        />
+                      {/* Public Attachments List & Single Diperbarui Badge (Compact Preview) */}
+                      <PublicAttachmentList
+                        attachmentsStr={item.attachments}
+                        createdAt={item.createdAt ? String(item.createdAt) : undefined}
+                        updatedAt={item.updatedAt ? String(item.updatedAt) : undefined}
+                        compact={true}
+                      />
 
                       <button
                         type="button"

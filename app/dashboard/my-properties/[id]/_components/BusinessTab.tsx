@@ -427,7 +427,7 @@ export function BusinessTab({
       {isDeleteConfirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsDeleteConfirmOpen(false)} />
-          <div className="relative w-full max-w-sm bg-gray-card border border-gray-border rounded-3xl p-6 shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-sm max-h-[90vh] overflow-y-auto bg-gray-card border border-gray-border rounded-3xl p-6 shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="text-base font-bold text-gray-heading-main mb-2">Hapus/Nonaktifkan Properti</h3>
             <p className="text-xs text-gray-secondary-text mb-6 leading-relaxed">
               Apakah Anda yakin ingin menonaktifkan properti ini? Semua data penyewa aktif akan tetap tersimpan di riwayat, tetapi properti ini tidak akan aktif lagi di sistem.

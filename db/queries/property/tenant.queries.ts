@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { sendEmail, sendAccountActivationEmail } from '@/lib/mail';
 import { getTenantFamilyWelcomeEmail } from '@/lib/emails/templates';
 import { encryptPII, decryptPII, hashPII, matchEncryptedPII } from '@/lib/crypto-pii';
+import { deleteCloudinaryFileByUrl } from '@/lib/cloudinary';
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -605,6 +606,12 @@ export async function deleteTenantContract(contractId: number) {
     }
 
     await tx.delete(schema.rentalContracts).where(eq(schema.rentalContracts.id, contractId));
+
+    if (contract.individualKtpFile) {
+      deleteCloudinaryFileByUrl(contract.individualKtpFile).catch((err) =>
+        console.error("[Cloudinary Cleanup] Gagal menghapus file KTP penyewa:", err)
+      );
+    }
 
     if (contract.tenantType === 'family' && contract.familyId) {
       await tx

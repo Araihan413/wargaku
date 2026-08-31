@@ -8,6 +8,7 @@ export interface AuditLogItem {
   createdAt: string;
   actorName: string | null;
   actorEmail: string | null;
+  actorPhone: string | null;
   actorNik: string | null;
   actorRoleName: string | null;
 }
