@@ -3,6 +3,7 @@ import * as schema from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { format } from 'date-fns';
 import { decryptPII } from '@/lib/crypto-pii';
+import { ensureCurrentMonthFeesGenerated } from './fee.queries';
 
 
 export interface WargaFeeSummary {
@@ -47,6 +48,9 @@ export interface WargaFeeSummary {
  * Mengambil ringkasan & histori pembayaran iuran (Strict Read-Only) untuk keluarga Warga.
  */
 export async function getMyFamilyFees(userId: string): Promise<WargaFeeSummary> {
+  // Pastikan tagihan bulan berjalan untuk semua aturan aktif sudah terbit
+  await ensureCurrentMonthFeesGenerated();
+
   const currentPeriod = format(new Date(), 'yyyy-MM');
   const currentYearPrefix = new Date().getFullYear().toString();
 
@@ -96,9 +100,7 @@ export async function getMyFamilyFees(userId: string): Promise<WargaFeeSummary> 
     isMandatory: r.isMandatory,
   }));
 
-  const mandatoryRulesTotal = activeRules
-    .filter((r) => r.isMandatory)
-    .reduce((sum, r) => sum + r.amount, 0);
+  const mandatoryRulesTotal = activeRules.reduce((sum, r) => sum + r.amount, 0);
 
   if (!familyId) {
     return {

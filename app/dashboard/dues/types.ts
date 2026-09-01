@@ -5,6 +5,7 @@ export interface FeeRule {
   name: string;
   amount: number;
   isMandatory: boolean;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -13,6 +14,7 @@ export interface FeePaymentItem {
   id: number;
   feeRuleId: number;
   feeRuleName: string;
+  ruleMonthlyAmount?: number;
   familyId: number;
   familyNumber: string;
   headName: string;
@@ -27,6 +29,20 @@ export interface FeePaymentItem {
   status: "unpaid" | "partially_paid" | "paid";
   isMandatory: boolean;
   recordedBy: string | null;
+  unpaidMonthsCount?: number;
+  pastArrearsCount?: number;
+  hasCurrentMonthUnpaid?: boolean;
+  pastUnpaidPeriods?: string[];
+  totalArrears?: number;
+  unpaidPeriods?: string[];
+  paidUntilPeriod?: string | null;
+  isAdvancePaid?: boolean;
+  unpaidBills?: {
+    period: string;
+    amountBilled: number;
+    amountPaid: number;
+    amountDue: number;
+  }[];
 }
 
 export interface TunggakanItem {

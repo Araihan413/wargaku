@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { validateApiAuth } from '@/lib/rbac';
 import { listNotifications, markNotificationsRead, deleteNotifications } from '@/db/queries/system/notification.queries';
+import { ensureCurrentMonthFeesGenerated } from '@/db/queries/finance/fee.queries';
 import { markNotificationReadSchema } from '@/lib/validations/system';
 import { ZodError } from 'zod';
 
@@ -95,6 +96,9 @@ export async function GET(request: Request) {
     const paginated = searchParams.get('paginated') === 'true';
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
+
+    // Pemicu otomatis terbit tagihan bulan berjalan untuk seluruh sistem
+    await ensureCurrentMonthFeesGenerated();
 
     const result = await listNotifications(
       session.user.id,

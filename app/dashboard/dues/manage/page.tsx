@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Plus, Users, Wallet, AlertCircle } from "lucide-react";
+import { Plus, Users, Wallet, AlertCircle, CheckCircle2, AlertTriangle, Receipt} from "lucide-react";
 import { FeeRule, FeePaymentItem } from "../types";
 import { FeeRuleCard } from "./_components/FeeRuleCard";
 import { AddFeeRuleModal } from "./_components/AddFeeRuleModal";
@@ -42,37 +42,49 @@ function KelolaManagedContent() {
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
   const [isDeletingRule, setIsDeletingRule] = useState(false);
 
-  // Period selector - default to current month
+  // Period selector - default to 'all' (Semua Periode)
   const now = new Date();
-  const [selectedPeriod, setSelectedPeriod] = useState(
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  );
+  const currentMonthVal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [selectedPeriod, setSelectedPeriod] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "arrears" | "paid" | "advance">("all");
 
-  // Generate past 12 months options
-  const periodOptions = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleString("id-ID", { month: "long", year: "numeric" });
-    return { value: val, label };
-  });
+  // Generate options (Semua Periode + past 12 months)
+  const periodOptions = [
+    { value: "all", label: "Semua Periode" },
+    ...Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleString("id-ID", { month: "long", year: "numeric" });
+      return { value: val, label: val === currentMonthVal ? `${label} (Bulan Ini)` : label };
+    }),
+  ];
 
   const fetchRules = useCallback(async () => {
     setIsLoadingRules(true);
     try {
-      const res = await fetch("/api/fee-rules");
+      const res = await fetch("/api/fee-rules?includeInactive=true");
       if (res.ok) {
         const data = await res.json();
-        setRules(data.data || []);
-        if (!selectedRule && data.data.length > 0) {
-          setSelectedRule(data.data[0]);
-        }
+        const loadedRules: FeeRule[] = data.data || [];
+        setRules(loadedRules);
+        setSelectedRule((prev) => {
+          if (!prev && loadedRules.length > 0) {
+            const firstActive = loadedRules.find((r) => r.isActive !== false);
+            return firstActive || loadedRules[0];
+          }
+          if (prev) {
+            const currentInLoaded = loadedRules.find((r) => r.id === prev.id);
+            return currentInLoaded || (loadedRules.length > 0 ? (loadedRules.find((r) => r.isActive !== false) || loadedRules[0]) : null);
+          }
+          return null;
+        });
       }
     } catch (err) {
       console.error(err);
     } finally {
       setIsLoadingRules(false);
     }
-  }, [selectedRule]);
+  }, []);
 
   const fetchPayments = useCallback(async () => {
     if (!selectedRule) return;
@@ -259,8 +271,7 @@ function KelolaManagedContent() {
                 Daftar Tagihan: {selectedRule.name}
               </h2>
               <p className="text-xs text-gray-secondary-text mt-0.5">
-                Nominal: <strong>Rp {selectedRule.amount.toLocaleString("id-ID")}/KK</strong> ·{" "}
-                {selectedRule.isMandatory ? "Iuran Wajib" : "Sukarela"}
+                Nominal: <strong>Rp {selectedRule.amount.toLocaleString("id-ID")} / KK / bulan</strong>
               </p>
             </div>
             <div className="w-52">
@@ -288,17 +299,56 @@ function KelolaManagedContent() {
             ))}
           </div>
 
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Cari kepala keluarga..."
-            containerClassName="w-full sm:w-72"
-          />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Cari kepala keluarga..."
+              containerClassName="w-full sm:w-72"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: "all", label: "Semua Warga", icon: Users },
+                { id: "arrears", label: "Menunggak", icon: AlertTriangle },
+                { id: "paid", label: "Lunas", icon: CheckCircle2 },
+                { id: "advance", label: "Bayar di Muka", icon: Receipt },
+              ].map((pill) => {
+                const Icon = pill.icon;
+                return (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => setStatusFilter(pill.id as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      statusFilter === pill.id
+                        ? "bg-primary text-white shadow-2xs"
+                        : "bg-gray-sidebar-hover hover:bg-gray-border/60 text-gray-secondary-text border border-gray-border"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{pill.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <PaymentMatrixTable
-            payments={payments}
+            payments={payments.filter((p) => {
+              if (statusFilter === "arrears") {
+                return p.status !== "paid" || (p.unpaidMonthsCount && p.unpaidMonthsCount > 0);
+              }
+              if (statusFilter === "paid") {
+                return p.status === "paid";
+              }
+              if (statusFilter === "advance") {
+                return p.isAdvancePaid === true;
+              }
+              return true;
+            })}
             isLoading={isLoadingPayments}
             onPay={setPayingItem}
+            selectedPeriod={selectedPeriod}
           />
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-2 border-t border-gray-border text-xs font-semibold text-gray-secondary-text">

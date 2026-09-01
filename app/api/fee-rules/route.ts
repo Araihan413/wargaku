@@ -32,7 +32,7 @@ const createFeeRuleSchema = z.object({
  *       500:
  *         description: Kesalahan server internal
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { session, roleId, errorResponse } = await validateApiAuth();
     if (errorResponse || !session) return errorResponse;
@@ -42,7 +42,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Tidak memiliki izin akses' }, { status: 403 });
     }
 
-    const data = await listFeeRules();
+    const { searchParams } = new URL(request.url);
+    const includeInactive = searchParams.get('includeInactive') !== 'false';
+
+    const data = await listFeeRules(includeInactive);
     return NextResponse.json({ data });
   } catch (err) {
     console.error('[GET /api/fee-rules]', err);

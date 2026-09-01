@@ -54,17 +54,14 @@ export async function POST(
 
     // Kirim notifikasi lonceng HANYA ke warga yang baru dibuatkan tagihannya (tidak double)
     if (result.generated > 0 && result.newlyBilledHeadUserIds.length > 0) {
-      const isMandatory = result.isMandatory;
       const formattedAmount = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
         maximumFractionDigits: 0,
       }).format(Number(result.ruleAmount));
 
-      const title = isMandatory ? 'Tagihan Iuran Baru' : 'Pemberitahuan Partisipasi Iuran';
-      const message = isMandatory
-        ? `Tagihan Iuran Wajib "${result.ruleName}" periode ${result.period} sebesar ${formattedAmount} telah diterbitkan. Mohon lakukan pembayaran.`
-        : `Pemberitahuan partisipasi iuran "${result.ruleName}" periode ${result.period} sebesar ${formattedAmount} telah dibuka. Partisipasi Anda sangat berharga.`;
+      const title = 'Tagihan Iuran Baru';
+      const message = `Tagihan Iuran "${result.ruleName}" periode ${result.period} sebesar ${formattedAmount} telah diterbitkan. Mohon lakukan pembayaran.`;
 
       for (const headUserId of result.newlyBilledHeadUserIds) {
         notifyUser(headUserId, {

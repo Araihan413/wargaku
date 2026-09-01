@@ -3,11 +3,17 @@ import { datePreprocessor } from './common';
 
 
 export const recordPaymentSchema = z.object({
-  paymentId: z.number({
+  familyId: z.number({
     error: (issue) =>
       issue.input === undefined
-        ? 'ID Pembayaran (paymentId) wajib diisi'
-        : 'ID Pembayaran harus berupa angka',
+        ? 'ID Keluarga (familyId) wajib diisi'
+        : 'ID Keluarga harus berupa angka',
+  }).int().positive(),
+  feeRuleId: z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? 'ID Aturan Iuran (feeRuleId) wajib diisi'
+        : 'ID Aturan Iuran harus berupa angka',
   }).int().positive(),
   amountPaid: z.number().positive('Nominal pembayaran harus lebih dari 0'),
   paymentMethod: z.enum(['cash', 'transfer'], {

@@ -23,7 +23,7 @@ export const AddFeeRuleModal: React.FC<AddFeeRuleModalProps> = ({
   const isEdit = !!existingRule;
   const [name, setName] = useState(existingRule?.name || "");
   const [amount, setAmount] = useState(existingRule ? String(existingRule.amount) : "");
-  const [isMandatory, setIsMandatory] = useState(existingRule?.isMandatory !== false);
+  const [isActive, setIsActive] = useState(existingRule?.isActive !== false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -48,7 +48,12 @@ export const AddFeeRuleModal: React.FC<AddFeeRuleModalProps> = ({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, amount: numericAmount, isMandatory }),
+        body: JSON.stringify({
+          name,
+          amount: numericAmount,
+          isMandatory: true,
+          ...(isEdit ? { isActive } : {}),
+        }),
       });
 
       const data = await res.json();
@@ -99,19 +104,21 @@ export const AddFeeRuleModal: React.FC<AddFeeRuleModalProps> = ({
             placeholder="50.000"
           />
 
-          <div>
-            <CustomSelect
-              label="Sifat Iuran"
-              required
-              options={[
-                { label: "Wajib (akan jadi tunggakan jika tidak dibayar)", value: "true" },
-                { label: "Sukarela / Donasi (tidak jadi tunggakan)", value: "false" },
-              ]}
-              value={isMandatory ? "true" : "false"}
-              onChange={(v) => setIsMandatory(v === "true")}
-              placeholder="Pilih Sifat Iuran"
-            />
-          </div>
+          {isEdit && (
+            <div>
+              <CustomSelect
+                label="Status Aturan Iuran"
+                required
+                options={[
+                  { label: "Aktif (Otomatis ditagihkan setiap bulan)", value: "true" },
+                  { label: "Non-Aktif (Dihentikan)", value: "false" },
+                ]}
+                value={isActive ? "true" : "false"}
+                onChange={(v) => setIsActive(v === "true")}
+                placeholder="Pilih Status"
+              />
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-3 border-t border-gray-border pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2.5 border border-gray-border rounded-xl text-xs font-bold text-gray-heading-main hover:bg-gray-sidebar-hover transition cursor-pointer">

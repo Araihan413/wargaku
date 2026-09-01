@@ -367,15 +367,6 @@ function WargaMyFeesContent() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-gray-heading-main">{rule.name}</span>
-                      <span
-                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                          rule.isMandatory
-                            ? "bg-rose-50 text-rose-700 border border-rose-200"
-                            : "bg-blue-50 text-blue-700 border border-blue-200"
-                        }`}
-                      >
-                        {rule.isMandatory ? "Wajib" : "Sukarela"}
-                      </span>
                     </div>
                     <div className="text-base font-extrabold text-primary">
                       {formatRupiah(rule.amount)} <span className="text-[10px] font-normal text-gray-secondary-text">/ bulan</span>

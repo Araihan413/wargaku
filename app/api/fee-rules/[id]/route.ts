@@ -9,6 +9,7 @@ const updateFeeRuleSchema = z.object({
   name: z.string().min(1, 'Nama iuran wajib diisi'),
   amount: z.number().positive('Nominal iuran harus lebih dari 0'),
   isMandatory: z.boolean().default(true),
+  isActive: z.boolean().optional(),
 });
 
 /**
