@@ -100,11 +100,9 @@ Ketika Warga (Kepala Keluarga) login ke dalam sistem, susunan menu sidebar terdi
             2.  `Sisa Tagihan Bulan Ini`: Nominal sisa tagihan pada periode bulan berjalan (beserta total tagihan bulanan).
             3.  `Total Setoran Terinput`: Akumulasi total dana iuran yang telah disetorkan warga dan dicatat oleh Bendahara pada tahun berjalan.
             4.  `Setoran Terakhir Dicatat`: Tanggal setoran terakhir, nominal, dan jenis tarif iuran yang dibayar.
-        *   **Daftar Tarif Iuran Berlaku di RT:** Menampilkan kartu tarif aktif yang ditetapkan pengurus RT dengan pembedaan label:
-            *   `Wajib` (Merah/Rose): Iuran pokok wajib yang masuk ke akumulasi tunggakan jika tidak dibayar.
-            *   `Sukarela` (Biru): Iuran sukarela/donasi yang tidak dihitung sebagai beban hutang keluarga.
+        *   **Daftar Tarif Iuran Berlaku di RT:** Menampilkan daftar kartu aturan iuran resmi yang aktif berlaku di lingkungan RT beserta nominal tarif per bulan.
         *   **Tabel Histori Pembayaran Iuran:**
-            *   Menampilkan rincian: Periode, Jenis Iuran, Tagihan, Jumlah Dibayar, Sisa Tagihan, Tanggal Dicatat, Metode (`Tunai` / `Transfer`), Status (`Lunas`, `Terbayar Sebagian`, `Belum Ada Catatan`), dan Nama Pengurus yang mencatat.
+            *   Menampilkan rincian: Periode, Jenis Iuran, Tagihan, Jumlah Dibayar, Sisa Tagihan, Tanggal Dicatat, Metode (`Tunai` / `Transfer`), Status (`Lunas`, `Kurang Bayar`, `Belum Bayar`), dan Nama Pengurus yang mencatat.
             *   Dilengkapi filter dropdown berdasarkan **Tahun** dan **Status Pembayaran**.
     *   **Widget Ringkasan di Beranda Dashboard:** Menampilkan cuplikan ringkas status iuran periode berjalan langsung pada halaman beranda saat warga login.
 *   **WR-04: Aset Properti Sewa (Untuk Warga Pemilik Properti)**

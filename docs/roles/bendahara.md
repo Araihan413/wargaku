@@ -53,16 +53,18 @@ Ketika Bendahara login ke sistem, menu navigasi sidebar meliputi:
     *   **Cetak Dokumen PDF Resmi:** Menghasilkan dokumen laporan pertanggungjawaban keuangan resmi ber-kop surat RT lengkap dengan kolom tanda tangan digital Bendahara dan Ketua RT.
 
 *   **BE-05: Pengelolaan Iuran Warga & Tunggakan (`/dashboard/dues`)**
-    *   **Konfigurasi Aturan Iuran (`fee_rules`):** Menetapkan nama iuran, nominal tarif per KK (misal: Rp 50.000/bulan), dan jenis kewajiban (*Wajib* atau *Sukarela*).
-    *   **Generate Tagihan Iuran:** 
-        *   *Saat Pembuatan Aturan:* Saat aturan iuran baru pertama kali dibuat, sistem langsung meng-generate baris tagihan perdana (`unpaid`) untuk seluruh KK aktif.
-        *   *Tombol Generate:* Untuk periode berjalan atau menyinkronkan KK yang baru terdaftar, Bendahara dapat menekan tombol **`[Generate]`** pada kartu aturan iuran untuk men-generate/memperbarui baris tagihan periode tersebut bagi seluruh Kepala Keluarga aktif.
-    *   **Pencatatan Pembayaran Warga (`/dashboard/dues/manage`):**
-        *   *Pelunasan Penuh:* Sistem mengubah status tagihan menjadi **`Lunas` (paid)**.
-        *   *Cicilan / Sebagian:* Bendahara dapat menginput nominal pembayaran bertahap, status berubah menjadi **`Kurang` (partially_paid)** dan sistem mencatat sisa kekurangan tagihan.
-        *   *Sinkronisasi Kas:* Sistem otomatis mencatat uang yang disetorkan warga ke dalam buku kas utama sebesar nominal yang dibayarkan.
-        *   *Tanda Terima Digital:* Pembayaran yang diverifikasi Bendahara otomatis terbit di akun warga sebagai riwayat transaksi resmi.
-    *   **Laporan Tunggakan Iuran (`/dashboard/dues/arrears`):** Rekapitulasi daftar KK yang menunggak pembayaran iuran pada periode berjalan maupun akumulasi periode sebelumnya untuk memudahkan monitoring dan penagihan.
+    *   **Konfigurasi Aturan Iuran (`fee_rules`):** Menetapkan nama iuran dan nominal tarif bulanan per KK (misal: Rp 50.000/bulan). Seluruh aturan iuran bersifat **100% Wajib** secara default. Bendahara dapat mengubah status aturan menjadi **Aktif** atau **Non-Aktif** (aturan non-aktif menghentikan pembuatan tagihan baru, menonaktifkan tombol generate, dan diposisikan di urutan paling bawah).
+    *   **Generate Tagihan Iuran & Auto-Billing:** 
+        *   *Auto-Billing Pasif (JIT):* Sistem secara otomatis men-generate tagihan bulan berjalan saat pengurus atau warga membuka menu iuran.
+        *   *Saat Pembuatan Aturan:* Saat aturan aktif baru dibuat, sistem langsung meng-generate tagihan bulan berjalan untuk seluruh KK aktif.
+        *   *Tombol Generate Manual:* Tersedia pada kartu aturan aktif untuk sinkronisasi tagihan KK yang baru terdaftar.
+    *   **Pencatatan Pembayaran Multi-Periode & Advance Payment (`/dashboard/dues/manage`):**
+        *   *Waterfall Settlement:* Sistem secara cerdas mengalokasikan setoran warga secara berurutan: melunasi tunggakan terlama $\rightarrow$ melunasi tagihan bulan berjalan $\rightarrow$ mencatat pembayaran di muka (*Advance Payment*) untuk bulan-bulan mendatang.
+        *   *Presisi Filter 'Semua Periode':* Batas kewajiban riil dihitung sampai bulan berjalan ($\le \text{currentPeriod}$), sehingga pembayaran di muka tidak membuat warga keliru berstatus "Kurang Bayar".
+        *   *Simulasi Alokasi Modal:* Modal pembayaran menampilkan pratinjau kartu alokasi periode dan sisa nominal parsial secara real-time.
+        *   *Sinkronisasi Kas Otomatis:* Setiap pembayaran langsung dicatat sebagai transaksi kas masuk (`income` / `Iuran Warga`) pada kas utama RT.
+        *   *Tanda Terima Digital:* Pembayaran otomatis terbit di akun warga sebagai riwayat transaksi resmi (`/dashboard/my-fees`).
+    *   **Laporan Tunggakan Iuran (`/dashboard/dues/arrears`):** Rekapitulasi daftar KK yang menunggak pembayaran iuran lampau dan bulan berjalan beserta total akumulasi nominal untuk monitoring penagihan.
 
 *   **BE-06: Fitur Dual Role (Mode Warga Personal)**
     *   Bendahara RT dapat berganti peran secara instan ke *Mode Warga Personal* untuk mengelola data anggota keluarganya sendiri, memantau iuran pribadi, dan melihat aset sewa pribadi tanpa perlu keluar dari akun.
@@ -124,29 +126,26 @@ flowchart TD
     B --> C{Pilih Aksi Operasional}
     
     %% Aturan Iuran
-    C -->|Atur Tarif Iuran| D[Buka Tab Aturan Iuran -> Klik 'Tambah Aturan Iuran']
-    D --> E[Tentukan Nama Iuran, Nominal & Sifat: Wajib / Sukarela -> Simpan]
-    E --> F[Sistem Otomatis Generate Baris Tagihan untuk Seluruh KK Aktif]
+    C -->|Atur Tarif Iuran| D[Buka Tab Aturan Iuran -> Klik 'Tambah Aturan Iuran' / Edit Aturan]
+    D --> E[Input Nama Iuran, Nominal per KK & Status: Aktif / Non-Aktif -> Simpan]
+    E --> F[Sistem Auto-Generate Tagihan untuk Seluruh KK Aktif jika Aturan Aktif]
     
     %% Setor Iuran
-    C -->|Catat Setoran Warga| G[Cari Nama KK di Tab 'Kelola & Setor Iuran' -> Klik 'Bayar Iuran']
-    G --> H[Input Nominal Uang yang Diserahkan & Metode Pembayaran: Cash / Transfer]
-    H --> I{Apakah Nominal Pembayaran Lunas Penuh?}
+    C -->|Catat Setoran Warga| G[Cari Nama KK di Tab 'Kelola & Setor Iuran' -> Klik 'Bayar Iuran' / '+ Bayar Dimuka']
+    G --> H[Input Nominal Uang Diterima, Pilihan Cepat 1/3/6/12 Bln, & Metode: Cash / Transfer]
+    H --> I[Sistem Tampilkan Preview Alokasi Waterfall: Tunggakan -> Bulan Ini -> Advance]
+    I --> J[Simpan Pembayaran -> Sistem Eksekusi Batch Multi-Bulan ke Database]
     
-    I -->|Ya, Penuh| J[Sistem Set Status: 'Lunas (paid)']
-    I -->|Tidak, Sebagian / Cicil| K[Sistem Set Status: 'Kurang (partially_paid)' & Catat Sisa Hutang]
-    
-    J --> L[Sistem Otomatis Tambah Uang Masuk ke Buku Kas Utama RT]
-    K --> L
-    L --> M[Sistem Terbitkan Tanda Terima Digital Resmi di Dashboard Warga]
+    J --> K[Sistem Otomatis Tambah Uang Masuk ke Buku Kas Utama RT]
+    K --> L[Sistem Terbitkan Tanda Terima Digital Resmi di Dashboard Warga]
     
     %% Laporan Tunggakan
-    C -->|Pantau Tunggakan| N[Buka Tab 'Laporan Tunggakan Iuran']
-    N --> O[Tinjau Daftar KK Penunggak & Akumulasi Periode Belum Terbayar]
+    C -->|Pantau Tunggakan| M[Buka Tab 'Laporan Tunggakan Iuran']
+    M --> N[Tinjau Daftar KK Penunggak & Akumulasi Periode Belum Terbayar]
     
-    F --> P[Selesai]
-    M --> P
-    O --> P
+    F --> O[Selesai]
+    L --> O
+    N --> O
 ```
 
 ### 4.3 Flow Penyusunan & Pencetakan Laporan Keuangan Bulanan

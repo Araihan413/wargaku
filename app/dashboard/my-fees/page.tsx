@@ -60,9 +60,9 @@ interface WargaFeeData {
 
 const STATUS_OPTIONS: SelectOption[] = [
   { value: "all", label: "Semua Status" },
-  { value: "paid", label: "Lunas (Terverifikasi)" },
-  { value: "partially_paid", label: "Terbayar Sebagian" },
-  { value: "unpaid", label: "Belum Ada Catatan" },
+  { value: "paid", label: "Lunas" },
+  { value: "partially_paid", label: "Kurang Bayar" },
+  { value: "unpaid", label: "Belum Bayar" },
 ];
 
 export default function WargaMyFeesPage() {
@@ -469,7 +469,7 @@ function WargaMyFeesContent() {
                           </td>
                           <td className="py-3.5 px-4 text-center">
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap inline-block ${
                                 item.status === "paid"
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                   : item.status === "partially_paid"
@@ -480,8 +480,8 @@ function WargaMyFeesContent() {
                               {item.status === "paid"
                                 ? "Lunas"
                                 : item.status === "partially_paid"
-                                ? "Sebagian"
-                                : "Belum Ada Catatan"}
+                                ? "Kurang Bayar"
+                                : "Belum Bayar"}
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-right text-gray-secondary-text font-medium">
