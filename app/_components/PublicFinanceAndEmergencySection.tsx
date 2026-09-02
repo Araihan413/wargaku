@@ -18,8 +18,10 @@ const formatRupiah = (amount: number) => {
 
 export const PublicFinanceAndEmergencySection: React.FC<PublicFinanceAndEmergencySectionProps> = ({
   finance,
-  emergencyContacts,
+  emergencyContacts = [],
 }) => {
+  const safeContacts = Array.isArray(emergencyContacts) ? emergencyContacts : [];
+
   return (
     <section id="transparansi-kas" className="py-12 px-4 sm:px-6 bg-white border-t border-slate-200">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -33,7 +35,7 @@ export const PublicFinanceAndEmergencySection: React.FC<PublicFinanceAndEmergenc
               href="/transparansi-kas"
               className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
             >
-              Lihat Lengkap →
+              Lihat Lengkap &rarr;
             </Link>
           </div>
 
@@ -83,7 +85,7 @@ export const PublicFinanceAndEmergencySection: React.FC<PublicFinanceAndEmergenc
             </h2>
           </div>
 
-          {emergencyContacts.length === 0 ? (
+          {safeContacts.length === 0 ? (
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-8 text-center space-y-2">
               <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
                 <AlertCircle className="w-5 h-5" />
@@ -97,7 +99,7 @@ export const PublicFinanceAndEmergencySection: React.FC<PublicFinanceAndEmergenc
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {emergencyContacts.map((contact, idx) => {
+              {safeContacts.map((contact, idx) => {
                 const cleanPhone = contact.phone.replace(/[^0-9+]/g, "");
                 return (
                   <div

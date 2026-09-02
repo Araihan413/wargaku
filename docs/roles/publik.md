@@ -80,7 +80,6 @@ Pengunjung yang membuka domain utama web RT akan menemui navigasi publik:
 flowchart TD
     A[Pengunjung Web Publik] --> B{Pilih Menu}
     
-    B -->|Cari Warga| C[Cari Nama -> Tampil Alamat & No Rumah / NIK Sensor]
     B -->|Buka Kas RT| D[Lihat Grafik Saldo Kas & Riwayat Transaksi Kas]
     B -->|Kirim Aduan| E[Isi Form Lapor -> Dapatkan Tracking Code]
     B -->|Cek Aduan| F[Input Tracking Code -> Tampilkan Status Penanganan]

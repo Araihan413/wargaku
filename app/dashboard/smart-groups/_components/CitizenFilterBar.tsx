@@ -107,7 +107,7 @@ export const CitizenFilterBar: React.FC<CitizenFilterBarProps> = ({
 
   const savedGroupOptions: SelectOption[] = [
     { value: "none", label: "-- Pilih Preset Tersimpan --" },
-    ...savedGroups.map((g) => ({
+    ...(Array.isArray(savedGroups) ? savedGroups : []).map((g) => ({
       value: String(g.id),
       label: g.name,
     })),

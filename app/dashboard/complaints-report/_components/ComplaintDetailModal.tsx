@@ -132,7 +132,8 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           if (item.photoPath) {
             try {
               if (item.photoPath.startsWith("[")) {
-                urls = JSON.parse(item.photoPath);
+                const parsed = JSON.parse(item.photoPath);
+                urls = Array.isArray(parsed) ? parsed : [item.photoPath.startsWith("http") ? item.photoPath : `/uploads/${item.photoPath}`];
               } else {
                 urls = [item.photoPath.startsWith("http") ? item.photoPath : `/uploads/${item.photoPath}`];
               }

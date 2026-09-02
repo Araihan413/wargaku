@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Radio,
   Plus,
@@ -47,13 +47,13 @@ function SystemBroadcastContent() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchBroadcasts = useCallback(async () => {
+  const handleRefresh = async () => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/broadcasts?admin=true");
       if (res.ok) {
         const data = await res.json();
-        setBroadcasts(data);
+        setBroadcasts(Array.isArray(data) ? data : []);
       } else {
         toast.error("Gagal mengambil data broadcast");
       }
@@ -63,25 +63,22 @@ function SystemBroadcastContent() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     let isCancelled = false;
 
-    async function loadData() {
+    async function loadInitialData() {
       try {
         const res = await fetch("/api/broadcasts?admin=true");
         if (res.ok) {
           const data = await res.json();
           if (!isCancelled) {
-            setBroadcasts(data);
+            setBroadcasts(Array.isArray(data) ? data : []);
           }
-        } else {
-          toast.error("Gagal mengambil data broadcast");
         }
       } catch (err) {
         console.error(err);
-        toast.error("Terjadi kesalahan koneksi");
       } finally {
         if (!isCancelled) {
           setIsLoading(false);
@@ -89,7 +86,7 @@ function SystemBroadcastContent() {
       }
     }
 
-    loadData();
+    loadInitialData();
 
     return () => {
       isCancelled = true;
@@ -109,7 +106,7 @@ function SystemBroadcastContent() {
       if (res.ok) {
         toast.success("Broadcast sistem berhasil dibuat!");
         setIsModalOpen(false);
-        fetchBroadcasts();
+        handleRefresh();
       } else {
         toast.error(data.error || "Gagal membuat broadcast");
       }

@@ -145,7 +145,7 @@ flowchart TD
     
     C -->|Kelola KK & KTP| D[Input Data Anggota -> Upload KK & KTP -> Status: Pending]
     D --> E[RT Verifikasi -> Status: Verified]
-    C -->|Kelola Aset| G[Masuk Menu Aset -> Daftarkan/Ubah Status Rumah Kosong atau Sewa]
+    C -->|Kelola Aset| G[Masuk Menu Aset -> Daftarkan/kelola property sewa]
     
     E --> H[Selesai]
     G --> H

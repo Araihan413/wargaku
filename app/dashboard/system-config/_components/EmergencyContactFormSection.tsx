@@ -10,9 +10,11 @@ interface EmergencyContactFormSectionProps {
 }
 
 export function EmergencyContactFormSection({
-  contacts,
+  contacts = [],
   onChange,
 }: EmergencyContactFormSectionProps) {
+  const safeContacts = Array.isArray(contacts) ? contacts : [];
+
   const handleAddContact = () => {
     const newContact: EmergencyContactItem = {
       id: Date.now().toString(),
@@ -20,11 +22,11 @@ export function EmergencyContactFormSection({
       phone: "",
       subtitle: "",
     };
-    onChange([...contacts, newContact]);
+    onChange([...safeContacts, newContact]);
   };
 
   const handleRemoveContact = (index: number) => {
-    const updated = contacts.filter((_, i) => i !== index);
+    const updated = safeContacts.filter((_, i) => i !== index);
     onChange(updated);
   };
 
@@ -33,7 +35,7 @@ export function EmergencyContactFormSection({
     field: keyof EmergencyContactItem,
     value: string
   ) => {
-    const updated = [...contacts];
+    const updated = [...safeContacts];
     updated[index] = {
       ...updated[index],
       [field]: value,
@@ -67,7 +69,7 @@ export function EmergencyContactFormSection({
         </button>
       </div>
 
-      {contacts.length === 0 ? (
+      {safeContacts.length === 0 ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-5 text-center space-y-2">
           <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
             <AlertCircle className="w-5 h-5" />
@@ -81,7 +83,7 @@ export function EmergencyContactFormSection({
         </div>
       ) : (
         <div className="space-y-4">
-          {contacts.map((contact, index) => (
+          {safeContacts.map((contact, index) => (
             <div
               key={contact.id || index}
               className="p-4 rounded-xl border border-gray-border bg-white space-y-3 relative group"

@@ -39,13 +39,22 @@ export const updateSystemConfigSchema = z.object({
         : 'Nama Kota/Kabupaten harus berupa teks',
   }).min(1, 'Nama Kota/Kabupaten wajib diisi').max(100),
 
-  postalCode: z.string().max(10).optional().nullable(),
-  contactPhone: z.string().max(20).optional().nullable(),
-  contactEmail: z.string().email('Format email tidak valid').optional().nullable().or(z.literal('')),
-  appLogoUrl: z.string().max(255).optional().nullable(),
-  headerLogoUrl: z.string().max(255).optional().nullable(),
-  publicPortalContent: z.string().optional().nullable(),
-  customSettings: z.record(z.string(), z.any()).optional().nullable(),
+  secretariatAddress: z.string().optional().nullable().or(z.literal('')),
+  logoPath: z.string().optional().nullable().or(z.literal('')),
+  officialEmail: z.string().email('Format email tidak valid').optional().nullable().or(z.literal('')),
+  officialRtPhone: z.string().optional().nullable().or(z.literal('')),
+  officialSecretaryPhone: z.string().optional().nullable().or(z.literal('')),
+  officialTreasurerPhone: z.string().optional().nullable().or(z.literal('')),
+  emergencyContacts: z.array(
+    z.object({
+      id: z.string().optional(),
+      name: z.string().min(1, 'Nama kontak darurat wajib diisi'),
+      phone: z.string().min(1, 'Nomor telepon darurat wajib diisi'),
+      subtitle: z.string().optional().nullable(),
+    })
+  ).optional().nullable(),
+  latitude: z.string().optional().nullable().or(z.literal('')),
+  longitude: z.string().optional().nullable().or(z.literal('')),
 });
 
 // ==========================================

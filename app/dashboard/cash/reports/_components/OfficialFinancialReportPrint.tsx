@@ -96,8 +96,8 @@ export const OfficialFinancialReportPrint: React.FC<OfficialFinancialReportPrint
               </tr>
 
               {/* Grouped Income Categories */}
-              {data.groupedIncome.length > 0 ? (
-                data.groupedIncome.map((group, groupIdx) => (
+              {(Array.isArray(data?.groupedIncome) ? data.groupedIncome : []).length > 0 ? (
+                (data?.groupedIncome || []).map((group, groupIdx) => (
                   <React.Fragment key={`inc-group-${groupIdx}`}>
                     {/* Header Kelompok Kategori Pemasukan */}
                     <tr>
@@ -110,7 +110,7 @@ export const OfficialFinancialReportPrint: React.FC<OfficialFinancialReportPrint
                       <td className="py-1.5 px-3"></td>
                     </tr>
                     {/* List Transaksi per Kategori */}
-                    {group.items.map((item, itemIdx) => (
+                    {(Array.isArray(group?.items) ? group.items : []).map((item, itemIdx) => (
                       <tr key={`inc-item-${groupIdx}-${itemIdx}`}>
                         <td className="border-r border-black py-1 px-2"></td>
                         <td className="border-r border-black py-1 px-3 pl-10">
@@ -128,43 +128,39 @@ export const OfficialFinancialReportPrint: React.FC<OfficialFinancialReportPrint
               ) : (
                 /* Default Nilai Kosong Pemasukan */
                 <tr>
-                  <td className="border-r border-black py-2 px-2"></td>
-                  <td className="border-r border-black py-2 px-3 pl-6 italic text-gray-600">
-                    - Tidak ada transaksi pemasukan pada periode ini
+                  <td className="border-r border-black py-1.5 px-2"></td>
+                  <td className="border-r border-black py-1.5 px-3 pl-6 text-slate-400 italic">
+                    (Tidak ada transaksi pemasukan pada periode ini)
                   </td>
-                  <td className="border-r border-black py-2 px-3 text-right">Rp 0</td>
-                  <td className="border-r border-black py-2 px-3"></td>
-                  <td className="py-2 px-3"></td>
+                  <td className="border-r border-black py-1.5 px-3 text-right">Rp 0</td>
+                  <td className="border-r border-black py-1.5 px-3"></td>
+                  <td className="py-1.5 px-3"></td>
                 </tr>
               )}
 
-              {/* Jumlah Pemasukan */}
-              <tr className="font-bold italic">
-                <td className="border-r border-black py-2 px-2"></td>
-                <td className="border-r border-black py-2 px-3 pl-6">
-                  Jumlah Pemasukan
-                </td>
+              {/* Subtotal Pemasukan */}
+              <tr className="border-t border-b border-black font-bold bg-slate-50">
+                <td className="border-r border-black py-2 px-2 text-center">B</td>
+                <td className="border-r border-black py-2 px-3">TOTAL PENERIMAAN / PEMASUKAN</td>
                 <td className="border-r border-black py-2 px-3"></td>
-                <td className="border-r border-black py-2 px-3"></td>
-                <td className="py-2 px-3 text-right font-bold border-t border-black">
+                <td className="border-r border-black py-2 px-3 text-right">
                   {formatRupiah(data.totalIncome)}
                 </td>
+                <td className="py-2 px-3"></td>
               </tr>
 
-              {/* III. PENGELUARAN */}
-              <tr>
-                <td className="border-r border-black py-2 px-2 text-center font-bold">III.</td>
-                <td className="border-r border-black py-2 px-3 font-bold italic underline">
-                  PENGELUARAN
-                </td>
+              {/* Separator Section Pengeluaran */}
+              <tr className="border-b border-black font-bold">
+                <td className="border-r border-black py-2 px-2 text-center">III</td>
+                <td className="border-r border-black py-2 px-3 uppercase">PENGELUARAN</td>
                 <td className="border-r border-black py-2 px-3"></td>
                 <td className="border-r border-black py-2 px-3"></td>
                 <td className="py-2 px-3"></td>
               </tr>
 
               {/* Grouped Expense Categories */}
-              {data.groupedExpense.length > 0 ? (
-                data.groupedExpense.map((group, groupIdx) => (
+              {(Array.isArray(data?.groupedExpense) ? data.groupedExpense : []).length > 0 ? (
+                (data?.groupedExpense || []).map((group, groupIdx) => (
                   <React.Fragment key={`exp-group-${groupIdx}`}>
                     {/* Header Kelompok Kategori Pengeluaran */}
                     <tr>
@@ -177,7 +173,7 @@ export const OfficialFinancialReportPrint: React.FC<OfficialFinancialReportPrint
                       <td className="py-1.5 px-3"></td>
                     </tr>
                     {/* List Transaksi per Kategori */}
-                    {group.items.map((item, itemIdx) => (
+                    {(Array.isArray(group?.items) ? group.items : []).map((item, itemIdx) => (
                       <tr key={`exp-item-${groupIdx}-${itemIdx}`}>
                         <td className="border-r border-black py-1 px-2"></td>
                         <td className="border-r border-black py-1 px-3 pl-10">

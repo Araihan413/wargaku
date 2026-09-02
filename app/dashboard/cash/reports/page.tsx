@@ -138,7 +138,7 @@ function FinancialReportContent() {
   const incomeCategoryMap = new Map<string, { description: string; amount: number }[]>();
   const expenseCategoryMap = new Map<string, { description: string; amount: number }[]>();
 
-  if (data?.ledger) {
+  if (data?.ledger && Array.isArray(data.ledger)) {
     data.ledger.forEach((item) => {
       if (item.type === "income") {
         const cat = item.category || "Pemasukan Lainnya";

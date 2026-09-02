@@ -140,7 +140,8 @@ const ComplaintDetailModalContent: React.FC<ModalContentProps> = ({
               if (complaint.photoPath) {
                 try {
                   if (complaint.photoPath.startsWith("[")) {
-                    photoUrls = JSON.parse(complaint.photoPath);
+                    const parsed = JSON.parse(complaint.photoPath);
+                    photoUrls = Array.isArray(parsed) ? parsed : [complaint.photoPath];
                   } else {
                     photoUrls = [complaint.photoPath];
                   }

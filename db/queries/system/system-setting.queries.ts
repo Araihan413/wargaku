@@ -57,17 +57,60 @@ export async function getSystemSettings() {
     };
   }
 
-  return settings;
+  // Parse emergencyContacts jika string atau null
+  let emergencyContacts: SystemEmergencyContactItem[] = [];
+  if (Array.isArray(settings.emergencyContacts)) {
+    emergencyContacts = settings.emergencyContacts;
+  } else if (typeof settings.emergencyContacts === 'string') {
+    try {
+      const parsed = JSON.parse(settings.emergencyContacts);
+      if (Array.isArray(parsed)) emergencyContacts = parsed;
+    } catch {
+      emergencyContacts = [];
+    }
+  }
+
+  return {
+    ...settings,
+    emergencyContacts,
+  };
 }
 
 export async function updateSystemSettings(data: UpdateSystemSettingsInput, userId?: string, ipAddress?: string) {
-  await db
-    .update(schema.systemSettings)
-    .set({
-      ...data,
+  const existing = await db
+    .select({ id: schema.systemSettings.id })
+    .from(schema.systemSettings)
+    .where(eq(schema.systemSettings.id, 1))
+    .limit(1);
+
+  if (existing.length === 0) {
+    await db.insert(schema.systemSettings).values({
+      id: 1,
+      rtName: data.rtName || '37',
+      rwName: data.rwName || '05',
+      villageName: data.villageName || 'Argorejo',
+      subdistrict: data.subdistrict || 'Sedayu',
+      city: data.city || 'Kabupaten Bantul',
+      logoPath: data.logoPath || null,
+      officialEmail: data.officialEmail || null,
+      officialRtPhone: data.officialRtPhone || null,
+      officialSecretaryPhone: data.officialSecretaryPhone || null,
+      officialTreasurerPhone: data.officialTreasurerPhone || null,
+      emergencyContacts: data.emergencyContacts || [],
+      latitude: data.latitude || null,
+      longitude: data.longitude || null,
+      secretariatAddress: data.secretariatAddress || null,
       updatedAt: new Date(),
-    })
-    .where(eq(schema.systemSettings.id, 1));
+    });
+  } else {
+    await db
+      .update(schema.systemSettings)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.systemSettings.id, 1));
+  }
 
   if (userId) {
     const updatedFields: string[] = [];

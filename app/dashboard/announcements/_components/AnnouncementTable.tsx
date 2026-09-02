@@ -32,7 +32,9 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
   const [deletingItem, setDeletingItem] = useState<AnnouncementItem | null>(null);
   const [pinningId, setPinningId] = useState<number | null>(null);
 
-  const filteredItems = items.filter((item) => {
+  const safeItems = Array.isArray(items) ? items : [];
+
+  const filteredItems = safeItems.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
       item.content.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
@@ -43,7 +45,7 @@ export const AnnouncementTable: React.FC<AnnouncementTableProps> = ({
 
   const handleTogglePin = async (item: AnnouncementItem) => {
     if (!item.isPinned) {
-      const currentPinnedCount = items.filter((i) => i.isPinned).length;
+      const currentPinnedCount = safeItems.filter((i) => i.isPinned).length;
       if (currentPinnedCount >= 3) {
         toast.error("Maksimal 3 pengumuman yang dapat disematkan secara bersamaan");
         return;

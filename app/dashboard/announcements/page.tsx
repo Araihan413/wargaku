@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { RefreshButton } from "@/components/RefreshButton";
 import { AnnouncementItem } from "./types";
@@ -28,28 +28,28 @@ function AnnouncementsContent() {
   const [selectedEditItem, setSelectedEditItem] = useState<AnnouncementItem | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<AnnouncementItem | null>(null);
 
-  const fetchAnnouncements = useCallback(async () => {
+  const handleRefresh = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       setError(null);
       const res = await fetch("/api/announcements");
       if (!res.ok) {
         throw new Error("Gagal mengambil data pengumuman");
       }
       const data = await res.json();
-      setItems(data);
+      setItems(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Terjadi kesalahan koneksi");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     let isCancelled = false;
 
-    async function loadData() {
+    async function loadInitialData() {
       try {
         const res = await fetch("/api/announcements");
         if (!res.ok) {
@@ -57,7 +57,8 @@ function AnnouncementsContent() {
         }
         const data = await res.json();
         if (!isCancelled) {
-          setItems(data);
+          setItems(Array.isArray(data) ? data : []);
+          setError(null);
         }
       } catch (err: any) {
         console.error(err);
@@ -71,7 +72,7 @@ function AnnouncementsContent() {
       }
     }
 
-    loadData();
+    loadInitialData();
 
     return () => {
       isCancelled = true;
@@ -96,7 +97,7 @@ function AnnouncementsContent() {
         </div>
 
         <RefreshButton
-          onClick={fetchAnnouncements}
+          onClick={handleRefresh}
           isLoading={isLoading}
         />
       </div>
@@ -108,7 +109,7 @@ function AnnouncementsContent() {
           <p className="mt-1 max-w-md text-xs text-gray-secondary-text">{error}</p>
           <button
             type="button"
-            onClick={fetchAnnouncements}
+            onClick={handleRefresh}
             className="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-primary-900 cursor-pointer"
           >
             Muat Ulang
@@ -118,7 +119,7 @@ function AnnouncementsContent() {
         <AnnouncementTable
           items={items}
           isLoading={isLoading}
-          onRefresh={fetchAnnouncements}
+          onRefresh={handleRefresh}
           onOpenAddModal={() => setIsAddModalOpen(true)}
           onOpenEditModal={(item) => setSelectedEditItem(item)}
           onOpenDetailModal={(item) => setSelectedDetailItem(item)}
@@ -129,14 +130,14 @@ function AnnouncementsContent() {
       <AddAnnouncementModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSuccess={fetchAnnouncements}
+        onSuccess={handleRefresh}
       />
 
       <EditAnnouncementModal
         isOpen={!!selectedEditItem}
         onClose={() => setSelectedEditItem(null)}
         announcement={selectedEditItem}
-        onSuccess={fetchAnnouncements}
+        onSuccess={handleRefresh}
       />
 
       <AnnouncementDetailModal

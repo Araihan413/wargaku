@@ -17,11 +17,13 @@ export function parseAttachments(attachmentsStr?: string | null): AttachmentItem
   try {
     if (attachmentsStr.startsWith("[")) {
       const parsed = JSON.parse(attachmentsStr);
-      return parsed.map((item: any) => ({
-        name: item.name || "Lampiran File",
-        url: item.url || item,
-        type: item.type || (item.url?.toLowerCase().includes(".pdf") ? "pdf" : "image"),
-      }));
+      if (Array.isArray(parsed)) {
+        return parsed.map((item: any) => ({
+          name: item?.name || "Lampiran File",
+          url: item?.url || (typeof item === "string" ? item : ""),
+          type: item?.type || (typeof item?.url === "string" && item.url.toLowerCase().includes(".pdf") ? "pdf" : "image"),
+        }));
+      }
     }
     return [
       {

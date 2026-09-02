@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { RefreshButton } from "@/components/RefreshButton";
 import { ActivityItem } from "./types";
@@ -29,38 +29,37 @@ function ActivitiesContent() {
   const [selectedEditItem, setSelectedEditItem] = useState<ActivityItem | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<ActivityItem | null>(null);
 
-  const fetchActivities = useCallback(async () => {
+  const handleRefresh = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       setError(null);
       const res = await fetch(`/api/activities?filter=${activeFilter}`);
       if (!res.ok) {
         throw new Error("Gagal mengambil data kegiatan RT");
       }
       const data = await res.json();
-      setItems(data);
+      setItems(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Terjadi kesalahan koneksi");
     } finally {
       setIsLoading(false);
     }
-  }, [activeFilter]);
+  };
 
   useEffect(() => {
     let isCancelled = false;
 
-    async function loadData() {
+    async function loadInitialData() {
       try {
-        setIsLoading(true);
-        setError(null);
         const res = await fetch(`/api/activities?filter=${activeFilter}`);
         if (!res.ok) {
           throw new Error("Gagal mengambil data kegiatan RT");
         }
         const data = await res.json();
         if (!isCancelled) {
-          setItems(data);
+          setItems(Array.isArray(data) ? data : []);
+          setError(null);
         }
       } catch (err: any) {
         console.error(err);
@@ -74,7 +73,7 @@ function ActivitiesContent() {
       }
     }
 
-    loadData();
+    loadInitialData();
 
     return () => {
       isCancelled = true;
@@ -99,7 +98,7 @@ function ActivitiesContent() {
         </div>
 
         <RefreshButton
-          onClick={fetchActivities}
+          onClick={handleRefresh}
           isLoading={isLoading}
         />
       </div>
@@ -111,7 +110,7 @@ function ActivitiesContent() {
           <p className="mt-1 max-w-md text-xs text-gray-secondary-text">{error}</p>
           <button
             type="button"
-            onClick={fetchActivities}
+            onClick={handleRefresh}
             className="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-primary-900 cursor-pointer"
           >
             Muat Ulang
@@ -123,7 +122,7 @@ function ActivitiesContent() {
           isLoading={isLoading}
           activeFilter={activeFilter}
           onFilterChange={(f) => setActiveFilter(f)}
-          onRefresh={fetchActivities}
+          onRefresh={handleRefresh}
           onOpenAddModal={() => setIsAddModalOpen(true)}
           onOpenEditModal={(item) => setSelectedEditItem(item)}
           onOpenDetailModal={(item) => setSelectedDetailItem(item)}
@@ -134,14 +133,14 @@ function ActivitiesContent() {
       <AddActivityModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSuccess={fetchActivities}
+        onSuccess={handleRefresh}
       />
 
       <EditActivityModal
         isOpen={!!selectedEditItem}
         onClose={() => setSelectedEditItem(null)}
         activity={selectedEditItem}
-        onSuccess={fetchActivities}
+        onSuccess={handleRefresh}
       />
 
       <ActivityDetailModal

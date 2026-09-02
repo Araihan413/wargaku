@@ -35,7 +35,9 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const [deletingItem, setDeletingItem] = useState<ActivityItem | null>(null);
   const [pinningId, setPinningId] = useState<number | null>(null);
 
-  const filteredItems = items.filter((item) => {
+  const safeItems = Array.isArray(items) ? items : [];
+
+  const filteredItems = safeItems.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
       (item.description && item.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||

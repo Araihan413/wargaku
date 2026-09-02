@@ -30,6 +30,25 @@ const EMPTY_FORM: SystemConfigFormState = {
   longitude: "",
 };
 
+function mapSettingsToForm(s: SystemSettingsData): SystemConfigFormState {
+  return {
+    rtName: s.rtName || "",
+    rwName: s.rwName || "",
+    villageName: s.villageName || "",
+    subdistrict: s.subdistrict || "",
+    city: s.city || "",
+    secretariatAddress: s.secretariatAddress || "",
+    logoPath: s.logoPath || null,
+    officialEmail: s.officialEmail || "",
+    officialRtPhone: s.officialRtPhone || "",
+    officialSecretaryPhone: s.officialSecretaryPhone || "",
+    officialTreasurerPhone: s.officialTreasurerPhone || "",
+    emergencyContacts: Array.isArray(s.emergencyContacts) ? s.emergencyContacts : [],
+    latitude: s.latitude || "",
+    longitude: s.longitude || "",
+  };
+}
+
 export default function SystemConfigPage() {
   return (
     <PermissionGuard requiredPermission="manage-system-config">
@@ -39,32 +58,11 @@ export default function SystemConfigPage() {
 }
 
 function SystemConfigContent() {
-
   const [settings, setSettings] = useState<SystemSettingsData | null>(null);
   const [form, setForm] = useState<SystemConfigFormState>(EMPTY_FORM);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const populateForm = (s: SystemSettingsData) => {
-    setSettings(s);
-    setForm({
-      rtName: s.rtName,
-      rwName: s.rwName,
-      villageName: s.villageName,
-      subdistrict: s.subdistrict,
-      city: s.city,
-      secretariatAddress: s.secretariatAddress || "",
-      logoPath: s.logoPath,
-      officialEmail: s.officialEmail || "",
-      officialRtPhone: s.officialRtPhone || "",
-      officialSecretaryPhone: s.officialSecretaryPhone || "",
-      officialTreasurerPhone: s.officialTreasurerPhone || "",
-      emergencyContacts: s.emergencyContacts || [],
-      latitude: s.latitude || "",
-      longitude: s.longitude || "",
-    });
-  };
 
   const handleRetry = async () => {
     setIsLoading(true);
@@ -73,7 +71,9 @@ function SystemConfigContent() {
       const res = await fetch("/api/system-config");
       if (!res.ok) throw new Error("Gagal memuat konfigurasi sistem");
       const json = await res.json();
-      populateForm(json.settings);
+      const s = json.settings;
+      setSettings(s);
+      setForm(mapSettingsToForm(s));
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan koneksi");
     } finally {
@@ -83,13 +83,15 @@ function SystemConfigContent() {
 
   useEffect(() => {
     let isCancelled = false;
-    async function fetchSettings() {
+    async function loadInitialData() {
       try {
         const res = await fetch("/api/system-config");
         if (!res.ok) throw new Error("Gagal memuat konfigurasi sistem");
         const json = await res.json();
+        const s = json.settings;
         if (!isCancelled) {
-          populateForm(json.settings);
+          setSettings(s);
+          setForm(mapSettingsToForm(s));
           setError(null);
         }
       } catch (err: any) {
@@ -102,7 +104,9 @@ function SystemConfigContent() {
         }
       }
     }
-    fetchSettings();
+
+    loadInitialData();
+
     return () => {
       isCancelled = true;
     };
