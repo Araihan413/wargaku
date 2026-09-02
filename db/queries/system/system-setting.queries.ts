@@ -7,7 +7,7 @@ export interface SystemEmergencyContactItem {
   id?: string;
   name: string;
   phone: string;
-  subtitle?: string;
+  subtitle?: string | null;
 }
 
 export interface UpdateSystemSettingsInput {

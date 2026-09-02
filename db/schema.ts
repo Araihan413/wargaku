@@ -413,7 +413,7 @@ export const systemSettings = mysqlTable('system_settings', {
   officialRtPhone: varchar('official_rt_phone', { length: 15 }),
   officialSecretaryPhone: varchar('official_secretary_phone', { length: 15 }),
   officialTreasurerPhone: varchar('official_treasurer_phone', { length: 15 }),
-  emergencyContacts: json('emergency_contacts').$type<{ id?: string; name: string; phone: string; subtitle?: string }[]>(),
+  emergencyContacts: json('emergency_contacts').$type<{ id?: string; name: string; phone: string; subtitle?: string | null }[]>(),
   latitude: varchar('latitude', { length: 50 }),
   longitude: varchar('longitude', { length: 50 }),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

@@ -10,7 +10,7 @@ import { recordPaymentSchema } from '@/lib/validations/keuangan';
  * @openapi
  * /api/fee-payments/pay:
  *   post:
- *     summary: Mencatat pembayaran iuran warga (fleksibel: 1 bulan, tunggakan, atau bayar dimuka)
+ *     summary: "Mencatat pembayaran iuran warga (fleksibel: 1 bulan, tunggakan, atau bayar dimuka)"
  *     description: |
  *       Mencatat pembayaran iuran secara fleksibel dan atomik.
  *       Sistem secara otomatis mengalokasikan pembayaran ke tagihan lama (tunggakan), bulan berjalan,
