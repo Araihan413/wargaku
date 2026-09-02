@@ -164,14 +164,19 @@ flowchart TD
     C -->|Tab Penyewa| F[Pilih Check-In Penyewa Baru / Verifikasi Berkas / Check-Out]
     F --> G[Isi Data Kontrak Sewa & Identitas -> Simpan ke Database]
     
+    %% Tab Koordinator Kos
+    C -->|Tab Koordinator Kos| H[Pilih Tambah Koordinator / Edit Data / Hapus Koordinator]
+    H --> I[Simpan Data Koordinator Kos]
+
     %% Tab Hunian
-    C -->|Tab Hunian| H[Pilih Tambah Hunian / Edit Blok & No. Rumah]
-    H --> I[Simpan Data Hunian Fisik]
+    C -->|Tab Hunian| J[Pilih Tambah Hunian / Edit Blok & No. Rumah]
+    J --> K[Simpan Data Hunian Fisik]
     
-    E --> J[Data Kependudukan Terupdate Real-Time di Dashboard]
-    G --> J
-    I --> J
-    J --> K[Selesai]
+    E --> L[Data Kependudukan & Hunian Terupdate Real-Time di Dashboard]
+    G --> L
+    I --> L
+    K --> L
+    L --> M[Selesai]
 ```
 
 ### 4.3 Flow Pencatatan Kas RT & Laporan Keuangan
