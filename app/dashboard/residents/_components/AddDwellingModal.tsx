@@ -9,10 +9,25 @@ import { z } from "zod";
 import { OwnerSearchSelect } from "./OwnerSearchSelect";
 
 const addDwellingSchema = z.object({
-  mode: z.enum(["single", "bulk"]),
-  blockNumber: z.string().min(1, "Nomor blok wajib diisi").max(20),
+  mode: z.enum(["single", "bulk"], {
+    error: (issue) =>
+      issue.input === undefined
+        ? "Metode penginputan wajib dipilih"
+        : "Metode penginputan tidak valid",
+  }),
+  blockNumber: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Nomor blok wajib diisi"
+        : "Nomor blok harus berupa teks",
+  }).min(1, "Nomor blok wajib diisi").max(20, "Nomor blok maksimal 20 karakter"),
   houseNumber: z.string().optional().nullable(),
-  type: z.enum(["permanen", "kos", "homestay"]),
+  type: z.enum(["permanen", "kos", "homestay"], {
+    error: (issue) =>
+      issue.input === undefined
+        ? "Tipe hunian wajib dipilih"
+        : "Tipe hunian tidak valid",
+  }),
   notes: z.string().optional().nullable(),
   latitude: z.string().optional().nullable(),
   longitude: z.string().optional().nullable(),
@@ -24,12 +39,22 @@ const addDwellingSchema = z.object({
     if (val === "" || val === null || val === undefined) return undefined;
     const num = Number(val);
     return isNaN(num) ? undefined : num;
-  }, z.number().int().positive()).optional(),
+  }, z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Nomor rumah awal wajib diisi"
+        : "Nomor rumah awal harus berupa angka",
+  }).int("Nomor rumah awal harus berupa bilangan bulat").positive("Nomor rumah awal harus angka positif (minimal 1)")).optional(),
   endNumber: z.preprocess((val) => {
     if (val === "" || val === null || val === undefined) return undefined;
     const num = Number(val);
     return isNaN(num) ? undefined : num;
-  }, z.number().int().positive()).optional(),
+  }, z.number({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Nomor rumah akhir wajib diisi"
+        : "Nomor rumah akhir harus berupa angka",
+  }).int("Nomor rumah akhir harus berupa bilangan bulat").positive("Nomor rumah akhir harus angka positif (minimal 1)")).optional(),
 }).superRefine((data, ctx) => {
   if (data.mode === "single") {
     if (!data.houseNumber || data.houseNumber.trim() === "") {
@@ -44,21 +69,21 @@ const addDwellingSchema = z.object({
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["startNumber"],
-        message: "Nomor awal wajib diisi untuk input massal",
+        message: "Nomor rumah awal wajib diisi untuk input massal",
       });
     }
     if (data.endNumber === undefined || data.endNumber === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["endNumber"],
-        message: "Nomor akhir wajib diisi untuk input massal",
+        message: "Nomor rumah akhir wajib diisi untuk input massal",
       });
     }
     if (data.startNumber && data.endNumber && data.startNumber > data.endNumber) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["endNumber"],
-        message: "Nomor akhir harus lebih besar atau sama dengan nomor awal",
+        message: "Nomor rumah akhir harus lebih besar atau sama dengan nomor awal",
       });
     }
   }
@@ -138,25 +163,51 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
     if (isOpen) {
+      setActiveTab("single");
+      reset({
+        mode: "single",
+        blockNumber: "",
+        houseNumber: "",
+        type: "permanen",
+        notes: "",
+        latitude: "",
+        longitude: "",
+        coordinates: "",
+        ownerUserId: "",
+        ownerName: "-",
+        ownerPhone: "-",
+        startNumber: undefined,
+        endNumber: undefined,
+      });
       setIsLoadingUsers(true);
     }
   }
 
   React.useEffect(() => {
     if (isOpen) {
+      let isCancelled = false;
       fetch("/api/users?limit=100&status=active")
         .then((res) => res.json())
         .then((data) => {
-          setUsers(data.users || []);
+          if (!isCancelled) {
+            setUsers(data.users || []);
+            setIsLoadingUsers(false);
+          }
         })
-        .catch((err) => console.error(err))
-        .finally(() => setIsLoadingUsers(false));
+        .catch((err) => {
+          console.error(err);
+          if (!isCancelled) setIsLoadingUsers(false);
+        });
+
+      return () => {
+        isCancelled = true;
+      };
     }
   }, [isOpen]);
 
   const handleTabChange = (tab: "single" | "bulk") => {
     setActiveTab(tab);
-    setValue("mode", tab);
+    setValue("mode", tab, { shouldValidate: true });
   };
 
   const handleClose = () => {
@@ -173,8 +224,9 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
     }
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (formData: any) => {
     try {
+      const data = { ...formData, mode: activeTab };
       // Split coordinates into latitude and longitude if provided
       if (data.coordinates && data.coordinates.trim() !== "") {
         const parts = data.coordinates.split(",");
@@ -199,6 +251,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
 
       toast.success(result.message || "Hunian berhasil ditambahkan");
       reset();
+      setActiveTab("single");
       onSuccess();
     } catch (error: any) {
       toast.error(error.message || "Terjadi kesalahan koneksi");
@@ -266,6 +319,7 @@ export const AddDwellingModal: React.FC<AddDwellingModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit, onFormError)} className="flex flex-col flex-1 overflow-hidden">
+          <input type="hidden" {...register("mode")} value={activeTab} />
           <div className="flex-1 overflow-y-auto p-6 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-border/50 [&::-webkit-scrollbar-thumb]:rounded-full">
             {/* Block Number */}
             <FormField

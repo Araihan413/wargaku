@@ -9,9 +9,19 @@ import { z } from "zod";
 import { CoordinatorItem } from "./CoordinatorTable";
 
 const editCoordinatorSchema = z.object({
-  name: z.string().min(2, "Nama minimal 2 karakter").max(100),
-  email: z.string().email("Format email tidak valid").max(100),
-  phone: z.string().min(10, "Nomor HP minimal 10 digit").max(15).optional().nullable().or(z.literal("")),
+  name: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Nama koordinator wajib diisi"
+        : "Nama koordinator harus berupa teks",
+  }).min(2, "Nama minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
+  email: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Email koordinator wajib diisi"
+        : "Email koordinator harus berupa teks",
+  }).email("Format email tidak valid").max(100, "Email maksimal 100 karakter"),
+  phone: z.string().min(10, "Nomor HP minimal 10 digit").max(15, "Nomor HP maksimal 15 digit").optional().nullable().or(z.literal("")),
 });
 
 type EditCoordinatorInput = z.infer<typeof editCoordinatorSchema>;

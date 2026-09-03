@@ -10,9 +10,24 @@ import { z } from "zod";
 import { OwnerSearchSelect } from "./OwnerSearchSelect";
 
 const editDwellingSchema = z.object({
-  blockNumber: z.string().min(1, "Nomor blok wajib diisi").max(20),
-  houseNumber: z.string().min(1, "Nomor rumah wajib diisi").max(20),
-  type: z.enum(["permanen", "kos", "homestay"]),
+  blockNumber: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Nomor blok wajib diisi"
+        : "Nomor blok harus berupa teks",
+  }).min(1, "Nomor blok wajib diisi").max(20, "Nomor blok maksimal 20 karakter"),
+  houseNumber: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Nomor rumah wajib diisi"
+        : "Nomor rumah harus berupa teks",
+  }).min(1, "Nomor rumah wajib diisi").max(20, "Nomor rumah maksimal 20 karakter"),
+  type: z.enum(["permanen", "kos", "homestay"], {
+    error: (issue) =>
+      issue.input === undefined
+        ? "Tipe hunian wajib dipilih"
+        : "Tipe hunian tidak valid",
+  }),
   isActive: z.boolean(),
   notes: z.string().optional().nullable(),
   latitude: z.string().optional().nullable(),

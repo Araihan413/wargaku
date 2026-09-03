@@ -8,10 +8,25 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const coordinatorSchema = z.object({
-  name: z.string().min(2, "Nama minimal 2 karakter").max(100),
-  email: z.string().email("Format email tidak valid").max(100),
-  nik: z.string().regex(/^\d{16}$/, "NIK harus 16 digit angka"),
-  phone: z.string().min(10, "Nomor HP minimal 10 digit").max(15).optional().nullable().or(z.literal("")),
+  name: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Nama koordinator wajib diisi"
+        : "Nama koordinator harus berupa teks",
+  }).min(2, "Nama minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
+  email: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Email koordinator wajib diisi"
+        : "Email koordinator harus berupa teks",
+  }).email("Format email tidak valid").max(100, "Email maksimal 100 karakter"),
+  nik: z.string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "NIK koordinator wajib diisi"
+        : "NIK koordinator harus berupa teks",
+  }).regex(/^\d{16}$/, "NIK harus 16 digit angka"),
+  phone: z.string().min(10, "Nomor HP minimal 10 digit").max(15, "Nomor HP maksimal 15 digit").optional().nullable().or(z.literal("")),
 });
 
 interface AddCoordinatorModalProps {
