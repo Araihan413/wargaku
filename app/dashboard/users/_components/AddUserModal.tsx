@@ -501,6 +501,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                               label: d.label || `Blok ${d.blockNumber} No. ${d.houseNumber}`,
                             }))}
                             placeholder="Pilih Alamat Hunian..."
+                            searchPlaceholder="Cari nomor rumah / blok..."
                           />
                         )}
                       />

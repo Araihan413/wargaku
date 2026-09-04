@@ -49,7 +49,6 @@ export interface WargaFamilyDetail {
   familyNumber: string;
   headUserId: string;
   headName: string;
-  unitNumber?: string | null;
   kkFile?: string | null;
   verificationStatus: VerificationStatusType;
   verificationNote?: string | null;

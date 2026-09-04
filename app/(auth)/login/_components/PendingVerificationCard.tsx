@@ -10,7 +10,6 @@ interface PendingUser {
   nik?: string;
   phone?: string;
   familyNumber?: string;
-  unitNumber?: string;
 }
 
 interface PendingVerificationCardProps {

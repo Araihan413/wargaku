@@ -14,6 +14,7 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { RegistrationApprovalsSkeleton } from "./_components/RegistrationApprovalsSkeleton";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { TablePagination } from "@/components/TablePagination";
 
 
 interface PendingUser {
@@ -25,7 +26,6 @@ interface PendingUser {
   roleId?: number;
   phone?: string | null;
   familyNumber?: string | null;
-  unitNumber?: string | null;
   createdAt: string;
   dwellingId?: number | null;
   blockNumber?: string | null;
@@ -44,6 +44,8 @@ function RegistrationApprovalsContent() {
   const [pendingList, setPendingList] = useState<PendingUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Modal states
   const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
@@ -234,7 +236,9 @@ function RegistrationApprovalsContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
-                {pendingList.map((user) => {
+                {pendingList
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((user) => {
                   const addressStr = user.blockNumber
                     ? `Blok ${user.blockNumber} No. ${user.houseNumber || "-"}`
                     : "Belum diset";
@@ -270,9 +274,7 @@ function RegistrationApprovalsContent() {
                       <td className="py-4 px-5 font-mono text-gray-secondary-text">{user.nik}</td>
                       <td className="py-4 px-5 font-mono text-gray-secondary-text">{user.familyNumber || "-"}</td>
                       <td className="py-4 px-5 text-gray-secondary-text">
-                        <span>
-                          {addressStr} {user.unitNumber ? `(Unit ${user.unitNumber})` : ""}
-                        </span>
+                        <span>{addressStr}</span>
                       </td>
                       <td className="py-4 px-5 text-center text-gray-secondary-text">
                         <span>{formatDate(user.createdAt)}</span>
@@ -308,6 +310,24 @@ function RegistrationApprovalsContent() {
             </table>
           )}
         </div>
+
+        {/* Pagination Footer */}
+        {!isLoading && pendingList.length > 0 && (
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(pendingList.length / itemsPerPage) || 1}
+            totalItems={pendingList.length}
+            currentItemsCount={
+              pendingList.slice(
+                (currentPage - 1) * itemsPerPage,
+                currentPage * itemsPerPage
+              ).length
+            }
+            itemLabel="pendaftaran antrean"
+            onPageChange={setCurrentPage}
+            isLoading={isLoading}
+          />
+        )}
       </div>
 
       {/* Modal Approve Confirmation */}

@@ -1,7 +1,5 @@
 import React from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   RefreshCw,
   Lock,
   UserCheck,
@@ -11,6 +9,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { TablePagination } from "@/components/TablePagination";
 import { UserItem } from "../types";
 
 interface UserTableProps {
@@ -257,40 +256,17 @@ export const UserTable: React.FC<UserTableProps> = ({
         </table>
       </div>
 
-      {/* Paginasi Footer */}
+      {/* Pagination Footer */}
       {!isLoading && users.length > 0 && (
-        <div className="flex items-center justify-between border-t border-gray-border bg-gray-card px-5 py-4">
-          <div className="text-xs text-gray-secondary-text">
-            Menampilkan{" "}
-            <span className="font-semibold text-gray-heading-main">
-              {users.length}
-            </span>{" "}
-            dari{" "}
-            <span className="font-semibold text-gray-heading-main">
-              {totalItems}
-            </span>{" "}
-            data
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="px-3 text-xs font-bold text-gray-heading-main">
-              Halaman {currentPage} dari {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages || isLoading}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          currentItemsCount={users.length}
+          itemLabel="pengguna"
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+        />
       )}
     </div>
   );

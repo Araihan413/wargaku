@@ -116,20 +116,14 @@ export const KKDetailCard: React.FC<KKDetailCardProps> = ({
           </div>
           <div>
             <span className="text-xs font-bold text-gray-secondary-text uppercase tracking-wider block">
-              Alamat Tinggal / Unit
+              Alamat Rumah / Hunian
             </span>
             <span className="text-sm font-extrabold text-gray-heading-main block mt-1">
               {addressStr}
             </span>
-            {familyDetail.unitNumber ? (
-              <span className="text-xs text-gray-secondary-text block mt-0.5">
-                Nomor Unit: {familyDetail.unitNumber}
-              </span>
-            ) : (
-              <span className="text-xs text-gray-placeholder block mt-0.5">
-                Tipe: {familyDetail.dwelling?.type || "permanen"}
-              </span>
-            )}
+            <span className="text-xs text-gray-secondary-text block mt-0.5 capitalize">
+              Tipe: {familyDetail.dwelling?.type === "kos" ? "Rumah Kost" : familyDetail.dwelling?.type === "homestay" ? "Homestay" : "Rumah Permanen"}
+            </span>
           </div>
         </div>
 

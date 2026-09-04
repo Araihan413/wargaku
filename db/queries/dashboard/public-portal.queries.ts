@@ -111,7 +111,6 @@ export interface ActiveResidentEntry {
   name: string;
   type?: string | null;
   memberCount?: number | null;
-  unitNumber?: string | null;
   checkInDate?: string | Date | null;
 }
 

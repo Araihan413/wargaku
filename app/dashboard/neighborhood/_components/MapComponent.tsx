@@ -30,7 +30,6 @@ interface Family {
   id: number;
   familyNumber: string;
   headName: string;
-  unitNumber: string | null;
   members: FamilyMember[];
 }
 

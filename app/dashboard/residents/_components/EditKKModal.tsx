@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, CreditCard, Calendar, Home, Loader2 } from "lucide-react";
+import { X, CreditCard, Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateFamilySchema } from "@/lib/validations/kependudukan";
 import { FormField } from "@/components/FormField";
@@ -35,7 +35,6 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
     defaultValues: {
       dwellingId: undefined as any,
       familyNumber: "",
-      unitNumber: "",
       checkInDate: "",
       verificationStatus: "pending" as any,
       verificationNote: "",
@@ -50,7 +49,6 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
     reset({
       dwellingId: family.dwellingId,
       familyNumber: family.familyNumber,
-      unitNumber: family.unitNumber || "",
       checkInDate: family.checkInDate ? family.checkInDate.split("T")[0] : "",
       verificationStatus: family.verificationStatus,
       verificationNote: family.verificationNote || "",
@@ -83,7 +81,6 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
       const payload = {
         ...data,
         dwellingId: Number(data.dwellingId),
-        unitNumber: data.unitNumber || null,
         verificationNote: data.verificationNote || null,
       };
 
@@ -179,6 +176,7 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
                       onChange={(val) => field.onChange(val ? Number(val) : undefined)}
                       options={dwellingSelectOptions}
                       placeholder="Pilih Hunian Warga..."
+                      searchPlaceholder="Cari nomor rumah / blok..."
                     />
                   )}
                 />
@@ -189,17 +187,6 @@ export const EditKKModal: React.FC<EditKKModalProps> = ({
                 </p>
               )}
             </div>
-
-            {/* Unit Number */}
-            <FormField
-              id="unitNumber"
-              label="Nomor Unit"
-              type="text"
-              placeholder="Contoh: A-10, Lt. 2 (Jika apartemen/kos/kontrakan)"
-              registerProps={register("unitNumber")}
-              icon={Home}
-              error={errors.unitNumber?.message}
-            />
 
             {/* Check In Date */}
             <FormField

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import logo from '@/public/logo/logo.webp';
+import wargakuText from '@/public/logo/wargakuTeks.webp';
 import Image from "next/image";
 import { useRoleStore } from "@/lib/store/use-role-store";
 import { useFamilyVerification } from "@/lib/hooks/use-family-verification";
@@ -465,17 +466,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Image src={logo} alt="Logo Wargaku" width={48} height={48} priority />
             </div>
 
-            <div className={`flex flex-col justify-center items-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+            <div className={`flex items-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
               isCollapsed 
                 ? 'opacity-0 max-w-0 ml-0 pointer-events-none duration-150 delay-0' 
                 : 'opacity-100 max-w-xs ml-3 duration-300 delay-200'
             }`}>
-              <span className="text-3xl font-bold tracking-tight leading-tight text-primary-900">
-                Warga <span className="text-secondary -ml-1.5">Ku</span>
-              </span>
-              <span className="text-[8px] font-bold text-gray-secondary-text">
-                Terhubung, Tertata, Untuk Kita Semua
-              </span>
+              <Image
+                src={wargakuText}
+                alt="Logo Wargaku"
+                width={144}
+                height={53}
+                priority
+                className="h-12 w-auto object-contain shrink-0"
+              />
             </div>
           </Link>
 

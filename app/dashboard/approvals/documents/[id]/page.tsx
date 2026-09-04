@@ -67,7 +67,6 @@ interface FamilyDetail {
   id: number;
   familyNumber: string;
   headName: string;
-  unitNumber: string | null;
   kkFile: string | null;
   verificationStatus: "draft" | "pending" | "verified" | "rejected";
   verificationNote: string | null;
@@ -412,7 +411,6 @@ export default function DocumentVerificationWorkspacePage() {
                     {family.dwelling ? (
                       <h4 className="text-xs font-bold text-gray-heading-main">
                         Blok {family.dwelling.blockNumber} No. {family.dwelling.houseNumber}
-                        {family.unitNumber ? ` (Unit ${family.unitNumber})` : ""}
                       </h4>
                     ) : (
                       <span className="text-xs font-bold text-gray-placeholder">

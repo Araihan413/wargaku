@@ -123,6 +123,8 @@ export async function GET(request: Request) {
       const offset = searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined;
       const query = searchParams.get('query') || undefined;
       const type = (searchParams.get('type') as 'permanen' | 'kos' | 'homestay') || undefined;
+      const rawSortBy = searchParams.get('sortBy');
+      const sortBy = (['newest', 'oldest', 'a-z', 'z-a'].includes(rawSortBy || '') ? rawSortBy : 'newest') as 'newest' | 'oldest' | 'a-z' | 'z-a';
       
       let isActive: boolean | undefined = undefined;
       if (searchParams.get('isActive') !== null) {
@@ -135,6 +137,7 @@ export async function GET(request: Request) {
         query,
         type,
         isActive,
+        sortBy,
         coordinatorUserId: isGlobalAdmin ? undefined : session.user.id,
       });
 

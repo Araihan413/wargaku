@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
-import { eq, and, or, like, desc, sql, ne } from 'drizzle-orm';
+import { eq, and, or, like, desc, asc, sql, ne } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { cleanupOldCoordinatorRole } from '@/db/queries/property/rental-property.queries';
 import { decryptPII, maskNIK, maskFamilyNumber, maskPhone } from '@/lib/crypto-pii';
@@ -43,6 +43,7 @@ export interface ListDwellingsOptions {
   type?: 'permanen' | 'kos' | 'homestay';
   isActive?: boolean;
   coordinatorUserId?: string;
+  sortBy?: 'newest' | 'oldest' | 'a-z' | 'z-a';
 }
 
 // ==========================================
@@ -69,6 +70,23 @@ export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  let orderByClause;
+  switch (options.sortBy) {
+    case 'oldest':
+      orderByClause = [asc(schema.dwellings.createdAt)];
+      break;
+    case 'a-z':
+      orderByClause = [asc(schema.dwellings.blockNumber), asc(schema.dwellings.houseNumber)];
+      break;
+    case 'z-a':
+      orderByClause = [desc(schema.dwellings.blockNumber), desc(schema.dwellings.houseNumber)];
+      break;
+    case 'newest':
+    default:
+      orderByClause = [desc(schema.dwellings.createdAt)];
+      break;
+  }
 
   // Subquery: hitung family_members aktif per dwelling (via families)
   const memberCountSubquery = db
@@ -121,7 +139,7 @@ export async function listDwellingsAdmin(options: ListDwellingsOptions = {}) {
     .where(whereClause)
     .limit(limit)
     .offset(offset)
-    .orderBy(desc(schema.dwellings.createdAt));
+    .orderBy(...orderByClause);
 
   let totalCountQuery = db
     .select({ count: sql<number>`count(*)` })
@@ -249,9 +267,10 @@ export async function listActiveDwellingsPublic() {
       schema.rentalProperties,
       and(eq(schema.dwellings.id, schema.rentalProperties.dwellingId), eq(schema.rentalProperties.isActive, true))
     )
-    .where(eq(schema.dwellings.isActive, true));
+    .where(eq(schema.dwellings.isActive, true))
+    .orderBy(asc(schema.dwellings.blockNumber), asc(schema.dwellings.houseNumber));
 
-  return dwellings.map((d) => ({
+  const formatted = dwellings.map((d) => ({
     id: d.id,
     label: `Blok ${d.blockNumber} No. ${d.houseNumber}`,
     blockNumber: d.blockNumber,
@@ -260,6 +279,13 @@ export async function listActiveDwellingsPublic() {
     ownerUserId: d.ownerUserId,
     hasActiveRental: d.hasActiveRental,
   }));
+
+  // Natural alphanumeric sort (e.g. Blok A No. 1, Blok A No. 2, Blok A No. 10)
+  return formatted.sort((a, b) => {
+    const blockCompare = a.blockNumber.localeCompare(b.blockNumber, undefined, { numeric: true, sensitivity: 'base' });
+    if (blockCompare !== 0) return blockCompare;
+    return a.houseNumber.localeCompare(b.houseNumber, undefined, { numeric: true, sensitivity: 'base' });
+  });
 }
 
 /**

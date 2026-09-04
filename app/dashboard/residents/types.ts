@@ -4,7 +4,6 @@ export interface FamilyItem {
   headUserId: string;
   headName: string;
   dwellingId: number;
-  unitNumber?: string | null;
   kkFile?: string | null;
   verificationStatus: "draft" | "pending" | "verified" | "rejected";
   verificationNote?: string | null;
@@ -49,7 +48,6 @@ export interface FamilyDetail {
   familyNumber: string;
   headUserId: string;
   headName: string;
-  unitNumber?: string | null;
   kkFile?: string | null;
   verificationStatus: "draft" | "pending" | "verified" | "rejected";
   verificationNote?: string | null;

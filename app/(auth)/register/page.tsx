@@ -299,14 +299,14 @@ export default function RegisterPage() {
             <Image 
               src={wargakuText}
               alt="Text Wargaku"
-              width={160}
-              height={40}
+              width={200}
+              height={50}
               priority
-              className="w-40 h-10 object-contain"
+              className="w-48 sm:w-52 h-12 sm:h-13 object-contain"
             />
           </div>
           
-          <p className="text-xs text-gray-secondary-text mt-1">
+          <p className="text-xs text-gray-secondary-text mt-4">
             {accountType === "coordinator" ? "Pendaftaran Mandiri Koordinator Kos" : "Registrasi Mandiri Kepala Keluarga Baru"}
           </p>
 

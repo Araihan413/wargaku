@@ -1,6 +1,7 @@
 import React from "react";
-import { ChevronLeft, ChevronRight, Eye, CheckCircle, LogOut, Pencil } from "lucide-react";
+import { Eye, CheckCircle, LogOut, Pencil } from "lucide-react";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { TablePagination } from "@/components/TablePagination";
 
 export interface RentalResidentItem {
   id: number;
@@ -212,32 +213,15 @@ export const RentalTable: React.FC<RentalTableProps> = ({
 
       {/* Pagination Footer */}
       {!isLoading && residents.length > 0 && (
-        <div className="flex items-center justify-between px-5 py-4 border-t border-gray-border bg-gray-sidebar-hover/20">
-          <div className="text-xs text-gray-secondary-text font-medium">
-            Menampilkan <span className="font-semibold text-gray-heading-main">{residents.length}</span> dari{" "}
-            <span className="font-semibold text-gray-heading-main">{totalItems}</span> data penyewa
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="p-1.5 border border-gray-border rounded-lg bg-gray-card hover:bg-gray-sidebar-hover text-gray-secondary-text disabled:opacity-40 disabled:hover:bg-gray-card cursor-pointer transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-xs font-semibold text-gray-secondary-text">
-              Halaman <span className="text-gray-heading-main">{currentPage}</span> dari{" "}
-              <span className="text-gray-heading-main">{totalPages}</span>
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages || isLoading}
-              className="p-1.5 border border-gray-border rounded-lg bg-gray-card hover:bg-gray-sidebar-hover text-gray-secondary-text disabled:opacity-40 disabled:hover:bg-gray-card cursor-pointer transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          currentItemsCount={residents.length}
+          itemLabel="data penyewa"
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+        />
       )}
     </div>
   );

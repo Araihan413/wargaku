@@ -56,8 +56,6 @@ import { getClientIp } from '@/lib/audit-logger';
  *           schema:
  *             type: object
  *             properties:
- *               unitNumber:
- *                 type: string
  *               kkFile:
  *                 type: string
  *               checkInDate:

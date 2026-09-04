@@ -19,6 +19,7 @@ import { useDebounce } from "@/lib/hooks/use-debounce";
 import { RefreshButton } from "@/components/RefreshButton";
 import { CustomSelect, SelectOption } from "@/components/CustomSelect";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { TablePagination } from "@/components/TablePagination";
 import { DocumentApprovalsSkeleton } from "./_components/DocumentApprovalsSkeleton";
 import { SecureDocumentLink } from "@/components/SecureDocumentLink";
 
@@ -38,7 +39,6 @@ interface FamilyItem {
   id: number;
   familyNumber: string;
   headName: string;
-  unitNumber?: string | null;
   kkFile?: string | null;
   verificationStatus: "pending" | "verified" | "rejected";
   verificationNote?: string | null;
@@ -84,6 +84,8 @@ function DocumentApprovalsContent() {
   const [familiesList, setFamiliesList] = useState<FamilyItem[]>([]);
   const [rentalList, setRentalList] = useState<RentalResidentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Tab pending indicator counts
   const [familyPendingCount, setFamilyPendingCount] = useState<number>(0);
@@ -126,6 +128,7 @@ function DocumentApprovalsContent() {
         } else {
           setRentalList(result.data || []);
         }
+        setCurrentPage(1);
       } else {
         toast.error(result.error || "Gagal memuat antrean dokumen");
       }
@@ -357,7 +360,9 @@ function DocumentApprovalsContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
-                  {familiesList.map((fam) => {
+                  {familiesList
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((fam) => {
                     const addressStr = `Blok ${fam.blockNumber} No. ${fam.houseNumber}`;
                     return (
                       <tr key={`${fam.submissionType}-${fam.id}-${fam.changeRequestId || "reg"}`} className="hover:bg-gray-sidebar-hover/5 transition-colors">
@@ -387,11 +392,6 @@ function DocumentApprovalsContent() {
                         <td className="py-4 px-5 min-w-32.5 text-gray-secondary-text">
                           <div>
                             <span className="text-gray-heading-main font-semibold">{addressStr}</span>
-                            {fam.unitNumber && (
-                              <span className="ml-1.5 text-[10px] font-semibold bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-gray-secondary-text">
-                                {fam.unitNumber}
-                              </span>
-                            )}
                           </div>
                         </td>
                         <td className="py-4 px-5 min-w-27.5 text-center font-semibold text-gray-heading-main">
@@ -476,7 +476,9 @@ function DocumentApprovalsContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-border text-sm text-gray-heading-main">
-                {rentalList.map((ren) => {
+                {rentalList
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((ren) => {
                   const addressStr = `Blok ${ren.blockNumber} No. ${ren.houseNumber}`;
                   return (
                     <tr key={ren.id} className="hover:bg-gray-sidebar-hover/5 transition-colors">
@@ -573,6 +575,45 @@ function DocumentApprovalsContent() {
             </table>
           )}
         </div>
+
+        {/* Pagination Footer */}
+        {!isLoading && (
+          activeTab === "family" ? (
+            familiesList.length > 0 && (
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(familiesList.length / itemsPerPage) || 1}
+                totalItems={familiesList.length}
+                currentItemsCount={
+                  familiesList.slice(
+                    (currentPage - 1) * itemsPerPage,
+                    currentPage * itemsPerPage
+                  ).length
+                }
+                itemLabel="dokumen KK"
+                onPageChange={setCurrentPage}
+                isLoading={isLoading}
+              />
+            )
+          ) : (
+            rentalList.length > 0 && (
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(rentalList.length / itemsPerPage) || 1}
+                totalItems={rentalList.length}
+                currentItemsCount={
+                  rentalList.slice(
+                    (currentPage - 1) * itemsPerPage,
+                    currentPage * itemsPerPage
+                  ).length
+                }
+                itemLabel="dokumen penghuni sewa"
+                onPageChange={setCurrentPage}
+                isLoading={isLoading}
+              />
+            )
+          )
+        )}
       </div>
 
 

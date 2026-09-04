@@ -36,7 +36,6 @@ export interface CreateUserInput {
   familyNumber?: string | null;
   dwellingId?: number | null;
   rentalPropertyId?: number | null;
-  unitNumber?: string | null;
   gender?: 'L' | 'P' | null;
 }
 

@@ -233,6 +233,7 @@ export const AddKKModal: React.FC<AddKKModalProps> = ({
                   onChange={setDwellingId}
                   options={dwellingSelectOptions}
                   placeholder="Pilih Alamat Hunian Rumah..."
+                  searchPlaceholder="Cari nomor rumah / blok..."
                 />
               )}
             </div>

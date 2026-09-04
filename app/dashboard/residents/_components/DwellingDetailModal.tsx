@@ -12,7 +12,6 @@ interface FamilyDetailInfo {
   id: number;
   familyNumber: string;
   headName: string;
-  unitNumber?: string | null;
   checkInDate: string;
   memberCount: number;
   verificationStatus: "pending" | "verified" | "rejected";
@@ -314,10 +313,6 @@ export const DwellingDetailModal: React.FC<DwellingDetailModalProps> = ({
                               <span className="font-semibold text-gray-heading-main block mt-0.5">{fam.memberCount} Orang</span>
                             </div>
                           </div>
-                            <div className="text-xs border-t border-gray-border/30 pt-2 flex items-center justify-between">
-                              <span className="text-gray-secondary-text">No. Unit/Pintu:</span>
-                              <span className="font-semibold text-gray-heading-main">{fam.unitNumber || "-"}</span>
-                            </div>
                         </div>
                       ))}
                     </div>

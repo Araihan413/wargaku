@@ -25,7 +25,6 @@ export const createUserByAdminSchema = z.object({
   // Fields Warga (Role 6)
   familyNumber: z.string().optional().nullable().or(z.literal("")),
   dwellingId: z.number().optional().nullable(),
-  unitNumber: z.string().optional().nullable().or(z.literal("")),
   gender: z.enum(["L", "P"]).optional().nullable(),
 
   // Field Koordinator Kos (Role 5)

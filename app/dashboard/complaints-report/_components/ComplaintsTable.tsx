@@ -1,5 +1,6 @@
 import React from "react";
-import { Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye } from "lucide-react";
+import { TablePagination } from "@/components/TablePagination";
 import { ComplaintReportItem, ReportPagination } from "../types";
 
 interface ComplaintsTableProps {
@@ -125,40 +126,16 @@ export const ComplaintsTable: React.FC<ComplaintsTableProps> = ({
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination Footer */}
       {pagination.totalPages > 1 && (
-        <div className="p-4 border-t border-gray-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <p className="text-gray-secondary-text font-medium">
-            Menampilkan{" "}
-            <strong>{(pagination.currentPage - 1) * pagination.limit + 1}</strong>
-            {" - "}
-            <strong>{Math.min(pagination.currentPage * pagination.limit, pagination.totalItems)}</strong>
-            {" dari "}<strong>{pagination.totalItems}</strong> aduan
-          </p>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => onPageChange(pagination.currentPage - 1)}
-              disabled={pagination.currentPage <= 1}
-              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-bold text-gray-heading-main transition-all inline-flex items-center gap-1 cursor-pointer"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Sebelumnya</span>
-            </button>
-            <span className="px-3 py-1.5 bg-primary/10 text-primary font-extrabold rounded-lg">
-              {pagination.currentPage} / {pagination.totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => onPageChange(pagination.currentPage + 1)}
-              disabled={pagination.currentPage >= pagination.totalPages}
-              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-bold text-gray-heading-main transition-all inline-flex items-center gap-1 cursor-pointer"
-            >
-              <span>Selanjutnya</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        <TablePagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          currentItemsCount={data.length}
+          itemLabel="pengaduan"
+          onPageChange={onPageChange}
+        />
       )}
     </div>
   );

@@ -41,7 +41,6 @@ export const createFamilySchema = z.object({
     .max(100, 'Nama Kepala Keluarga maksimal 100 karakter')
     .optional().nullable(),
     
-  unitNumber: z.string().max(10, 'Nomor unit maksimal 10 karakter').optional().nullable(),
   kkFile: z.string().max(255).optional().nullable(),
   
   checkInDate: z.preprocess(datePreprocessor, z.date({
@@ -281,7 +280,6 @@ export const transferFamilyMemberSchema = z.object({
   targetFamilyId: z.number().int().positive().optional().nullable(),
   familyNumber: z.preprocess((arg) => (arg === '' ? null : arg), z.string().regex(kkNumberRegex, 'Nomor Kartu Keluarga harus terdiri dari 16 digit angka').optional().nullable()),
   dwellingId: z.number().int().positive().optional().nullable(),
-  unitNumber: z.string().max(10, 'Nomor unit maksimal 10 karakter').optional().nullable(),
   checkInDate: z.preprocess((arg) => {
     if (arg === '' || arg === null || arg === undefined) return undefined;
     if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);

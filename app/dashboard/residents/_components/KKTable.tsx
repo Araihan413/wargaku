@@ -1,6 +1,4 @@
 import {
-  ChevronLeft,
-  ChevronRight,
   Eye,
   Pencil,
   Ban,
@@ -12,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { TablePagination } from "@/components/TablePagination";
 import { FamilyItem } from "../types";
 
 interface KKTableProps {
@@ -77,13 +76,8 @@ export const KKTable: React.FC<KKTableProps> = ({
                       {f.headName}
                     </td>
                     <td className="py-4 px-5 text-gray-secondary-text">
-                      <div >
+                      <div>
                         <span className="text-gray-heading-main font-medium">{addressStr}</span>
-                        {f.unitNumber && (
-                          <span className="ml-1.5 text-[10px] font-semibold bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-gray-secondary-text">
-                            {f.unitNumber}
-                          </span>
-                        )}
                       </div>
                     </td>
                     <td className="py-4 px-5 text-center font-bold text-gray-heading-main">
@@ -189,38 +183,15 @@ export const KKTable: React.FC<KKTableProps> = ({
 
       {/* Paginasi Footer */}
       {!isLoading && families.length > 0 && (
-        <div className="flex items-center justify-between border-t border-gray-border bg-gray-card px-5 py-4">
-          <div className="text-xs text-gray-secondary-text">
-            Menampilkan{" "}
-            <span className="font-semibold text-gray-heading-main">
-              {families.length}
-            </span>{" "}
-            dari{" "}
-            <span className="font-semibold text-gray-heading-main">
-              {totalItems}
-            </span>{" "}
-            data Kartu Keluarga
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="px-3 text-xs font-bold text-gray-heading-main">
-              Halaman {currentPage} dari {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages || isLoading}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-border text-gray-secondary-text hover:bg-gray-sidebar-hover disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          currentItemsCount={families.length}
+          itemLabel="data Kartu Keluarga"
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+        />
       )}
     </div>
   );

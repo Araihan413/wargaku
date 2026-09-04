@@ -147,7 +147,6 @@ export const updateRentalResidentSchema = z.object({
   verificationStatus: z.enum(['pending', 'verified', 'rejected']).optional(),
   verificationNote: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
-  inactiveReason: z.enum(['pindah', 'meninggal']).optional().nullable(),
   checkOutDate: z.preprocess(optionalDatePreprocessor, z.date().optional().nullable()),
   notes: z.string().optional().nullable(),
 });

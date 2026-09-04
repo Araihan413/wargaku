@@ -35,6 +35,13 @@ import { useRoleStore } from "@/lib/store/use-role-store";
 
 import { PermissionGuard } from "@/components/PermissionGuard";
 
+const DWELLING_SORT_OPTIONS = [
+  { value: "newest", label: "Terbaru" },
+  { value: "oldest", label: "Terlama" },
+  { value: "a-z", label: "Alamat A-Z" },
+  { value: "z-a", label: "Alamat Z-A" },
+];
+
 export default function ResidentsPage() {
   return (
     <PermissionGuard requiredPermission="view-residents">
@@ -93,6 +100,7 @@ function ResidentsContent() {
   const [isEditDwellingOpen, setIsEditDwellingOpen] = useState(false);
   const [selectedDwellingForEdit, setSelectedDwellingForEdit] = useState<DwellingItem | null>(null);
   const [selectedDwellingType, setSelectedDwellingType] = useState("");
+  const [dwellingSortBy, setDwellingSortBy] = useState("newest");
   const [selectedDwellingForDetail, setSelectedDwellingForDetail] = useState<number | null>(null);
   const [isDetailDwellingOpen, setIsDetailDwellingOpen] = useState(false);
 
@@ -189,6 +197,9 @@ function ResidentsContent() {
       if (selectedDwellingType) {
         url += `&type=${selectedDwellingType}`;
       }
+      if (dwellingSortBy) {
+        url += `&sortBy=${dwellingSortBy}`;
+      }
 
       const res = await fetch(url);
       if (res.ok) {
@@ -204,7 +215,7 @@ function ResidentsContent() {
     } finally {
       setIsDwellingsLoading(false);
     }
-  }, [dwellingsCurrentPage, debouncedSearchQuery, selectedDwellingType]);
+  }, [dwellingsCurrentPage, debouncedSearchQuery, selectedDwellingType, dwellingSortBy]);
 
   useEffect(() => {
     if (activeTab === "hunian") {
@@ -578,7 +589,7 @@ function ResidentsContent() {
 
       {activeTab === "hunian" && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-card border border-gray-border p-4 rounded-2xl shadow-sm">
+          <div className="flex flex-col md:flex-row items-center gap-3 bg-gray-card border border-gray-border p-4 rounded-2xl shadow-xs">
             <SearchInput
               value={searchQuery}
               onChange={(val) => {
@@ -590,21 +601,35 @@ function ResidentsContent() {
               isLoading={isDwellingsLoading}
             />
 
-            <div className="w-full sm:w-48 shrink-0">
-              <CustomSelect
-                value={selectedDwellingType}
-                onChange={(val) => {
-                  setSelectedDwellingType(val);
-                  setDwellingsCurrentPage(1);
-                }}
-                options={[
-                  { value: "", label: "Semua Tipe Hunian" },
-                  { value: "permanen", label: "Permanen" },
-                  { value: "kos", label: "Kos" },
-                  { value: "homestay", label: "Homestay" },
-                ]}
-                placeholder="Tipe Hunian"
-              />
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              <div className="w-full sm:w-44 shrink-0">
+                <CustomSelect
+                  value={selectedDwellingType}
+                  onChange={(val) => {
+                    setSelectedDwellingType(val);
+                    setDwellingsCurrentPage(1);
+                  }}
+                  options={[
+                    { value: "", label: "Semua Tipe Hunian" },
+                    { value: "permanen", label: "Permanen" },
+                    { value: "kos", label: "Kos" },
+                    { value: "homestay", label: "Homestay" },
+                  ]}
+                  placeholder="Tipe Hunian"
+                />
+              </div>
+
+              <div className="w-full sm:w-40 shrink-0">
+                <CustomSelect
+                  value={dwellingSortBy}
+                  onChange={(val) => {
+                    setDwellingSortBy(val);
+                    setDwellingsCurrentPage(1);
+                  }}
+                  options={DWELLING_SORT_OPTIONS}
+                  placeholder="Urutkan"
+                />
+              </div>
             </div>
           </div>
 

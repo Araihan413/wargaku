@@ -43,7 +43,6 @@ export interface UserProfileData {
   roleSlug: string | null;
   status: "pending" | "active" | "suspended";
   familyNumber: string | null;
-  unitNumber: string | null;
   dwellingId: number | null;
   createdAt: string | Date;
   dwellingInfo?: DwellingInfo | null;

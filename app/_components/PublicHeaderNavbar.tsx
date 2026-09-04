@@ -34,7 +34,7 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
       <div className="max-w-[1920] mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* Brand & Logo */}
-        <Link href="/" className="group flex items-center gap-2">
+        <Link href="/" className="group flex items-center gap-2.5">
           {settings?.logoPath ? (
             <Image
               src={settings.logoPath}
@@ -54,16 +54,14 @@ export const PublicHeaderNavbar: React.FC<PublicHeaderNavbarProps> = ({ settings
               className="w-10 h-10 object-contain group-hover:scale-105 transition-transform shrink-0"
             />
           )}
-          <div className="flex flex-col gap-0.5 items-center">
             <Image
               src={WargakuText}
               alt="Logo Wargaku"
-              width={120}
-              height={32}
+              width={144}
+              height={53}
               priority
-              className="w-30 h-8 object-contain"
+              className="h-9 w-auto object-contain shrink-0"
             />
-          </div>
         </Link>
 
         {/* Desktop Navigation Links */}

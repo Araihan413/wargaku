@@ -23,7 +23,6 @@ export default function LoginPage() {
     nik?: string;
     phone?: string;
     familyNumber?: string;
-    unitNumber?: string;
   } | null>(null);
 
   const {
@@ -72,7 +71,6 @@ export default function LoginPage() {
           nik: user.nik,
           phone: user.phone,
           familyNumber: user.familyNumber,
-          unitNumber: user.unitNumber,
         });
         toast.warning(
           "Akun Anda berstatus PENDING. Silakan tunggu verifikasi dari Ketua RT."

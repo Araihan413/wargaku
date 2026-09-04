@@ -51,7 +51,6 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
       targetFamilyId: undefined as any,
       familyNumber: "",
       dwellingId: undefined as any,
-      unitNumber: "",
       checkInDate: "",
     },
   });
@@ -121,7 +120,6 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
         targetFamilyId: data.targetFamilyId ? Number(data.targetFamilyId) : null,
         dwellingId: data.dwellingId ? Number(data.dwellingId) : null,
         familyNumber: data.familyNumber || null,
-        unitNumber: data.unitNumber || null,
         checkInDate: data.checkInDate || null,
       };
 
@@ -321,6 +319,7 @@ export const PindahKKModal: React.FC<PindahKKModalProps> = ({
                           onChange={(val) => field.onChange(val ? Number(val) : null)}
                           options={dwellingSelectOptions}
                           placeholder="-- Pilih Alamat Hunian --"
+                          searchPlaceholder="Cari nomor rumah / blok..."
                         />
                         {errors.dwellingId && (
                           <p className="text-xs text-error font-semibold mt-1">

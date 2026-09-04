@@ -104,10 +104,8 @@ export const ResidencyInfoTab: React.FC<ResidencyInfoTabProps> = ({ profile }) =
             <span className="text-xs font-semibold text-gray-secondary-text">Alamat & Hunian Terdaftar</span>
             <p className="text-sm font-bold text-gray-heading-main">
               {profile.dwellingInfo
-                ? `Blok ${profile.dwellingInfo.blockNumber} No. ${profile.dwellingInfo.houseNumber} (${profile.dwellingInfo.type.toUpperCase()})`
-                : profile.unitNumber
-                ? `Unit / No. ${profile.unitNumber}`
-                : "Belum Terdaftar pada Unit Hunian"}
+                ? `Blok ${profile.dwellingInfo.blockNumber} No. ${profile.dwellingInfo.houseNumber} (${profile.dwellingInfo.type === "kos" ? "KOST" : profile.dwellingInfo.type.toUpperCase()})`
+                : "Belum Terdaftar pada Hunian"}
             </p>
             {profile.familyInfo?.headName && (
               <p className="text-xs text-gray-secondary-text">

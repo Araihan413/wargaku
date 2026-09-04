@@ -18,9 +18,9 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
   return (
     <footer className="bg-slate-900 text-white border-t border-slate-800">
       <div className="max-w-[1920] mx-auto px-4 sm:px-6 py-12 space-y-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-12 gap-8">
           {/* Col 1: Brand & Tagline (4 cols) */}
-          <div className="lg:col-span-4 space-y-2">
+          <div className="col-span-2 md:col-span-3 lg:col-span-4 space-y-2">
             <Link href="/" className="flex items-center gap-2 w-max ">
             <div className="w-max">
               <Image src={LogoTextPutih} alt="Logo Wargaku" className="w-40 h-auto" />
@@ -33,7 +33,7 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
           </div>
 
           {/* Col 2: Menu (2 cols) */}
-          <div className="lg:col-span-2 space-y-3">
+          <div className="col-span-1 md:col-span-1 lg:col-span-2 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
               Menu
             </h4>
@@ -72,7 +72,7 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
           </div>
 
           {/* Col 3: Pintasan (3 cols) */}
-          <div className="lg:col-span-3 space-y-3">
+          <div className="col-span-1 md:col-span-1 lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
               Pintasan
             </h4>
@@ -89,14 +89,14 @@ export const PublicContactFooter: React.FC<PublicContactFooterProps> = ({
               </li>
               <li>
                 <Link href="/lapor?tab=tracking" className="hover:text-white transition-colors">
-                  Cek Status Akun / Aduan
+                  Cek Status Aduan
                 </Link>
               </li>
             </ul>
           </div>
 
           {/* Col 4: Kontak (3 cols) */}
-          <div className="lg:col-span-3 space-y-3">
+          <div className="col-span-2 md:col-span-1 lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
               Kontak
             </h4>
