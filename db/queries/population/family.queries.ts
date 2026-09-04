@@ -68,7 +68,20 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
     if (isExact16) {
       conditions.push(eq(schema.families.familyNumberHash, queryHash));
     } else if (!isNumeric) {
-      conditions.push(like(schema.users.name, `%${trimmed}%`));
+      // Cari di nama user (akun terhubung) ATAU nama kepala keluarga dari family_members
+      conditions.push(
+        or(
+          like(schema.users.name, `%${trimmed}%`),
+          // Subquery EXISTS: ada family_member dengan nama yang cocok sebagai Kepala_Keluarga
+          sql<boolean>`EXISTS (
+            SELECT 1 FROM family_members fm
+            WHERE fm.family_id = ${schema.families.id}
+              AND fm.relationship = 'Kepala_Keluarga'
+              AND fm.is_active = 1
+              AND fm.name LIKE ${`%${trimmed}%`}
+          )`
+        )!
+      );
     } else {
       isPartialNumeric = true;
     }
@@ -87,12 +100,27 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
     .groupBy(schema.familyMembers.familyId)
     .as('member_count');
 
+  // Subquery nama kepala keluarga dari family_members (fallback saat headUserId null)
+  const headMemberSubquery = db
+    .select({
+      familyId: schema.familyMembers.familyId,
+      name: schema.familyMembers.name,
+    })
+    .from(schema.familyMembers)
+    .where(
+      and(
+        eq(schema.familyMembers.relationship, 'Kepala_Keluarga'),
+        eq(schema.familyMembers.isActive, true)
+      )
+    )
+    .as('head_member');
+
   const rawData = await db
     .select({
       id: schema.families.id,
       familyNumber: schema.families.familyNumber,
       headUserId: schema.families.headUserId,
-      headName: schema.users.name,
+      headName: sql<string | null>`COALESCE(${schema.users.name}, ${headMemberSubquery.name})`,
       dwellingId: schema.families.dwellingId,
       blockNumber: schema.dwellings.blockNumber,
       houseNumber: schema.dwellings.houseNumber,
@@ -110,6 +138,7 @@ export async function listFamilies(options: ListFamiliesOptions = {}) {
     .leftJoin(schema.users, eq(schema.families.headUserId, schema.users.id))
     .leftJoin(schema.dwellings, eq(schema.families.dwellingId, schema.dwellings.id))
     .leftJoin(memberCountSubquery, eq(schema.families.id, memberCountSubquery.familyId))
+    .leftJoin(headMemberSubquery, eq(schema.families.id, headMemberSubquery.familyId))
     .where(whereClause)
     .limit(isPartialNumeric ? 1000 : limit)
     .offset(isPartialNumeric ? 0 : offset)
