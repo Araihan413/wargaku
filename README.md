@@ -294,8 +294,6 @@ wargaku/
 |
 +-- docs/                         # Dokumentasi tambahan
 +-- public/images/                # Aset statis (logo, ikon)
-+-- PRD.md                        # Product Requirements Document
-+-- AGENTS.md                     # Aturan coding agent
 +-- .env.example                  # Contoh variabel environment
 ```
 
@@ -789,59 +787,3 @@ chore    - Konfigurasi, dependency, tooling
 ```
 
 ---
-
-## Roadmap
-
-### Sudah Selesai (v0.1)
-
-- [x] Autentikasi & RBAC (6 role, 24 permission dinamis)
-- [x] Manajemen Pengguna (CRUD, suspend, reset password sementara)
-- [x] Kependudukan: CRUD KK, anggota keluarga, hunian fisik
-- [x] Alur perubahan KK dengan approval Ketua RT
-- [x] Keuangan: kas RT, aturan iuran, tagihan, pembayaran
-- [x] Laporan keuangan PDF berkop RT
-- [x] Pengaduan warga publik + kode pelacakan instan
-- [x] Pengumuman & kalender kegiatan
-- [x] Notifikasi internal (personal & dinas)
-- [x] Siaran sistem (System Broadcasts)
-- [x] Properti sewa: kos/kontrakan, check-in/out penyewa
-- [x] QR Code hunian + cetak massal PDF
-- [x] Smart Groups + filter multi-kriteria + ekspor CSV
-- [x] Audit trail log aktivitas lengkap
-- [x] Enkripsi PII (NIK, Nomor KK) sesuai UU PDP
-- [x] Swagger UI / OpenAPI dokumentasi interaktif
-- [x] Test suite: security + workflows (Vitest)
-- [x] Pagination standar seluruh tabel dashboard
-- [x] Sorting A-Z hunian (natural sort)
-- [x] Searchable dropdown (CustomSelect)
-
-### Dalam Pengembangan
-
-- [ ] Push notification web (OneSignal)
-- [ ] Peta interaktif persebaran warga (Leaflet)
-- [ ] QR Scanner real-time di perangkat mobile
-
-### Direncanakan (v0.2+)
-
-- [ ] Dark mode
-- [ ] Ekspor laporan Excel (selain PDF)
-- [ ] Pemilihan RT digital (e-voting sederhana)
-- [ ] Multi-RT support (satu instance untuk beberapa RT)
-- [ ] Mobile app (React Native / PWA)
-
----
-
-## Lisensi
-
-Proyek ini bersifat **privat**. Seluruh hak cipta dimiliki oleh pengembang.
-Dilarang mendistribusikan, memodifikasi, atau menggunakan kode ini untuk keperluan komersial tanpa izin tertulis.
-
----
-
-<div align="center">
-
-Dibuat dengan hati untuk kemajuan administrasi lingkungan RT Indonesia
-
-**WargaKu** — *Terhubung, Tertata, Untuk Kita Semua*
-
-</div>
