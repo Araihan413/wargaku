@@ -11,7 +11,6 @@ Dirancang untuk pengurus RT dan warga, sistem ini mengintegrasikan data kependud
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.45-green)](https://orm.drizzle.team)
 [![MySQL](https://img.shields.io/badge/MySQL-8%2B-orange?logo=mysql)](https://mysql.com)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com)
-[![License](https://img.shields.io/badge/Lisensi-Privat-red)](LICENSE)
 
 </div>
 
@@ -34,7 +33,6 @@ Dirancang untuk pengurus RT dan warga, sistem ini mengintegrasikan data kependud
 - [Pengujian Testing](#pengujian-testing)
 - [Keamanan dan Privasi Data](#keamanan-dan-privasi-data)
 - [Panduan Kontribusi](#panduan-kontribusi)
-- [Roadmap](#roadmap)
 
 ---
 
