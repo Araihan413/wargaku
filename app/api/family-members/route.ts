@@ -236,8 +236,17 @@ export async function POST(request: Request) {
     );
   } catch (error: any) {
     if (error instanceof ZodError) {
-      return NextResponse.json({ error: error.issues[0]?.message || 'Validasi gagal' }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message || 'Validasi gagal', issues: error.issues }, { status: 400 });
     }
+
+    const errMsg = String(error?.message || '');
+    if (error?.code === 'ER_DUP_ENTRY' || errMsg.includes('ER_DUP_ENTRY') || errMsg.includes('Duplicate entry')) {
+      if (errMsg.includes('nik') || errMsg.includes('family_members')) {
+        return NextResponse.json({ error: 'NIK sudah terdaftar.' }, { status: 409 });
+      }
+      return NextResponse.json({ error: 'Data sudah ada di sistem.' }, { status: 409 });
+    }
+
     console.error('Error in POST /api/family-members:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }

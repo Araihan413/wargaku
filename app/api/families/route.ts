@@ -157,6 +157,18 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || 'Data tidak valid', issues: error.issues }, { status: 400 });
     }
+
+    const errMsg = String(error?.message || '');
+    if (error?.code === 'ER_DUP_ENTRY' || errMsg.includes('ER_DUP_ENTRY') || errMsg.includes('Duplicate entry')) {
+      if (errMsg.includes('family_number') || errMsg.includes('families')) {
+        return NextResponse.json({ error: 'Nomor KK sudah terdaftar.' }, { status: 409 });
+      }
+      if (errMsg.includes('nik') || errMsg.includes('family_members')) {
+        return NextResponse.json({ error: 'NIK sudah terdaftar.' }, { status: 409 });
+      }
+      return NextResponse.json({ error: 'Data sudah ada di sistem.' }, { status: 409 });
+    }
+
     console.error('Error in POST /api/families:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }

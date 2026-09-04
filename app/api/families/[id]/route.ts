@@ -251,6 +251,15 @@ export async function PUT(
     if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Validasi input gagal', issues: error.issues }, { status: 400 });
     }
+
+    const errMsg = String(error?.message || '');
+    if (error?.code === 'ER_DUP_ENTRY' || errMsg.includes('ER_DUP_ENTRY') || errMsg.includes('Duplicate entry')) {
+      if (errMsg.includes('family_number') || errMsg.includes('families')) {
+        return NextResponse.json({ error: 'Nomor KK sudah terdaftar.' }, { status: 409 });
+      }
+      return NextResponse.json({ error: 'Data sudah ada di sistem.' }, { status: 409 });
+    }
+
     console.error('Error in PUT /api/families/[id]:', error);
     return NextResponse.json({ error: error.message || 'Kesalahan server internal' }, { status: 500 });
   }
